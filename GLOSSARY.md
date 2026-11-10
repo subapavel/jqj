@@ -164,8 +164,37 @@ _Avoid_: yield, return, push (as a noun for the call)
 What receives emitted results.
 
 **Path mode**:
-Running a filter so that each result comes with the path that led to it, as `path()`, `paths` and
-updates need. _(open: how it is expressed, ticket 7)_
+Running a filter's second variant, in which each result comes with the path that led to it or is
+untracked, as `path()`, `paths` and updates need.
+
+**Untracked**:
+A path-mode result with no path. Used as a path, it raises "Invalid path expression".
+
+**Stop**:
+An emit answered with false: the producer emits nothing more and returns.
+_Avoid_: cancel, abort
+
+**Label token**:
+The number one activation of a `label` gets. Its breaks hand it back, and they are no error.
+_Avoid_: label name
+
+**Catch set**:
+The errors a node turns into a run of its handler. A break and a termination are in none.
+
+**Termination**:
+An end of the evaluation that no filter can catch: halt, a budget, a stale view or the stack
+backstop.
+_Avoid_: fatal error
+
+**Tick**:
+One count against the step budget, at a site the IR defines.
+
+**Stack units**:
+The Java stack a call is charged for. A call over the limit runs on the trampoline.
+
+**Trampoline**:
+The interpreter's resumable loop that runs recursion beyond the stack-unit limit on the heap. It
+returns each result to the call that started it.
 
 **Workspace**:
 The reusable scratch memory of one evaluation (tape array, output buffer, path stack), passed in
@@ -173,8 +202,8 @@ by the caller and never shared between two running evaluations.
 _Avoid_: context (that word is taken by jq's `.`), thread-local, arena (that is the JDK's)
 
 **Budget**:
-A hard limit on one evaluation: nesting depth, bytes built, bytes written, steps or time. Going
-over ends the filter with a jq error.
+A hard limit on one evaluation: nesting depth, recursion depth, bytes built, bytes written, steps,
+or time. Going over is a termination that carries a jq error message.
 _Avoid_: quota, timeout (one budget among several)
 
 **Automatic streaming**:

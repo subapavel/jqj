@@ -1,6 +1,6 @@
 # Document and view lifetime: a new JsonDoc per read, detach() for what is kept
 
-Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0007 (2026-11-10, issue #6)
+Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0007 (2026-11-10, issue #6) and ADR-0008 (issue #7)
 
 A view is valid while its document is alive. Every read makes a new `JsonDoc` (~32 B) over the
 Workspace's reused tape, and the previous `JsonDoc` drops both its tape and its bytes. A view of a
@@ -36,3 +36,8 @@ protocol?" will add who ends a document during automatic streaming.
 makes the main document stale (`. as $o | input | [$o, .]` → `[1,2]` on jq-ref). Instead of
 "detached by default", a value that may view an input document is detached when it enters a hold
 that spans a later read. Detaching at every read remains a legal first implementation.
+
+## Amendment (ADR-0008, issue #7)
+
+During streaming that a host enables, the engine ends an element's document when `rest` returns
+for that element. A streamed result view is valid only during its sink call.

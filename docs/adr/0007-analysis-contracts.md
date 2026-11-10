@@ -1,6 +1,6 @@
 # Analysis contracts
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?")
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 (issue #7)
 
 Analyses run once on a frozen program and write an immutable side table of facts, keyed by a
 dense node id. Nothing rewrites a frozen program. An analysis reads only node kinds and
@@ -26,7 +26,8 @@ dense node id. Nothing rewrites a frozen program. An analysis reads only node ki
   navigation steps and input-preserving control flow, plus the `foreach` item variable that
   `limit`, `skip` and `nth` need. Anything else raises "Invalid path expression", including cases
   jq accepts: `path(. as [$a] | $a)` (jq `[0]`), `path(.a | . as $v | $v)` (jq `["a"]`) and
-  `path(.a | true)` (jq `["a"]`). These are listed in `DEVIATIONS.md`.
+  `{"a":true} | path(.a | true)` (jq `["a"]`; on `{"a":1}` jq raises too, F-10). These are listed
+  in `DEVIATIONS.md`.
 - **Root use** reports only whether a filter is *eligible* to stream (`<fixed path> | .[] | rest`,
   where `rest` uses no outer slot and does not read input). Streaming is off unless the host turns
   it on. By default jq-ref prints nothing when a document has a late syntax error, and takes the
@@ -57,3 +58,11 @@ dense node id. Nothing rewrites a frozen program. An analysis reads only node ki
 - **Automatic streaming** (founding §3/§6.7): whether a malformed document gives partial results or
   none would depend on whether the analysis happens to succeed.
 - **One shared tape for `input`**: wrong for `. as $o | input | [$o, .]`.
+
+## Amendment (ADR-0008, issue #7)
+
+- **May break out** is one more fact computed per recursive group, next to cardinality. A subtree
+  that holds a `Break` to an outer label, any `ParamCall`, or a call to a function that does either
+  runs in the push form, never the value form.
+- The `reduce` and `foreach` state stays untracked in path mode (ADR-0010).
+- The path-validity row for `path(.a | true)` holds only on `{"a":true}` (F-10).

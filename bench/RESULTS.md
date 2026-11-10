@@ -4,6 +4,37 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Spike A extension: nested drivers (issue #7), 2026-11-10
+
+- Same machine and JVM as "Spike A" (OpenJDK 25.0.5, 4 vCPU, `-Xms2g -Xmx2g`, default 1 MB
+  stack). Code: branch `spike/recursion-depth` @ `0c6bffe`, variant `hybrid`, with `-Dlimit=256`,
+  `-Dbounce=64` and `-Dresume=false|true`. Raw output is in
+  `spike/recursion/results/7-nested-drivers.log` there.
+- Filter `nested`: `def s: if . == $L then 0 else $a[.] + (. + 1 | s) end; def g: if . == $L then 0
+  else (. + 1 | g) as $x | $x + (($L - 1000) | s) end; 0 | g`. It is a non-tail recursion of
+  depth n whose continuation starts a second recursion of depth 1000 at every level.
+- Two forms of the hand-over from the stack to the trampoline:
+  - **Form A** (Spike A's `hybrid`): the caller's sink runs inside the driver.
+  - **Form B**: the driver stops at each result and returns it to its starter, which emits it from
+    its own frame and then resumes the driver.
+
+Cold JVM, one run each:
+
+| form | n=2000 | n=10⁴ | most live drivers |
+| --- | --- | --- | --- |
+| A | SOE after 1285 ms | SOE after 3936 ms | 201 |
+| B | ok, 954 ms | ok, 3390 ms | 1 |
+
+The cost of form B on N (`nontail`, one result per call): warm medians in ms (min–max), 5 reps.
+
+| form | N=1000 | N=10⁵ | N=10⁶ |
+| --- | --- | --- | --- |
+| A | 0.75 (0.61–1.04) | 31.24 (25.65–59.76) | 392.45 (301.02–559.06) |
+| B | 0.79 (0.75–0.81) | 38.08 (34.67–78.92) | 517.36 (266.65–604.98) |
+
+The ranges overlap. Two earlier runs of the same command gave A 0.54 / 28.51 / 524.97 and
+B 0.75 / 31.11 / 501.97. The cost is within the noise, up to about 1.3×. ADR-0011 takes form B.
+
 ## Tape reader for milestone 1 (issue #5), 2026-11-10
 
 - Same machine, JVM and JMH settings as "Spike B" (2 forks × 5 × 1 s, 3 × 1 s warm-up, `-prof gc`).

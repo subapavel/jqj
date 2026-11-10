@@ -1,6 +1,6 @@
 # Functions in the IR: lifted, called by name, specialised away
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?")
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0009 (issue #7)
 
 Every jq `def` is lifted into the program's function list. Captured variables and enclosing
 closure parameters become trailing parameters. A jq closure is a node of the caller's scope, run
@@ -29,7 +29,7 @@ recursive group.
   - no closure argument captures a slot of the current activation.
 
   Tail calls become jumps, and recursive calls count toward the hybrid's K (amended Spike A).
-- **Builtins** stay jq's own prelude definitions; the only natives are `range/2`, `inputs` and
+- **Builtins** stay jq's own prelude definitions; the only natives are `range/2`, `inputs`, `last/1` (ADR-0009) and
   `flatten`. jq's results, error order and path behaviour come with the definitions:
   `path(limit(2; .[]))`, `path(skip(1; .[]))` and `path(..)` all work in jq. A builtin becomes
   native later only on a measured win, with its own path variant.
@@ -42,3 +42,8 @@ recursive group.
   one needs a hand-written path variant and is one more place to differ from jq.
 - **CPS or continuation nodes in the IR**: the recursion strategy belongs to the execution
   protocol; the IR only shows call kinds.
+
+## Amendment (ADR-0009, issue #7)
+
+`last/1` is a native without a path variant. jq 1.8.2 bytecodes it (`gen_last_1` in `builtin.c`),
+so `[last(empty)]` is `[]` and `path(last(.[]))` raises (F-9).

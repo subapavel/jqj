@@ -19,8 +19,8 @@ command and the evidence it needs, and a change to a check is a finding (`docs/W
    (`ratchet/oracle/json.txt`), and an error names the byte position. Untouched numbers and
    strings come out byte-identical. Every input and output mode of the founding architecture §10
    has a differential case. (Tickets 9, 11.)
-4. **Memory.** Each budget (nesting depth, bytes built, bytes written, deadline) ends a filter
-   with a jq error, shown by a test per budget whose witness would otherwise exhaust the limit.
+4. **Memory.** Each budget (nesting depth, recursion depth, bytes built, bytes written, steps,
+   deadline) ends a filter as an uncatchable termination with a jq error message (ADR-0008, F-8), shown by a test per budget whose witness would otherwise exhaust the limit.
    On the JMH scenarios: field extract allocates no more on 10 MB than on 1 KB beyond the
    tolerance _(Phase 0)_; accumulate is linear in the input; a large document completes in a
    fork with a small fixed heap _(Phase 0: size)_. (Tickets 8, 12.)
