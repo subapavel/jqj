@@ -4,6 +4,28 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Tape reader for milestone 1 (issue #5), 2026-11-10
+
+- Same machine, JVM and JMH settings as "Spike B" (2 forks × 5 × 1 s, 3 × 1 s warm-up, `-prof gc`).
+  Code: branch `spike/field-read` @ `011d4cf`, `spike/fieldread/src/spike/{TapeM1,M1Bench,CheckM1}.java`;
+  raw output `spike/fieldread/results/5-m1.*` and `5-checkm1.log` there. Documents: `Docs.make`,
+  field in the middle.
+- `spikeBTape` = the Spike B tape (reused). `m1NoDup` = the #5 round 1 layout (container offset
+  at the closing bracket) plus UTF-8 classification (invalid UTF-8 or DEL → escaped-string tag)
+  and the 10 000 nesting limit. `m1Dup` = `m1NoDup` plus duplicate-key detection: linear compares
+  up to 8 keys, a reused open-addressing table with an FNV hash above 8 keys.
+- `CheckM1`: same entry counts as Spike B (185 / 19 997 / 2 049 843), `.target` found; duplicates
+  detected below and above 8 keys; depth 10 000 accepted, 10 001 rejected; invalid UTF-8 → tag 6.
+
+| µs/op (B/op) | 1 KB | 100 KB | 10 MB |
+| --- | --- | --- | --- |
+| spikeBTape | 2.094 ± 0.166 (0.015) | 239.457 ± 17.252 (1.7) | 33 422.727 ± 2 321.770 (229) |
+| m1NoDup | 2.118 ± 0.148 (0.015) | 246.242 ± 21.131 (1.7) | 34 308.973 ± 2 804.665 (236) |
+| m1Dup | 2.800 ± 0.122 (0.020) | 325.073 ± 26.434 (2.3) | 48 892.116 ± 5 878.920 (334) |
+
+Duplicate detection in the reader: +32 % at 1 KB and 100 KB, +43 % at 10 MB over `m1NoDup`.
+UTF-8 classification and the depth limit: +1–3 %, inside the error.
+
 ## Spike B — reading one field (issue #4), 2026-11-10
 
 - Machine: Claude Code Cloud VM, 4 vCPU Intel Xeon @ 2.10GHz, 15 GB RAM, Linux 6.18.
