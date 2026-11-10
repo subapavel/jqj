@@ -187,7 +187,8 @@ backstop.
 _Avoid_: fatal error
 
 **Tick**:
-One count against the step budget, at a site the IR defines.
+One count against the step budget: at a site the IR defines, or per element or KiB inside a native
+loop.
 
 **Stack units**:
 The Java stack a call is charged for. A call over the limit runs on the trampoline.

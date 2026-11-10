@@ -28,11 +28,15 @@ into separately compiled code.
     cannot swallow its own budget.
 - **Catch sets:**
   - `Try` catches a `FilterException` raised by its body only. Errors downstream or in the handler
-    propagate, and so does a recursive activation's error, because the mark is per activation.
-    After a catch the body is abandoned: `1, try error(2), 3` gives `1`, `3`.
+    propagate. The mark is per activation: `def f: try (if . > 0 then . - 1 | f else . end) catch
+    "caught"; 2 | f | error("down")` raises `down`, while an outer activation's `Try` still
+    catches an error in its own body (`def f: try (if . > 0 then (. - 1 | f) | error("down") else
+    . end) catch "caught"; 1 | f` → `"caught"`). After a catch the body is abandoned:
+    `[try (1, error(2), 3) catch .]` gives `[1,2]`.
   - `AltBind` catches a `FilterException` from the patterns, the body and downstream while an
     alternative remains. It catches errors, not breaks (amends ADR-0005).
-  - `?` is a `Try` with an empty handler and runs as a quiet variant.
+  - `.a?`, `.[e]?`, `.[]?` and slices with `?` are the step's quiet variant (ADR-0009). `term?` on
+    any other term is a `Try` with an empty handler. The two differ in path mode.
   - `//` catches nothing (jq-ref: `[error("x") // 1]` → error, rc 5).
   - No catch set holds a break or a `Termination`. A break passing `try`, `?` or `?//` is a listed
     deviation.
@@ -40,7 +44,8 @@ into separately compiled code.
   - `Reduce` runs once per init result. An update with no result sets the state to `null`, and
     with several the last one wins.
   - `Foreach` also takes init as a generator. Every update result becomes the state and runs the
-    extract.
+    extract. An update with no result sets the state to `null`:
+    `[foreach range(4) as $x (5; if $x==1 then empty else .+1 end; .)]` gives `[6,1,2]`.
   - `Alt` runs its right side only when the left gave no truthy result.
   - A stop anywhere returns `false` at once.
 - **Budgets:** a step budget and a wall-clock deadline, plus the nesting-depth, bytes-built,
@@ -48,7 +53,8 @@ into separately compiled code.
   - Steps are charged only at sites the IR defines: a loop back-edge, a tail jump, a `RECURSIVE`
     or real-closure call. So both backends stop at the same step. A trampoline bounce charges no
     step.
-  - Every native loop whose length depends on the data charges per element or per KiB. This
+  - Every native loop whose length depends on the data charges ticks against the step budget, per
+    element or per KiB. This
     includes the `input` reader, the writer and `detach`.
   - `ws.tick()` is `if (--fuel < 0) refuel()`. Refuel reads the host clock every 4096 ticks; the
     interval is measured in "Interpreter or bytecode first, and what speed must milestone 1 show?".

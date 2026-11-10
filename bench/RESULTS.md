@@ -6,34 +6,51 @@ verifier output; newest section first.
 
 ## Spike A extension: nested drivers (issue #7), 2026-11-10
 
-- Same machine and JVM as "Spike A" (OpenJDK 25.0.5, 4 vCPU, `-Xms2g -Xmx2g`, default 1 MB
-  stack). Code: branch `spike/recursion-depth` @ `0c6bffe`, variant `hybrid`, with `-Dlimit=256`,
+- Same machine and JVM as "Spike A": OpenJDK 25.0.5, 4 vCPU, `-Xms2g -Xmx2g`, default 1 MB stack.
+- Code: branch `spike/recursion-depth` @ `7fd4ea6`, variant `hybrid`, run with `-Dlimit=256`,
   `-Dbounce=64` and `-Dresume=false|true`. Raw output is in
-  `spike/recursion/results/7-nested-drivers.log` there.
-- Filter `nested`: `def s: if . == $L then 0 else $a[.] + (. + 1 | s) end; def g: if . == $L then 0
-  else (. + 1 | g) as $x | $x + (($L - 1000) | s) end; 0 | g`. It is a non-tail recursion of
-  depth n whose continuation starts a second recursion of depth 1000 at every level.
-- Two forms of the hand-over from the stack to the trampoline:
-  - **Form A** (Spike A's `hybrid`): the caller's sink runs inside the driver.
-  - **Form B**: the driver stops at each result and returns it to its starter, which emits it from
-    its own frame and then resumes the driver.
+  `spike/recursion/results/7-nested-drivers-v2.log` there.
+- The first run (`0c6bffe`, `7-nested-drivers.log`) is superseded. In form B it dropped a result
+  that `cps()` delivered before the first drive, so shape E gave `WRONG(32640)`. The
+  grilling-adviser found this.
+- Filter `nested`:
 
-Cold JVM, one run each:
+  ```
+  def s: if . == $L then 0 else $a[.] + (. + 1 | s) end;
+  def g: if . == $L then 0 else (. + 1 | g) as $x | $x + (($L - 1000) | s) end;
+  0 | g
+  ```
 
-| form | n=2000 | n=10⁴ | most live drivers |
-| --- | --- | --- | --- |
-| A | SOE after 1285 ms | SOE after 3936 ms | 201 |
-| B | ok, 954 ms | ok, 3390 ms | 1 |
+  It is a non-tail recursion of depth n whose continuation starts a second recursion of depth 1000
+  at every level.
+- The two forms of hand-over from the Java stack to the trampoline:
+  - **Form A**, Spike A's `hybrid`: the caller's sink runs inside the driver.
+  - **Form B**: the driver stops at each result and returns it to its starter. The starter emits
+    the result from its own frame, then resumes the driver.
 
-The cost of form B on N (`nontail`, one result per call): warm medians in ms (min–max), 5 reps.
+Cold JVM, one run each (ms; the last column is the most drivers live at once):
 
-| form | N=1000 | N=10⁵ | N=10⁶ |
-| --- | --- | --- | --- |
-| A | 0.75 (0.61–1.04) | 31.24 (25.65–59.76) | 392.45 (301.02–559.06) |
-| B | 0.79 (0.75–0.81) | 38.08 (34.67–78.92) | 517.36 (266.65–604.98) |
+| form | nested n=2000 | nested n=10⁴ | E 10⁶ | N 10⁶ | T 10⁶ | M 10⁶ | drivers |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| A | SOE after 909 | SOE after 3214 | ok, 257 | ok, 699 | ok, 154 | ok, 188 | 201 / 202 on nested |
+| B | ok, 983 | ok, 4049 | ok, 312 | ok, 746 | ok, 183 | ok, 164 | 1 |
 
-The ranges overlap. Two earlier runs of the same command gave A 0.54 / 28.51 / 524.97 and
-B 0.75 / 31.11 / 501.97. The cost is within the noise, up to about 1.3×. ADR-0011 takes form B.
+Warm medians in ms, with min–max: 20 warm-up runs at n=1000, then 5 reps per n.
+
+| shape | form | n=1000 | n=10⁵ | n=10⁶ |
+| --- | --- | --- | --- | --- |
+| T | A | 0.39 (0.31–0.41) | 14.94 (13.71–23.91) | 90.89 (43.98–146.25) |
+| T | B | 0.31 (0.30–0.33) | 13.57 (9.30–20.18) | 76.78 (47.06–151.48) |
+| E | A | 0.77 (0.72–0.81) | 21.84 (8.14–30.39) | 177.46 (164.97–284.57) |
+| E | B | 0.89 (0.79–1.19) | 34.70 (11.57–37.05) | 227.96 (104.74–293.53) |
+| M | A | 0.35 (0.34–0.55) | 12.10 (9.63–24.44) | 108.84 (73.63–158.33) |
+| M | B | 0.54 (0.47–0.61) | 17.57 (15.18–31.98) | 90.35 (55.51–148.59) |
+| N | A | 0.58 (0.54–0.60) | 33.89 (29.32–58.78) | 412.82 (248.48–601.41) |
+| N | B | 0.56 (0.53–0.78) | 29.36 (23.95–55.92) | 450.80 (295.42–519.97) |
+
+Form A overflows on `nested`, and form B completes it. On the four Spike A shapes, form B is
+within the noise except E, the shape with many results per driver, which is about 1.3× at 10⁶.
+ADR-0011 takes form B.
 
 ## Tape reader for milestone 1 (issue #5), 2026-11-10
 

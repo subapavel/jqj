@@ -1,7 +1,8 @@
 # Deviations from the reference jq
 
 Behaviours where jqj differs from the reference jq (1.8.2) on purpose, each with its reason and the
-decision that made it. A difference not listed here is a bug.
+decision that made it. A difference not listed here is a bug. Every row is pinned by an oracle case that checks both
+columns.
 
 ## Path expressions accept only navigation (ADR-0007, issue #6)
 
@@ -41,6 +42,15 @@ a `?` or a `?//` around it can catch it. In jqj a break is a stop signal and no 
 Reason: `first`, `limit` and `isempty` keep at most one result even when their argument contains a
 `?//`, and an embedded Workspace cannot reproduce a counter that grows across inputs. jq's own test
 files contain no break under `try`, `?` or `?//`.
+
+## `last/1` has no path variant (ADR-0009, issue #7)
+
+| filter | jq 1.8.2 | jqj |
+| --- | --- | --- |
+| `[1] \| path(last(.))` | `[]` | error |
+
+Reason: jq bytecodes `last/1` and tracks its one path; jqj makes it a native, and a jq-text
+definition would differ the same way. `[1,2] | path(last(.[]))` raises in both.
 
 ## Streaming, when a host enables it (ADR-0007, issue #6)
 

@@ -6,21 +6,31 @@ Path mode is a second variant of the nodes. It is built only for the nodes that 
 `PathOf` or `Update` can reach (ADR-0007; WALK may run as TRACKED).
 
 - **Types:** `interface PathSink { boolean emit(Object v, Path p); }` and the immutable
-  `record Path(Path parent, Object key, int length)`. `null` means untracked.
+  `record Path(Path parent, Object key, int length)`. `null` means untracked, and the root is a
+  non-null empty `Path`.
 - **Who passes the path on:**
   - Navigation steps extend the path.
   - `Identity`, `Pipe`, `Comma`, `If`, `Alt`, `Try`, `Label`, `Break`, `Bind`, `AltBind`, `Call`
     and `ParamCall` pass it on unchanged. Their conditions and bound values run in value mode.
   - `Foreach` binds its item as a (value, path) pair.
+  - An `Intrinsic` follows its operation's path rule (none, step or same; ADR-0005). For example,
+    `{"a":1} | path(.a|debug)` gives `["a"]`.
+  - The results of a `Try` handler are untracked: `[path(try error("x") catch .)]` raises.
   - Every other node emits untracked.
 - **The state of `reduce` and `foreach` stays untracked.** jq keeps one current path per
   evaluation and restores it each time it returns to the source (`gen_reduce`, `path_intact`).
   So a state path never survives an iteration (`[[1,2]] | path(reduce (0,1) as $i (.; .[$i]))`
-  raises on jq-ref). The forms jq does accept are listed in `DEVIATIONS.md`.
+  raises on jq-ref). The forms jq does accept are listed in `DEVIATIONS.md`. _(Open: whether the
+  update body runs in the path variant on the untracked state, so that a step in it raises at once
+  as in jq; owner question after the ADR review.)_
 - **Validity errors:** an untracked result used as a path raises "Invalid path expression with
   result …". The check is lazy for results, so `path(1|empty)` gives nothing. A navigation step on
   an untracked value raises at once, with jq's messages "…near attempt to access element … of …"
-  and "…near attempt to iterate through …", and with jq's truncated value dump.
+  and "…near attempt to iterate through …", and with jq's truncated value dump. `getpath` is the
+  exception (ADR-0009). The format supplies the message text and the value dump, so `query-core`
+  holds neither (founding §14).
+- **Updates in every shape:** the first right-hand result wins, and an empty right-hand side
+  deletes the path (`{"a":0,"b":1} | .a |= empty` gives `{"b":1}`).
 - **Shapes:**
   - FIXED updates run `getpath`/`setpath` on the constant chain.
   - WALK rebuilds along the steps with the Workspace path stack, and deletes apply after the walk.

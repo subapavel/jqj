@@ -14,16 +14,20 @@ An `Operation` (ADR-0005) is called through a functional interface that matches 
   so bytecode can walk an `int` cursor (ADR-0003).
 - **Key lists:** `getpath` is a navigation step that extends a path by a key list. jq.test requires
   `getpath(["a",0,"b"]) |= 5`, and on jq-ref `path(getpath(["a",0], ["b","c"]))` gives both paths.
+  Unlike the other steps, it does not raise at the step on an untracked value:
+  `{"a":1} | [path(getpath(["a"]) | empty)]` gives `[]`.
 - **Quiet variants:** the quiet variant used by `?` is a second instance of the same form. In path
   mode it still raises path-validity errors. On jq-ref, `[path(1|.a?)]` exits with rc 5 while
-  `[path(1|try .a)]` gives `[]`, so in path mode `.a?` is not `Try(.a)`.
+  `[path(1|try .a)]` and `[path(1|(.a)?)]` give `[]`, so in path mode `.a?` is not `Try(.a)`
+  (F-11).
 - **Bytecode** loads instances as class-data constants
   (`MethodHandles.Lookup.defineHiddenClassWithClassData`, loaded by `MethodHandles.classDataAt`,
   present in JDK 25.0.5 per `javap`) and calls them through their interface. No MethodHandle is
   invoked.
 - **Natives** (amends ADR-0006): `last/1` joins `range/2`, `inputs` and `flatten`. jq 1.8.2
   bytecodes it in `builtin.c`, so `[last(empty)]` gives `[]` and a `reduce` definition would give
-  `[null]`. On jq-ref, `path(last(.[]))` raises, so it has no path variant.
+  `[null]`. It has no path variant: `[1,2] | path(last(.[]))` raises on jq-ref too, but
+  `[1] | path(last(.))` gives `[]` there and an error in jqj (`DEVIATIONS.md`).
 
 ## Considered options
 

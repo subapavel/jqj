@@ -47,3 +47,5 @@ recursive group.
 
 `last/1` is a native without a path variant. jq 1.8.2 bytecodes it (`gen_last_1` in `builtin.c`),
 so `[last(empty)]` is `[]` and `path(last(.[]))` raises (F-9).
+
+Recursive calls count stack units against U (ADR-0011), not calls against K.

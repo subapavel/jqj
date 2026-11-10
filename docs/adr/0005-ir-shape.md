@@ -29,7 +29,8 @@ arm because each jq node would then carry its own interpretation and bytecode em
   - in an object the first key is the outer loop;
   - in string interpolation the last part is the outer loop.
 - **Assignments** `=`, `op=` and `//=` lower to a `Bind` of the right side around an `Update`.
-  `.a?` lowers to a `Try` that folds into the operation's quiet variant.
+  `.a?` lowers to a `Try` that folds into the operation's quiet variant in the value variant only
+  (ADR-0009, F-11).
 - **Labels** are a per-activation token, captured like a variable. On jq-ref,
   `def f(g): label $l | (g, 10, (if . < 1 then (. + 1 | f(break $l)), 20 else 30 end)); [0 | f(empty)]`
   → `[10]`.
@@ -54,4 +55,5 @@ arm because each jq node would then carry its own interpretation and bytecode em
 ## Amendment (ADR-0008, issue #7)
 
 `AltBind` catches errors and not breaks. A break passes `try`, `?` and `?//` and is listed in
-`DEVIATIONS.md`. ADR-0009 gives the call forms of an `Operation`.
+`DEVIATIONS.md`. ADR-0009 gives the call forms of an `Operation`. In path mode `.a?` is the step's
+quiet variant, which still raises path-validity errors, and not a `Try` (F-11).

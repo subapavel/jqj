@@ -40,4 +40,5 @@ that spans a later read. Detaching at every read remains a legal first implement
 ## Amendment (ADR-0008, issue #7)
 
 During streaming that a host enables, the engine ends an element's document when `rest` returns
-for that element. A streamed result view is valid only during its sink call.
+for that element. A streamed result view is valid only during its sink call. The stale-view error
+is a `Termination`, so no `try` catches it.
