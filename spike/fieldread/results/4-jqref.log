@@ -1,0 +1,10 @@
+startup (jq-ref -n 1): 2.36 ms
+1KB    start   best_of_5=     2.22 ms maxrss=   12.5 MB
+1KB    middle  best_of_5=     2.20 ms maxrss=   12.7 MB
+1KB    end     best_of_5=     2.27 ms maxrss=   12.7 MB
+100KB  start   best_of_5=     5.07 ms maxrss=   12.7 MB
+100KB  middle  best_of_5=     5.04 ms maxrss=   12.7 MB
+100KB  end     best_of_5=     5.00 ms maxrss=   12.7 MB
+10MB   start   best_of_5=   463.02 ms maxrss=  173.7 MB
+10MB   middle  best_of_5=   465.00 ms maxrss=  173.7 MB
+10MB   end     best_of_5=   451.15 ms maxrss=  173.7 MB

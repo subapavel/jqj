@@ -1,0 +1,13 @@
+1KB-start (969 bytes): tape="value-42" validate="value-42" skip="value-42" stop="value-42"
+1KB-middle (969 bytes): tape="value-42" validate="value-42" skip="value-42" stop="value-42"
+1KB-end (969 bytes): tape="value-42" validate="value-42" skip="value-42" stop="value-42"
+100KB-start (107765 bytes): tape="value-42" validate="value-42" skip="value-42" stop="value-42"
+100KB-middle (107765 bytes): tape="value-42" validate="value-42" skip="value-42" stop="value-42"
+100KB-end (107765 bytes): tape="value-42" validate="value-42" skip="value-42" stop="value-42"
+10MB-start (11206791 bytes): tape="value-42" validate="value-42" skip="value-42" stop="value-42"
+10MB-middle (11206791 bytes): tape="value-42" validate="value-42" skip="value-42" stop="value-42"
+10MB-end (11206791 bytes): tape="value-42" validate="value-42" skip="value-42" stop="value-42"
+duplicate key: tape=3 validate=3 skip=3 stop=1
+broken after the field: tape=ERROR(unexpected end at byte 20) validate=ERROR(unexpected end at byte 20) skip=ERROR(unfinished container at byte 20) stop=1
+bad literal after the field: tape=ERROR(invalid literal at byte 16) validate=ERROR(invalid literal at byte 16) skip=1 stop=1
+bad literal before the field: tape=ERROR(invalid literal at byte 5) validate=ERROR(invalid literal at byte 5) skip=1 stop=1
