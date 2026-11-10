@@ -9,6 +9,7 @@
 //              -Dbounce=K runs up to K direct steps before returning to the driver (0 = pure)
 //   bigstack   'stack' run on a platform thread with -Dstack=<bytes>
 //   virtual    'stack' run on a virtual thread
+//   hybrid     'tailloop' up to -Dlimit=K nested calls on the Java stack, deeper calls on the trampoline
 import java.util.*;
 import java.util.function.*;
 
@@ -37,7 +38,11 @@ public final class Spike {
     static void drive(Bounce b) { while (b != null) { depth = 0; b = b.step(); } }
 
     // ---------- tail-loop protocol ----------
-    static final boolean TAILLOOP = "tailloop".equals(System.getProperty("variant"));
+    static final boolean HYBRID = "hybrid".equals(System.getProperty("variant"));
+    static final boolean TAILLOOP = HYBRID || "tailloop".equals(System.getProperty("variant"));
+    /** hybrid: direct calls on the Java stack up to this many nested calls, then the CPS trampoline */
+    static final int LIMIT = Integer.getInteger("limit", 1000);
+    static int calls;                                // nested direct calls right now
     static final Object CONT = new Object(), STOP = new Object();
     record Next(FnVal fn, Env env, Object in) {}
 
@@ -218,8 +223,19 @@ public final class Spike {
             Object slot = e.at(d);
             if (slot instanceof Closure c) return c.body().run(c.env(), in, out);
             FnVal fv = (FnVal) slot;
+            if (HYBRID) {
+                if (calls >= LIMIT) {                // too deep for the stack: finish this call on the trampoline
+                    Env be = bind(e, fv); Object in0 = in; boolean[] go = { true };
+                    drive(fv.def().body.cps(be, in0, (v, more) -> { if (out.emit(v)) return more; go[0] = false; return null; }, () -> null));
+                    return go[0];
+                }
+                calls++;
+                try { return callLoop(fv, bind(e, fv), in, out); } finally { calls--; }
+            }
             if (!TAILLOOP) return fv.def().body.run(bind(e, fv), in, out);
-            Env be = bind(e, fv);
+            return callLoop(fv, bind(e, fv), in, out);
+        }
+        static boolean callLoop(FnVal fv, Env be, Object in, Out out) {
             while (true) {                       // the call loop: tail calls below jump back here
                 Object r = fv.def().body.runTail(be, in, out);
                 if (r instanceof Next n) { fv = n.fn(); be = n.env(); in = n.in(); continue; }

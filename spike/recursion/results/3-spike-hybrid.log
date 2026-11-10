@@ -1,0 +1,67 @@
+## hybrid = tailloop + Java stack up to K nested calls, trampoline (bounce 64) beyond
+## cold first run (fresh JVM each)
+K=256 hybrid tail n=1000 first run: ok 9.37
+K=256 hybrid tail n=10000 first run: ok 10.25
+K=256 hybrid each n=1000 first run: ok 22.70
+K=256 hybrid each n=10000 first run: ok 35.08
+K=256 hybrid mutual n=1000 first run: ok 5.95
+K=256 hybrid mutual n=10000 first run: ok 12.93
+K=256 hybrid nontail n=1000 first run: ok 25.45
+K=256 hybrid nontail n=10000 first run: ok 55.05
+K=1000 hybrid tail n=1000 first run: ok 5.44
+K=1000 hybrid tail n=10000 first run: ok 9.96
+K=1000 hybrid each n=1000 first run: SOE 11.16
+K=1000 hybrid each n=10000 first run: SOE 11.28
+K=1000 hybrid mutual n=1000 first run: ok 5.77
+K=1000 hybrid mutual n=10000 first run: ok 11.35
+K=1000 hybrid nontail n=1000 first run: SOE 19.11
+K=1000 hybrid nontail n=10000 first run: SOE 46.47
+## cold first run at n=1000000 with max RSS
+K=256 hybrid tail n=1000000 first run: ok 131.19   maxrss=160 MB
+K=256 hybrid each n=1000000 first run: ok 262.98   maxrss=305 MB
+K=256 hybrid mutual n=1000000 first run: ok 141.72   maxrss=191 MB
+K=256 hybrid nontail n=1000000 first run: ok 622.94   maxrss=365 MB
+## time (20 warm-up runs at n=1000; 5 reps, 15 at n=10^6)
+K=256 hybrid    tail     n=    1000 median 0.31 ms (min 0.28, max 0.34, 5 reps)
+K=256 hybrid    tail     n=   10000 median 2.62 ms (min 1.51, max 2.77, 5 reps)
+K=256 hybrid    tail     n=  100000 median 8.99 ms (min 7.89, max 12.79, 5 reps)
+K=256 hybrid    tail     n= 1000000 median 47.07 ms (min 41.84, max 147.04, 15 reps)
+K=256 hybrid    each     n=    1000 median 0.89 ms (min 0.87, max 0.91, 5 reps)
+K=256 hybrid    each     n=   10000 median 3.30 ms (min 2.30, max 4.22, 5 reps)
+K=256 hybrid    each     n=  100000 median 11.12 ms (min 8.54, max 20.90, 5 reps)
+K=256 hybrid    each     n= 1000000 median 132.17 ms (min 75.94, max 252.89, 15 reps)
+K=256 hybrid    mutual   n=    1000 median 0.31 ms (min 0.30, max 0.38, 5 reps)
+K=256 hybrid    mutual   n=   10000 median 2.83 ms (min 1.74, max 3.08, 5 reps)
+K=256 hybrid    mutual   n=  100000 median 13.63 ms (min 9.23, max 14.63, 5 reps)
+K=256 hybrid    mutual   n= 1000000 median 52.34 ms (min 44.44, max 144.26, 15 reps)
+K=256 hybrid    nontail  n=    1000 median 0.61 ms (min 0.58, max 0.75, 5 reps)
+K=256 hybrid    nontail  n=   10000 median 4.36 ms (min 4.33, max 6.14, 5 reps)
+K=256 hybrid    nontail  n=  100000 median 44.49 ms (min 23.92, max 52.86, 5 reps)
+K=256 hybrid    nontail  n= 1000000 median 350.12 ms (min 232.01, max 618.88, 15 reps)
+K=1000 hybrid    tail     n=    1000 median 0.30 ms (min 0.28, max 0.33, 5 reps)
+K=1000 hybrid    tail     n=   10000 median 2.52 ms (min 1.37, max 2.77, 5 reps)
+K=1000 hybrid    tail     n=  100000 median 8.81 ms (min 7.82, max 14.09, 5 reps)
+K=1000 hybrid    tail     n= 1000000 median 43.90 ms (min 41.20, max 135.66, 15 reps)
+K=1000 hybrid    each     n=    1000 SOE 2.01 ms (clean: caught, JVM continues)
+K=1000 hybrid    each     n=   10000 SOE 2.25 ms (clean: caught, JVM continues)
+K=1000 hybrid    each     n=  100000 SOE 2.10 ms (clean: caught, JVM continues)
+K=1000 hybrid    each     n= 1000000 SOE 1.63 ms (clean: caught, JVM continues)
+K=1000 hybrid    mutual   n=    1000 median 0.33 ms (min 0.30, max 0.37, 5 reps)
+K=1000 hybrid    mutual   n=   10000 median 2.84 ms (min 1.54, max 2.94, 5 reps)
+K=1000 hybrid    mutual   n=  100000 median 11.96 ms (min 9.17, max 17.84, 5 reps)
+K=1000 hybrid    mutual   n= 1000000 median 44.93 ms (min 43.95, max 135.16, 15 reps)
+K=1000 hybrid    nontail  n=    1000 SOE 1.24 ms (clean: caught, JVM continues)
+K=1000 hybrid    nontail  n=   10000 SOE 36.27 ms (clean: caught, JVM continues)
+K=1000 hybrid    nontail  n=  100000 median 30.24 ms (min 25.44, max 114.39, 5 reps)
+K=1000 hybrid    nontail  n= 1000000 median 383.47 ms (min 231.95, max 632.31, 15 reps)
+## same JVM, same day: baselines at n=1000 for comparison
+stack     tail     n=    1000 median 0.21 ms (min 0.18, max 0.28, 15 reps)
+stack     mutual   n=    1000 median 0.23 ms (min 0.19, max 0.33, 15 reps)
+stack     nontail  n=    1000 median 0.27 ms (min 0.24, max 0.33, 15 reps)
+tailloop  tail     n=    1000 median 0.29 ms (min 0.25, max 0.32, 15 reps)
+tailloop  mutual   n=    1000 median 0.31 ms (min 0.27, max 0.43, 15 reps)
+tailloop  nontail  n=    1000 SOE 1.15 ms (clean: caught, JVM continues)
+bigstack  each     n=    1000 median 1.09 ms (min 1.02, max 1.60, 15 reps)
+bigstack  each     n= 1000000 median 151.12 ms (min 131.68, max 305.69, 15 reps)
+bigstack  nontail  n=    1000 median 0.86 ms (min 0.66, max 1.41, 15 reps)
+bigstack  nontail  n= 1000000 median 285.26 ms (min 103.45, max 353.67, 15 reps)
