@@ -1,6 +1,6 @@
 ---
 name: gate-reviewer
-description: Milestone gate reviewer, run only by /gate on one commit of main. Checks every docs/GATE.md condition has observed evidence from CI or bench/RESULTS.md, every spec of the milestone went through /run-spec with its review, and architecture drift is justified. Read-only; the strongest model, used only here.
+description: Milestone gate reviewer, run only by /gate on one commit of main. Checks every docs/GATE.md condition has observed evidence from CI or bench/RESULTS.md, every spec of the milestone went through /run-spec with its review, and architecture drift is justified. Read-only; the strongest model, used here and by the grilling-adviser.
 model: claude-fable-5-2
 effort: high
 maxTurns: 60

@@ -18,6 +18,7 @@ loop itself is `docs/WORKFLOW.md`.
 | reviewer-standards | `.claude/agents/reviewer-standards.md` | by class | nothing | the Standards axis of `/code-review` |
 | reviewer-spec | `.claude/agents/reviewer-spec.md` | by class | nothing | the Spec axis of `/code-review` |
 | gate-reviewer | `.claude/agents/gate-reviewer.md` | Fable 5.2 · high | nothing | milestone gates only |
+| grilling-adviser | `.claude/agents/grilling-adviser.md` | Fable 5.2 · high | nothing (read-only) | evaluating the questions and recommendations of every grilling ticket before the owner sees them; its recommendation is the one put to the owner (owner, 2026-11-10) |
 
 The architect never edits `src/` or a test, and never runs Maven itself: the verifier does. It reads hand-backs, the red tests it approves and `git diff --stat`, not whole
 patches.
@@ -72,6 +73,13 @@ integration branch (`docs/WORKFLOW.md` §5).
 **Design draft (designer → architect, class C)** — at most 40 lines: proposal (types, formats,
 signatures), proposed test names, rejected alternatives with one line each, what is expensive to
 reverse (→ ADR draft), conflicts with ADRs or the glossary, open questions.
+
+**Grilling advice (grilling-adviser → architect, every `wayfinder:grilling` ticket)** — the
+designer (first round) or the architect (later rounds) writes the questions and recommendations;
+the adviser evaluates that draft and never writes the round itself. At most 40 lines: the
+frontier questions with choices, the cost of each choice and its recommendation;
+disagreements with the draft; later-round questions; missing facts. The architect asks each
+round with the adviser's recommendation and names any disagreement with the draft.
 
 **Acceptance spec (architect → test-author, class C)** — ticket id, worktree branch, allowed test
 paths, behaviours one line each with test names, fixtures, what counts as red.

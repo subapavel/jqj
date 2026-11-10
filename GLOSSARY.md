@@ -43,13 +43,18 @@ One JSON value held as its UTF-8 bytes plus its tape.
 _Avoid_: message (Flottila's word), payload, tree
 
 **Tape**:
-The flat index of a document: one entry per JSON value giving its type and where it starts in
-the bytes; a container's entry also says where it ends. _(open: entry layout, ticket 5)_
+The flat index of a document: one entry per JSON value, object keys included, giving its type and
+where it lies in the bytes; a container's entry also says how many entries it holds, so the whole
+container can be stepped over at once.
 _Avoid_: index (alone), DOM, token stream
 
 **View**:
 A value that is a position in a document. It is valid only while its document is.
 _Avoid_: reference, pointer, lazy value
+
+**Stale view**:
+A view whose document has been replaced by a later read. Using it is an error, never a wrong value.
+_Avoid_: dangling view, expired value
 
 **Built value**:
 A value the filter constructed, independent of any document. Immutable once handed on.
@@ -62,6 +67,10 @@ _Avoid_: materialise, clone
 **Shape**:
 The shared key list of the objects built at one construction site.
 _Avoid_: hidden class, schema
+
+**Growable object**:
+A built object whose keys are made at run time, so it keeps its own key list instead of a shape.
+_Avoid_: dictionary, map object, hash object
 
 **Ownership marker**:
 What lets the engine update a built value in place: the mark that a running operation (`reduce`,
@@ -76,15 +85,59 @@ bound to a variable, stored in another value, or emitted.
 ## Compiling
 
 **IR**:
-The one intermediate form of a filter that both backends read. _(open: node families, ticket 6)_
+The one intermediate form of a filter that both backends read: one closed family of
+format-neutral nodes and the functions they call. Everything a format adds reaches it as an
+operation.
 _Avoid_: AST (that is the parser's output), bytecode (that is jq's own or the JVM's)
+
+**Operation**:
+What an intrinsic IR node calls: a navigation step or a native builtin of one format, described by
+the facts the analyses need (how many results, how it extends a path, what it keeps).
+_Avoid_: primitive, opcode
+
+**Navigation step**:
+An operation that goes from a value to a part of it (field, index, slice, iterate). Only steps
+extend a path.
+
+**Closure**:
+A filter argument of a jq function, run in the caller's scope each time the callee calls it.
+_Avoid_: lambda, callback
+
+**Recursive group**:
+The functions that can reach each other through calls.
+
+**Specialisation**:
+Making a copy of a recursive function for one closure argument that every call in its group passes
+on unchanged, so the closure disappears.
+
+**Tail call**:
+A call inside a recursive group with nothing left to do after it and at most one result in
+progress to its left; it runs as a jump.
+
+**Last read**:
+The only read of a variable's value in its binding, after which the value may be moved instead of
+copied.
+
+**Path shape**:
+How an update or `path()` runs: along a fixed path, while walking the value, or by tracking every
+path.
+
+**Hold**:
+A place that keeps a value while later steps run (a variable, an accumulator, an array being
+built, an error payload). A view of an input document is detached when it enters a hold that spans
+a later read.
+_Avoid_: pin, retain
+
+**Root use**:
+Whether a filter reads its input not at all, as the elements of one array one at a time, or whole.
 
 **Analysis**:
 A pass over the IR that proves a property a backend can use: cardinality, path shape, root use,
 touched fields.
 
 **Cardinality**:
-How many results an IR node can produce for one input: exactly one, at most one, or many.
+How many results an IR node can produce for one input: none, exactly one, at most one, or many. An
+error or a break is not a result.
 
 **Backend**:
 What turns IR into something that runs. There are two.
