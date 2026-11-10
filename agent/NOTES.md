@@ -20,6 +20,13 @@ Module notes by section, read on demand.
 4. Reference jq — `/usr/local/bin/jq-ref --version`: VERIFIED_PASS, `jq-1.8.1`, equal to
    `JQ_REF_VERSION=1.8.1` in `deploy/claude-cloud/setup.sh`.
 
+5. `javap` — `java` on PATH is JDK 25 (`/opt/temurin-25`, `JAVA_HOME` too), but `javap` on PATH
+   resolves to `/usr/lib/jvm/java-21-openjdk-amd64/bin/javap` (21.0.12): VERIFIED_PASS by
+   `readlink -f $(which javap)`. For JDK 25 API checks use `$JAVA_HOME/bin/javap`
+   (`/opt/temurin-25/bin/javap`). Found by the research agent of ticket #10.
+6. Subagents: Context7 was available inside a research subagent (ticket #10) — VERIFIED_PASS,
+   which overrides the carried-over note above.
+
 Carried over from flottila-mapping and not re-checked here (NOT_RUN): Maven Central answering
 HTTP 429 (the setup script points Maven at the Google mirror; `~/.m2/settings.xml` exists), and
 tags not pushable from the VM.
