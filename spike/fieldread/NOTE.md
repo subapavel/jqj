@@ -31,9 +31,10 @@ same value as `jq-ref -c .target` on all nine documents.
 | 100 KB, any position | 233–249, 2 B | 327–355, 516 KB | 212–224 | 146–153 | 0.02 / 87 / 158 | 5.0 ms |
 | 10 MB, any position | 33 300–35 000 | 40 100–41 100, 33.5 MB | 22 300–24 400 | 14 500–16 400 | 0.02 / 8 200 / 15 900 | 451–465 ms, 174 MB RSS |
 
-Throughput at 10 MB: tape ~320 MB/s, validate ~480 MB/s, skip ~730 MB/s. The tape for the 10.7 MB
-document is **33.5 MB**, about 4.2 M entries at 8 bytes each, or 3× the input. "Bytes plus one
-array" can therefore mean bytes × 4 for dense small values.
+Throughput at 10 MB: tape ~320 MB/s, validate ~480 MB/s, skip ~730 MB/s. The tape itself is
+1.46–1.53× the input: 2 049 843 entries = **16.4 MB** for the 10.7 MB document (corrected
+2026-11-10; an earlier version said 33.5 MB / 3×, which was the allocation of a fresh tape
+doubling from 1024 entries, `bench/RESULTS.md`).
 
 ## What changes behaviour (observed, `results/4-check.log`)
 
@@ -58,7 +59,7 @@ Only the validating readers behave like jq. **skipAll** accepts a bad value anyw
    (duplicate keys, malformed input), so it is a deviation from jq, not an optimisation. If
    Flottila wants it, it is an explicit opt-in ("lenient read"), decided later with a
    `DEVIATIONS.md` entry.
-3. **For "What are the value model and the tape layout?"**: the tape size (3× the input here)
+3. **For "What are the value model and the tape layout?"**: the tape size (1.46× the input here)
    counts towards the memory budget. A compact entry, or entries only for containers and touched
    scalars, are options to weigh there. The reader's own speed (8-byte scanning) is still
    untried, and it lifts every variant alike.
