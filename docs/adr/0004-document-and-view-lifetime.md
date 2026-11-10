@@ -1,6 +1,6 @@
 # Document and view lifetime: a new JsonDoc per read, detach() for what is kept
 
-Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?")
+Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0007 (2026-11-10, issue #6)
 
 A view is valid while its document is alive. Every read makes a new `JsonDoc` (~32 B) over the
 Workspace's reused tape, and the previous `JsonDoc` drops both its tape and its bytes. A view of a
@@ -29,3 +29,10 @@ protocol?" will add who ends a document during automatic streaming.
   extra int, each access does a compare, and a forgotten view keeps the current document reachable.
 - **Keeping every `input` document until the evaluation ends**: no copy, but
   `reduce inputs as $x (…)` grows with the stream until a budget stops it.
+
+## Amendment (ADR-0007, issue #6)
+
+`input` and `inputs` documents get their own Workspace tape, so a read inside an evaluation never
+makes the main document stale (`. as $o | input | [$o, .]` → `[1,2]` on jq-ref). Instead of
+"detached by default", a value that may view an input document is detached when it enters a hold
+that spans a later read. Detaching at every read remains a legal first implementation.

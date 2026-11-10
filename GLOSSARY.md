@@ -110,6 +110,14 @@ The functions that can reach each other through calls.
 Making a copy of a recursive function for one closure argument that every call in its group passes
 on unchanged, so the closure disappears.
 
+**Tail call**:
+A call inside a recursive group with nothing left to do after it and at most one result in
+progress to its left; it runs as a jump.
+
+**Last read**:
+The only read of a variable's value in its binding, after which the value may be moved instead of
+copied.
+
 **Path shape**:
 How an update or `path()` runs: along a fixed path, while walking the value, or by tracking every
 path.
