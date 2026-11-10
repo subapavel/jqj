@@ -68,6 +68,10 @@ _Avoid_: materialise, clone
 The shared key list of the objects built at one construction site.
 _Avoid_: hidden class, schema
 
+**Growable object**:
+A built object whose keys are made at run time, so it keeps its own key list instead of a shape.
+_Avoid_: dictionary, map object, hash object
+
 **Ownership marker**:
 What lets the engine update a built value in place: the mark that a running operation (`reduce`,
 `foreach`, an update, an array builder) is the value's only holder. It is cleared when the value
