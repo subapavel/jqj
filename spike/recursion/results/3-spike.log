@@ -1,0 +1,135 @@
+## cold first run, n=1000 and n=10000 (fresh JVM each)
+stack tail n=1000 first run: ok 5.92
+stack tail n=10000 first run: SOE 7.89
+stack each n=1000 first run: SOE 10.10
+stack each n=10000 first run: SOE 10.90
+stack mutual n=1000 first run: ok 5.64
+stack mutual n=10000 first run: SOE 7.64
+stack nontail n=1000 first run: ok 7.63
+stack nontail n=10000 first run: SOE 10.42
+tailloop tail n=1000 first run: ok 5.30
+tailloop tail n=10000 first run: ok 10.40
+tailloop each n=1000 first run: SOE 10.06
+tailloop each n=10000 first run: SOE 10.26
+tailloop mutual n=1000 first run: ok 5.59
+tailloop mutual n=10000 first run: ok 10.63
+tailloop nontail n=1000 first run: ok 8.58
+tailloop nontail n=10000 first run: SOE 8.71
+## time (after 20 warm-up runs at n=1000; 5 reps per n)
+stack     tail     n=    1000 median 0.21 ms (min 0.18, max 0.25, 5 reps)
+stack     tail     n=   10000 SOE 1.59 ms (clean: caught, JVM continues)
+stack     tail     n=  100000 SOE 1.46 ms (clean: caught, JVM continues)
+stack     tail     n= 1000000 SOE 1.34 ms (clean: caught, JVM continues)
+tailloop  tail     n=    1000 median 0.31 ms (min 0.29, max 0.33, 5 reps)
+tailloop  tail     n=   10000 median 2.70 ms (min 1.49, max 2.93, 5 reps)
+tailloop  tail     n=  100000 median 8.92 ms (min 8.38, max 12.50, 5 reps)
+tailloop  tail     n= 1000000 median 76.50 ms (min 41.46, max 88.56, 5 reps)
+tramp(0)  tail     n=    1000 median 0.94 ms (min 0.89, max 1.18, 5 reps)
+tramp(0)  tail     n=   10000 median 7.27 ms (min 6.92, max 8.33, 5 reps)
+tramp(0)  tail     n=  100000 median 38.39 ms (min 27.34, max 76.10, 5 reps)
+tramp(0)  tail     n= 1000000 median 369.08 ms (min 311.84, max 635.98, 5 reps)
+tramp(64) tail     n=    1000 median 1.00 ms (min 0.95, max 1.34, 5 reps)
+tramp(64) tail     n=   10000 median 6.50 ms (min 4.50, max 9.09, 5 reps)
+tramp(64) tail     n=  100000 median 17.42 ms (min 15.91, max 44.69, 5 reps)
+tramp(64) tail     n= 1000000 median 221.64 ms (min 176.34, max 416.57, 5 reps)
+bigstack  tail     n=    1000 median 0.68 ms (min 0.58, max 0.86, 5 reps)
+bigstack  tail     n=   10000 median 4.30 ms (min 3.54, max 5.09, 5 reps)
+bigstack  tail     n=  100000 median 12.26 ms (min 11.16, max 38.52, 5 reps)
+bigstack  tail     n= 1000000 median 129.93 ms (min 107.76, max 151.50, 5 reps)
+virtual   tail     n=    1000 median 0.55 ms (min 0.47, max 0.62, 5 reps)
+virtual   tail     n=   10000 SOE 2.69 ms (clean: caught, JVM continues)
+virtual   tail     n=  100000 SOE 1.85 ms (clean: caught, JVM continues)
+virtual   tail     n= 1000000 SOE 1.67 ms (clean: caught, JVM continues)
+stack     each     n=    1000 SOE 1.24 ms (clean: caught, JVM continues)
+stack     each     n=   10000 SOE 1.48 ms (clean: caught, JVM continues)
+stack     each     n=  100000 SOE 1.42 ms (clean: caught, JVM continues)
+stack     each     n= 1000000 SOE 1.46 ms (clean: caught, JVM continues)
+tailloop  each     n=    1000 SOE 1.59 ms (clean: caught, JVM continues)
+tailloop  each     n=   10000 SOE 1.49 ms (clean: caught, JVM continues)
+tailloop  each     n=  100000 SOE 1.49 ms (clean: caught, JVM continues)
+tailloop  each     n= 1000000 SOE 1.62 ms (clean: caught, JVM continues)
+tramp(0)  each     n=    1000 median 0.93 ms (min 0.88, max 1.02, 5 reps)
+tramp(0)  each     n=   10000 median 5.26 ms (min 5.14, max 7.15, 5 reps)
+tramp(0)  each     n=  100000 median 35.52 ms (min 17.55, max 54.63, 5 reps)
+tramp(0)  each     n= 1000000 median 242.71 ms (min 184.88, max 554.58, 5 reps)
+tramp(64) each     n=    1000 median 0.89 ms (min 0.75, max 0.92, 5 reps)
+tramp(64) each     n=   10000 median 3.91 ms (min 3.30, max 6.48, 5 reps)
+tramp(64) each     n=  100000 median 23.06 ms (min 10.92, max 34.65, 5 reps)
+tramp(64) each     n= 1000000 median 245.16 ms (min 107.97, max 320.44, 5 reps)
+bigstack  each     n=    1000 median 1.00 ms (min 0.92, max 1.26, 5 reps)
+bigstack  each     n=   10000 median 9.00 ms (min 8.92, max 10.13, 5 reps)
+bigstack  each     n=  100000 median 17.91 ms (min 17.20, max 63.05, 5 reps)
+bigstack  each     n= 1000000 median 155.99 ms (min 131.22, max 241.92, 5 reps)
+virtual   each     n=    1000 SOE 1.45 ms (clean: caught, JVM continues)
+virtual   each     n=   10000 SOE 1.16 ms (clean: caught, JVM continues)
+virtual   each     n=  100000 SOE 1.01 ms (clean: caught, JVM continues)
+virtual   each     n= 1000000 SOE 1.24 ms (clean: caught, JVM continues)
+stack     mutual   n=    1000 median 0.24 ms (min 0.21, max 0.27, 5 reps)
+stack     mutual   n=   10000 SOE 1.71 ms (clean: caught, JVM continues)
+stack     mutual   n=  100000 SOE 1.54 ms (clean: caught, JVM continues)
+stack     mutual   n= 1000000 SOE 1.66 ms (clean: caught, JVM continues)
+tailloop  mutual   n=    1000 median 0.34 ms (min 0.31, max 0.36, 5 reps)
+tailloop  mutual   n=   10000 median 2.87 ms (min 1.58, max 3.01, 5 reps)
+tailloop  mutual   n=  100000 median 10.40 ms (min 9.90, max 16.14, 5 reps)
+tailloop  mutual   n= 1000000 median 58.40 ms (min 49.34, max 114.00, 5 reps)
+tramp(0)  mutual   n=    1000 median 1.09 ms (min 0.98, max 1.25, 5 reps)
+tramp(0)  mutual   n=   10000 median 9.09 ms (min 7.61, max 11.05, 5 reps)
+tramp(0)  mutual   n=  100000 median 56.49 ms (min 28.27, max 73.35, 5 reps)
+tramp(0)  mutual   n= 1000000 median 410.22 ms (min 341.45, max 670.13, 5 reps)
+tramp(64) mutual   n=    1000 median 0.90 ms (min 0.83, max 1.22, 5 reps)
+tramp(64) mutual   n=   10000 median 5.99 ms (min 4.48, max 8.62, 5 reps)
+tramp(64) mutual   n=  100000 median 20.60 ms (min 17.01, max 44.33, 5 reps)
+tramp(64) mutual   n= 1000000 median 226.99 ms (min 160.87, max 401.68, 5 reps)
+bigstack  mutual   n=    1000 median 0.68 ms (min 0.57, max 1.02, 5 reps)
+bigstack  mutual   n=   10000 median 4.08 ms (min 3.82, max 4.95, 5 reps)
+bigstack  mutual   n=  100000 median 44.00 ms (min 18.70, max 45.94, 5 reps)
+bigstack  mutual   n= 1000000 median 143.25 ms (min 120.04, max 197.89, 5 reps)
+virtual   mutual   n=    1000 median 0.35 ms (min 0.30, max 0.52, 5 reps)
+virtual   mutual   n=   10000 SOE 1.42 ms (clean: caught, JVM continues)
+virtual   mutual   n=  100000 SOE 1.23 ms (clean: caught, JVM continues)
+virtual   mutual   n= 1000000 SOE 1.50 ms (clean: caught, JVM continues)
+stack     nontail  n=    1000 median 0.32 ms (min 0.25, max 0.53, 5 reps)
+stack     nontail  n=   10000 SOE 1.34 ms (clean: caught, JVM continues)
+stack     nontail  n=  100000 SOE 1.32 ms (clean: caught, JVM continues)
+stack     nontail  n= 1000000 SOE 1.31 ms (clean: caught, JVM continues)
+tailloop  nontail  n=    1000 median 0.28 ms (min 0.27, max 0.35, 5 reps)
+tailloop  nontail  n=   10000 SOE 1.40 ms (clean: caught, JVM continues)
+tailloop  nontail  n=  100000 SOE 1.43 ms (clean: caught, JVM continues)
+tailloop  nontail  n= 1000000 SOE 1.24 ms (clean: caught, JVM continues)
+tramp(0)  nontail  n=    1000 median 0.51 ms (min 0.44, max 0.60, 5 reps)
+tramp(0)  nontail  n=   10000 median 3.66 ms (min 3.61, max 4.05, 5 reps)
+tramp(0)  nontail  n=  100000 median 28.18 ms (min 17.71, max 55.01, 5 reps)
+tramp(0)  nontail  n= 1000000 median 302.24 ms (min 182.75, max 448.50, 5 reps)
+tramp(64) nontail  n=    1000 median 0.67 ms (min 0.65, max 0.70, 5 reps)
+tramp(64) nontail  n=   10000 median 4.57 ms (min 4.49, max 5.32, 5 reps)
+tramp(64) nontail  n=  100000 median 43.92 ms (min 25.92, max 51.93, 5 reps)
+tramp(64) nontail  n= 1000000 median 362.17 ms (min 240.97, max 592.59, 5 reps)
+bigstack  nontail  n=    1000 median 1.00 ms (min 0.72, max 1.04, 5 reps)
+bigstack  nontail  n=   10000 median 6.07 ms (min 1.57, max 7.76, 5 reps)
+bigstack  nontail  n=  100000 median 12.22 ms (min 11.19, max 12.62, 5 reps)
+bigstack  nontail  n= 1000000 median 150.42 ms (min 115.95, max 190.77, 5 reps)
+virtual   nontail  n=    1000 median 0.54 ms (min 0.37, max 0.91, 5 reps)
+virtual   nontail  n=   10000 SOE 1.08 ms (clean: caught, JVM continues)
+virtual   nontail  n=  100000 SOE 2.51 ms (clean: caught, JVM continues)
+virtual   nontail  n= 1000000 SOE 1.50 ms (clean: caught, JVM continues)
+## max depth after warm-up
+stack tail maxdepth ~ 10681 (+-1%) 
+virtual tail maxdepth ~ 10681 (+-1%) 
+bigstack tail maxdepth ~ 757812 (+-1%) 67108864
+bigstack tail maxdepth >= 4000000
+bigstack tail maxdepth >= 4000000
+stack each maxdepth ~ 3907 (+-1%) 
+virtual each maxdepth ~ 3907 (+-1%) 
+bigstack each maxdepth ~ 464843 (+-1%) 67108864
+bigstack each maxdepth ~ 1859375 (+-1%) 268435456
+bigstack each maxdepth >= 4000000
+stack mutual maxdepth ~ 2030 (+-1%) 
+virtual mutual maxdepth ~ 2015 (+-1%) 
+bigstack mutual maxdepth ~ 695312 (+-1%) 67108864
+bigstack mutual maxdepth ~ 2781250 (+-1%) 268435456
+bigstack mutual maxdepth >= 4000000
+stack nontail maxdepth ~ 11780 (+-1%) 
+virtual nontail maxdepth ~ 11719 (+-1%) 
+bigstack nontail maxdepth ~ 835937 (+-1%) 67108864
+bigstack nontail maxdepth ~ 3343750 (+-1%) 268435456
+bigstack nontail maxdepth >= 4000000

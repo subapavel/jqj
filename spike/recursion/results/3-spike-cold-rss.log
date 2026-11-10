@@ -1,0 +1,36 @@
+## cold first run at n=1000000 in a fresh JVM, with max RSS
+tailloop tail n=1000000 first run: ok 113.10   maxrss=162 MB
+tramp tail n=1000000 first run: ok 583.35   maxrss=605 MB
+tramp tail n=1000000 first run: ok 374.38   maxrss=454 MB
+bigstack tail n=1000000 first run: ok 185.55   maxrss=304 MB
+tailloop each n=1000000 first run: SOE 12.72   maxrss=76 MB
+tramp each n=1000000 first run: ok 424.90   maxrss=478 MB
+tramp each n=1000000 first run: ok 275.87   maxrss=288 MB
+bigstack each n=1000000 first run: ok 343.16   maxrss=413 MB
+tailloop mutual n=1000000 first run: ok 144.81   maxrss=191 MB
+tramp mutual n=1000000 first run: ok 584.08   maxrss=542 MB
+tramp mutual n=1000000 first run: ok 409.02   maxrss=488 MB
+bigstack mutual n=1000000 first run: ok 368.82   maxrss=450 MB
+tailloop nontail n=1000000 first run: SOE 9.56   maxrss=76 MB
+tramp nontail n=1000000 first run: ok 503.59   maxrss=364 MB
+tramp nontail n=1000000 first run: ok 592.98   maxrss=364 MB
+bigstack nontail n=1000000 first run: ok 203.89   maxrss=313 MB
+## floor: JVM that fails fast (stack variant, n=1000000)
+stack nontail n=1000000 first run: SOE 10.14   maxrss=76 MB
+## time at n=1000000, 15 reps
+tailloop  tail     n= 1000000 median 50.61 ms (min 41.88, max 148.06, 15 reps)
+tramp(0)  tail     n= 1000000 median 341.43 ms (min 323.18, max 916.16, 15 reps)
+tramp(64) tail     n= 1000000 median 196.72 ms (min 151.98, max 383.42, 15 reps)
+bigstack  tail     n= 1000000 median 126.51 ms (min 108.59, max 195.80, 15 reps)
+tailloop  each     n= 1000000 SOE 1.60 ms (clean: caught, JVM continues)
+tramp(0)  each     n= 1000000 median 257.70 ms (min 179.50, max 415.69, 15 reps)
+tramp(64) each     n= 1000000 median 191.61 ms (min 104.77, max 256.11, 15 reps)
+bigstack  each     n= 1000000 median 168.26 ms (min 130.24, max 299.16, 15 reps)
+tailloop  mutual   n= 1000000 median 44.30 ms (min 43.40, max 147.14, 15 reps)
+tramp(0)  mutual   n= 1000000 median 345.15 ms (min 326.58, max 547.00, 15 reps)
+tramp(64) mutual   n= 1000000 median 230.92 ms (min 167.82, max 400.91, 15 reps)
+bigstack  mutual   n= 1000000 median 135.87 ms (min 117.65, max 324.66, 15 reps)
+tailloop  nontail  n= 1000000 SOE 1.27 ms (clean: caught, JVM continues)
+tramp(0)  nontail  n= 1000000 median 226.52 ms (min 158.13, max 464.50, 15 reps)
+tramp(64) nontail  n= 1000000 median 327.92 ms (min 233.58, max 551.56, 15 reps)
+bigstack  nontail  n= 1000000 median 116.17 ms (min 89.16, max 474.06, 15 reps)

@@ -1,0 +1,18 @@
+tail     n=    1000 exit=0 best_of_3=      3.9 ms maxrss=     8.4 MB out=499500 err=
+tail     n=   10000 exit=0 best_of_3=     18.2 ms maxrss=     8.5 MB out=49995000 err=
+tail     n=  100000 exit=0 best_of_3=    164.5 ms maxrss=    11.6 MB out=4999950000 err=
+tail     n= 1000000 exit=0 best_of_3=   1636.8 ms maxrss=    93.4 MB out=499999500000 err=
+each     n=    1000 exit=0 best_of_3=      4.1 ms maxrss=     8.5 MB out=499500 err=
+each     n=   10000 exit=0 best_of_3=     15.2 ms maxrss=     8.5 MB out=49995000 err=
+each     n=  100000 exit=0 best_of_3=    131.1 ms maxrss=    11.6 MB out=4999950000 err=
+each     n= 1000000 exit=0 best_of_3=   1249.1 ms maxrss=    93.3 MB out=499999500000 err=
+mutual   n=    1000 exit=0 best_of_3=      4.3 ms maxrss=     8.5 MB out=499500 err=
+mutual   n=   10000 exit=0 best_of_3=     18.5 ms maxrss=     8.5 MB out=49995000 err=
+mutual   n=  100000 exit=0 best_of_3=    168.9 ms maxrss=    16.6 MB out=4999950000 err=
+mutual   n= 1000000 exit=0 best_of_3=   1702.2 ms maxrss=   151.1 MB out=499999500000 err=
+nontail  n=    1000 exit=0 best_of_3=      3.2 ms maxrss=     8.5 MB out=499500 err=
+nontail  n=   10000 exit=0 best_of_3=     10.9 ms maxrss=     8.5 MB out=49995000 err=
+nontail  n=  100000 exit=0 best_of_3=     99.9 ms maxrss=    31.1 MB out=4999950000 err=
+nontail  n= 1000000 exit=0 best_of_3=    987.5 ms maxrss=   266.6 MB out=499999500000 err=
+length baseline n=1000 2.5 ms
+length baseline n=1000000 230.1 ms
