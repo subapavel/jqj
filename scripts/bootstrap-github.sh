@@ -1,13 +1,25 @@
 #!/usr/bin/env bash
 # One-time GitHub setup for this repo: labels used by the skills and the workflow.
 # Run from the repo root after the first push:  bash scripts/bootstrap-github.sh
-# Needs gh >= 2.94 (sub-issues and issue dependencies) and a logged-in gh.
-set -euo pipefail
+# REST only (`gh api`): the cloud VM blocks GitHub GraphQL, so `gh repo view` and `gh label create`
+# are not used (agent/NOTES.md). `{owner}/{repo}` is filled in by `gh api` from the clone's remote.
+# Idempotent: an existing label is updated in place.
+set -uo pipefail
 
-repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
-echo "Creating labels in $repo"
+echo "Creating labels in $(git remote get-url origin)"
+rc=0
 
-label() { gh label create "$1" --color "$2" --description "$3" --force >/dev/null && echo "  $1"; }
+label() {
+  local name=$1 color=$2 description=$3
+  if gh api "repos/{owner}/{repo}/labels" -f name="$name" -f color="$color" -f description="$description" > /dev/null 2>&1; then
+    echo "  created  $name"
+  elif gh api -X PATCH "repos/{owner}/{repo}/labels/${name//:/%3A}" -f color="$color" -f description="$description" > /dev/null 2>&1; then
+    echo "  updated  $name"
+  else
+    echo "  FAILED   $name" >&2
+    rc=1
+  fi
+}
 
 label needs-triage     "ededed" "Maintainer needs to evaluate this issue"
 label needs-info       "ededed" "Waiting on reporter for more information"
@@ -31,4 +43,5 @@ label wayfinder:prototype "c5def5" "Decision ticket: prototype (HITL)"
 label wayfinder:grilling  "c5def5" "Decision ticket: grilling (HITL)"
 label wayfinder:task      "c5def5" "Decision ticket: task"
 
-echo "Done. Remaining by hand: Settings → General → enable Issues; Branches → protect main (block force pushes and deletion; no PR requirement — Phase 0 commits ADRs to main, specs land by PR)."
+echo "Remaining by hand: Settings → General → enable Issues; Branches → protect main (block force pushes and deletion; no PR requirement — Phase 0 commits ADRs to main, specs land by PR)."
+exit "$rc"
