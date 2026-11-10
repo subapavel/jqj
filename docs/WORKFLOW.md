@@ -86,8 +86,8 @@ Up to three tickets are in flight at any time (`AGENTS.md`, Concurrency).
 
 ## 6. Checks, ratchet, CI
 
-**Status: starting point.** Phase 0 tickets 14 (build) and 15 (oracles and ratchet) decide this
-section; their ADRs replace the text below. The shape is carried over from flottila-mapping, where
+**Status: starting point.** ADR-0014 (ticket 14) has replaced the build, gate and CI parts of this
+section. Ticket 15 (oracles and ratchet) decides the rest, and its ADR replaces the text below. The shape is carried over from flottila-mapping, where
 it was measured. The build skeleton ticket of spec 1 adds `scripts/gate-ticket.sh <ticket>
 <modules> [integration-ref]`, `scripts/gate-spec.sh <spec>`, `scripts/ratchet.java` and
 `scripts/pit-summary.sh` by porting them from `subapavel/flottila-mapping` (same names, same log

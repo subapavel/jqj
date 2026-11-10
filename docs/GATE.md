@@ -16,8 +16,9 @@ command and the evidence it needs, and a change to a check is a finding (`docs/W
    `ratchet/oracle/differential.txt`. If the milestone ships both backends, they agree on the
    backend cases (`ratchet/oracle/backend.txt`). (Tickets 12, 15.)
 3. **JSON.** The reader accepts and rejects exactly what the conformance cases say
-   (`ratchet/oracle/json.txt`), and an error names the byte position. Untouched numbers and
-   strings come out byte-identical. Every input and output mode of the founding architecture §10
+   (`ratchet/oracle/json.txt`), and an error names the byte position. Untouched strings come out
+   byte-identical; literal numbers come out as jq prints them: copied byte for byte when the
+   token is canonical, otherwise in jq's canonical form (ADR-0012, F-1). Every input and output mode of the founding architecture §10
    has a differential case. (Tickets 9, 11.)
 4. **Memory.** Each budget (nesting depth, recursion depth, bytes built, bytes written, steps,
    deadline) ends a filter as an uncatchable termination with a jq error message (ADR-0008, F-8), shown by a test per budget whose witness would otherwise exhaust the limit.

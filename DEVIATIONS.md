@@ -53,6 +53,32 @@ files contain no break under `try`, `?` or `?//`.
 Reason: jq bytecodes `last/1` and tracks its one path; jqj makes it a native, and a jq-text
 definition would differ the same way. `[1,2] | path(last(.[]))` raises in both.
 
+## Order inside a comparison cycle (ADR-0012, issue #9)
+
+jq compares two literals as exact decimals and every other pair as doubles. So two literals with
+the same double, plus a computed number equal to both, form a cycle. Inside such a cycle, `sort`,
+`unique`, `group_by`, `min` and `max` return jqj's own stable order. jq's order there comes from
+libc `qsort`:
+
+| filter | jq 1.8.2 |
+| --- | --- |
+| `[100000000000000000001,(1e20+0),100000000000000000000] \| sort` | the input unchanged |
+| `[100000000000000000001,(1e20+0),100000000000000000000] \| unique` | `[100000000000000000001,100000000000000000000]` |
+
+Reason: `==` and `<` stay identical to jq's. A total order would change
+`(100000000000000000001+0) == 100000000000000000001` from true to false, and imitating `qsort` would
+tie jqj to one binary. The oracle cases pin the permutations jqj returns.
+
+## Size limits of the tape (ADR-0002)
+
+jqj raises a jq error beyond these limits:
+- 4 GiB per document;
+- 256 MiB per string;
+- 16 MiB per number literal (jq allows up to 999 999 999 digits);
+- 2^28 entries per container.
+
+jq has no such limits. Reason: one `long` per value, as recorded in ADR-0002.
+
 ## Streaming, when a host enables it (ADR-0007, issue #6)
 
 Streaming is off by default; in that mode jqj behaves like jq. When a host enables streaming for an

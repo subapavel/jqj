@@ -64,6 +64,19 @@ _Avoid_: heap value, materialised value
 To copy a view into a built value so it can outlive its document.
 _Avoid_: materialise, clone
 
+**Literal number**:
+A number read from a document, written in a filter or made by `tonumber`. It keeps its exact
+decimal value until arithmetic touches it, and prints in its canonical form.
+_Avoid_: untouched number, raw number
+
+**Computed number**:
+A number made by arithmetic or a math builtin: a double, printed in jq's shortest-digit layout.
+_Avoid_: double (that is the Java type)
+
+**Canonical form**:
+The text jq prints for a literal number (`1e2` → `1E+2`; `1.10` stays).
+_Avoid_: normalised form
+
 **Shape**:
 The shared key list of the objects built at one construction site.
 _Avoid_: hidden class, schema
@@ -273,6 +286,14 @@ The open, unblocked, unclaimed tickets of a spec or map.
 
 **Integration branch**:
 `spec/<issue>-<slug>`, where a spec's tickets are merged one by one before one PR to `main`.
+
+**Class-C module**:
+A module on a hard path (`query-core`, `jq-core`). Mutation floors apply to it, and the ticket gate
+runs PIT on what a ticket changed in it.
+_Avoid_: core module
+
+**Word check**:
+The check that no file of `query-core` contains the word jq or json; the project name jqj passes.
 
 **Ticket gate**:
 The automatic checks the verifier runs on one ticket's worktree before it merges: the scoped

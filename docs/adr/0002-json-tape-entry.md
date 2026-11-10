@@ -35,7 +35,7 @@ of tape for 11.2 MB of JSON, 1.46× the input. A reused tape reads a 1 KB messag
   | 15 | reserved: wide (two-long) entry |
 
 - **Numbers**: one tag. The span holds 4 flags (FITS_LONG, CANONICAL, NONFINITE, one spare) and a
-  24-bit length. What the flags mean exactly belongs to "How do numbers behave and print?".
+  24-bit length. Their meaning is given by ADR-0012.
 - **Limits**: 4 GiB per document, 256 MiB per string (the owner confirmed this is enough for
   Flottila), 16 MiB per number literal, 2^28 entries per container. Beyond a limit the reader
   raises a jq error. The wide tag lifts these limits later if ever needed.
