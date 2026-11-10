@@ -1,8 +1,8 @@
 # Handoff
 
-state: PHASE_0_NOT_STARTED — repo bootstrapped 2026-11-10 with the workflow of flottila-mapping (ADR-0001). No code, no build, no issues yet.
-direction: `docs/FOUNDING-ARCHITECTURE.md` (owner's agreed direction, 2026-11-10). Map draft: `docs/wayfinder/phase-0-map.md` (17 tickets). Gate draft: `docs/GATE.md`.
-next exact action (owner): map ticket 16 — create `subapavel/jqj`, push `main`, run `bash scripts/bootstrap-github.sh`, protect `main`, create the cloud environment per `deploy/claude-cloud/README.md`.
-next exact action (architect, first cloud session): record the environment checks in `agent/NOTES.md` (java, gh REST, Context7, `jq-ref --version`), then `/wayfinder` on `docs/wayfinder/phase-0-map.md` with the owner.
-AFK-ready after publishing: research tickets 1, 2, 10 and the spikes 3, 4 (no blockers).
-open owner issues: none.
+state: PHASE_0_MAP_PUBLISHED — the Phase 0 map is issue #18 "Phase 0 — decisions before milestone 1" (https://github.com/subapavel/jqj/issues/18), tickets #1–#17 as native sub-issues with native blocking edges; issue #N is "ticket N" of `docs/GATE.md` and `docs/wayfinder/phase-0-map.md` (the draft file is frozen; the issues are the source of truth).
+direction: `docs/FOUNDING-ARCHITECTURE.md`. Gate draft: `docs/GATE.md`.
+closed: #16 (setup; observations in `agent/NOTES.md`).
+in flight: research #1, #2, #10 (AFK subagents, branches `research/jq-reference`, `research/jq-implementations`, `research/libraries-and-jdk`, never merged); the architect appends their pointers to the map's Decisions so far.
+next exact action (architect): `/wayfinder` on #18 — the frontier's first open, unclaimed ticket is #3 "Spike A — does a self-calling jq function survive a big input?" (prototype: built AFK on a throwaway branch, resolved with the owner reacting to the note); then #4 (Spike B).
+open owner issues: protect `main` (comment on #18; spec 1 also lists it).
