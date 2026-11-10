@@ -1,0 +1,47 @@
+## issue #7: form B fixed (a result delivered by cps() before the first drive was dropped; adviser found WRONG(32640) on 'each'); hybrid limit 256 bounce 64, 1 MB default stack, OpenJDK 25.0.5, 4 vCPU
+## cold JVM per line
+hybrid(limit 256, form A) nested n=2000 m=1000 first run: SOE 908.57 max live drivers 201
+hybrid(limit 256, form A) nested n=10000 m=1000 first run: SOE 3214.33 max live drivers 202
+hybrid(limit 256, form A) each n=1000000 m=1000 first run: ok 257.38 max live drivers 1
+hybrid(limit 256, form A) nontail n=1000000 m=1000 first run: ok 698.58 max live drivers 1
+hybrid(limit 256, form A) tail n=1000000 m=1000 first run: ok 154.14 max live drivers 0
+hybrid(limit 256, form A) mutual n=1000000 m=1000 first run: ok 188.41 max live drivers 0
+hybrid(limit 256, form B) nested n=2000 m=1000 first run: ok 983.36 max live drivers 1
+hybrid(limit 256, form B) nested n=10000 m=1000 first run: ok 4049.17 max live drivers 1
+hybrid(limit 256, form B) each n=1000000 m=1000 first run: ok 312.43 max live drivers 1
+hybrid(limit 256, form B) nontail n=1000000 m=1000 first run: ok 746.23 max live drivers 1
+hybrid(limit 256, form B) tail n=1000000 m=1000 first run: ok 182.93 max live drivers 0
+hybrid(limit 256, form B) mutual n=1000000 m=1000 first run: ok 164.20 max live drivers 0
+## warm medians (20 warm-up runs at n=1000; 5 reps per n)
+resume=false
+hybrid    tail     n=    1000 median 0.39 ms (min 0.31, max 0.41, 5 reps)
+hybrid    tail     n=  100000 median 14.94 ms (min 13.71, max 23.91, 5 reps)
+hybrid    tail     n= 1000000 median 90.89 ms (min 43.98, max 146.25, 5 reps)
+resume=true
+hybrid    tail     n=    1000 median 0.31 ms (min 0.30, max 0.33, 5 reps)
+hybrid    tail     n=  100000 median 13.57 ms (min 9.30, max 20.18, 5 reps)
+hybrid    tail     n= 1000000 median 76.78 ms (min 47.06, max 151.48, 5 reps)
+resume=false
+hybrid    each     n=    1000 median 0.77 ms (min 0.72, max 0.81, 5 reps)
+hybrid    each     n=  100000 median 21.84 ms (min 8.14, max 30.39, 5 reps)
+hybrid    each     n= 1000000 median 177.46 ms (min 164.97, max 284.57, 5 reps)
+resume=true
+hybrid    each     n=    1000 median 0.89 ms (min 0.79, max 1.19, 5 reps)
+hybrid    each     n=  100000 median 34.70 ms (min 11.57, max 37.05, 5 reps)
+hybrid    each     n= 1000000 median 227.96 ms (min 104.74, max 293.53, 5 reps)
+resume=false
+hybrid    mutual   n=    1000 median 0.35 ms (min 0.34, max 0.55, 5 reps)
+hybrid    mutual   n=  100000 median 12.10 ms (min 9.63, max 24.44, 5 reps)
+hybrid    mutual   n= 1000000 median 108.84 ms (min 73.63, max 158.33, 5 reps)
+resume=true
+hybrid    mutual   n=    1000 median 0.54 ms (min 0.47, max 0.61, 5 reps)
+hybrid    mutual   n=  100000 median 17.57 ms (min 15.18, max 31.98, 5 reps)
+hybrid    mutual   n= 1000000 median 90.35 ms (min 55.51, max 148.59, 5 reps)
+resume=false
+hybrid    nontail  n=    1000 median 0.58 ms (min 0.54, max 0.60, 5 reps)
+hybrid    nontail  n=  100000 median 33.89 ms (min 29.32, max 58.78, 5 reps)
+hybrid    nontail  n= 1000000 median 412.82 ms (min 248.48, max 601.41, 5 reps)
+resume=true
+hybrid    nontail  n=    1000 median 0.56 ms (min 0.53, max 0.78, 5 reps)
+hybrid    nontail  n=  100000 median 29.36 ms (min 23.95, max 55.92, 5 reps)
+hybrid    nontail  n= 1000000 median 450.80 ms (min 295.42, max 519.97, 5 reps)

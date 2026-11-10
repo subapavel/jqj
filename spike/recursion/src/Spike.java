@@ -237,14 +237,14 @@ public final class Spike {
                     Env be = bind(e, fv); Object in0 = in;
                     if (RESUME) {                    // form B: one result per drive, emitted outside the driver
                         Object[] got = { NONE }; Bounce[] next = { null };
+                        // cps() itself may already deliver a result (up to -Dbounce direct steps), so keep it
                         Bounce b = fv.def().body.cps(be, in0, (v, more) -> { got[0] = v; next[0] = more; return null; }, () -> null);
                         while (true) {
-                            got[0] = NONE; next[0] = null;
                             if (++drivers > maxDrivers) maxDrivers = drivers;
                             try { drive(b); } finally { drivers--; }
                             if (got[0] == NONE) return true;
-                            if (!out.emit(got[0])) return false;
-                            b = next[0];
+                            Object v = got[0]; b = next[0]; got[0] = NONE; next[0] = null;
+                            if (!out.emit(v)) return false;
                         }
                     }
                     boolean[] go = { true };           // form A: the sink runs on top of the driver
