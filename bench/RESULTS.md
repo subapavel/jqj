@@ -4,6 +4,27 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Spike A follow-up — hybrid stack + trampoline (issue #3), 2026-11-10
+
+- Same machine, JVM and method as "Spike A" below. Code: branch `spike/recursion-depth` @ `4dd57d0`,
+  variant `hybrid` (`-Dvariant=hybrid -Dbounce=64 -Dlimit=K`): tail calls as jumps (as
+  `tailloop`), other calls on the Java stack (1 MB) up to K nested calls, a call beyond K runs on
+  the CPS trampoline and hands its results back to the direct caller. Raw output
+  `spike/recursion/results/3-spike-hybrid.log` there.
+
+Time (ms, median; 5 reps, 15 at N=10⁶), T / E / M / N:
+
+| K | N=1000 | N=10⁴ | N=10⁵ | N=10⁶ |
+| --- | --- | --- | --- | --- |
+| 256 | 0.31 / 0.89 / 0.31 / 0.61 | 2.62 / 3.30 / 2.83 / 4.36 | 8.99 / 11.12 / 13.63 / 44.49 | 47.07 / 132.17 / 52.34 / 350.12 |
+| 1000 | 0.30 / SOE / 0.33 / SOE | 2.52 / SOE / 2.84 / SOE | 8.81 / SOE / 11.96 / 30.24 | 43.90 / SOE / 44.93 / 383.47 |
+
+Cold first run (fresh JVM): K=256 all four ok at 10³ and 10⁴; K=1000 E and N SOE at 10³ and 10⁴.
+K=256 at N=10⁶, cold: 131.19 / 262.98 / 141.72 / 622.94 ms, max RSS 160 / 305 / 191 / 365 MB.
+Baselines measured in the same run at N=1000 (15 reps): stack T 0.21, M 0.23, N 0.27; tailloop T
+0.29, M 0.31, N SOE (it was ok at 0.28 in the earlier run); bigstack 1 GB E 1.09, N 0.86, and at
+N=10⁶ E 151.12, N 285.26.
+
 ## Spike A — recursion depth (issue #3), 2026-11-10
 
 - Machine: Claude Code Cloud VM, 4 vCPU Intel Xeon @ 2.10GHz, 15 GB RAM, Linux 6.18.
