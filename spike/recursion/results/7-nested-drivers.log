@@ -1,0 +1,20 @@
+## issue #7 round 2 Q4: nested drivers, hybrid limit 256 bounce 64, 1 MB default stack, cold JVM per line, Picked up JAVA_TOOL_OPTIONS: 
+Picked up JAVA_TOOL_OPTIONS: 
+hybrid(limit 256, form A) nested n=2000 m=1000 first run: SOE 1285.01 max live drivers 201
+Picked up JAVA_TOOL_OPTIONS: 
+hybrid(limit 256, form A) nested n=10000 m=1000 first run: SOE 3936.11 max live drivers 201
+Picked up JAVA_TOOL_OPTIONS: 
+hybrid(limit 256, form B) nested n=2000 m=1000 first run: ok 953.83 max live drivers 1
+Picked up JAVA_TOOL_OPTIONS: 
+hybrid(limit 256, form B) nested n=10000 m=1000 first run: ok 3389.83 max live drivers 1
+## cost of form B on N (one result per call), warm
+resume=false
+Picked up JAVA_TOOL_OPTIONS: 
+hybrid    nontail  n=    1000 median 0.75 ms (min 0.61, max 1.04, 5 reps)
+hybrid    nontail  n=  100000 median 31.24 ms (min 25.65, max 59.76, 5 reps)
+hybrid    nontail  n= 1000000 median 392.45 ms (min 301.02, max 559.06, 5 reps)
+resume=true
+Picked up JAVA_TOOL_OPTIONS: 
+hybrid    nontail  n=    1000 median 0.79 ms (min 0.75, max 0.81, 5 reps)
+hybrid    nontail  n=  100000 median 38.08 ms (min 34.67, max 78.92, 5 reps)
+hybrid    nontail  n= 1000000 median 517.36 ms (min 266.65, max 604.98, 5 reps)

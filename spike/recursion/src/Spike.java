@@ -10,6 +10,12 @@
 //   bigstack   'stack' run on a platform thread with -Dstack=<bytes>
 //   virtual    'stack' run on a virtual thread
 //   hybrid     'tailloop' up to -Dlimit=K nested calls on the Java stack, deeper calls on the trampoline
+//              -Dresume=false (form A): the caller's sink runs inside the driver, so a recursion started
+//                                       from that sink starts a nested driver on top of it
+//              -Dresume=true  (form B): the driver stops at each result and returns it to its starter,
+//                                       which emits it from its own frame and then resumes the driver
+// Filter 'nested' (issue #7 round 2, Q4): non-tail recursion g of depth n whose continuation at every
+// level starts another recursion s of depth -Dm (default 1000) beyond the limit.
 import java.util.*;
 import java.util.function.*;
 
@@ -43,6 +49,9 @@ public final class Spike {
     /** hybrid: direct calls on the Java stack up to this many nested calls, then the CPS trampoline */
     static final int LIMIT = Integer.getInteger("limit", 1000);
     static int calls;                                // nested direct calls right now
+    static final boolean RESUME = Boolean.getBoolean("resume");
+    static int drivers, maxDrivers;                  // live hybrid drivers right now / the most at once
+    static final Object NONE = new Object();
     static final Object CONT = new Object(), STOP = new Object();
     record Next(FnVal fn, Env env, Object in) {}
 
@@ -225,8 +234,23 @@ public final class Spike {
             FnVal fv = (FnVal) slot;
             if (HYBRID) {
                 if (calls >= LIMIT) {                // too deep for the stack: finish this call on the trampoline
-                    Env be = bind(e, fv); Object in0 = in; boolean[] go = { true };
-                    drive(fv.def().body.cps(be, in0, (v, more) -> { if (out.emit(v)) return more; go[0] = false; return null; }, () -> null));
+                    Env be = bind(e, fv); Object in0 = in;
+                    if (RESUME) {                    // form B: one result per drive, emitted outside the driver
+                        Object[] got = { NONE }; Bounce[] next = { null };
+                        Bounce b = fv.def().body.cps(be, in0, (v, more) -> { got[0] = v; next[0] = more; return null; }, () -> null);
+                        while (true) {
+                            got[0] = NONE; next[0] = null;
+                            if (++drivers > maxDrivers) maxDrivers = drivers;
+                            try { drive(b); } finally { drivers--; }
+                            if (got[0] == NONE) return true;
+                            if (!out.emit(got[0])) return false;
+                            b = next[0];
+                        }
+                    }
+                    boolean[] go = { true };           // form A: the sink runs on top of the driver
+                    if (++drivers > maxDrivers) maxDrivers = drivers;
+                    try { drive(fv.def().body.cps(be, in0, (v, more) -> { if (out.emit(v)) return more; go[0] = false; return null; }, () -> null)); }
+                    finally { drivers--; }
                     return go[0];
                 }
                 calls++;
@@ -285,6 +309,15 @@ public final class Spike {
             case "nontail" -> prelude(new FuncDef("s", new String[0],
                     new If(new Bin(Op.EQ, new Id(), new Var("L")), I(0), new Bin(Op.ADD, new Index(new Var("a"), new Id()), new Pipe(new Bin(Op.ADD, new Id(), I(1)), new Call("s")))),
                     new Pipe(I(0), new Call("s"))));
+            // def s: if . == $L then 0 else $a[.] + (. + 1 | s) end;
+            // def g: if . == $L then 0 else (. + 1 | g) as $x | $x + (($L - $m) | s) end;  0 | g
+            case "nested" -> prelude(new FuncDef("s", new String[0],
+                    new If(new Bin(Op.EQ, new Id(), new Var("L")), I(0), new Bin(Op.ADD, new Index(new Var("a"), new Id()), new Pipe(new Bin(Op.ADD, new Id(), I(1)), new Call("s")))),
+                    new FuncDef("g", new String[0],
+                            new If(new Bin(Op.EQ, new Id(), new Var("L")), I(0),
+                                    new Bind(new Pipe(new Bin(Op.ADD, new Id(), I(1)), new Call("g")), "x",
+                                            new Bin(Op.ADD, new Var("x"), new Pipe(new Bin(Op.SUB, new Var("L"), I(M)), new Call("s"))))),
+                            new Pipe(I(0), new Call("g")))));
             default -> throw new IllegalArgumentException(name);
         };
         n.resolve(null, false, null);
@@ -293,6 +326,12 @@ public final class Spike {
 
     // ---------- running ----------
     static final String VARIANT = System.getProperty("variant", "stack");
+    static final long M = Long.getLong("m", 1000);
+    static String NAME;
+    static long want(int n) {
+        if (!"nested".equals(NAME)) return (long) n * (n - 1) / 2;
+        long m = Math.min(M, n); return n * (m * (2L * n - m - 1) / 2);
+    }
 
     static Object[] input(int n) { Object[] a = new Object[n]; for (int i = 0; i < n; i++) a[i] = (long) i; return a; }
 
@@ -328,7 +367,7 @@ public final class Spike {
         try {
             Object r = evalOnce(f, in);
             double ms = (System.nanoTime() - t0) / 1e6;
-            long want = (long) n * (n - 1) / 2;
+            long want = want(n);
             return (Long.valueOf(want).equals(r) ? "ok " : "WRONG(" + r + ") ") + String.format("%.2f", ms);
         } catch (StackOverflowError e) {
             return "SOE " + String.format("%.2f", (System.nanoTime() - t0) / 1e6);
@@ -339,6 +378,7 @@ public final class Spike {
 
     public static void main(String[] args) {
         String mode = args[0];
+        NAME = args[1];
         Node f = filter(args[1]);
         switch (mode) {
             case "time" -> {                               // time <filter> <n,n,...> <reps>
@@ -356,7 +396,7 @@ public final class Spike {
                             fail != null ? fail + " ms (clean: caught, JVM continues)" : String.format("median %.2f ms (min %.2f, max %.2f, %d reps)", ok.get(ok.size() / 2), ok.get(0), ok.get(ok.size() - 1), ok.size()));
                 }
             }
-            case "cold" -> System.out.println(VARIANT + " " + args[1] + " n=" + args[2] + " first run: " + attempt(f, Integer.parseInt(args[2])));
+            case "cold" -> System.out.println(VARIANT + (HYBRID ? "(limit " + LIMIT + (RESUME ? ", form B" : ", form A") + ")" : "") + " " + args[1] + " n=" + args[2] + " m=" + M + " first run: " + attempt(f, Integer.parseInt(args[2])) + (HYBRID ? " max live drivers " + maxDrivers : ""));
             case "maxdepth" -> {                           // binary search the largest n that works, after warm-up
                 for (int i = 0; i < 20; i++) attempt(f, 1000);
                 int lo = 1, hi = Integer.parseInt(args[2]);
