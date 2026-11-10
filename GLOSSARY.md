@@ -85,15 +85,51 @@ bound to a variable, stored in another value, or emitted.
 ## Compiling
 
 **IR**:
-The one intermediate form of a filter that both backends read. _(open: node families, ticket 6)_
+The one intermediate form of a filter that both backends read: one closed family of
+format-neutral nodes and the functions they call. Everything a format adds reaches it as an
+operation.
 _Avoid_: AST (that is the parser's output), bytecode (that is jq's own or the JVM's)
+
+**Operation**:
+What an intrinsic IR node calls: a navigation step or a native builtin of one format, described by
+the facts the analyses need (how many results, how it extends a path, what it keeps).
+_Avoid_: primitive, opcode
+
+**Navigation step**:
+An operation that goes from a value to a part of it (field, index, slice, iterate). Only steps
+extend a path.
+
+**Closure**:
+A filter argument of a jq function, run in the caller's scope each time the callee calls it.
+_Avoid_: lambda, callback
+
+**Recursive group**:
+The functions that can reach each other through calls.
+
+**Specialisation**:
+Making a copy of a recursive function for one closure argument that every call in its group passes
+on unchanged, so the closure disappears.
+
+**Path shape**:
+How an update or `path()` runs: along a fixed path, while walking the value, or by tracking every
+path.
+
+**Hold**:
+A place that keeps a value while later steps run (a variable, an accumulator, an array being
+built, an error payload). A view of an input document is detached when it enters a hold that spans
+a later read.
+_Avoid_: pin, retain
+
+**Root use**:
+Whether a filter reads its input not at all, as the elements of one array one at a time, or whole.
 
 **Analysis**:
 A pass over the IR that proves a property a backend can use: cardinality, path shape, root use,
 touched fields.
 
 **Cardinality**:
-How many results an IR node can produce for one input: exactly one, at most one, or many.
+How many results an IR node can produce for one input: none, exactly one, at most one, or many. An
+error or a break is not a result.
 
 **Backend**:
 What turns IR into something that runs. There are two.
