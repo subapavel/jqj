@@ -2,21 +2,27 @@
 
 Module notes by section, read on demand.
 
-## Cloud environment (carried over from flottila-mapping, observed there 2026-10-30; re-check in the first session here and replace this section with what was observed)
+## Cloud environment (observed in the first jqj session, 2026-11-10)
 
-- `gh issue …` and `gh pr …` failed there with HTTP 403: GraphQL is blocked from Claude Code
-  sessions. `gh api repos/{owner}/{repo}/issues` (REST) worked. Use the "Cloud VM: REST only"
-  table in `docs/agents/issue-tracker.md` for every issue operation until observed otherwise.
-- `gh auth status` reported the token invalid; the proxy authenticated REST calls anyway.
-- `gh` was 2.89.0 (< 2.94: no `--blocked-by` / `--add-sub-issue` flags).
-- Context7: without `CONTEXT7_API_KEY` the free quota ran out; `.mcp.json` sends the key as a
-  header. The server stays "Pending approval" unless `~/.claude/settings.json` lists it in
-  `enabledMcpjsonServers` (`deploy/claude-cloud/setup.sh` writes that). A session started on more
-  than one repository begins in `/home/user` and loads no `.mcp.json`.
-- Context7 tools were not offered inside subagent sessions: subagents verify APIs with `javap`.
-- Maven Central answered HTTP 429 to the VM; the setup script points Maven and the wrapper at the
-  Google mirror of Central.
-- Tags could not be pushed from the VM.
+1. Shell and JDK — `pwd` is `/home/user/jqj` (single-repository session). `java -version`:
+   VERIFIED_PASS, `java version "25.0.5.0.3" 2026-10-25 LTS` (HotSpot). `./mvnw -v`: NOT_RUN,
+   the wrapper does not exist yet; re-check once it lands.
+2. GitHub — `gh` is 2.89.0 (< 2.94: no `--blocked-by` / `--add-sub-issue`).
+   `gh api repos/subapavel/jqj/issues`: VERIFIED_PASS (exit 0, `[]`). `gh issue list`:
+   EXECUTED_FAIL, HTTP 403 "GitHub GraphQL is not available from Claude Code sessions". Use the
+   "Cloud VM: REST only" table in `docs/agents/issue-tracker.md` for every issue operation.
+   `gh auth status` reports the `GH_TOKEN` invalid, yet the proxy authenticates REST calls.
+3. Context7 — `claude mcp list`: VERIFIED_PASS, `context7 … √ Connected`; `CONTEXT7_API_KEY` is
+   set and `~/.claude/settings.json` lists context7 in `enabledMcpjsonServers`. One
+   `resolve-library-id` call ("Jackson"): VERIFIED_PASS, returned `/fasterxml/jackson-core` and
+   others. Context7 inside subagent sessions: NOT_RUN (carried over: it was not offered there;
+   subagents verify APIs with `javap`).
+4. Reference jq — `/usr/local/bin/jq-ref --version`: VERIFIED_PASS, `jq-1.8.1`, equal to
+   `JQ_REF_VERSION=1.8.1` in `deploy/claude-cloud/setup.sh`.
+
+Carried over from flottila-mapping and not re-checked here (NOT_RUN): Maven Central answering
+HTTP 429 (the setup script points Maven at the Google mirror; `~/.m2/settings.xml` exists), and
+tags not pushable from the VM.
 
 ## Checks to record in the first session
 
