@@ -1,6 +1,6 @@
 # Numbers: literals keep jq's decimal meaning, arithmetic is double
 
-Status: accepted (2026-11-10, owner, issue #9 "How do numbers behave and print?"); gives the meaning of ADR-0002's number flags; closes F-1
+Status: accepted (2026-11-10, owner, issue #9 "How do numbers behave and print?"); gives the meaning of ADR-0002's number flags; supersedes the number sentences of founding §5 and §10; closes F-1
 
 A number is in one of three states (ADR-0003):
 - a `NumberView` into the tape;
@@ -11,7 +11,9 @@ A number is in one of three states (ADR-0003):
 A filter constant, `tonumber`, `fromjson` or `detach` makes a literal, and so does `-x` or `length`
 of a literal (jq's `jv_number_negate` and `jv_number_abs`). Arithmetic and the math builtins make a
 `DoubleNumber`. Everything that is not arithmetic keeps a literal a literal, including `null + x`
-and `x + null`. `abs` is jq's prelude definition, so it keeps `-0` (`0*-1 | abs` → `-0`).
+and `x + null`. Negating a literal zero gives a positive zero with the same exponent, as
+`decNumberMinus` does: filter `-0` → `0`, `-0.0 | -.` → `0.0`, `-0E-7 | -.` → `0E-7`, while the
+computed `-(0*1)` → `-0`. A sign flip on the text would be wrong. `abs` is jq's prelude definition, so it keeps `-0` (`0*-1 | abs` → `-0`).
 
 The rules below were observed on jq-ref 1.8.2 by the grilling adviser: commands C1–C8 of issue #9
 round 1, and differential runs on 200 000 random tokens and 477 500 doubles.
@@ -40,7 +42,7 @@ round 1, and differential runs on 200 000 random tokens and 477 500 doubles.
   - up to 17 significant digits, the correctly rounded parse;
   - more than 17, a HALF_EVEN round to 17 digits first, then the parse.
 
-  Correct rounding would differ from jq on 9 871 of 200 000 random literals. A `LiteralNumber`
+  Correct rounding would differ from jq on 9 871 of 200 000 generated literals of 18 or more digits. A `LiteralNumber`
   computes the double once; a view computes it on each read.
 - **Exponent limits** follow decNumber:
   - an adjusted exponent above 999 999 999 gives an Infinity literal;
@@ -48,20 +50,22 @@ round 1, and differential runs on 200 000 random tokens and 477 500 doubles.
     `1E-1147483646`).
 - **Comparison is jq's pairwise rule.** Two literals compare as exact decimals: by long when both
   fit, by double when both are short, otherwise with `BigDecimal.compareTo`. Any other pair
-  compares as doubles, with primitive `<` and `==`. NaN sorts as `null` and is never equal.
+  compares as doubles, with primitive `<` and `==`. NaN sorts below every number, another NaN included, and is never equal; against other types it
+  is a number (`nan < -infinite` and `nan > null` are true).
 - **Ties between equal values with different text**: `sort` is stable, `min` keeps the first and
-  `max` the last.
+  `max` the last. `min`, `max` and their `_by` forms are jq's left-to-right scan (`minmax_by`), so
+  they match jq even inside a cycle (351 arrays of length 3–5 over the three cycle values, adviser).
 - **jq's rule is not transitive.** Two literals with the same double, plus a computed number equal
   to both, form a cycle. jqj sorts with its own stable merge sort; `Arrays.sort` threw on 1486 of
-  2000 such arrays. In a cycle, the order from `sort`, `unique`, `group_by`, `min` and `max` is
-  jqj's own (`DEVIATIONS.md`).
+  2000 such arrays. In a cycle, the result of `sort`, `sort_by`, `unique`, `unique_by` and
+  `group_by` is jqj's own (`DEVIATIONS.md`).
 
 ## Printing
 
-- **An untouched number prints as jq prints it.** A CANONICAL token is copied byte for byte.
+- **A literal number prints as jq prints it.** A CANONICAL token is copied byte for byte.
   Any other literal is rewritten to jq's canonical form: `1e2` → `1E+2`, `0.0000001` → `1E-7`,
   `0.0000000` → `0E-7`, `1e-2` → `0.01`, while `1.10` and `-0` stay. This is `BigDecimal.toString`
-  except for the sign of zero and the non-finite values.
+  except for the sign of zero, the non-finite values and the exponent limits.
 - **NaN prints `null`. ±Infinity prints `±1.7976931348623157e+308`.** An Infinity literal still
   compares above every finite literal.
 - **A `DoubleNumber` prints in jq's `jvp_dtoa_fmt` layout:**
@@ -79,8 +83,10 @@ round 1, and differential runs on 200 000 random tokens and 477 500 doubles.
 
 ## Arithmetic and folding
 
-- **Arithmetic is always double.** A long fast path is allowed only for `+` and `−`, with integral
-  operands that are not −0 and |result| ≤ 2^53. (`0 * -1` is `-0`.)
+- **Arithmetic is always double.** A long fast path is allowed only for `+` and `−`, when both
+  operands are integral, not −0 and at most 2^53 in magnitude, and |result| ≤ 2^53 (jq-ref:
+  `9007199254740993 - 1` → `9007199254740991`, `100000000000000041 - 100000000000000000` → `32`).
+  `0 * -1` is `-0`.
 - **Folding keeps the state** (ADR-0007). jq's own `constant_fold` calls the same binops. A
   `DoubleNumber` never becomes literal text, neither in the IR nor in class data, so a folded number
   prints exactly as the unfolded one would.

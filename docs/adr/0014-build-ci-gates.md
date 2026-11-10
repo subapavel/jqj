@@ -13,7 +13,11 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
     license-maven-plugin 2.8.0, JUnit 6.1.3 and AssertJ 3.27.7.
   - There is no mocking library.
 - **Coverage and mutation of `query-core` and `jq-core` come from every test in the reactor,
-  oracle cases included.** JaCoCo `report-aggregate` and PIT `crossModule` both run in `oracle`.
+  oracle cases included.** JaCoCo `report-aggregate` runs in `oracle`. PIT `crossModule` there mutates the
+  upstream modules but runs only `oracle`'s own tests (pitest-maven 1.30.2,
+  `findOccupiedTestPackages`), so the unit tests of `query-core` and `jq-core` join through
+  `additionalClasspathElements` and `targetTests`, or through test-jars; the skeleton ticket proves
+  which.
   `ratchet.java` checks the floors on the aggregate. The floor numbers and the class-C list belong
   to "How do the oracles and the ratchet work?". PIT on JDK 25 with JUnit 6 and `crossModule` is
   NOT_RUN; the skeleton ticket runs it first.
@@ -42,7 +46,8 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
     LF check;
   - `windows`: `mvnw.cmd -B -q -DskipTests verify`, which proves only that checkout and build work.
 
-  `trailers`, `build` and `windows` are required on `main` from spec 1. `nightly.yml` runs PIT on
+  `trailers`, `build` and `windows` become required on `main` from spec 1: the owner sets this in
+  branch protection when the skeleton ticket adds `ci.yml` (`main` has no required check today). `nightly.yml` runs PIT on
   the class-C modules and uploads the reports, committing nothing. `bench.yml` is manual and
   informative only.
 - **Scripts ported from flottila-mapping:** `gate-ticket.sh`, `gate-spec.sh`, `ratchet.java` and

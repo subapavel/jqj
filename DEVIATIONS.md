@@ -56,9 +56,10 @@ definition would differ the same way. `[1,2] | path(last(.[]))` raises in both.
 ## Order inside a comparison cycle (ADR-0012, issue #9)
 
 jq compares two literals as exact decimals and every other pair as doubles. So two literals with
-the same double, plus a computed number equal to both, form a cycle. Inside such a cycle, `sort`,
-`unique`, `group_by`, `min` and `max` return jqj's own stable order. jq's order there comes from
-libc `qsort`:
+the same double, plus a computed number equal to both, form a cycle. Inside such a cycle, the result
+of `sort`, `sort_by`, `unique`, `unique_by` and `group_by` is jqj's own; `unique` and `group_by`
+can also group differently (`[(1e20+0),100000000000000000001,100000000000000000000] | unique` →
+`[1e+20]` on jq). `min`, `max` and their `_by` forms match jq. jq's order comes from libc `qsort`:
 
 | filter | jq 1.8.2 |
 | --- | --- |
@@ -67,7 +68,8 @@ libc `qsort`:
 
 Reason: `==` and `<` stay identical to jq's. A total order would change
 `(100000000000000000001+0) == 100000000000000000001` from true to false, and imitating `qsort` would
-tie jqj to one binary. The oracle cases pin the permutations jqj returns.
+tie jqj to one binary. The jqj column depends on the merge order, so the sort ticket fills it in
+and pins it with oracle cases.
 
 ## Size limits of the tape (ADR-0002)
 
@@ -77,7 +79,9 @@ jqj raises a jq error beyond these limits:
 - 16 MiB per number literal (jq allows up to 999 999 999 digits);
 - 2^28 entries per container.
 
-jq has no such limits. Reason: one `long` per value, as recorded in ADR-0002.
+jq's limits are higher and of another kind: an array index up to 2^29−1 ("Array index too large"),
+strings under 2 GiB, tokens up to 1 GiB, literals up to 999 999 999 characters, and no
+per-document limit. Reason: one `long` per value, as recorded in ADR-0002.
 
 ## Streaming, when a host enables it (ADR-0007, issue #6)
 

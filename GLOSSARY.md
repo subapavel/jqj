@@ -288,7 +288,8 @@ The open, unblocked, unclaimed tickets of a spec or map.
 `spec/<issue>-<slug>`, where a spec's tickets are merged one by one before one PR to `main`.
 
 **Class-C module**:
-A module on a hard path (`query-core`, `jq-core`). Mutation floors apply to it, and the ticket gate
+A module on a hard path, listed in the file "How do the oracles and the ratchet work?" decides
+(today `query-core` and `jq-core`). Mutation floors apply to it, and the ticket gate
 runs PIT on what a ticket changed in it.
 _Avoid_: core module
 
@@ -296,9 +297,10 @@ _Avoid_: core module
 The check that no file of `query-core` contains the word jq or json; the project name jqj passes.
 
 **Ticket gate**:
-The automatic checks the verifier runs on one ticket's worktree before it merges: the scoped
-build of the touched modules, a compile of the whole build, and the ratchet check.
-_Avoid_: CI (that runs the spec gate's checks), pre-merge review
+The automatic checks the verifier runs on one ticket's worktree before it merges: the
+whole-reactor build with every oracle, PIT on the changed classes, the LF, trailer and word checks,
+and the ratchet check (ADR-0014).
+_Avoid_: CI (CI runs the build and script checks on every push; the gate adds PIT and the ratchet), pre-merge review
 
 **Spec gate**:
 The full checks the verifier runs on an integration branch before the spec's PR: every build,

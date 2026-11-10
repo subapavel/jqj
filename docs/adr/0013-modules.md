@@ -5,7 +5,8 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
 The tree is flat: a root `pom.xml` (parent and aggregator, `0.1.0-SNAPSHOT`, not published) and the
 modules `query-core/`, `jq-core/`, `jq-cli/`, `oracle/` (tests only) and `bench/jmh/` (built only
 with `-Pbench`). Each artifactId is its directory name. The groupId and root package are
-`io.github.subapavel.jqj`. Until the first publish a rename is one mechanical ticket; after it, a
+`io.github.subapavel.jqj`. This ADR binds module names and exported packages; the types named in
+parentheses belong to ADR-0005, ADR-0008 and ADR-0009. Until the first publish a rename is one mechanical ticket; after it, a
 rename is a breaking release for the Flottila adapter.
 
 - **`query-core`** is module `io.github.subapavel.jqj.query`. It has no `requires`:
@@ -31,7 +32,7 @@ rename is a breaking release for the Flottila adapter.
   `target/lib/` and a launcher `target/jqj`. Linux is the only supported platform for milestone 1.
 - **Where tests run:**
   - `oracle` and `bench/jmh` run on the class path. So do the unit tests of `query-core` and
-    `jq-core` (`useModulePath=false`), which white-box tests, JaCoCo and PIT need.
+    `jq-core` (`useModulePath=false`), which keeps white-box access, JaCoCo and PIT simple.
   - The shipped module path is covered by a fixed set of about ten cases in `jq-cli`: a prelude
     builtin, a regex, each call form of ADR-0009 and each backend.
   - A backend test checks that a generated class names only `java.*` and `query-core` types. The
@@ -57,6 +58,6 @@ rename is a breaking release for the Flottila adapter.
   uses either part alone, and a later split is a package move.
 - **ArchUnit:** JPMS already enforces direction, and the word rule must see comments and strings.
 - **Every test on the module path:** `--add-opens` per package, for no gain.
-- **A shaded CLI jar:** it drops joni's module descriptor.
+- **A shaded CLI jar:** it would drop joni's module descriptor (UNVERIFIED).
 - **One `.a` case per backend on the module path:** it misses the linkage failure above.
 - **Supporting Windows:** it needs a Windows test job and a `jqj.cmd` launcher.
