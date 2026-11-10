@@ -1,0 +1,9 @@
+1KB (Tape entries=185): entries=185 rootTag=9 dupObjects=0 target="value-42"
+100KB (Tape entries=19997): entries=19997 rootTag=9 dupObjects=0 target="value-42"
+10MB (Tape entries=2049843): entries=2049843 rootTag=9 dupObjects=0 target="value-42"
+duplicate: entries=11 rootTag=10 dupObjects=1 target=9
+dup above 8 keys: entries=23 rootTag=10 dupObjects=1 target=1
+no dup, 12 keys: entries=25 rootTag=9 dupObjects=0 target=7
+depth 10000: entries=10002 rootTag=8 dupObjects=0 target=none
+depth 10001: ERROR Exceeds depth limit for parsing at byte 10000
+invalid UTF-8 string tag=6 (6 = STR_ESC)

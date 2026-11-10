@@ -1,0 +1,908 @@
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /opt/temurin-25/bin/java
+# VM options: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes= -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: spike.M1Bench.m1Dup
+# Parameters: (size = 1KB)
+
+# Run progress: 0.00% complete, ETA 00:02:24
+# Fork: 1 of 2
+# Warmup Iteration   1: 2.997 us/op
+# Warmup Iteration   2: 2.865 us/op
+# Warmup Iteration   3: 3.001 us/op
+Iteration   1: 2.677 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.019 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 2.717 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.019 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 2.816 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.020 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 2.941 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.021 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 2.783 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.019 B/op
+                 gc.count:           ≈ 0 counts
+
+
+# Run progress: 5.56% complete, ETA 00:02:22
+# Fork: 2 of 2
+# Warmup Iteration   1: 2.754 us/op
+# Warmup Iteration   2: 2.873 us/op
+# Warmup Iteration   3: 2.721 us/op
+Iteration   1: 2.853 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.020 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 2.718 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.019 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 2.850 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.020 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 2.784 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.019 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 2.865 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.020 B/op
+                 gc.count:           ≈ 0 counts
+
+
+
+Result "spike.M1Bench.m1Dup":
+  2.800 ±(99.9%) 0.122 us/op [Average]
+  (min, avg, max) = (2.677, 2.800, 2.941), stdev = 0.081
+  CI (99.9%): [2.678, 2.923] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1Dup:gc.alloc.rate":
+  0.007 ±(99.9%) 0.001 MB/sec [Average]
+  (min, avg, max) = (0.007, 0.007, 0.007), stdev = 0.001
+  CI (99.9%): [0.007, 0.007] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1Dup:gc.alloc.rate.norm":
+  0.020 ±(99.9%) 0.001 B/op [Average]
+  (min, avg, max) = (0.019, 0.020, 0.021), stdev = 0.001
+  CI (99.9%): [0.019, 0.020] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1Dup:gc.count":
+  ≈ 0 counts
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /opt/temurin-25/bin/java
+# VM options: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes= -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: spike.M1Bench.m1Dup
+# Parameters: (size = 100KB)
+
+# Run progress: 11.11% complete, ETA 00:02:13
+# Fork: 1 of 2
+# Warmup Iteration   1: 323.373 us/op
+# Warmup Iteration   2: 343.703 us/op
+# Warmup Iteration   3: 310.934 us/op
+Iteration   1: 333.395 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 2.322 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 344.231 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 2.409 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 302.768 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 2.119 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 306.181 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 2.132 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 316.391 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 2.214 B/op
+                 gc.count:           ≈ 0 counts
+
+
+# Run progress: 16.67% complete, ETA 00:02:05
+# Fork: 2 of 2
+# Warmup Iteration   1: 328.922 us/op
+# Warmup Iteration   2: 328.844 us/op
+# Warmup Iteration   3: 321.370 us/op
+Iteration   1: 323.537 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 2.254 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 329.534 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 2.305 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 360.096 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 2.520 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 320.085 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 2.226 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 314.513 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 2.191 B/op
+                 gc.count:           ≈ 0 counts
+
+
+
+Result "spike.M1Bench.m1Dup":
+  325.073 ±(99.9%) 26.434 us/op [Average]
+  (min, avg, max) = (302.768, 325.073, 360.096), stdev = 17.484
+  CI (99.9%): [298.639, 351.507] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1Dup:gc.alloc.rate":
+  0.007 ±(99.9%) 0.001 MB/sec [Average]
+  (min, avg, max) = (0.007, 0.007, 0.007), stdev = 0.001
+  CI (99.9%): [0.007, 0.007] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1Dup:gc.alloc.rate.norm":
+  2.269 ±(99.9%) 0.188 B/op [Average]
+  (min, avg, max) = (2.119, 2.269, 2.520), stdev = 0.124
+  CI (99.9%): [2.081, 2.457] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1Dup:gc.count":
+  ≈ 0 counts
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /opt/temurin-25/bin/java
+# VM options: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes= -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: spike.M1Bench.m1Dup
+# Parameters: (size = 10MB)
+
+# Run progress: 22.22% complete, ETA 00:01:56
+# Fork: 1 of 2
+# Warmup Iteration   1: 43696.611 us/op
+# Warmup Iteration   2: 49411.300 us/op
+# Warmup Iteration   3: 43777.515 us/op
+Iteration   1: 48101.607 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 331.810 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 42131.039 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 290.333 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 46105.555 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 316.727 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 47196.256 us/op
+                 gc.alloc.rate:      0.006 MB/sec
+                 gc.alloc.rate.norm: 316.727 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 46699.835 us/op
+                 gc.alloc.rate:      0.006 MB/sec
+                 gc.alloc.rate.norm: 316.727 B/op
+                 gc.count:           ≈ 0 counts
+
+
+# Run progress: 27.78% complete, ETA 00:01:49
+# Fork: 2 of 2
+# Warmup Iteration   1: 42787.894 us/op
+# Warmup Iteration   2: 50766.604 us/op
+# Warmup Iteration   3: 48559.271 us/op
+Iteration   1: 46975.997 us/op
+                 gc.alloc.rate:      0.006 MB/sec
+                 gc.alloc.rate.norm: 316.727 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 53882.581 us/op
+                 gc.alloc.rate:      0.006 MB/sec
+                 gc.alloc.rate.norm: 366.737 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 50942.286 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 348.400 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 53669.040 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 368.421 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 53216.965 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 366.737 B/op
+                 gc.count:           ≈ 0 counts
+
+
+
+Result "spike.M1Bench.m1Dup":
+  48892.116 ±(99.9%) 5878.920 us/op [Average]
+  (min, avg, max) = (42131.039, 48892.116, 53882.581), stdev = 3888.541
+  CI (99.9%): [43013.196, 54771.036] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1Dup:gc.alloc.rate":
+  0.007 ±(99.9%) 0.001 MB/sec [Average]
+  (min, avg, max) = (0.006, 0.007, 0.007), stdev = 0.001
+  CI (99.9%): [0.006, 0.007] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1Dup:gc.alloc.rate.norm":
+  333.935 ±(99.9%) 41.067 B/op [Average]
+  (min, avg, max) = (290.333, 333.935, 368.421), stdev = 27.163
+  CI (99.9%): [292.868, 375.001] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1Dup:gc.count":
+  ≈ 0 counts
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /opt/temurin-25/bin/java
+# VM options: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes= -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: spike.M1Bench.m1NoDup
+# Parameters: (size = 1KB)
+
+# Run progress: 33.33% complete, ETA 00:01:42
+# Fork: 1 of 2
+# Warmup Iteration   1: 2.556 us/op
+# Warmup Iteration   2: 2.223 us/op
+# Warmup Iteration   3: 2.251 us/op
+Iteration   1: 2.015 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.014 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 2.006 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.014 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 2.100 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.015 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 2.069 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.014 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 2.049 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.014 B/op
+                 gc.count:           ≈ 0 counts
+
+
+# Run progress: 38.89% complete, ETA 00:01:33
+# Fork: 2 of 2
+# Warmup Iteration   1: 2.102 us/op
+# Warmup Iteration   2: 2.147 us/op
+# Warmup Iteration   3: 2.133 us/op
+Iteration   1: 2.335 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.016 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 2.144 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.015 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 2.197 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.015 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 2.105 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.015 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 2.157 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.015 B/op
+                 gc.count:           ≈ 0 counts
+
+
+
+Result "spike.M1Bench.m1NoDup":
+  2.118 ±(99.9%) 0.148 us/op [Average]
+  (min, avg, max) = (2.006, 2.118, 2.335), stdev = 0.098
+  CI (99.9%): [1.969, 2.266] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1NoDup:gc.alloc.rate":
+  0.007 ±(99.9%) 0.001 MB/sec [Average]
+  (min, avg, max) = (0.007, 0.007, 0.007), stdev = 0.001
+  CI (99.9%): [0.007, 0.007] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1NoDup:gc.alloc.rate.norm":
+  0.015 ±(99.9%) 0.001 B/op [Average]
+  (min, avg, max) = (0.014, 0.015, 0.016), stdev = 0.001
+  CI (99.9%): [0.014, 0.016] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1NoDup:gc.count":
+  ≈ 0 counts
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /opt/temurin-25/bin/java
+# VM options: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes= -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: spike.M1Bench.m1NoDup
+# Parameters: (size = 100KB)
+
+# Run progress: 44.44% complete, ETA 00:01:24
+# Fork: 1 of 2
+# Warmup Iteration   1: 248.722 us/op
+# Warmup Iteration   2: 239.734 us/op
+# Warmup Iteration   3: 246.165 us/op
+Iteration   1: 242.226 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.695 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 233.195 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.632 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 230.781 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.607 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 231.193 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.618 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 231.103 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.617 B/op
+                 gc.count:           ≈ 0 counts
+
+
+# Run progress: 50.00% complete, ETA 00:01:15
+# Fork: 2 of 2
+# Warmup Iteration   1: 247.301 us/op
+# Warmup Iteration   2: 252.662 us/op
+# Warmup Iteration   3: 250.458 us/op
+Iteration   1: 254.915 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.776 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 254.924 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.776 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 262.222 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.834 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 265.378 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.857 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 256.488 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.795 B/op
+                 gc.count:           ≈ 0 counts
+
+
+
+Result "spike.M1Bench.m1NoDup":
+  246.242 ±(99.9%) 21.131 us/op [Average]
+  (min, avg, max) = (230.781, 246.242, 265.378), stdev = 13.977
+  CI (99.9%): [225.111, 267.374] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1NoDup:gc.alloc.rate":
+  0.007 ±(99.9%) 0.001 MB/sec [Average]
+  (min, avg, max) = (0.007, 0.007, 0.007), stdev = 0.001
+  CI (99.9%): [0.007, 0.007] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1NoDup:gc.alloc.rate.norm":
+  1.721 ±(99.9%) 0.148 B/op [Average]
+  (min, avg, max) = (1.607, 1.721, 1.857), stdev = 0.098
+  CI (99.9%): [1.573, 1.868] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1NoDup:gc.count":
+  ≈ 0 counts
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /opt/temurin-25/bin/java
+# VM options: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes= -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: spike.M1Bench.m1NoDup
+# Parameters: (size = 10MB)
+
+# Run progress: 55.56% complete, ETA 00:01:07
+# Fork: 1 of 2
+# Warmup Iteration   1: 36389.400 us/op
+# Warmup Iteration   2: 32192.185 us/op
+# Warmup Iteration   3: 31960.313 us/op
+Iteration   1: 31944.406 us/op
+                 gc.alloc.rate:      0.006 MB/sec
+                 gc.alloc.rate.norm: 217.750 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 33454.159 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 232.267 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 33776.599 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 232.267 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 33505.846 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 232.267 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 34956.498 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 240.276 B/op
+                 gc.count:           ≈ 0 counts
+
+
+# Run progress: 61.11% complete, ETA 00:00:59
+# Fork: 2 of 2
+# Warmup Iteration   1: 34574.240 us/op
+# Warmup Iteration   2: 33366.657 us/op
+# Warmup Iteration   3: 34385.374 us/op
+Iteration   1: 35871.301 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 248.857 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 38558.229 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 268.000 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 34693.543 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 240.276 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 33024.724 us/op
+                 gc.alloc.rate:      0.006 MB/sec
+                 gc.alloc.rate.norm: 224.774 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 33304.421 us/op
+                 gc.alloc.rate:      0.006 MB/sec
+                 gc.alloc.rate.norm: 224.774 B/op
+                 gc.count:           ≈ 0 counts
+
+
+
+Result "spike.M1Bench.m1NoDup":
+  34308.973 ±(99.9%) 2804.665 us/op [Average]
+  (min, avg, max) = (31944.406, 34308.973, 38558.229), stdev = 1855.112
+  CI (99.9%): [31504.308, 37113.637] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1NoDup:gc.alloc.rate":
+  0.007 ±(99.9%) 0.001 MB/sec [Average]
+  (min, avg, max) = (0.006, 0.007, 0.007), stdev = 0.001
+  CI (99.9%): [0.006, 0.007] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1NoDup:gc.alloc.rate.norm":
+  236.151 ±(99.9%) 21.691 B/op [Average]
+  (min, avg, max) = (217.750, 236.151, 268.000), stdev = 14.347
+  CI (99.9%): [214.460, 257.842] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.m1NoDup:gc.count":
+  ≈ 0 counts
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /opt/temurin-25/bin/java
+# VM options: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes= -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: spike.M1Bench.spikeBTape
+# Parameters: (size = 1KB)
+
+# Run progress: 66.67% complete, ETA 00:00:50
+# Fork: 1 of 2
+# Warmup Iteration   1: 2.307 us/op
+# Warmup Iteration   2: 2.166 us/op
+# Warmup Iteration   3: 2.180 us/op
+Iteration   1: 2.101 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.015 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 1.954 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.014 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 2.042 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.014 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 2.132 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.015 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 2.284 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.016 B/op
+                 gc.count:           ≈ 0 counts
+
+
+# Run progress: 72.22% complete, ETA 00:00:42
+# Fork: 2 of 2
+# Warmup Iteration   1: 2.128 us/op
+# Warmup Iteration   2: 2.029 us/op
+# Warmup Iteration   3: 2.168 us/op
+Iteration   1: 2.078 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.015 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 2.000 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.014 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 2.185 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.015 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 1.957 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.014 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 2.207 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 0.015 B/op
+                 gc.count:           ≈ 0 counts
+
+
+
+Result "spike.M1Bench.spikeBTape":
+  2.094 ±(99.9%) 0.166 us/op [Average]
+  (min, avg, max) = (1.954, 2.094, 2.284), stdev = 0.110
+  CI (99.9%): [1.928, 2.260] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.spikeBTape:gc.alloc.rate":
+  0.007 ±(99.9%) 0.001 MB/sec [Average]
+  (min, avg, max) = (0.007, 0.007, 0.007), stdev = 0.001
+  CI (99.9%): [0.007, 0.007] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.spikeBTape:gc.alloc.rate.norm":
+  0.015 ±(99.9%) 0.001 B/op [Average]
+  (min, avg, max) = (0.014, 0.015, 0.016), stdev = 0.001
+  CI (99.9%): [0.013, 0.016] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.spikeBTape:gc.count":
+  ≈ 0 counts
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /opt/temurin-25/bin/java
+# VM options: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes= -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: spike.M1Bench.spikeBTape
+# Parameters: (size = 100KB)
+
+# Run progress: 77.78% complete, ETA 00:00:33
+# Fork: 1 of 2
+# Warmup Iteration   1: 235.037 us/op
+# Warmup Iteration   2: 240.176 us/op
+# Warmup Iteration   3: 239.897 us/op
+Iteration   1: 269.088 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.882 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 239.902 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.679 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 236.804 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.656 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 240.800 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.677 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 242.854 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.699 B/op
+                 gc.count:           ≈ 0 counts
+
+
+# Run progress: 83.33% complete, ETA 00:00:25
+# Fork: 2 of 2
+# Warmup Iteration   1: 251.230 us/op
+# Warmup Iteration   2: 230.115 us/op
+# Warmup Iteration   3: 223.998 us/op
+Iteration   1: 233.296 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.632 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 239.635 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.677 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 232.096 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.624 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 231.495 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.620 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 228.601 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 1.600 B/op
+                 gc.count:           ≈ 0 counts
+
+
+
+Result "spike.M1Bench.spikeBTape":
+  239.457 ±(99.9%) 17.252 us/op [Average]
+  (min, avg, max) = (228.601, 239.457, 269.088), stdev = 11.411
+  CI (99.9%): [222.205, 256.709] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.spikeBTape:gc.alloc.rate":
+  0.007 ±(99.9%) 0.001 MB/sec [Average]
+  (min, avg, max) = (0.007, 0.007, 0.007), stdev = 0.001
+  CI (99.9%): [0.007, 0.007] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.spikeBTape:gc.alloc.rate.norm":
+  1.675 ±(99.9%) 0.120 B/op [Average]
+  (min, avg, max) = (1.600, 1.675, 1.882), stdev = 0.080
+  CI (99.9%): [1.554, 1.795] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.spikeBTape:gc.count":
+  ≈ 0 counts
+
+
+# JMH version: 1.37
+# VM version: JDK 25.0.5, OpenJDK 64-Bit Server VM, 25.0.5+8-LTS
+# VM invoker: /opt/temurin-25/bin/java
+# VM options: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes= -Xms2g -Xmx2g
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: spike.M1Bench.spikeBTape
+# Parameters: (size = 10MB)
+
+# Run progress: 88.89% complete, ETA 00:00:16
+# Fork: 1 of 2
+# Warmup Iteration   1: 35439.707 us/op
+# Warmup Iteration   2: 35221.215 us/op
+# Warmup Iteration   3: 32270.989 us/op
+Iteration   1: 36794.454 us/op
+                 gc.alloc.rate:      0.006 MB/sec
+                 gc.alloc.rate.norm: 248.857 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 34860.581 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 240.276 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 34183.480 us/op
+                 gc.alloc.rate:      0.006 MB/sec
+                 gc.alloc.rate.norm: 232.267 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 32747.875 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 224.774 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 32720.072 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 224.774 B/op
+                 gc.count:           ≈ 0 counts
+
+
+# Run progress: 94.44% complete, ETA 00:00:08
+# Fork: 2 of 2
+# Warmup Iteration   1: 32995.949 us/op
+# Warmup Iteration   2: 35908.987 us/op
+# Warmup Iteration   3: 32654.572 us/op
+Iteration   1: 32582.261 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 224.774 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   2: 32518.934 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 224.774 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   3: 33923.250 us/op
+                 gc.alloc.rate:      0.006 MB/sec
+                 gc.alloc.rate.norm: 232.267 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   4: 31684.192 us/op
+                 gc.alloc.rate:      0.007 MB/sec
+                 gc.alloc.rate.norm: 217.750 B/op
+                 gc.count:           ≈ 0 counts
+
+Iteration   5: 32212.173 us/op
+                 gc.alloc.rate:      0.006 MB/sec
+                 gc.alloc.rate.norm: 217.750 B/op
+                 gc.count:           ≈ 0 counts
+
+
+
+Result "spike.M1Bench.spikeBTape":
+  33422.727 ±(99.9%) 2321.770 us/op [Average]
+  (min, avg, max) = (31684.192, 33422.727, 36794.454), stdev = 1535.707
+  CI (99.9%): [31100.958, 35744.497] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.spikeBTape:gc.alloc.rate":
+  0.007 ±(99.9%) 0.001 MB/sec [Average]
+  (min, avg, max) = (0.006, 0.007, 0.007), stdev = 0.001
+  CI (99.9%): [0.006, 0.007] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.spikeBTape:gc.alloc.rate.norm":
+  228.826 ±(99.9%) 14.839 B/op [Average]
+  (min, avg, max) = (217.750, 228.826, 248.857), stdev = 9.815
+  CI (99.9%): [213.987, 243.666] (assumes normal distribution)
+
+Secondary result "spike.M1Bench.spikeBTape:gc.count":
+  ≈ 0 counts
+
+
+# Run complete. Total time: 00:02:33
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                              (size)  Mode  Cnt      Score      Error   Units
+M1Bench.m1Dup                             1KB  avgt   10      2.800 ±    0.122   us/op
+M1Bench.m1Dup:gc.alloc.rate               1KB  avgt   10      0.007 ±    0.001  MB/sec
+M1Bench.m1Dup:gc.alloc.rate.norm          1KB  avgt   10      0.020 ±    0.001    B/op
+M1Bench.m1Dup:gc.count                    1KB  avgt   10        ≈ 0             counts
+M1Bench.m1Dup                           100KB  avgt   10    325.073 ±   26.434   us/op
+M1Bench.m1Dup:gc.alloc.rate             100KB  avgt   10      0.007 ±    0.001  MB/sec
+M1Bench.m1Dup:gc.alloc.rate.norm        100KB  avgt   10      2.269 ±    0.188    B/op
+M1Bench.m1Dup:gc.count                  100KB  avgt   10        ≈ 0             counts
+M1Bench.m1Dup                            10MB  avgt   10  48892.116 ± 5878.920   us/op
+M1Bench.m1Dup:gc.alloc.rate              10MB  avgt   10      0.007 ±    0.001  MB/sec
+M1Bench.m1Dup:gc.alloc.rate.norm         10MB  avgt   10    333.935 ±   41.067    B/op
+M1Bench.m1Dup:gc.count                   10MB  avgt   10        ≈ 0             counts
+M1Bench.m1NoDup                           1KB  avgt   10      2.118 ±    0.148   us/op
+M1Bench.m1NoDup:gc.alloc.rate             1KB  avgt   10      0.007 ±    0.001  MB/sec
+M1Bench.m1NoDup:gc.alloc.rate.norm        1KB  avgt   10      0.015 ±    0.001    B/op
+M1Bench.m1NoDup:gc.count                  1KB  avgt   10        ≈ 0             counts
+M1Bench.m1NoDup                         100KB  avgt   10    246.242 ±   21.131   us/op
+M1Bench.m1NoDup:gc.alloc.rate           100KB  avgt   10      0.007 ±    0.001  MB/sec
+M1Bench.m1NoDup:gc.alloc.rate.norm      100KB  avgt   10      1.721 ±    0.148    B/op
+M1Bench.m1NoDup:gc.count                100KB  avgt   10        ≈ 0             counts
+M1Bench.m1NoDup                          10MB  avgt   10  34308.973 ± 2804.665   us/op
+M1Bench.m1NoDup:gc.alloc.rate            10MB  avgt   10      0.007 ±    0.001  MB/sec
+M1Bench.m1NoDup:gc.alloc.rate.norm       10MB  avgt   10    236.151 ±   21.691    B/op
+M1Bench.m1NoDup:gc.count                 10MB  avgt   10        ≈ 0             counts
+M1Bench.spikeBTape                        1KB  avgt   10      2.094 ±    0.166   us/op
+M1Bench.spikeBTape:gc.alloc.rate          1KB  avgt   10      0.007 ±    0.001  MB/sec
+M1Bench.spikeBTape:gc.alloc.rate.norm     1KB  avgt   10      0.015 ±    0.001    B/op
+M1Bench.spikeBTape:gc.count               1KB  avgt   10        ≈ 0             counts
+M1Bench.spikeBTape                      100KB  avgt   10    239.457 ±   17.252   us/op
+M1Bench.spikeBTape:gc.alloc.rate        100KB  avgt   10      0.007 ±    0.001  MB/sec
+M1Bench.spikeBTape:gc.alloc.rate.norm   100KB  avgt   10      1.675 ±    0.120    B/op
+M1Bench.spikeBTape:gc.count             100KB  avgt   10        ≈ 0             counts
+M1Bench.spikeBTape                       10MB  avgt   10  33422.727 ± 2321.770   us/op
+M1Bench.spikeBTape:gc.alloc.rate         10MB  avgt   10      0.007 ±    0.001  MB/sec
+M1Bench.spikeBTape:gc.alloc.rate.norm    10MB  avgt   10    228.826 ±   14.839    B/op
+M1Bench.spikeBTape:gc.count              10MB  avgt   10        ≈ 0             counts
+
+Benchmark result is saved to ../../.logs/5-m1.csv
