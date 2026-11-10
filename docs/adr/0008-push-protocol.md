@@ -1,6 +1,6 @@
 # Push protocol: emit's false stops, a break is a Workspace token, two exception classes
 
-Status: proposed (2026-11-10, issue #7 "What is the execution protocol?"); amends ADR-0004, ADR-0005 and ADR-0007
+Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); amends ADR-0004, ADR-0005 and ADR-0007
 
 Results are pushed. `interface Sink { boolean emit(Object v); }` lives in `query-core`. If emit
 returns `false`, that is a stop: the producer emits nothing more and returns `false` at once. The

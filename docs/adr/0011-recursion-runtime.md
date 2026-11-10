@@ -1,6 +1,6 @@
 # Recursion: weighted stack units, a resumable trampoline only in the interpreter
 
-Status: proposed (2026-11-10, issue #7 "What is the execution protocol?"); details the hybrid chosen on issue #3
+Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); details the hybrid chosen on issue #3
 
 Tail calls are jumps. Other recursive calls run on the Java stack until the stack units reach a
 limit U, and beyond U they run on a CPS trampoline. A memory-bounded recursion-depth budget limits

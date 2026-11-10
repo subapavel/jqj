@@ -17,6 +17,7 @@ item variable. jq also accepts some other forms; jqj raises "Invalid path expres
 | `{"a":true} \| path(.a \| true)` | `["a"]` | error |
 | `null \| path(reduce 0 as $i (.; .))` | `[]` | error |
 | `[[1],[2]] \| path(foreach (0,1) as $i (.; .; .[$i]))` | `[0]`, `[1]` | error |
+| `{"a":{"a":1}} \| [path(reduce 0 as $i (.; .a) \| empty)]` | `[]` | error |
 
 The last two keep the `reduce`/`foreach` state untracked (ADR-0010): jq restores its one current
 path at every return to the source, so a state path never survives an iteration, and

@@ -1,6 +1,6 @@
 # Path mode is a second variant over parent-linked paths
 
-Status: proposed (2026-11-10, issue #7 "What is the execution protocol?")
+Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?")
 
 Path mode is a second variant of the nodes. It is built only for the nodes that a TRACKED
 `PathOf` or `Update` can reach (ADR-0007; WALK may run as TRACKED).
@@ -20,9 +20,9 @@ Path mode is a second variant of the nodes. It is built only for the nodes that 
 - **The state of `reduce` and `foreach` stays untracked.** jq keeps one current path per
   evaluation and restores it each time it returns to the source (`gen_reduce`, `path_intact`).
   So a state path never survives an iteration (`[[1,2]] | path(reduce (0,1) as $i (.; .[$i]))`
-  raises on jq-ref). The forms jq does accept are listed in `DEVIATIONS.md`. _(Open: whether the
-  update body runs in the path variant on the untracked state, so that a step in it raises at once
-  as in jq; owner question after the ADR review.)_
+  raises on jq-ref). The forms jq does accept are listed in `DEVIATIONS.md`. The update body runs in the
+  path variant on the untracked state, so a navigation step in it raises at once, as in jq
+  (`[[1,2]] | [path(reduce (0,1) as $i (.; .[$i]) | empty)]` raises on jq-ref).
 - **Validity errors:** an untracked result used as a path raises "Invalid path expression with
   result …". The check is lazy for results, so `path(1|empty)` gives nothing. A navigation step on
   an untracked value raises at once, with jq's messages "…near attempt to access element … of …"
