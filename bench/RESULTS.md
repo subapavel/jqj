@@ -19,6 +19,12 @@ verifier output; newest section first.
   (start-up alone, `jq-ref -n 1`: 2.36 ms): 1 KB 2.20–2.27 ms, 100 KB 5.00–5.07 ms, 10 MB
   451.15–465.00 ms; max RSS 12.7 MB / 12.7 MB / 173.7 MB.
 
+- Tape size (corrected 2026-11-10, `Count.java` over the same `Tape`/`Docs`, log
+  `.logs/4-tapecount.log`): 185 / 19 997 / 2 049 843 entries for the 1 KB / 100 KB / 10 MB
+  documents = 1 480 B / 159 976 B / 16 398 744 B of tape, 1.53× / 1.48× / 1.46× the input. The
+  33.5 MB allocated by `tapeFresh` at 10 MB is the doubling from 1024 entries (2 097 152 capacity
+  plus every smaller array), not the tape size.
+
 Per read, µs/op and bytes allocated/op:
 
 | document | tapeReused | tapeFresh | validateOnly | skipAll | stopFirst |
