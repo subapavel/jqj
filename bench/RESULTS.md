@@ -24,6 +24,9 @@ verifier output; newest section first.
 | m1Dup | 2.800 ± 0.122 (0.020) | 325.073 ± 26.434 (2.3) | 48 892.116 ± 5 878.920 (334) |
 
 Duplicate detection in the reader: +32 % at 1 KB and 100 KB, +43 % at 10 MB over `m1NoDup`.
+The root object has 8 / 770 / 78 841 keys in the three documents (counted over the same tape), so
+the 10 MB cost is mostly one very wide object. `TapeM1`'s detector shares one table stamp across
+nesting levels and compares raw key bytes; it is a timing prototype, not a template.
 UTF-8 classification and the depth limit: +1–3 %, inside the error.
 
 ## Spike B — reading one field (issue #4), 2026-11-10
