@@ -17,9 +17,10 @@ Module notes by section, read on demand.
    `resolve-library-id` call ("Jackson"): VERIFIED_PASS, returned `/fasterxml/jackson-core` and
    others. Context7 inside subagent sessions: NOT_RUN (carried over: it was not offered there;
    subagents verify APIs with `javap`).
-4. Reference jq — `/usr/local/bin/jq-ref --version`: VERIFIED_PASS, `jq-1.8.1`, equal to
-   `JQ_REF_VERSION=1.8.1` in `deploy/claude-cloud/setup.sh`.
-
+4. Reference jq — first observed `jq-1.8.1`, equal to the then pin. The owner moved the pin to
+   1.8.2 after ticket #1 (newest 1.8.x): `JQ_REF_VERSION=1.8.2`, binary checked against the
+   release's `sha256sum.txt` and installed; `/usr/local/bin/jq-ref --version` = `jq-1.8.2`
+   VERIFIED_PASS; the setup script's jq step re-run reports "already present".
 5. `javap` — `java` on PATH is JDK 25 (`/opt/temurin-25`, `JAVA_HOME` too), but `javap` on PATH
    resolves to `/usr/lib/jvm/java-21-openjdk-amd64/bin/javap` (21.0.12): VERIFIED_PASS by
    `readlink -f $(which javap)`. For JDK 25 API checks use `$JAVA_HOME/bin/javap`

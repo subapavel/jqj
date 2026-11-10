@@ -117,8 +117,8 @@ else
   log "could not write $settings (continuing; context7 stays pending approval)"
 fi
 # Reference jq for the differential oracle (docs/agents/environment.md). GitHub release assets are on
-# the default allowlist. The version is pinned here; Phase 0 confirms or changes it (map ticket 1).
-JQ_REF_VERSION=1.8.1
+# the default allowlist. Pinned to the newest 1.8.x release, chosen by the owner after map ticket #1.
+JQ_REF_VERSION=1.8.2
 if [ -x /usr/local/bin/jq-ref ] && /usr/local/bin/jq-ref --version 2>/dev/null | grep -q "jq-$JQ_REF_VERSION"; then
   log "reference jq already present: $(/usr/local/bin/jq-ref --version)"
 else
