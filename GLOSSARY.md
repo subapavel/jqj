@@ -43,13 +43,18 @@ One JSON value held as its UTF-8 bytes plus its tape.
 _Avoid_: message (Flottila's word), payload, tree
 
 **Tape**:
-The flat index of a document: one entry per JSON value giving its type and where it starts in
-the bytes; a container's entry also says where it ends. _(open: entry layout, ticket 5)_
+The flat index of a document: one entry per JSON value, object keys included, giving its type and
+where it lies in the bytes; a container's entry also says how many entries it holds, so the whole
+container can be stepped over at once.
 _Avoid_: index (alone), DOM, token stream
 
 **View**:
 A value that is a position in a document. It is valid only while its document is.
 _Avoid_: reference, pointer, lazy value
+
+**Stale view**:
+A view whose document has been replaced by a later read. Using it is an error, never a wrong value.
+_Avoid_: dangling view, expired value
 
 **Built value**:
 A value the filter constructed, independent of any document. Immutable once handed on.
