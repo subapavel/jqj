@@ -1,6 +1,6 @@
 # Public API: engine, filter, Workspace, documents and values
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12), ADR-0020 (issue #15) and ADR-0024 (#24: kinds, exception shapes, F-20)
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12), ADR-0020 (issue #15) and ADR-0024 (#24: kinds, exception shapes, F-20); amended by ADR-0026 (accessor edges)
 
 Type and method names are binding from the first publish; until then a rename is one mechanical
 ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1).

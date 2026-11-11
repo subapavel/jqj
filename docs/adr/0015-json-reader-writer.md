@@ -1,6 +1,6 @@
 # JSON reader and writer: jq's grammar, jq's messages by replay, a byte[] loop
 
-Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR
+Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits)
 
 jq-ref 1.8.2 decides what the reader accepts and what it prints. The adviser ran every rule below
 on it (issue #11 round 1, commands K1–K8) and read jq-1.8.2's `jv_parse.c`, `jv_unicode.c`,
@@ -49,8 +49,8 @@ non-exported package `.internal.json`.
   error that `try fromjson catch .` catches (jq.test 2563), not a budget termination (F-13).
   `Limits.nestingDepth` sets the number. Built values have no depth limit. So 10 000 arrays
   pass, the 10 001st fails, and objects nest 5 000 deep. `--stream` has no depth limit, as jq.
-- **Sizes** (ADR-0002, amended): 2^31−3 bytes per document (F-12), 256 MiB per string, 16 MiB per
-  number literal, 2^28 entries per container, each → "Exceeds {document|string|number|container}
+- **Sizes** (ADR-0002, amended): 2^31−3 bytes per document (F-12), 2^28−1 bytes per string (quotes
+  included), 2^24−1 bytes per number literal, 2^28−1 entries per container (F-21), each → "Exceeds {document|string|number|container}
   size limit for parsing at line L, column C". A slurped stream is one document, so the document
   limit covers the whole input.
 

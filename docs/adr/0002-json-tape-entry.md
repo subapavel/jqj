@@ -1,6 +1,6 @@
 # JSON tape entry: one long per value
 
-Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0015 (issue #11)
+Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0015 (issue #11); amended by F-21 (exact size limits)
 
 A document's tape is one `long[]` with **one entry per JSON value, object keys included**. Each
 entry is a 4-bit tag, a 28-bit span and a 32-bit offset. We chose it because it is the smallest
@@ -36,8 +36,9 @@ of tape for 11.2 MB of JSON, 1.46× the input. A reused tape reads a 1 KB messag
 
 - **Numbers**: one tag. The span holds 4 flags (FITS_LONG, CANONICAL, NONFINITE, one spare) and a
   24-bit length. Their meaning is given by ADR-0012.
-- **Limits**: 4 GiB per document, 256 MiB per string (the owner confirmed this is enough for
-  Flottila), 16 MiB per number literal, 2^28 entries per container. Beyond a limit the reader
+- **Limits**: 2^31−3 bytes per document (F-12), 2^28−1 bytes per string, quotes included (about
+  256 MiB; the owner confirmed this is enough for Flottila), 2^24−1 bytes per number literal,
+  2^28−1 entries per container (F-21). Beyond a limit the reader
   raises a jq error. The wide tag lifts these limits later if ever needed.
 - **Duplicate keys are found on first touch, and the tape is read-only after the read.** `.a`
   scans to the last match. `keys`, `length`, `.[]` and the writer check again on every pass.
