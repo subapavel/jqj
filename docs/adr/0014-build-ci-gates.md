@@ -1,6 +1,6 @@
 # Build, CI and gates
 
-Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15); amended by ADR-0023 (issue #17: the fallbacks fire at any spec gate)
+Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15); amended by ADR-0023 (issue #17: the fallbacks fire at any spec gate); amended by F-19 (spec 1 grilling: who measures the gate steps)
 
 - **Toolchain:**
   - Maven wrapper 3.3.4 (`only-script`) with Maven 3.9.x, `--release 25`, `-Xlint:all -Werror`, no
@@ -27,14 +27,14 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
      target is under 60 s with three gates in parallel.
   2. PIT on only the classes the ticket changed (`-DtargetClasses` from `git diff <ref>`), against
      the floor. `failWhenNoMutations` is off, for tickets that change only records or interfaces.
-     The target is under 3 minutes with three gates in parallel. If the skeleton ticket, or any
+     The target is under 3 minutes with three gates in parallel. If spec 1's last ticket, or any
      later spec gate, measures more, PIT leaves the ticket gate by a finding, with no new owner
      round (ADR-0023, F-17).
   3. The LF check, the trailer check and the word check, each under about 2 s.
   4. `java scripts/ratchet.java check`.
 
-  The skeleton ticket measures each step alone and with three gates in parallel, and records the
-  numbers in `bench/RESULTS.md`.
+  Spec 1's last ticket measures each step alone and with three gates in parallel, once cases pass,
+  and records the numbers in `bench/RESULTS.md` (F-19).
 - **The spec gate** is `scripts/gate-spec.sh <spec>`:
   1. `clean verify -Pbench`;
   2. PIT on whole class-C modules;
