@@ -15,7 +15,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * The read block at a cut inside a character, for every kind of byte there (F-25): which bytes take more bytes after
  * them, how continuation bytes before the cut count, and that an LF the completion takes in does not count. Every N
- * is jq-ref 1.8.2's, observed 2026-11-11 with {@code jq-ref -c .a} on the same bytes ({@code jq: error (at
+ * is jq-ref 1.8.2's, observed 2026-11-11 with {@code jq-ref -c .a} (or as noted) on the same bytes ({@code jq: error (at
  * <stdin>:N): ...}, rc 5). B is a 1-based byte position.
  */
 class ErrorLineCutTest {
@@ -75,6 +75,10 @@ class ErrorLineCutTest {
         // A second block of continuation bytes only takes nothing more: ] at B8184 is in a third block, with its LF.
         Arguments.argumentSet("4091 x 80 at B4092..8182, ] at B8184, LF", bytes("[\"", xs(4089), continuations(4091), "\"]\n"), 1),
         Arguments.argumentSet("E2 and 4090 x 80 at B4092..8182, ] at B8184, LF", bytes("[\"", xs(4089), of(0xe2), continuations(4090), "\"]\n"), 1),
+        // A closing brace is the completing byte itself (jq-ref -c .a.b on these bytes): at B4091 it ends the first
+        // block, which has no LF; at B4092 it is in the second block, with its LF.
+        Arguments.argumentSet("} at B4091, LF", bytes("{\"a\":\"", xs(4083), "\"}\n"), 0),
+        Arguments.argumentSet("} at B4092, LF", bytes("{\"a\":\"", xs(4084), "\"}\n"), 1),
         // A short last block after a longer one ending in LF counts only its own bytes.
         Arguments.argumentSet("[ 50 SP LF ]", bytes("[", " ".repeat(50), "\n]"), 1));
   }
