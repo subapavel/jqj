@@ -45,3 +45,6 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#25) The worktree guard refuses a Bash call whose text has `github` with git/sed pipelines; use Edit instead.
 - (#25) A stub `java` first on PATH (exec-ing the real one otherwise) lets a script test fake `java -jar`.
 - (#25) Oracle report format read by `scripts/ratchet.java`: `<oracle>-<suffix>.tsv`, columns `id, verdict, detail, extras`; def in column 4 (json: label 4, def 5).
+- (#31) The worktree guard refuses a Bash call containing `git` (incl. `.github` paths, `GIT_*`) together with other shell syntax: run `git` alone.
+- (#31) `gh api` and GitHub web pages for this repo return 403 in subagent sessions; `git ls-remote` on public repos works.
+- (#31) `workflow_dispatch` needs the workflow file on the default branch first.
