@@ -64,6 +64,31 @@ _Avoid_: heap value, materialised value
 To copy a view into a built value so it can outlive its document.
 _Avoid_: materialise, clone
 
+**Owned document**:
+A document a host reads through the engine, with its own read-only tape; valid until the host
+closes it, and shareable between steps and threads.
+_Avoid_: shared doc
+
+**Workspace document**:
+A document read into a Workspace's reused tape; valid until that Workspace's next main read or its
+close.
+
+**Slurped document**:
+The one document `-s` makes over the whole input stream, with a synthetic root array.
+
+**Literal number**:
+A number read from a document, written in a filter or made by `tonumber`. It keeps its exact
+decimal value until arithmetic touches it, and prints in its canonical form.
+_Avoid_: untouched number, raw number
+
+**Computed number**:
+A number made by arithmetic or a math builtin: a double, printed in jq's shortest-digit layout.
+_Avoid_: double (that is the Java type)
+
+**Canonical form**:
+The text jq prints for a literal number (`1e2` → `1E+2`; `1.10` stays).
+_Avoid_: normalised form
+
 **Shape**:
 The shared key list of the objects built at one construction site.
 _Avoid_: hidden class, schema
@@ -164,8 +189,38 @@ _Avoid_: yield, return, push (as a noun for the call)
 What receives emitted results.
 
 **Path mode**:
-Running a filter so that each result comes with the path that led to it, as `path()`, `paths` and
-updates need. _(open: how it is expressed, ticket 7)_
+Running a filter's second variant, in which each result comes with the path that led to it or is
+untracked, as `path()`, `paths` and updates need.
+
+**Untracked**:
+A path-mode result with no path. Used as a path, it raises "Invalid path expression".
+
+**Stop**:
+An emit answered with false: the producer emits nothing more and returns.
+_Avoid_: cancel, abort
+
+**Label token**:
+The number one activation of a `label` gets. Its breaks hand it back, and they are no error.
+_Avoid_: label name
+
+**Catch set**:
+The errors a node turns into a run of its handler. A break and a termination are in none.
+
+**Termination**:
+An end of the evaluation that no filter can catch: halt, a budget, a stale view or the stack
+backstop.
+_Avoid_: fatal error
+
+**Tick**:
+One count against the step budget: at a site the IR defines, or per element or KiB inside a native
+loop.
+
+**Stack units**:
+The Java stack a call is charged for. A call over the limit runs on the trampoline.
+
+**Trampoline**:
+The interpreter's resumable loop that runs recursion beyond the stack-unit limit on the heap. It
+returns each result to the call that started it.
 
 **Workspace**:
 The reusable scratch memory of one evaluation (tape array, output buffer, path stack), passed in
@@ -173,8 +228,9 @@ by the caller and never shared between two running evaluations.
 _Avoid_: context (that word is taken by jq's `.`), thread-local, arena (that is the JDK's)
 
 **Budget**:
-A hard limit on one evaluation: nesting depth, bytes built, bytes written, steps or time. Going
-over ends the filter with a jq error.
+A hard limit on one evaluation: recursion depth, bytes built, bytes written, steps or time. Going
+over is a termination that carries a jq error message. The parse depth limit and the regex match
+time are limits too, but raise jq's catchable errors (F-13, ADR-0017).
 _Avoid_: quota, timeout (one budget among several)
 
 **Automatic streaming**:
@@ -183,19 +239,51 @@ document, when `rest` never looks back at it.
 _Avoid_: `--stream` (that is jq's event mode, a different thing)
 
 **Host**:
-The program embedding the engine. It supplies the clock, the environment policy, the module
-loader for `import`, the debug sink and extra inputs.
+The program embedding the engine. It supplies the clock, the time zone, the environment, the
+module loader for `import` and the debug sink; extra inputs come per run.
 _Avoid_: runtime, container, platform
+
+**Engine**:
+The immutable, thread-safe object a host builds once with its limits and host; it compiles filters
+and reads documents, and keeps no filter.
+_Avoid_: runtime, context
+
+**Bindings**:
+The `$name` values and `$ARGS` a host gives one run.
+_Avoid_: args, params
+
+**Extra inputs**:
+The documents a run's `input` and `inputs` read, given in its run options.
 
 **Sandbox defaults**:
 What a filter may not do when embedded unless the host allows it: read the environment, name a
-file, halt, import from disk.
+file, halt the JVM, import from disk, read the system time zone (ADR-0017).
+
+**Input stream**:
+The concatenated bytes of all input files or standard input, read by one parser state.
+_Avoid_: stdin (one source among several)
+
+**Detecting byte**:
+The byte at which jq's parser notices an error; a message's column points at it.
+
+**Error replay**:
+Re-reading an invalid document with the translated jq parser to produce jq's message, line and
+column.
+
+**Lenient token**:
+A number token jq accepts that is not strict JSON: `+1`, `.5`, `1.`, `007`, NaN and Infinity
+spellings.
+
+**Whole-container copy**:
+Writing an untouched container by copying its input bytes once one walk has proved it safe.
+_Avoid_: raw copy
 
 ## Verification
 
 **Oracle**:
 An independent source of the expected output for a case: jq's own test files, the reference jq
-binary, the other backend, or a JSON conformance suite.
+binary or the other backend. A JSON conformance suite supplies inputs; the reference jq supplies
+their verdicts.
 
 **Case**:
 One oracle entry with a stable id: a filter, an input, flags and the expected outputs.
@@ -244,10 +332,20 @@ The open, unblocked, unclaimed tickets of a spec or map.
 **Integration branch**:
 `spec/<issue>-<slug>`, where a spec's tickets are merged one by one before one PR to `main`.
 
+**Class-C module**:
+A module on a hard path, listed in the file "How do the oracles and the ratchet work?" decides
+(today `query-core` and `jq-core`). Mutation floors apply to it, and the ticket gate
+runs PIT on what a ticket changed in it.
+_Avoid_: core module
+
+**Word check**:
+The check that no file of `query-core` contains the word jq or json; the project name jqj passes.
+
 **Ticket gate**:
-The automatic checks the verifier runs on one ticket's worktree before it merges: the scoped
-build of the touched modules, a compile of the whole build, and the ratchet check.
-_Avoid_: CI (that runs the spec gate's checks), pre-merge review
+The automatic checks the verifier runs on one ticket's worktree before it merges: the
+whole-reactor build with every oracle, PIT on the changed classes, the LF, trailer and word checks,
+and the ratchet check (ADR-0014).
+_Avoid_: CI (CI runs the build and script checks on every push; the gate adds PIT and the ratchet), pre-merge review
 
 **Spec gate**:
 The full checks the verifier runs on an integration branch before the spec's PR: every build,

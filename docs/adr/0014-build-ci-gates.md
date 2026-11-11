@@ -1,0 +1,72 @@
+# Build, CI and gates
+
+Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with the ADR of "How do the oracles and the ratchet work?"
+
+- **Toolchain:**
+  - Maven wrapper 3.3.4 (`only-script`) with Maven 3.9.x, `--release 25`, `-Xlint:all -Werror`, no
+    `--enable-preview`, and `<proc>full</proc>` for JMH's annotation processor.
+  - The Google mirror lives in `~/.m2` and `MVNW_REPOURL`, never in the repo.
+  - Plugins and test libraries are pinned by the build skeleton ticket at the versions current on
+    Maven Central that day, each recorded as a line in the evidence comment (WORKFLOW §7). The
+    adviser saw these on 2026-11-10: Maven 3.9.16, compiler 3.16.0, enforcer 3.7.0, surefire 3.6.1,
+    JaCoCo 0.8.16, pitest-maven 1.30.2, pitest-junit5-plugin 1.2.3, spotless 3.11.0,
+    license-maven-plugin 2.8.0, JUnit 6.1.3 and AssertJ 3.27.7.
+  - There is no mocking library.
+- **Coverage and mutation of `query-core` and `jq-core` come from every test in the reactor,
+  oracle cases included.** JaCoCo `report-aggregate` runs in `oracle`. PIT `crossModule` there mutates the
+  upstream modules but runs only `oracle`'s own tests (pitest-maven 1.30.2,
+  `findOccupiedTestPackages`), so the unit tests of `query-core` and `jq-core` join through
+  `additionalClasspathElements` and `targetTests`, or through test-jars; the skeleton ticket proves
+  which.
+  `ratchet.java` checks the floors on the aggregate. The floor numbers and the class-C list belong
+  to "How do the oracles and the ratchet work?". PIT on JDK 25 with JUnit 6 and `crossModule` is
+  NOT_RUN; the skeleton ticket runs it first.
+- **The ticket gate** is `scripts/gate-ticket.sh <ticket> <modules> [ref]`. Every step logs to
+  `.logs/<ticket>-<check>.log`.
+  1. `./mvnw -B -Pbench verify`. The oracle needs every module, so this is the whole reactor. The
+     target is under 60 s with three gates in parallel.
+  2. PIT on only the classes the ticket changed (`-DtargetClasses` from `git diff <ref>`), against
+     the floor. `failWhenNoMutations` is off, for tickets that change only records or interfaces.
+     The target is under 3 minutes with three gates in parallel. If the skeleton ticket measures
+     more, PIT leaves the ticket gate by a finding, with no new owner round.
+  3. The LF check, the trailer check and the word check, each under about 2 s.
+  4. `java scripts/ratchet.java check`.
+
+  The skeleton ticket measures each step alone and with three gates in parallel, and records the
+  numbers in `bench/RESULTS.md`.
+- **The spec gate** is `scripts/gate-spec.sh <spec>`:
+  1. `clean verify -Pbench`;
+  2. PIT on whole class-C modules;
+  3. JMH (`benchmarks.jar -prof gc -rf json`);
+  4. `ratchet.java regen --all`.
+- **CI** (`ci.yml`) runs on pull requests and on pushes to `main` and `spec/**`. It cancels per
+  ref, runs on ubuntu-24.04 with Temurin 25, and times out after 30 minutes. Its jobs:
+  - `trailers`: the script tests and a range check, with no JDK;
+  - `build`: jq-ref 1.8.2 checked by sha256, then `./mvnw -B -Pbench verify`, the word check and the
+    LF check;
+  - `windows`: `mvnw.cmd -B -q -DskipTests verify`, which proves only that checkout and build work.
+
+  `trailers`, `build` and `windows` become required on `main` from spec 1: the owner sets this in
+  branch protection when the skeleton ticket adds `ci.yml` (`main` has no required check today). `nightly.yml` runs PIT on
+  the class-C modules and uploads the reports, committing nothing. `bench.yml` is manual and
+  informative only.
+- **Scripts ported from flottila-mapping:** `gate-ticket.sh`, `gate-spec.sh`, `ratchet.java` and
+  `pit-summary.sh`, with their tests. Their contract, UI, stack and moved-coverage parts are
+  dropped. The oracle names are jqtest, differential, backend and json. One file lists the class-C
+  modules, and all three scripts read it. `function-families.java` is not ported.
+- **The VM setup** (`deploy/claude-cloud/setup.sh`) adds `javap`, `jdeps` and `jlink` to its
+  alternatives and checks jq-ref's sha256.
+- **Left to "Interpreter or bytecode first, and what speed must milestone 1 show?":** the JMH
+  arguments (forks, heap), the scenario list, and which backends the oracle and the module-path
+  cases run.
+
+## Considered options
+
+- **PIT on the whole touched module per ticket** (flottila's step 1b): a guessed 5–15 min per
+  gate, three at a time.
+- **No PIT in the ticket gate:** weak tests would show only at the spec gate.
+- **Coverage from each module's own tests:** backend and builtin tickets would hand-write tests up
+  to the floor, and a class A/B builtin whose red is oracle cases would score 0 %.
+- **Flottila's separate compile-all step:** it repeats step 1.
+- **Maven 4, `-T 4`, JMH on CI, Error Prone/SpotBugs/Checkstyle, a committed mirror:** unmeasured
+  or rejected for flottila ADR-0017's reasons.

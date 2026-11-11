@@ -86,56 +86,11 @@ Up to three tickets are in flight at any time (`AGENTS.md`, Concurrency).
 
 ## 6. Checks, ratchet, CI
 
-**Status: starting point.** Phase 0 tickets 14 (build) and 15 (oracles and ratchet) decide this
-section; their ADRs replace the text below. The shape is carried over from flottila-mapping, where
-it was measured. The build skeleton ticket of spec 1 adds `scripts/gate-ticket.sh <ticket>
-<modules> [integration-ref]`, `scripts/gate-spec.sh <spec>`, `scripts/ratchet.java` and
-`scripts/pit-summary.sh` by porting them from `subapavel/flottila-mapping` (same names, same log
-conventions) and deleting what jqj has no use for. `scripts/check-trailers.sh`,
-`scripts/check-lf-checkout.sh`, `scripts/push-retry.sh` and `scripts/clean-worktrees.sh` are
-already here. Until the gate scripts exist the verifier runs the steps by hand, in this order.
-
-Commands run from the repo root of the worktree. Logs go to `.logs/<ticket>-<check>.log`, never to
-`target/` (`./mvnw clean` deletes it).
-
-**Ticket gate** (verifier, per ticket, in its worktree; `<modules>` = the touched module
-directories, comma-separated, e.g. `query-core,jq-core`):
-
-| # | Command | Log | When |
-| --- | --- | --- | --- |
-| 1 | `./mvnw -B -pl <modules>,oracle -am verify` | `.logs/<t>-build.log` | always: tests and JaCoCo floors of touched and upstream modules, and every oracle the ratchet lists |
-| 1b | PIT on the class-C modules among `<modules>`, then `scripts/pit-summary.sh ratchet/mutation.tsv <modules>` | `.logs/<t>-pit.log` | a class-C module is touched: more survivors than its `ratchet/` row is `EXECUTED_FAIL`; none touched prints `NOT_RUN` |
-| 2 | `./mvnw -B -q -DskipTests verify` | `.logs/<t>-compile-all.log` | always: the whole reactor compiles; Spotless, enforcer, licences |
-| 2b | `scripts/check-lf-checkout.sh` | `.logs/<t>-lf-checkout.log` | always: every tracked file checks out byte-identical on Windows (`.gitattributes`) |
-| 2c | `scripts/check-trailers.sh <integration-ref>..HEAD` | `.logs/<t>-trailers.log` | always: every commit the ticket adds carries the §11 trailers, merges of the integration tip included |
-| 3 | `java scripts/ratchet.java check` | `.logs/<t>-ratchet.log` | always: no listed case failing or missing, no coverage below `ratchet/` of the integration branch; unbuilt modules print `NOT_RUN` |
-
-The ticket-gate budget on the VM (4 vCPU, three gates in parallel) is measured by the build
-skeleton ticket and recorded in `bench/RESULTS.md`; the target is under 60 s for step 1.
-
-**Spec gate** (verifier, integration branch, one at a time):
-
-1. `./mvnw -B clean verify -Pbench`: all tests, all oracles (the differential oracle needs the
-   reference jq binary, `docs/agents/environment.md`), JaCoCo floors, benchmarks compile;
-   1b. PIT on the class-C modules the spec touched → `.logs/<spec>-pit.log`, one summary line per
-   module;
-2. the JMH scenarios, alone on the VM, with `-prof gc`, result file `.logs/<spec>-jmh.json`, and
-   the same scenarios through the reference jq binary for the comparison line.
-   - Results go to `bench/RESULTS.md` with machine label `claude-cloud-4vcpu`, the date and the
-     commit. The score is the median of the forks.
-   - A scenario worse than `ratchet/bench.tsv` by more than its tolerance is measured once more.
-     The gate fails if it is still worse, or if a `docs/GATE.md` speed or memory target is missed.
-3. `java scripts/ratchet.java regen --all`: every report must be present, a drop fails, the
-   verifier alone commits `ratchet/` to the integration branch.
-
-Regen reads the reports of steps 1, 1b and 2, so it runs last.
-
-**CI** (GitHub Actions, added by the build skeleton ticket; every PR and push to `main`; required
-on `main`): `trailers` (`scripts/check-trailers.sh` over the PR range, plus the script tests that
-need no JDK) and `build` (`./mvnw -B -Pbench verify` with the reference jq binary installed). A
-nightly workflow runs PIT on `main` over the class-C modules and commits nothing. A manual
-workflow runs JMH, informative only: benchmark regression is a spec-gate check on the VM, never
-on CI. Runners use Temurin 25.
+**Status: starting point.** The ticket gate, the spec gate, CI and the scripts are in ADR-0014
+(ticket 14). Read it there. Ticket 15 (oracles and ratchet) decides the ratchet and the floors
+below, and its ADR replaces this text. Logs go to `.logs/<ticket>-<check>.log`, never to `target/`
+(`./mvnw clean` deletes it). Until the gate scripts exist, the verifier runs ADR-0014's steps by hand,
+in its order.
 
 **Ratchet** (`ratchet/`, format in `ratchet/README.md`): oracle pass lists, coverage and mutation
 per module, benchmark baselines. Ticket gates check against the integration branch's copy, which

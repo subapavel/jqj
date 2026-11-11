@@ -39,7 +39,8 @@ tickets with native blocking edges. There is no backlog file.
   counts under its allowed alternative. The list covers every compile, runtime and test
   dependency. Exception: JMH in the benchmark module only. Maven plugins are tools, not
   dependencies (any OSI licence). A new exception is an ADR.
-- Files copied from jq (its function library written in jq, its test files) keep jq's copyright
+- Files copied or translated from jq (its function library written in jq, its test files, the
+  `jv_parse.c` port of ADR-0015) keep jq's copyright
   notice and are listed in `NOTICE`. Text from the jq manual is not copied.
 - No secret, customer payload or real partner data in the repo; test inputs are synthetic.
 - When practice contradicts an ADR or the architecture: write the finding (`docs/WORKFLOW.md` §7).

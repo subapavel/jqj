@@ -1,6 +1,6 @@
 # Document and view lifetime: a new JsonDoc per read, detach() for what is kept
 
-Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0007 (2026-11-10, issue #6)
+Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0007 (2026-11-10, issue #6), ADR-0008 (issue #7), ADR-0015 (issue #11) and ADR-0016 (issue #13)
 
 A view is valid while its document is alive. Every read makes a new `JsonDoc` (~32 B) over the
 Workspace's reused tape, and the previous `JsonDoc` drops both its tape and its bytes. A view of a
@@ -36,3 +36,22 @@ protocol?" will add who ends a document during automatic streaming.
 makes the main document stale (`. as $o | input | [$o, .]` → `[1,2]` on jq-ref). Instead of
 "detached by default", a value that may view an input document is detached when it enters a hold
 that spans a later read. Detaching at every read remains a legal first implementation.
+
+## Amendment (ADR-0008, issue #7)
+
+During streaming that a host enables, the engine ends an element's document when `rest` returns
+for that element. A streamed result view is valid only during its sink call. The stale-view error
+is a `Termination`, so no `try` catches it.
+
+## Amendment (ADR-0015, issue #11)
+
+`-R` lines, `-Rs` and `--stream` events are built values, not documents on a tape. A slurped
+stream is one document with a synthetic root array.
+
+## Amendment (ADR-0016, issue #13)
+
+The host rule: a result is valid during its sink call, and longer only if it views a document the
+host holds (a Workspace document until that Workspace's next main read or close, an owned document
+until close). An owned document has its own read-only tape and may be shared between steps and
+threads. `detach()` inside an evaluation charges bytes built and ticks per KiB; called by the host
+after a run, it charges nothing.

@@ -4,6 +4,54 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Spike A extension: nested drivers (issue #7), 2026-11-10
+
+- Same machine and JVM as "Spike A": OpenJDK 25.0.5, 4 vCPU, `-Xms2g -Xmx2g`, default 1 MB stack.
+- Code: branch `spike/recursion-depth` @ `7fd4ea6`, variant `hybrid`, run with `-Dlimit=256`,
+  `-Dbounce=64` and `-Dresume=false|true`. Raw output is in
+  `spike/recursion/results/7-nested-drivers-v2.log` there.
+- The first run (`0c6bffe`, `7-nested-drivers.log`) is superseded. In form B it dropped a result
+  that `cps()` delivered before the first drive, so shape E gave `WRONG(32640)`. The
+  grilling-adviser found this.
+- Filter `nested`:
+
+  ```
+  def s: if . == $L then 0 else $a[.] + (. + 1 | s) end;
+  def g: if . == $L then 0 else (. + 1 | g) as $x | $x + (($L - 1000) | s) end;
+  0 | g
+  ```
+
+  It is a non-tail recursion of depth n whose continuation starts a second recursion of depth 1000
+  at every level.
+- The two forms of hand-over from the Java stack to the trampoline:
+  - **Form A**, Spike A's `hybrid`: the caller's sink runs inside the driver.
+  - **Form B**: the driver stops at each result and returns it to its starter. The starter emits
+    the result from its own frame, then resumes the driver.
+
+Cold JVM, one run each (ms; the last column is the most drivers live at once):
+
+| form | nested n=2000 | nested n=10⁴ | E 10⁶ | N 10⁶ | T 10⁶ | M 10⁶ | drivers |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| A | SOE after 909 | SOE after 3214 | ok, 257 | ok, 699 | ok, 154 | ok, 188 | 201 / 202 on nested |
+| B | ok, 983 | ok, 4049 | ok, 312 | ok, 746 | ok, 183 | ok, 164 | 1 |
+
+Warm medians in ms, with min–max: 20 warm-up runs at n=1000, then 5 reps per n.
+
+| shape | form | n=1000 | n=10⁵ | n=10⁶ |
+| --- | --- | --- | --- | --- |
+| T | A | 0.39 (0.31–0.41) | 14.94 (13.71–23.91) | 90.89 (43.98–146.25) |
+| T | B | 0.31 (0.30–0.33) | 13.57 (9.30–20.18) | 76.78 (47.06–151.48) |
+| E | A | 0.77 (0.72–0.81) | 21.84 (8.14–30.39) | 177.46 (164.97–284.57) |
+| E | B | 0.89 (0.79–1.19) | 34.70 (11.57–37.05) | 227.96 (104.74–293.53) |
+| M | A | 0.35 (0.34–0.55) | 12.10 (9.63–24.44) | 108.84 (73.63–158.33) |
+| M | B | 0.54 (0.47–0.61) | 17.57 (15.18–31.98) | 90.35 (55.51–148.59) |
+| N | A | 0.58 (0.54–0.60) | 33.89 (29.32–58.78) | 412.82 (248.48–601.41) |
+| N | B | 0.56 (0.53–0.78) | 29.36 (23.95–55.92) | 450.80 (295.42–519.97) |
+
+Form A overflows on `nested`, and form B completes it. On the four Spike A shapes, form B is
+within the noise except E, the shape with many results per driver, which is about 1.3× at 10⁶.
+ADR-0011 takes form B.
+
 ## Tape reader for milestone 1 (issue #5), 2026-11-10
 
 - Same machine, JVM and JMH settings as "Spike B" (2 forks × 5 × 1 s, 3 × 1 s warm-up, `-prof gc`).

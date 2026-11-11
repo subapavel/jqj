@@ -15,15 +15,16 @@ command and the evidence it needs, and a change to a check is a finding (`docs/W
    flags) our output is byte-identical to the reference jq binary's; every case id is in
    `ratchet/oracle/differential.txt`. If the milestone ships both backends, they agree on the
    backend cases (`ratchet/oracle/backend.txt`). (Tickets 12, 15.)
-3. **JSON.** The reader accepts and rejects exactly what the conformance cases say
-   (`ratchet/oracle/json.txt`), and an error names the byte position. Untouched numbers and
-   strings come out byte-identical. Every input and output mode of the founding architecture §10
+3. **JSON.** The reader accepts and rejects what the reference jq does on every conformance case
+   (`ratchet/oracle/json.txt`: JSONTestSuite inputs, jq-ref verdicts, ADR-0015), except the listed
+   deviations, and an error carries jq's message, line and column and a byte-offset field. Untouched strings come out
+   byte-identical; literal numbers come out as jq prints them: copied byte for byte when the
+   token is canonical, otherwise in jq's canonical form (ADR-0012, F-1). Every input and output mode of ADR-0015
    has a differential case. (Tickets 9, 11.)
-4. **Memory.** Each budget (nesting depth, bytes built, bytes written, deadline) ends a filter
-   with a jq error, shown by a test per budget whose witness would otherwise exhaust the limit.
+4. **Memory.** Each budget (recursion depth, bytes built, bytes written, steps, deadline) ends a filter as an uncatchable termination with a jq error message (ADR-0008, F-8), while the parse depth limit and the regex match time raise jq's catchable errors (F-13, ADR-0017), shown by a test per budget whose witness would otherwise exhaust the limit.
    On the JMH scenarios: field extract allocates no more on 10 MB than on 1 KB beyond the
    tolerance _(Phase 0)_; accumulate is linear in the input; a large document completes in a
-   fork with a small fixed heap _(Phase 0: size)_. (Tickets 8, 12.)
+   fork with a small fixed heap _(Phase 0: size)_. (Tickets 8, 12, 13.)
 5. **Speed.** The JMH scenarios of the founding architecture §12 run on the gate commit in
    spec-gate step 2 on `claude-cloud-4vcpu`, recorded in `bench/RESULTS.md` with machine, date
    and commit, beside the reference jq binary's time for the same work measured on the same
@@ -35,8 +36,8 @@ command and the evidence it needs, and a change to a check is a finding (`docs/W
    command line. (Tickets 1, 13.)
 7. **Embedding.** The public API of ticket 13 is in place: a compiled filter is immutable and
    safe to share between threads (a concurrency test), unloads when dropped (a test that observes
-   the class collected), and under the embedding defaults cannot read the environment, name a
-   file, halt the JVM or import from disk (one test per rule, each with a witness filter).
+   the class collected), and under the embedding defaults cannot read the environment or the
+   system time zone, name a file, halt the JVM or import from disk (one test per rule, each with a witness filter).
    `import` resolves through the host. (Ticket 13.)
 8. **Quality.** The CI run of the gate commit is green in every required job. The spec gate
    (`scripts/gate-spec.sh`) passes on the VM. Floors on the gate commit: JaCoCo lines ≥ 90 % and
