@@ -253,6 +253,24 @@ class JqTestRunnerTest {
   }
 
   @Test
+  void theSixFailCasesOfJqTestThatCheckOnlyThatCompilingFailsAreFailAgainstAStubCompiler() {
+    List<JqTestCase> onlyCompile =
+        JqTestCorpus.cases().stream()
+            .filter(c -> c.id().startsWith("jq.test#") && c.mode() != JqTestCase.Mode.RESULTS)
+            .filter(c -> c.mode() == JqTestCase.Mode.FAIL_IGNORE_MSG || c.expected().getFirst().startsWith("jq: error: syntax error"))
+            .sorted(java.util.Comparator.comparingInt(JqTestCase::line))
+            .toList();
+    assertThat(onlyCompile).extracting(JqTestCase::line).containsExactly(547, 553, 1981, 1987, 2074, 2080);
+
+    // Any compile error passes them: that is why the Stub must be FAIL first.
+    jqj.compileError = compileError("jq: error: jqj's own syntax error text");
+    assertThat(onlyCompile).allSatisfy(c -> assertThat(new JqTestRunner(jqj).run(c).kind()).isEqualTo(Verdict.Kind.PASS));
+
+    jqj.compileError = stub("JqEngine.compile");
+    assertThat(onlyCompile).allSatisfy(c -> assertThat(new JqTestRunner(jqj).run(c).kind()).isEqualTo(Verdict.Kind.FAIL));
+  }
+
+  @Test
   void aFailCaseWithNoLinesFailsOnAnyErrorText() {
     jqj.compileError = compileError("jq: error: x");
 

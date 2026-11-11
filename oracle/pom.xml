@@ -73,6 +73,7 @@
           <excludedTestClasses>
             <param>io.github.subapavel.jqj.oracle.diff.DifferentialSurveyTest</param>
             <param>io.github.subapavel.jqj.oracle.json.JsonSurveyTest</param>
+            <param>io.github.subapavel.jqj.oracle.jqtest.JqTestSurveyTest</param>
           </excludedTestClasses>
           <additionalClasspathElements>
             <additionalClasspathElement>${project.basedir}/../query-core/target/test-classes</additionalClasspathElement>
