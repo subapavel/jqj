@@ -103,6 +103,13 @@ class JqTestRunnerTest {
   }
 
   @Test
+  void aMismatchAtTheFirstResultIsTheOneNamed() {
+    jqj.results = List.of(n(3), n(4));
+
+    assertThat(results("1", "2").detail()).isEqualTo("result 1 is 3, expected 1");
+  }
+
+  @Test
   void tooFewResultsFail() {
     jqj.results = List.of(n(1));
 
@@ -230,6 +237,9 @@ class JqTestRunnerTest {
     jqj.compileError = compileError("jq: error: x\n    .a\n    ^");
 
     assertThat(fails("jq: error: x", "    .a").detail()).isEqualTo("the compile error has more text: '    ^'");
+    // One LF is skipped after a line, not two: the leftover is an empty line, then more.
+    jqj.compileError = compileError("jq: error: x\n\nmore");
+    assertThat(fails("jq: error: x").detail()).isEqualTo("the compile error has more text: ''");
   }
 
   @Test

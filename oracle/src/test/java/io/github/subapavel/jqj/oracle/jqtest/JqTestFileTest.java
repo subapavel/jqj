@@ -90,13 +90,17 @@ class JqTestFileTest {
 
   @Test
   void aLineOf4096BytesOrMoreIsRejectedAsJqsFgetsWouldSplitIt() {
+    // 4094 bytes and an LF, or 4095 bytes at the end of the file, are one fgets.
     String fits = "\"" + "a".repeat(4092) + "\"";
     assertThat(parse(".\n" + fits + "\n" + fits + "\n").get(0).input()).hasSize(4094);
+    String lastFits = "\"" + "a".repeat(4093) + "\"";
+    assertThat(parse(".\n1\n" + lastFits).get(0).expected()).containsExactly(lastFits);
 
-    String tooLong = "\"" + "é".repeat(2047) + "\"";
+    // 4095 bytes (2046 two-byte characters among them) and an LF are 4096.
+    String tooLong = "\"" + "é".repeat(2046) + "a\"";
     assertThatThrownBy(() -> parse(".\n1\n" + tooLong + "\n"))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("t.test:3: the line is 4097 bytes; jq's test runner reads at most 4095");
+        .hasMessage("t.test:3: the line is 4096 bytes; jq's test runner reads at most 4095");
   }
 
   @Test
