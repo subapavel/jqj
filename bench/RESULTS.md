@@ -4,6 +4,32 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Build skeleton: one build alone and three in parallel (ticket #23), 2026-11-11
+
+- Machine: `claude-cloud-4vcpu` (4 vCPU Intel Xeon @ 2.10GHz, 15 GB RAM, Linux 6.18), JDK 25.0.5,
+  Maven 3.9.16 through the wrapper, `~/.m2` warm (shared, `file-lock`).
+- Commit: `9c5c9f9` on `t/23-build-skeleton`. Command: `./mvnw -B -Pbench verify` (the whole
+  reactor of ADR-0014 step 1: word check, enforcer, compile with `-Xlint:all -Werror`, tests,
+  JaCoCo, licence check, jars, aggregate report), wall clock from the shell. No `clean` between
+  runs after the first (the warm-up, from a fresh clone, is the clean figure). Three separate
+  local clones of that commit, so the `target/` directories do not collide.
+- The modules hold one placeholder class each, so these are the floor of the build, not a
+  forecast. The numbers say how much three at a time cost, not how long a real gate takes.
+
+| run | seconds |
+| --- | --- |
+| clean, alone (warm-up) | 7.4 |
+| alone, 3 runs | 6.7, 6.8, 6.5 |
+| three in parallel, round 1 | 14.9, 16.7, 17.0 |
+| three in parallel, round 2 | 14.7, 15.0, 15.1 |
+| three in parallel, round 3 | 14.7, 15.1, 15.1 |
+
+Alone about 6.7 s; three at a time about 15 s each (2.2×), under ADR-0014's 60 s target for
+step 1. PIT, the LF check and the trailer check were not part of these runs. PIT of the
+placeholder in `oracle` with `crossModule`, whole `-am` reactor: 9.5 s (`.logs/23-pit-oracle.log`,
+single run, not repeated three at a time; the first PIT run in `query-core` took 24.9 s because
+it downloaded the plugin).
+
 ## Reference times and limits (issue #12), 2026-11-11
 
 Observed by the grilling-adviser on `claude-cloud-4vcpu`, jq 1.8.2 (the reference jq), JDK 25.0.5,
