@@ -41,7 +41,9 @@ class DifferentialRunnerTest {
 
     assertThat(all)
         .extracting(e -> e.c().id())
+        .filteredOn(id -> id.startsWith("basics/"))
         .containsExactly("basics/compact-object", "basics/field-of-array", "basics/file-argument", "basics/syntax-error-eof");
+    assertThat(all).extracting(e -> e.c().id()).isSorted().anyMatch(id -> id.startsWith("gen/values-v1/"));
     assertThat(all).allSatisfy(e -> assertThat(e.recording().id()).isEqualTo(e.c().id()));
   }
 

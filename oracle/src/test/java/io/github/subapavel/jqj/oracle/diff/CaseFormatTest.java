@@ -132,6 +132,23 @@ class CaseFormatTest {
     assertThat(Recording.read(dir.resolve("absent.rec"))).isEmpty();
   }
 
+  /** ADR-0025: a family is the path relative to {@code diff/}, so {@code diff/gen/values-v1.cases} holds gen ids. */
+  @Test
+  void aFamilyIsThePathBelowTheNearestDiffDirectory(@TempDir Path dir) throws Exception {
+    assertThat(CaseFormat.family(Path.of("oracle/src/test/resources/diff/gen/values-v1.rec"))).isEqualTo("gen/values-v1");
+    assertThat(CaseFormat.family(Path.of("/r/diff/a/diff/basics.cases"))).isEqualTo("basics");
+    assertThat(CaseFormat.family(Path.of("/r/json/json.cases"))).isEqualTo("json");
+    assertThat(CaseFormat.family(Path.of("t.cases"))).isEqualTo("t");
+    assertThat(CaseFormat.family(dir, dir.resolve("gen/sub/x.cases"))).isEqualTo("gen/sub/x");
+
+    Path file = dir.resolve("diff/gen/v.rec");
+    Files.createDirectories(file.getParent());
+    Files.writeString(file, "case gen/v/1\ndef 0\nrc 0\nstdout\nstderr\nend\n");
+    assertThat(Recording.read(file)).containsOnlyKeys("gen/v/1");
+    assertThat(CaseFormat.read(file, "gen/v")).hasSize(1);
+    assertThatThrownBy(() -> CaseFormat.read(file, "v")).hasMessageContaining("is not v/<name>");
+  }
+
   @Test
   void outcomesDifferByExitCodeOrByAnyByteOfEitherStream() {
     Outcome o = new Outcome(0, bytes("a"), bytes("b"));
