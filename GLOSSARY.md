@@ -64,6 +64,18 @@ _Avoid_: heap value, materialised value
 To copy a view into a built value so it can outlive its document.
 _Avoid_: materialise, clone
 
+**Owned document**:
+A document a host reads through the engine, with its own read-only tape; valid until the host
+closes it, and shareable between steps and threads.
+_Avoid_: shared doc
+
+**Workspace document**:
+A document read into a Workspace's reused tape; valid until that Workspace's next main read or its
+close.
+
+**Slurped document**:
+The one document `-s` makes over the whole input stream, with a synthetic root array.
+
 **Literal number**:
 A number read from a document, written in a filter or made by `tonumber`. It keeps its exact
 decimal value until arithmetic touches it, and prints in its canonical form.
@@ -216,8 +228,9 @@ by the caller and never shared between two running evaluations.
 _Avoid_: context (that word is taken by jq's `.`), thread-local, arena (that is the JDK's)
 
 **Budget**:
-A hard limit on one evaluation: nesting depth, recursion depth, bytes built, bytes written, steps,
-or time. Going over is a termination that carries a jq error message.
+A hard limit on one evaluation: recursion depth, bytes built, bytes written, steps or time. Going
+over is a termination that carries a jq error message. The parse depth limit and the regex match
+time are limits too, but raise jq's catchable errors (F-13, ADR-0017).
 _Avoid_: quota, timeout (one budget among several)
 
 **Automatic streaming**:
@@ -226,19 +239,51 @@ document, when `rest` never looks back at it.
 _Avoid_: `--stream` (that is jq's event mode, a different thing)
 
 **Host**:
-The program embedding the engine. It supplies the clock, the environment policy, the module
-loader for `import`, the debug sink and extra inputs.
+The program embedding the engine. It supplies the clock, the time zone, the environment, the
+module loader for `import` and the debug sink; extra inputs come per run.
 _Avoid_: runtime, container, platform
+
+**Engine**:
+The immutable, thread-safe object a host builds once with its limits and host; it compiles filters
+and reads documents, and keeps no filter.
+_Avoid_: runtime, context
+
+**Bindings**:
+The `$name` values and `$ARGS` a host gives one run.
+_Avoid_: args, params
+
+**Extra inputs**:
+The documents a run's `input` and `inputs` read, given in its run options.
 
 **Sandbox defaults**:
 What a filter may not do when embedded unless the host allows it: read the environment, name a
-file, halt, import from disk.
+file, halt the JVM, import from disk, read the system time zone (ADR-0017).
+
+**Input stream**:
+The concatenated bytes of all input files or standard input, read by one parser state.
+_Avoid_: stdin (one source among several)
+
+**Detecting byte**:
+The byte at which jq's parser notices an error; a message's column points at it.
+
+**Error replay**:
+Re-reading an invalid document with the translated jq parser to produce jq's message, line and
+column.
+
+**Lenient token**:
+A number token jq accepts that is not strict JSON: `+1`, `.5`, `1.`, `007`, NaN and Infinity
+spellings.
+
+**Whole-container copy**:
+Writing an untouched container by copying its input bytes once one walk has proved it safe.
+_Avoid_: raw copy
 
 ## Verification
 
 **Oracle**:
 An independent source of the expected output for a case: jq's own test files, the reference jq
-binary, the other backend, or a JSON conformance suite.
+binary or the other backend. A JSON conformance suite supplies inputs; the reference jq supplies
+their verdicts.
 
 **Case**:
 One oracle entry with a stable id: a filter, an input, flags and the expected outputs.

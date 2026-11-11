@@ -1,6 +1,6 @@
 # Recursion: weighted stack units, a resumable trampoline only in the interpreter
 
-Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); details the hybrid chosen on issue #3
+Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); details the hybrid chosen on issue #3; amended by ADR-0017 (issue #13)
 
 Tail calls are jumps. Other recursive calls run on the Java stack until the stack units reach a
 limit U, and beyond U they run on a CPS trampoline. A memory-bounded recursion-depth budget limits
@@ -63,3 +63,10 @@ the depth. `StackOverflowError` is only a backstop.
   10 000 levels while recursion needs 10⁶, and frames are freed on return.
 - **A big-stack thread beyond U:** it was faster on N (285 against 350 ms at 10⁶), but costs a
   thread per deep evaluation, the stack size is only a hint, and the owner chose the hybrid.
+
+## Amendment (ADR-0017, issue #13)
+
+The host declares the stack bytes through `Limits.stackBytes` (default 512 KiB). The default
+recursion-depth budget is 4 194 304 live activations, which lets 10⁶ levels complete; the
+calibration test confirms the activations per level. `Limits.cli()` keeps it, so jq-ref's 10⁷
+levels are a `DEVIATIONS.md` row.

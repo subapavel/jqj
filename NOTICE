@@ -9,5 +9,10 @@ Third-party material included in this repository:
   https://github.com/mattpocock/skills, Copyright (c) 2026 Matt Pocock, MIT License
   (full text in .claude/skills/LICENSE-mattpocock-skills).
 
-Files copied from the jq project (https://github.com/jqlang/jq) are added to this list, with
-jq's copyright notice, by the ticket that copies them.
+Files copied or translated from the jq project (https://github.com/jqlang/jq), MIT License,
+Copyright (c) 2012 Stephen Dolan, are added to this list, with jq's copyright notice, by the
+ticket that copies or translates them (ADR-0015: the parser state machine of jv_parse.c). jq's
+licence text ships in the jq-core jar under META-INF/.
+
+Test inputs from JSONTestSuite (https://github.com/nst/JSONTestSuite) at commit 1ef36fa0, MIT
+License, Copyright (c) 2016 Nicolas Seriot, are added to this list by the ticket that copies them.

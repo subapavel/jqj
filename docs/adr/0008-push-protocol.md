@@ -1,6 +1,6 @@
 # Push protocol: emit's false stops, a break is a Workspace token, two exception classes
 
-Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); amends ADR-0004, ADR-0005 and ADR-0007
+Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); amends ADR-0004, ADR-0005 and ADR-0007; amended by ADR-0015 (issue #11) and ADR-0017 (issue #13)
 
 Results are pushed. `interface Sink { boolean emit(Object v); }` lives in `query-core`. If emit
 returns `false`, that is a stop: the producer emits nothing more and returns `false` at once. The
@@ -81,3 +81,14 @@ into separately compiled code.
   tests would depend on the clock.
 - **A timer thread setting a flag**: one thread per host, and no gain over reading the clock at
   refuel.
+
+## Amendment (ADR-0015 and ADR-0017, issues #11 and #13)
+
+- `Workspace.tick(int n)` charges n ticks at once; the reader and the writer charge one per KiB.
+  The fuel reset comes before the main document is read.
+- Refuel reads `System.nanoTime()`, not the host clock, and the thread's interrupt flag.
+- A new cause `CANCELLED` ends a run whose thread was interrupted; the flag is set again.
+- A regex match is bounded by its own `regexMatchTime` budget (a catchable jq error, as jq's retry
+  limit) and by the remaining deadline (a termination).
+- The nesting-depth budget is not a termination: the parse depth limit is an ordinary jq error
+  (F-13), and built values have no depth limit.

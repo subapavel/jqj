@@ -74,7 +74,7 @@ and pins it with oracle cases.
 ## Size limits of the tape (ADR-0002)
 
 jqj raises a jq error beyond these limits:
-- 4 GiB per document;
+- 2^31−3 bytes per document (F-12);
 - 256 MiB per string;
 - 16 MiB per number literal (jq allows up to 999 999 999 digits);
 - 2^28 entries per container.
@@ -92,3 +92,33 @@ eligible filter (`<fixed path> | .[] | rest`):
   seen. jq prints none.
 - **Duplicate keys**: a duplicate of a key on the streamed path is not seen. On
   `{"items":[1],"items":[2]}`, jq gives `2`.
+
+## A raw NUL byte outside a string is an error (ADR-0015, issue #11)
+
+| input | jq 1.8.2 | jqj |
+| --- | --- | --- |
+| `1\x002` | `1` | "Invalid character" error at the NUL |
+| `[1\x00x,2]` | `[1,2]` | error at the NUL |
+| JSONTestSuite `n_multidigit_number_then_00.json` | accepted | rejected |
+
+Reason: bytes would hide behind a NUL in a host's message; jq's master branch already rejects a NUL
+there (`classify` returns INVALID) with the text "Invalid character" (master source read, not
+run); jqj uses that text, so the row can go once the reference moves past 1.8.2. The reader
+ticket's oracle cases pin line and column.
+
+## Regex limit by time, not by retries (ADR-0017, issue #13)
+
+jq stops a match after Oniguruma's retry limit with the catchable error "Regex failure:
+retry-limit-in-match over" (`("a"*24+"b") | test("^(a+)+$")`). joni has no retry counter, so jqj
+raises the same error when a match exceeds `regexMatchTime` (1 s). The cut-off depends on the
+machine, so some patterns succeed in jqj where jq errors, and the reverse.
+
+## Recursion depth on the command line (ADR-0017, issue #13)
+
+jq-ref completes 10⁷ levels of `def f: if .==0 then 0 else (.-1|f)+1 end`. jqj's command line
+keeps the recursion-depth budget (4 194 304 live activations, at least 10⁶ levels) and ends deeper
+recursion with a termination. Reason: recursion depth bounded by memory, ADR-0011.
+
+## `$JQ_BUILD_CONFIGURATION` (ADR-0017, issue #13)
+
+jq prints its configure string; jqj prints its own build string.

@@ -1,6 +1,6 @@
 # JSON tape entry: one long per value
 
-Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?")
+Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0015 (issue #11)
 
 A document's tape is one `long[]` with **one entry per JSON value, object keys included**. Each
 entry is a 4-bit tag, a 28-bit span and a 32-bit offset. We chose it because it is the smallest
@@ -27,7 +27,7 @@ of tape for 11.2 MB of JSON, 1.46× the input. A reused tape reads a 1 KB messag
   | 4 | number |
   | 5 | string whose bytes are its value and its compact output |
   | 6 | string that must be re-encoded (escapes, DEL, invalid UTF-8, which jq turns into U+FFFD) |
-  | 7 | reserved scalar |
+  | 7 | reserved scalar: skipped value (ADR-0015) |
   | 8 | array |
   | 9 | object |
   | 10 | reserved: object known to hold a duplicate key |
@@ -61,3 +61,9 @@ of tape for 11.2 MB of JSON, 1.46× the input. A reused tape reads a 1 KB messag
   cheaper detector still cost +56 % on a 78 841-key object.
 - **Writing a duplicate-check result into the tape**: it would make the tape mutable during an
   evaluation, which matters once a document is shared.
+
+## Amendment (ADR-0015, issue #11)
+
+- The document limit is 2^31−3 bytes, the largest `byte[]` (F-12), not 4 GiB.
+- Tag 7 is reserved for a skipped value: span = byte length, offset = first byte, a scalar for the
+  sibling rule. No reader writes it in milestone 1.
