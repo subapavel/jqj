@@ -1,6 +1,6 @@
 # JSON reader and writer: jq's grammar, jq's messages by replay, a byte[] loop
 
-Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits)
+Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits); amended by F-22 (depth counting)
 
 jq-ref 1.8.2 decides what the reader accepts and what it prints. The adviser ran every rule below
 on it (issue #11 round 1, commands K1–K8) and read jq-1.8.2's `jv_parse.c`, `jv_unicode.c`,
@@ -44,8 +44,8 @@ non-exported package `.internal.json`.
 
 ## Limits
 
-- **Depth** is jq's parser stack: one per open array, two per open object. A `[` or `{` that would
-  make it exceed 10 000 → "Exceeds depth limit for parsing at line L, column C", an ordinary jq
+- **Depth** is jq's parser stack: one slot per open array or object, plus one while an object key's
+  value is open (F-22). A `[` or `{` that would make it exceed 10 000 → "Exceeds depth limit for parsing at line L, column C", an ordinary jq
   error that `try fromjson catch .` catches (jq.test 2563), not a budget termination (F-13).
   `Limits.nestingDepth` sets the number. Built values have no depth limit. So 10 000 arrays
   pass, the 10 001st fails, and objects nest 5 000 deep. `--stream` has no depth limit, as jq.
