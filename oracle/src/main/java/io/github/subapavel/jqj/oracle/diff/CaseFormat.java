@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
+import java.util.StringJoiner;
 
 /**
  * The block syntax shared by case files ({@code <family>.cases}) and recordings ({@code <family>.rec}) of the
@@ -41,16 +42,36 @@ public final class CaseFormat {
 
   private CaseFormat() {}
 
-  /** The family of a {@code .cases} or {@code .rec} file: its name without the extension. */
+  /**
+   * The family of a {@code .cases} or {@code .rec} file (ADR-0025): its path below the nearest enclosing directory
+   * named {@code diff} ({@code diff/gen/values-v1.cases} is {@code gen/values-v1}); its name alone when no directory
+   * of the path is named {@code diff}. Either way without the extension.
+   */
   public static String family(Path file) {
-    String name = file.getFileName().toString();
-    return name.substring(0, name.lastIndexOf('.'));
+    Path absolute = file.toAbsolutePath().normalize();
+    for (Path dir = absolute.getParent(); dir != null && dir.getFileName() != null; dir = dir.getParent()) {
+      if (dir.getFileName().toString().equals("diff")) return family(dir, absolute);
+    }
+    return family(absolute.getParent(), absolute);
   }
 
-  /** Reads the blocks of a file whose family is its name without the extension. */
+  /** The family of a file below {@code dir}: its relative path with {@code /} separators, without the extension. */
+  public static String family(Path dir, Path file) {
+    StringJoiner relative = new StringJoiner("/");
+    for (Path name : dir.relativize(file)) relative.add(name.toString());
+    String path = relative.toString();
+    return path.substring(0, path.lastIndexOf('.'));
+  }
+
+  /** Reads the blocks of a file whose family is given by {@link #family(Path)}. */
   public static List<Block> read(Path file) {
+    return read(file, family(file));
+  }
+
+  /** Reads the blocks of a file of the given family. */
+  public static List<Block> read(Path file, String family) {
     try {
-      return parse(file.getFileName().toString(), family(file), Files.readAllBytes(file));
+      return parse(file.getFileName().toString(), family, Files.readAllBytes(file));
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
