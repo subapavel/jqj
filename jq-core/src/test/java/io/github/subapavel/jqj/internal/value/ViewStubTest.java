@@ -14,7 +14,9 @@ import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 import java.lang.foreign.MemorySegment;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
@@ -34,10 +36,11 @@ class ViewStubTest {
 
   /**
    * One array, so that no object lookup meets a tag-6 key before its own entry: a number with a fraction, a
-   * plain string, an empty array and object, three tag-6 strings (an escape, non-ASCII, DEL) and an object
-   * whose first key is the tag-6 spelling of its second key.
+   * plain string, an empty array and object, three tag-6 strings (an escape, non-ASCII, DEL), an object whose
+   * first key is the tag-6 spelling of its second key, and one whose second key is the tag-6 spelling of its first.
    */
-  private static final String DOC = "[1.5,\"x\",[],{},\"a\\nb\",\"\u00e9\",\"\u007f\",{\"\\u0061\":1,\"a\":2}]";
+  private static final String DOC =
+      "[1.5,\"x\",[],{},\"a\\nb\",\"\u00e9\",\"\u007f\",{\"\\u0061\":1,\"a\":2},{\"a\":1,\"\\u0061\":2}]";
 
   @TestFactory
   Stream<DynamicTest> viewMembersNotBuiltYetAreStubs() {
@@ -51,6 +54,7 @@ class ViewStubTest {
     JqString nonAscii = view(JqString.class, StringView.class, root.get(5));
     JqString del = view(JqString.class, StringView.class, root.get(6));
     JqObject tag6Key = view(JqObject.class, ObjectView.class, root.get(7));
+    JqObject tag6KeyLater = view(JqObject.class, ObjectView.class, root.get(8));
 
     Map<String, ThrowingCallable> stubs = new LinkedHashMap<>();
     stubs.put("NumberView.toJson()", number::toJson);
@@ -69,15 +73,31 @@ class ViewStubTest {
     stubs.put("ObjectView.get(String) meeting a tag-6 key", () -> tag6Key.get("a"));
     stubs.put("ObjectView.forEach(BiConsumer) meeting a tag-6 key", () -> tag6Key.forEach((k, v) -> {}));
 
-    return stubs.entrySet().stream()
-        .map(
-            stub ->
-                dynamicTest(
-                    stub.getKey(),
-                    () ->
-                        assertThatThrownBy(stub.getValue())
-                            .isInstanceOf(JqCompileException.class)
-                            .hasMessageStartingWith(MARK)));
+    Stream<DynamicTest> marked =
+        stubs.entrySet().stream()
+            .map(
+                stub ->
+                    dynamicTest(
+                        stub.getKey(),
+                        () ->
+                            assertThatThrownBy(stub.getValue())
+                                .isInstanceOf(JqCompileException.class)
+                                .hasMessageStartingWith(MARK)));
+    // ADR-0024 (#22 story 28): a Stub never looks like a wrong result. jq-ref 1.8.2, observed 2026-11-11:
+    //   printf -- '{"a":1,"\\u0061":2}' | jq-ref -c '., keys, length, .a'  ->  {"a":2}  ["a"]  1  2   (rc 0)
+    // so a call of a -> 1 before the Stub would hand the host a wrong value.
+    Stream<DynamicTest> noCall =
+        Stream.of(
+            dynamicTest(
+                "ObjectView.forEach(BiConsumer) meeting a tag-6 key after a plain one calls nothing",
+                () -> {
+                  List<String> calls = new ArrayList<>();
+                  assertThatThrownBy(() -> tag6KeyLater.forEach((k, v) -> calls.add(k + " -> " + v)))
+                      .isInstanceOf(JqCompileException.class)
+                      .hasMessageStartingWith(MARK);
+                  assertThat(calls).as("calls made before the Stub").isEmpty();
+                }));
+    return Stream.concat(marked, noCall);
   }
 
   /** Asserts that {@code value} is the view class {@code view} of the kind {@code kind}, and returns it. */

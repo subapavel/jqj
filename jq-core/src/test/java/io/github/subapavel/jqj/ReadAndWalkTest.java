@@ -126,6 +126,21 @@ class ReadAndWalkTest {
     assertThat(kind(JqNumber.class, object.get("a"), ".a").longValue()).as(".a").isEqualTo(3L);
     assertThat(kind(JqNumber.class, object.get("x"), ".x").longValue()).as(".x").isEqualTo(9L);
     assertThat(kind(JqNumber.class, object.get("b"), ".b").longValue()).as(".b").isEqualTo(2L);
+
+    // jq-ref 1.8.2, observed 2026-11-11: printf -- '{"a":1,"a":2}' | jq-ref -c '., keys, length, .a'
+    //   -> {"a":2}  ["a"]  1  2   (rc 0). The duplicate is the key right after the first.
+    JqObject twice = kind(JqObject.class, read(workspace, "{\"a\":1,\"a\":2}").root(), "{\"a\":1,\"a\":2}");
+    assertThat(twice.size()).as("size of {\"a\":1,\"a\":2}").isEqualTo(1);
+    List<String> twiceKeys = new ArrayList<>();
+    List<Long> twiceValues = new ArrayList<>();
+    twice.forEach(
+        (k, v) -> {
+          twiceKeys.add(k);
+          twiceValues.add(kind(JqNumber.class, v, "forEach " + k).longValue());
+        });
+    assertThat(twiceKeys).as("forEach keys of {\"a\":1,\"a\":2}").containsExactly("a");
+    assertThat(twiceValues).as("forEach values of {\"a\":1,\"a\":2}").containsExactly(2L);
+    assertThat(kind(JqNumber.class, twice.get("a"), ".a").longValue()).as(".a of {\"a\":1,\"a\":2}").isEqualTo(2L);
   }
 
   /**
@@ -144,6 +159,8 @@ class ReadAndWalkTest {
         argumentSet("-0 is not a long", "-0", null),
         argumentSet("1.0 has a fraction", "1.0", null),
         argumentSet("1e2 has an exponent", "1e2", null),
+        // jq-ref 1.8.2, observed 2026-11-11: printf -- '1e+2' | jq-ref -c '., type'  ->  1E+2  "number"  (rc 0)
+        argumentSet("1e+2 has a signed exponent", "1e+2", null),
         argumentSet("1e400 does not fit a double either", "1e400", null),
         argumentSet("18446744073709551616, 2^64", "18446744073709551616", null));
   }
