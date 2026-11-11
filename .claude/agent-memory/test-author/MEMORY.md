@@ -19,3 +19,7 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#24) To prove red tests can go green without touching the branch: `cp -r` the worktree to the scratchpad, `rm` its `.git` file, write a stand-in, build with `-Dchecks.skip=true`.
 - (#24) Stub tests lose entries as bodies are built; deleting an entry with its Stub is not weakening a test — say so in the test's Javadoc.
 - (#24) A null-argument test must set every other argument so that only the null guard can produce the expected exception.
+- (#32) A stale-view test whose callback touches a view is vacuous: the throw comes from the callback, not the accessor under test. Make later callback steps touch nothing.
+- (#32) A guard-killing input can be absorbed by EOF (`"\u12x"`, `[tru]`): prove each kill with a hand mutant and add a twin that does not end at EOF.
+- (#32) In bash, `printf '-x'` fails (use `printf --`); `\0002` is not NUL (use `\x00`). A scratchpad reference implementation validates red tests in about 10 minutes.
+- (#32) jq's depth rule: reject `[`/`{` when the parser stack (open containers plus open key values) already holds 10 000 (F-22).

@@ -72,3 +72,7 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#28) jq-ref 1.8.2 accepts `-Infinity`, `-inf`, `1e2147483648` and 11-digit exponents (rc 0, clamped to ±DBL_MAX or `0E-1147483646`). `/usr/bin/time` is absent; use bash `time`.
 - (#42) The worktree guard refuses a Bash call combining `git` with `;` or `&&`: one git command per call, or a scratch script run with `bash`.
 - (#28) PIT credits a test class's static-field initializer to no test: draw shared fixtures per test (instance field).
+- (#32) heapBase() is empty for a read-only heap segment (an isReadOnly() guard before it is dead); address() of a byte[] slice is its array offset. Character.digit(c,16) over -1..0xFF accepts exactly [0-9A-Fa-f].
+- (#32) PIT (junit5 plugin 1.2.3) credits a dynamic test only for lines run inside it; setup in a @TestFactory body shows its mutants as surviving.
+- (#32) An accessor that calls host code (forEach) must re-check staleness after each call: the host may read into the same Workspace inside it.
+- (#32) Error positions tested only at base 0 hide a base bug: always add a slice case at a non-zero base.
