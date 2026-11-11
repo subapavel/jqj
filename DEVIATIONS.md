@@ -134,3 +134,15 @@ Reason: jq's syntax-error text comes from Bison's LALR tables (expecting lists t
 parser state, several errors after recovery); jqj's Pratt parser (founding §3) writes its own. A
 case whose recording says `syntax error` compares rc and stdout only. Every other error text
 matches jq.
+
+## `-h`, `-V` and `--build-configuration` print jqj's own text (ADR-0023, issue #17)
+
+| flag | jq 1.8.2 | jqj |
+| --- | --- | --- |
+| `-h` / `--help` | jq's usage text | jqj's usage text (written by spec 7) |
+| `-V` / `--version` | `jq-1.8.2` | jqj's version (written by spec 7) |
+| `--build-configuration` | jq's build string, as `$JQ_BUILD_CONFIGURATION` | jqj's build string |
+
+Reason: these flags describe the program, not a filter's result; jqj is not jq. jq's rc-2 usage
+lines (`jq: Unknown option …`, `Use jq --help for help with command-line options,`) stay
+byte-identical. shtest's cases for these flags become deviation cases.

@@ -1,6 +1,6 @@
 # Benchmarks: gate scenarios against same-session jq-ref, and the numbers of gate checks 4 and 5
 
-Status: accepted (2026-11-11, owner, issue #12 "Interpreter or bytecode first, and what speed must milestone 1 show?"); fixes GATE checks 4 and 5; the bench module runs from spec 1 (ADR-0013, ADR-0014); amended by ADR-0022 (issue #8: the analyses-gain diagnostic times G4 at 10⁴ only)
+Status: accepted (2026-11-11, owner, issue #12 "Interpreter or bytecode first, and what speed must milestone 1 show?"); fixes GATE checks 4 and 5; the bench module runs from spec 1 (ADR-0013, ADR-0014); amended by ADR-0022 (issue #8: the analyses-gain diagnostic times G4 at 10⁴ only); amended by ADR-0023 (issue #17: when each scenario enters the ratchet, G4 at 10⁴ in spec 2 and larger sizes with in-place updates; 1 KB cases)
 
 The reference numbers below were observed by the adviser on `claude-cloud-4vcpu` with jq 1.8.2
 (issue #12 round 1). The logs and the D-list are on issue #12 and in `bench/RESULTS.md` "Reference
@@ -46,7 +46,12 @@ times and limits (issue #12)".
     since at 10⁶ it makes about 5×10¹¹ slot copies (ADR-0022);
   - the gain of in-place updates, `ownershipGain` (ADR-0022).
 - Every gate and diagnostic filter on its 1 KB input is also a differential case
-  (`bench.<name>.1k`), so jqj is timed on the same work jq does.
+  (`bench.<name>.1k`), so jqj is timed on the same work jq does; a scenario with no 1 KB cell (G3,
+  G4, G6) gets its case on a 1 KB input of the same generator (ADR-0023).
+- G1, G6 and G7 enter `bench.tsv` in spec 1, G2 and G4 at 10⁴ in spec 2, G4 at 10⁵ and 10⁶ and G5
+  with spec 3's in-place ticket, G3 in spec 4 (ADR-0023). Before spec 6 the bench ratchet records
+  and fails nothing: a line with an empty `tolerance%` is overwritten by `regen --all` in either
+  direction and skipped by `check`.
 
 ## JMH settings
 

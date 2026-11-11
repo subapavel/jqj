@@ -3,8 +3,8 @@
 Runs a jq filter over JSON bytes on the JVM: the filter is compiled once and then run on each
 input without turning the input into an object tree.
 
-Seed glossary from the founding conversation (2026-11-10). `/domain-modeling` sharpens it; a term
-marked _(open)_ is waiting for a Phase 0 decision.
+Seeded from the founding conversation (2026-11-10) and sharpened by Phase 0 (ADR-0002 to
+ADR-0023). `/domain-modeling` keeps it current; a term marked _(open)_ is waiting for a decision.
 
 ## Language
 
@@ -253,10 +253,15 @@ over is a termination that carries a jq error message. The parse depth limit and
 time are limits too, but raise jq's catchable errors (F-13, ADR-0017).
 _Avoid_: quota, timeout (one budget among several)
 
-**Automatic streaming**:
+**Host streaming**:
 Running a filter of the form `<path>[] | rest` element by element, without holding the whole
 document, when `rest` never looks back at it.
-_Avoid_: `--stream` (that is jq's event mode, a different thing)
+_Avoid_: automatic streaming (the host switches it on, F-4); `--stream` (that is jq's event mode,
+a different thing)
+
+**Walking skeleton**:
+Milestone 1's first spec: the thinnest path through every layer, `.` and `.a` over one document,
+under the full gates (ADR-0023).
 
 **Host**:
 The program embedding the engine. It supplies the clock, the time zone, the environment, the

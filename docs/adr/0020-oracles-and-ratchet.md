@@ -1,6 +1,6 @@
 # Oracles and ratchet: copied jq tests, recorded jq-ref expectations, required cases, per-merge pass lists
 
-Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch)
+Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch); amended by ADR-0023 (issue #17: deviation seeds, generator minimums, `compile.txt` modes, `values-v1`)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1). Every runner lives in
 `oracle` on the class path, in `…jqj.oracle.{jqtest,diff,compile,backend,json,gen,record}`.
@@ -14,7 +14,8 @@ Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1).
   licence. The `man.test` runner sets `PAGER=less`; without it two cases fail on jq-ref.
 - **jq's `tests/shtest`** (MIT) is translated into `diff/shtest-<group>.cases`, with jq's notice in
   each header and in `NOTICE`. Its expected output comes from recordings. It drops
-  `--debug-dump-disasm`, `LD_PRELOAD` injection, valgrind and `-b`, each with its reason.
+  `--debug-dump-disasm`, `LD_PRELOAD` injection, valgrind, `-b` and `--stream-errors` (ADR-0023),
+  each with its reason.
 - **JSONTestSuite** at `1ef36fa0` (318 `test_parsing` files and its LICENSE) is copied into
   `jsontestsuite/` (ADR-0015).
 - **The reference profile** is the release binary jq-linux-amd64 1.8.2: static,
@@ -84,9 +85,11 @@ Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1).
   later case.
 - **Generated cases** are named `gen/<generator>/<seed>`.
   - `oracle-record.sh --generate <gen> <from> <to>` commits the cases and their recordings. It
-    drops seeds where jq-ref gives rc 3 or times out. What happens to a seed that hits a listed
-    deviation is open (a later round); until then such a seed stays and fails visibly.
-  - `values-v1` (spec 1, widened in spec 5) runs random documents with lenient tokens and the UTF-8
+    drops seeds where jq-ref gives rc 3 or times out. A seed that hits a listed deviation stays as
+    a deviation case: its ticket adds the row's slug and jqj's expected output, and review confirms
+    the difference is only that deviation (ADR-0023). Minimums: 1000 seeds each for `values-v1`,
+    `core-v1` and `ownership-v1`, 200 per builtin family.
+  - `values-v1` (recorded whole in spec 1; more of it passes by spec 5, F-18) runs random documents with lenient tokens and the UTF-8
     classes under `-c .`, `.`, `-S`, `-a`, `tojson`, `[paths]` and `tostream`.
   - `core-v1` (spec 2) runs a typed core-language grammar to depth 4.
   - `builtins-<family>-v1` is added per family.
@@ -119,7 +122,8 @@ errors`); such text is jqj's own. The jqtest runner reads the last block from a 
   tail-recursive case can finish optimised and hit the recursion budget conservative). A third run
   under the copy-only switch (ADR-0022) checks in-place updates the same way; cases that end in a
   termination under copy-only are left out. The oracle runs in the ticket
-  gate unless the skeleton ticket measures the oracle above ADR-0014's 60 s target, in which case
+  gate unless the skeleton ticket, or any later spec gate (ADR-0023), measures the oracle above
+  ADR-0014's 60 s target, in which case
   it moves to the spec gate.
 - **The backend oracle** (interpreter against bytecode) starts with the bytecode spec. It compares
   output bytes, the error value or termination cause, rc and `Workspace.stepsUsed()`. It then runs
@@ -138,8 +142,8 @@ errors`); such text is jqj's own. The jqtest runner reads the last block from a 
 - **PIT 1.30.2 with pitest-junit5-plugin 1.2.3 and JUnit 6.1.3 on JDK 25.0.5 works this way**
   (VERIFIED_PASS, adviser probe): each dynamic test is a unit, ids are positional, an aborted test
   counts as passed, and every unit run rebuilds the factory (3.0 ms with 1 case, 5.6 ms with 5000).
-- A surviving mutant covered by 5000 cases costs at least 28 s. If the skeleton ticket measures the
-  ticket gate's PIT step above 3 minutes, generated seeds are first grouped per unit or kept out of
+- A surviving mutant covered by 5000 cases costs at least 28 s. If the skeleton ticket, or any later
+  spec gate (ADR-0023), measures the ticket gate's PIT step above 3 minutes, generated seeds are first grouped per unit or kept out of
   PIT; only if that is not enough does PIT leave the ticket gate by a finding (ADR-0014).
 - **The handed-over test list of ADR-0008 to ADR-0011** (issue #7) belongs to the tickets that build
   those parts, as unit tests or oracle cases. Examples: `emitFalseStopsProducer`,
@@ -154,7 +158,7 @@ errors`); such text is jqj's own. The jqtest runner reads the last block from a 
   | --- | --- |
   | `oracle/jqtest.txt` | `id`, `backend` |
   | `oracle/differential.txt` | `id`, `def`, `backend` |
-  | `oracle/compile.txt` | `id`, `def` |
+  | `oracle/compile.txt` | `id`, `def`, `mode` (`conservative`, `copy-only`; ADR-0023) |
   | `oracle/backend.txt` | `id`, `def` |
   | `oracle/json.txt` | `id`, `label`, `def` |
   | `coverage.tsv`, `mutation.tsv` | as `ratchet/README.md` |

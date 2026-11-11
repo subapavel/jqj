@@ -42,7 +42,8 @@ GitHub and works it ticket by ticket. A grilling ticket needs the owner (HITL); 
 and the two spikes run AFK in parallel, and the owner reads their result.
 
 Phase 0 ends when the map has no open ticket and its destination holds: ADRs for each decision,
-the glossary sharpened, `docs/GATE.md` final, and the first spec ready for `/to-tickets`.
+the glossary sharpened, `docs/GATE.md` final, and the first spec ready for `/grill-with-docs`
+(ADR-0023).
 
 ## 3. A spec
 
