@@ -260,8 +260,17 @@ _Avoid_: automatic streaming (the host switches it on, F-4); `--stream` (that is
 a different thing)
 
 **Walking skeleton**:
-Milestone 1's first spec: the thinnest path through every layer, `.` and `.a` over one document,
-under the full gates (ADR-0023).
+Milestone 1's first spec: the thinnest path through every layer, `.`, field chains such as
+`.a.b.c`, `|` and parentheses over one document, under the full gates (ADR-0023).
+
+**Tooling ticket**:
+A ticket of the walking skeleton that builds the build, the oracle runners, the ratchet, the gate
+scripts, the bench module or CI, before the language exists.
+_Avoid_: skeleton ticket, build skeleton ticket
+
+**Stub**:
+A body that ends with a fixed jqj-only error until the spec that owns it; the runners score its
+cases FAIL, and its text is never asserted.
 
 **Host**:
 The program embedding the engine. It supplies the clock, the time zone, the environment, the
@@ -291,8 +300,12 @@ _Avoid_: stdin (one source among several)
 **Detecting byte**:
 The byte at which jq's parser notices an error; a message's column points at it.
 
+**Malformed document**:
+Input bytes that jq's grammar rejects at some byte.
+_Avoid_: invalid document
+
 **Error replay**:
-Re-reading an invalid document with the translated jq parser to produce jq's message, line and
+Re-reading a malformed document with the translated jq parser to produce jq's message, line and
 column.
 
 **Lenient token**:
@@ -325,6 +338,9 @@ backend (ADR-0018).
 **Compile-mode oracle**:
 Running a case under the optimised and the conservative compile of one backend and requiring the
 same output and error.
+
+**Optimised compile**:
+Compiling with the facts the analyses prove; the default compile.
 
 **Conservative compile**:
 Compiling with every analysis fact at its safe value: cardinality many, every path TRACKED, a
