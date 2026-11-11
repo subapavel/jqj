@@ -24,6 +24,9 @@ public final class JsonReader {
   /** What {@link #peek} gives at the end of the bytes. */
   private static final int EOF = -1;
 
+  /** The stack slot of an object key whose value is open; a container's slot is its tape index, never negative. */
+  private static final int KEY = -1;
+
   /** The magnitude of {@link Long#MIN_VALUE}, the largest 19-digit integer a long holds (negated). */
   private static final String LONG_MIN_MAGNITUDE = "9223372036854775808";
 
@@ -32,7 +35,10 @@ public final class JsonReader {
   /** Reused by every read; it doubles when full and never shrinks. */
   private long[] tape = new long[256];
 
-  /** The tape indices of the open containers. */
+  /**
+   * jq's parser stack (F-22): the tape index of each open container, and above an object the {@link #KEY} slot
+   * while one of its keys has its value open.
+   */
   private int[] stack = new int[16];
 
   private Document last;
@@ -74,35 +80,31 @@ public final class JsonReader {
   private void parse(byte[] b, int base, int end) {
     int t = 0;
     int sp = 0;
-    int objects = 0;
     int p = skip(b, base, end);
     value:
     for (;;) {
       // p is where a value must start.
       int c = peek(b, p, end);
       if (c == '[' || c == '{') {
-        // One slot per open container, and one more per object while its key's value is open (F-22). A '[' or
-        // '{' stands only where a value does, so every open object then has a key's value open.
-        if (sp + objects >= DEPTH) {
+        // F-22: jq rejects a '[' or '{' when its parser stack already holds DEPTH slots.
+        if (sp >= DEPTH) {
           throw overLimit("depth", b, base, end, p);
         }
-        if (sp == stack.length) {
-          stack = Arrays.copyOf(stack, sp << 1);
-        }
-        stack[sp++] = t;
         int kind = c == '[' ? Tape.ARRAY : Tape.OBJECT;
-        put(t++, Tape.entry(kind, 0, p));
+        int close = kind == Tape.ARRAY ? ']' : '}';
         p = skip(b, p + 1, end);
-        if (kind == Tape.OBJECT) {
-          objects++;
-          if (peek(b, p, end) != '}') {
+        if (peek(b, p, end) != close) {
+          sp = push(sp, t);
+          // The span and the closing bracket's offset are written when it closes.
+          put(t++, Tape.entry(kind, 0, 0));
+          if (kind == Tape.OBJECT) {
+            sp = push(sp, KEY);
             p = key(b, base, end, p, t++);
-            continue;
           }
-        } else if (peek(b, p, end) != ']') {
           continue;
         }
-        // An empty container: the loop below closes it at p.
+        put(t++, Tape.entry(kind, 0, p));
+        p++;
       } else if (c == '"') {
         p = string(b, base, end, p, t++);
       } else if (c == '-' || isDigit(c)) {
@@ -129,31 +131,41 @@ public final class JsonReader {
           }
           return;
         }
-        int open = stack[sp - 1];
-        int kind = Tape.tag(tape[open]);
+        // The top slot is KEY when an object member's value ended, otherwise the index of an open array: an object
+        // never reaches this loop before its first key, and an empty one is closed above.
+        boolean member = stack[sp - 1] == KEY;
         c = peek(b, p, end);
         if (c == ',') {
           p = skip(b, p + 1, end);
-          if (kind == Tape.OBJECT) {
+          if (member) {
             p = key(b, base, end, p, t++);
           }
           continue value;
         }
-        if (c != (kind == Tape.OBJECT ? '}' : ']')) {
+        if (c != (member ? '}' : ']')) {
           throw malformed(b, base, end, p);
         }
+        if (member) {
+          sp--;
+        }
+        int open = stack[--sp];
         int span = t - open - 1;
         if (span > limits.container()) {
           throw overLimit("container size", b, base, end, p);
         }
-        tape[open] = Tape.entry(kind, span, p);
-        if (kind == Tape.OBJECT) {
-          objects--;
-        }
-        sp--;
+        tape[open] = Tape.entry(Tape.tag(tape[open]), span, p);
         p++;
       }
     }
+  }
+
+  /** Pushes a slot onto the parser stack, doubling it when full; returns the new depth. */
+  private int push(int sp, int slot) {
+    if (sp == stack.length) {
+      stack = Arrays.copyOf(stack, sp << 1);
+    }
+    stack[sp] = slot;
+    return sp + 1;
   }
 
   /** Reads the key at p into tape index t, then its colon; returns where the key's value must start. */
