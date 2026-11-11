@@ -1,0 +1,33 @@
+# ADR-0014: PIT on the class-C modules of quality/floors.tsv; uploads the reports, commits nothing.
+name: nightly
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.2.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Class-C modules
+        id: modules
+        run: echo "list=$(awk -F'\t' 'NR > 1 && $2 == "C" { printf "%s%s", sep, $1; sep = "," }' quality/floors.tsv)" >> "$GITHUB_OUTPUT"
+      - name: PIT
+        run: ./mvnw -B -pl "${{ steps.modules.outputs.list }}" -am test org.pitest:pitest-maven:mutationCoverage
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: pit-reports
+          path: '*/target/pit-reports/'
+          if-no-files-found: warn
