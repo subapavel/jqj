@@ -88,9 +88,10 @@ class CompileTest {
   @Test
   void filterErrorLeavesRunAsJqFilterException() {
     // #34 design section 8: run turns the operation's FilterException into a JqFilterException with the same value,
-    // a string. jq-ref 1.8.2, recorded in diff/field.rec: field/error-array (.a on [1]) and field/chain-error-middle
-    // (.a.b.c on {"a":{"b":5}}) end with rc 5 and "Cannot index array with string ("a")" and "Cannot index number
-    // with string ("c")".
+    // a string. jq-ref 1.8.2, recorded in diff/field.rec: field/error-array (.a on [1]), field/chain-error-middle
+    // (.a.b.c on {"a":{"b":5}}) and field/parens-pipe-error ((.a | .b).c on {"a":{"b":true}}) end with rc 5 and
+    // "Cannot index array with string ("a")", "Cannot index number with string ("c")" and "Cannot index boolean with
+    // string ("c")".
     JqEngine engine = JqEngine.builder().build();
     String[][] cases = {
       {".a", "[1]", "Cannot index array with string (\"a\")"},

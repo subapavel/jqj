@@ -85,7 +85,7 @@ class ErrorLineCutTest {
 
   @ParameterizedTest(name = "{argumentSetName} -> {1}")
   @MethodSource({"leadBytes", "cuts"})
-  void nIsJqRefsLine(byte[] input, int expected) {
+  void nCountsTheReadBlocksEndingInLf(byte[] input, int expected) {
     assertThat(ErrorLine.of(input)).as("N of %d bytes", input.length).isEqualTo(expected);
   }
 }

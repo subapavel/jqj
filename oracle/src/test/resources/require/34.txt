@@ -17,6 +17,7 @@ field/duplicate-dot
 field/duplicate-field
 field/duplicate-nested
 field/error-array
+field/error-empty-array
 field/error-false
 field/error-file-argument
 field/error-name-24
@@ -42,6 +43,9 @@ field/keyword-loc
 field/line-crlf
 field/line-cut-after
 field/line-cut-before
+field/line-cut-cr
+field/line-cut-space
+field/line-cut-tab
 field/line-inner-lfs
 field/line-lf
 field/line-leading-lfs
@@ -59,6 +63,7 @@ field/null-input
 field/parens
 field/parens-nested
 field/parens-pipe
+field/parens-pipe-error
 field/parens-postfix
 field/pipe
 field/pipe-3

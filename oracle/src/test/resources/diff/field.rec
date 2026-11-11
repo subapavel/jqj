@@ -217,6 +217,20 @@ stdout
 stderr jq: error (at <stdin>:1): Cannot index array with string ("a")\n
 end
 
+case field/error-empty-array
+def 5846264919c8
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index array with string ("a")\n
+end
+
+case field/parens-pipe-error
+def df8492d9a42c
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index boolean with string ("c")\n
+end
+
 case field/error-string
 def 49ab3ccac487
 rc 5
@@ -380,6 +394,27 @@ end
 
 case field/line-utf8-cut
 def 108423b63b57
+rc 5
+stdout
+stderr jq: error (at <stdin>:0): Cannot index array with string ("a")\n
+end
+
+case field/line-cut-space
+def 4f51160133ed
+rc 5
+stdout
+stderr jq: error (at <stdin>:0): Cannot index array with string ("a")\n
+end
+
+case field/line-cut-tab
+def 2cc6e1c5dbec
+rc 5
+stdout
+stderr jq: error (at <stdin>:0): Cannot index array with string ("a")\n
+end
+
+case field/line-cut-cr
+def 3186533a16c9
 rc 5
 stdout
 stderr jq: error (at <stdin>:0): Cannot index array with string ("a")\n
