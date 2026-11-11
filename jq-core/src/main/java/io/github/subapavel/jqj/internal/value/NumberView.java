@@ -1,18 +1,20 @@
 package io.github.subapavel.jqj.internal.value;
 
 import io.github.subapavel.jqj.internal.Stub;
+import io.github.subapavel.jqj.internal.json.Printer;
 import io.github.subapavel.jqj.value.JqNumber;
 import java.math.BigDecimal;
 
 /**
  * A number of a document (ADR-0003, ADR-0012, ADR-0016): its document and tape index. Public only so the kind can
- * permit it. Its double and decimal values are S1.14's.
+ * permit it. Its double and decimal values are #36's.
  */
 public record NumberView(Document doc, int index) implements JqNumber {
 
+  /** jq's compact text (ADR-0012): a CANONICAL token's bytes; any other token is a Stub until #36. */
   @Override
   public String toJson() {
-    throw Stub.unbuilt("JqNumber.toJson");
+    return Printer.json(doc, index);
   }
 
   @Override

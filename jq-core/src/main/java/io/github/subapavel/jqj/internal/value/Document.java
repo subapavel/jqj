@@ -35,12 +35,17 @@ public final class Document {
     tape = null;
   }
 
+  /** The bytes the tape's offsets index; call {@link #live()} first, which tells a dropped document. */
+  public byte[] bytes() {
+    return bytes;
+  }
+
   /**
    * The tape, checked once per accessor call (ADR-0026).
    *
    * @throws JqTermination with cause {@code STALE_VIEW} once the document is dropped
    */
-  long[] live() {
+  public long[] live() {
     long[] live = tape;
     if (live == null) {
       throw new JqTermination(JqTermination.Cause.STALE_VIEW, STALE_EXIT_CODE, JqNull.NULL, null);
