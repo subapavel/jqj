@@ -1,6 +1,6 @@
 # Spec 1 "Walking skeleton": grilling record
 
-`/grill-with-docs`, 2026-11-11. The designer drafted round 1 and the architect drafted round 2. The
+`/grill-with-docs`, 2026-11-11. Published as spec issue #22. The designer drafted round 1 and the architect drafted round 2. The
 grilling-adviser evaluated both, and its recommendations went to the owner. This record is the input
 of `/to-spec`; once the spec issue is published, that issue is the source of truth.
 
