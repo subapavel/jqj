@@ -41,11 +41,10 @@ public final class CaseFormat {
 
   private CaseFormat() {}
 
-  /** The family of a case or recording file: its name without the extension. */
+  /** The family of a {@code .cases} or {@code .rec} file: its name without the extension. */
   public static String family(Path file) {
     String name = file.getFileName().toString();
-    int dot = name.lastIndexOf('.');
-    return dot < 0 ? name : name.substring(0, dot);
+    return name.substring(0, name.lastIndexOf('.'));
   }
 
   /** Reads the blocks of a file whose family is its name without the extension. */
@@ -102,8 +101,8 @@ public final class CaseFormat {
         id = null;
         continue;
       }
-      int space = line.indexOf(' ');
-      body.add(space < 0 ? new Line(number, line, "") : new Line(number, line.substring(0, space), line.substring(space + 1)));
+      String[] keyAndValue = line.split(" ", 2);
+      body.add(new Line(number, keyAndValue[0], keyAndValue.length == 2 ? keyAndValue[1] : ""));
     }
     if (id != null) throw new IllegalArgumentException(where + ":" + start + ": case " + id + " has no 'end'");
     return blocks;

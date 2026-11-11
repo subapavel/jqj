@@ -33,7 +33,7 @@ public final class DiffReport {
     try {
       Map<String, String> lines = new TreeMap<>();
       if (Files.exists(report)) {
-        for (String l : Files.readAllLines(report, UTF_8)) lines.put(l.substring(0, l.indexOf('\t')), l);
+        for (String l : Files.readAllLines(report, UTF_8)) lines.put(l.split("\t", 2)[0], l);
       }
       for (Row r : rows) lines.put(r.id(), r.line());
       Files.createDirectories(report.getParent());
@@ -62,8 +62,7 @@ public final class DiffReport {
     try {
       for (String l : Files.readAllLines(file, UTF_8)) {
         if (l.isEmpty() || l.startsWith("#")) continue;
-        int tab = l.indexOf('\t');
-        into.add(tab < 0 ? l : l.substring(0, tab));
+        into.add(l.split("\t", 2)[0]);
       }
     } catch (IOException e) {
       throw new UncheckedIOException(e);
