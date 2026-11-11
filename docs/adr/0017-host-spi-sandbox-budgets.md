@@ -26,7 +26,8 @@ joni 2.2.9.
 - `input_filename` is null and `input_line_number` 0 unless `RunOptions` supply named inputs.
 - `import`, `include` and run-time `modulemeta` go only through the loader; with none, every name is
   "module not found".
-- `now` reads the host clock (OWNER QUESTION PENDING: the default when none is injected).
+- `now` reads the host clock; without one injected it reads the system clock (owner, 2026-11-11),
+  so results vary with time as in jq. A host wanting reproducible output injects a fixed clock.
   `localtime` and `strflocaltime` use the host zone, UTC by default; jq uses the C library's local
   zone. `mktime`, `gmtime` and `strftime` are UTC in both. Date formats use the root locale; jq
   calls `setlocale(LC_ALL, "")`, so its `%A %B %c` follow the process locale (UNVERIFIED on
