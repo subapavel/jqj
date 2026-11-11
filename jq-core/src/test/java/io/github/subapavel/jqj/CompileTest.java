@@ -5,15 +5,17 @@ import static io.github.subapavel.jqj.TestDocuments.read;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * {@code JqEngine.compile} after #33 (design section 1): {@code .}, with SP, TAB, CR or LF around it, compiles to the
- * identity and runs in push form (ADR-0008); any other text is a Stub, a JqCompileException with the mark (ADR-0024).
- * Exported types only.
+ * {@code JqEngine.compile} after #33 (design section 1) and #34: {@code .}, with SP, TAB, CR or LF around it, compiles
+ * to the identity and runs in push form (ADR-0008); #34 adds {@code .name}, chains, {@code |} and parentheses, whose
+ * jq error leaves run as a JqFilterException. Any other text is a Stub, a JqCompileException with the mark
+ * (ADR-0024). Exported types only.
  */
 class CompileTest {
   /** ADR-0024, GLOSSARY "Stub": the mark every Stub message starts with. */
@@ -26,11 +28,12 @@ class CompileTest {
   void stubConstructThrowsCompileException() {
     JqEngine engine = JqEngine.builder().build();
     // jq-ref 1.8.2, observed 2026-11-11, each with printf '[1]' | jq-ref -c <text>:
-    //   1 -> 1 (rc 0); .a -> "Cannot index array with string" (rc 5); .. -> [1] 1 (rc 0);
+    //   1 -> 1 (rc 0); .[0] -> 1 (rc 0); .. -> [1] 1 (rc 0);
     //   '' and '   ' -> "Top-level program not given (try \".\")" (rc 3);
     //   FF or VT before the dot -> "syntax error, unexpected INVALID_CHARACTER" (rc 3): the filter's whitespace is
-    //   SP, TAB, CR and LF only. #33 builds none of them, so each ends in the Stub.
-    for (String text : List.of("1", ".a", "..", "", "   ", "\f.", "\u000b.")) {
+    //   SP, TAB, CR and LF only. Neither #33 nor #34 builds them, so each ends in the Stub. The .a entry ended with
+    //   its Stub in #34 (design C4) and moved to .[0], which stays a Stub until spec 2.
+    for (String text : List.of("1", ".[0]", "..", "", "   ", "\f.", "\u000b.")) {
       assertThatExceptionOfType(JqCompileException.class)
           .as("compile of %s", quoted(text))
           .isThrownBy(() -> engine.compile(text))
@@ -80,6 +83,44 @@ class CompileTest {
 
     assertThat(ranOut).as("run's answer after the sink stopped it").isFalse();
     assertThat(results).as("results handed over before the stop").containsExactly(root);
+  }
+
+  @Test
+  void filterErrorLeavesRunAsJqFilterException() {
+    // #34 design section 8: run turns the operation's FilterException into a JqFilterException with the same value,
+    // a string. jq-ref 1.8.2, recorded in diff/field.rec: field/error-array (.a on [1]), field/chain-error-middle
+    // (.a.b.c on {"a":{"b":5}}) and field/parens-pipe-error ((.a | .b).c on {"a":{"b":true}}) end with rc 5 and
+    // "Cannot index array with string ("a")", "Cannot index number with string ("c")" and "Cannot index boolean with
+    // string ("c")".
+    JqEngine engine = JqEngine.builder().build();
+    String[][] cases = {
+      {".a", "[1]", "Cannot index array with string (\"a\")"},
+      {".a.b.c", "{\"a\":{\"b\":5}}", "Cannot index number with string (\"c\")"},
+      {"(.a | .b).c", "{\"a\":{\"b\":true}}", "Cannot index boolean with string (\"c\")"},
+    };
+    for (String[] c : cases) {
+      JqFilter filter = engine.compile(c[0]);
+      Workspace workspace = newWorkspace();
+      JqValue root = read(workspace, c[1]).root();
+      List<JqValue> results = new ArrayList<>();
+      JqFilterException e =
+          assertThatExceptionOfType(JqFilterException.class)
+              .as("run of %s on %s", c[0], c[1])
+              .isThrownBy(
+                  () ->
+                      filter.run(
+                          root,
+                          Bindings.builder().build(),
+                          v -> {
+                            results.add(v);
+                            return true;
+                          },
+                          workspace))
+              .actual();
+      assertThat(e.value()).as("the error value of %s on %s", c[0], c[1]).isInstanceOf(JqString.class);
+      assertThat(((JqString) e.value()).value()).as("the error text of %s on %s", c[0], c[1]).isEqualTo(c[2]);
+      assertThat(results).as("results of %s on %s", c[0], c[1]).isEmpty();
+    }
   }
 
   /** The text with its control characters spelled out, for a readable description. */

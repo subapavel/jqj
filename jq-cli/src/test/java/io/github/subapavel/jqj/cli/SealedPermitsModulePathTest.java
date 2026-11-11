@@ -41,7 +41,8 @@ class SealedPermitsModulePathTest {
           "io.github.subapavel.jqj.value.JqNumber",
           Set.of("io.github.subapavel.jqj.internal.value.NumberView"),
           "io.github.subapavel.jqj.value.JqString",
-          Set.of("io.github.subapavel.jqj.internal.value.StringView"),
+          // #34 design section 7: a string built at run time (jq's error texts) is a BuiltString.
+          Set.of("io.github.subapavel.jqj.internal.value.StringView", "io.github.subapavel.jqj.internal.value.BuiltString"),
           "io.github.subapavel.jqj.value.JqArray",
           Set.of("io.github.subapavel.jqj.internal.value.ArrayView"),
           "io.github.subapavel.jqj.value.JqObject",

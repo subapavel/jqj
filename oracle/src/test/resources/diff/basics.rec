@@ -21,6 +21,13 @@ stdout
 stderr jq: error: syntax error, unexpected end of file at <top-level>, line 1, column 4:\n    .a |\n       ^\njq: 1 compile error\n
 end
 
+case basics/index-of-array
+def c0c5e781ca9d
+rc 0
+stdout 1\n
+stderr
+end
+
 case basics/file-argument
 def 6c7392b8e989
 rc 0

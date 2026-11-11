@@ -4,6 +4,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import io.github.subapavel.jqj.internal.Stub;
 import io.github.subapavel.jqj.internal.value.ArrayView;
+import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.Document;
 import io.github.subapavel.jqj.internal.value.NumberView;
 import io.github.subapavel.jqj.internal.value.ObjectView;
@@ -21,7 +22,7 @@ import java.util.Arrays;
  * depth costs no Java frames. One per Workspace; not thread-safe.
  *
  * <p>null, the booleans and tag-5 strings are their bytes. A number is copied when it is CANONICAL (ADR-0012) and is
- * a Stub otherwise (#36); a tag-6 string is a Stub (#35). An object prints each key at its first position with its
+ * a Stub otherwise (#36); a tag-6 string and a built string are Stubs (#35). An object prints each key at its first position with its
  * last value (ADR-0002). A Stub met in the middle of a value leaves what was drained before it written.
  */
 public final class Printer {
@@ -56,6 +57,7 @@ public final class Printer {
       case JqBool b -> put(b.value() ? TRUE : FALSE);
       case NumberView n -> value(n.doc(), n.index());
       case StringView s -> value(s.doc(), s.index());
+      case BuiltString _ -> throw Stub.unbuilt("printing a built string");
       case ArrayView a -> value(a.doc(), a.index());
       case ObjectView o -> value(o.doc(), o.index());
     }
