@@ -52,3 +52,6 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#27) PIT copies surefire's groups, excludes, argLine and env vars, but not `systemPropertyVariables`: a surefire-only property can gate side effects such as oracle reports.
 - (#27) A qualified `exports … to <module>` naming a module not observable at compile time warns and fails `-Werror`; use `--add-exports` in the consumer's compiler args.
 - (#27) jq with empty stdin runs nothing (rc 0, no output); a case without `stdin` needs `-n`.
+- (#29) The worktree guard refuses a Bash call mixing `python3 <<EOF`, `$S` variables in a git-adjacent command, or `git fetch` chained with other commands: use Edit, one plain git command per call.
+- (#29) `git fetch origin <branch>:refs/remotes/origin/<branch>` creates the remote-tracking ref when plain `fetch <branch>` does not.
+- (#29) An oracle family with extra report columns needs a `DiffReport.Row` label, not a new report class; byte-exact inputs go in through `CaseFormat.escape` plus a `file` line.
