@@ -1,6 +1,6 @@
 package io.github.subapavel.jqj.internal.value;
 
-import io.github.subapavel.jqj.internal.Stub;
+import io.github.subapavel.jqj.internal.json.Printer;
 import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqValue;
 
@@ -10,9 +10,10 @@ import io.github.subapavel.jqj.value.JqValue;
  */
 public record ArrayView(Document doc, int index) implements JqArray {
 
+  /** jq's compact text (ADR-0015). */
   @Override
   public String toJson() {
-    throw Stub.unbuilt("JqArray.toJson");
+    return Printer.json(doc, index);
   }
 
   @Override

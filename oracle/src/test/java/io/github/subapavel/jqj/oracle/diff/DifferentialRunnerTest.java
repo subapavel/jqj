@@ -60,16 +60,21 @@ class DifferentialRunnerTest {
     };
   }
 
+  /**
+   * #33 built {@code -c .}, so these cases now run {@code basics/field-of-array}, whose filter {@code .a} stays a Stub
+   * in spec 1 after #33 (#33 design C12).
+   */
   @Test
   void aRecordedCaseFailsAgainstTheStubShellWithAReadableDiff() {
-    Verdict v = run("basics/compact-object", Main::run);
+    Verdict v = run("basics/field-of-array", Main::run);
 
     assertThat(v.kind()).isEqualTo(Verdict.Kind.FAIL);
     assertThat(v.diff())
-        .contains("basics/compact-object")
-        .contains("rc      jq-ref 0\n")
-        .contains("stdout  jq-ref {\"a\":1}\\n\n")
-        .contains("        jqj    (empty)\n");
+        .contains("basics/field-of-array")
+        .contains("rc      jq-ref 5\n")
+        .contains("stdout  same\n")
+        .contains("stderr  jq-ref jq: error (at <stdin>:0): Cannot index array with string (\"a\")\\n\n")
+        .contains("        jqj    jqj stub: ");
     assertThat(v.detail()).doesNotContain("\n").doesNotContain("\t");
   }
 
@@ -186,7 +191,8 @@ class DifferentialRunnerTest {
 
   @Test
   void aStubWithoutARecordingIsFailNotStale() {
-    DiffCorpus.Entry e = basics("basics/compact-object");
+    // .a stays a Stub after #33, which built -c . (#33 design C12).
+    DiffCorpus.Entry e = basics("basics/field-of-array");
 
     Verdict v = new DiffRunner(Main::run, scratch).run(e.c(), null);
 

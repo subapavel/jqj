@@ -18,15 +18,34 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.api.Test;
 
-/** The stub shell of the in-process entry (ADR-0020, ADR-0024): until the command line is built, every run is a Stub. */
+/**
+ * The in-process entry (ADR-0020, ADR-0024). #33 built {@code -c .}, so its entry ended with its Stub (#33 design C12)
+ * and {@link #compactDotPrintsTheDocumentAndExitsZero} checks it; every other command line is still a Stub: no
+ * argument is {@code .} pretty-printed (#39), {@code .a} is not built, and other options are #38's.
+ */
 class MainTest {
 
   static Stream<Arguments> commandLines() {
     return Stream.of(
         Arguments.argumentSet("no argument", List.of()),
-        Arguments.argumentSet("-c .", List.of("-c", ".")),
         Arguments.argumentSet(".a", List.of(".a")),
         Arguments.argumentSet("unknown option", List.of("--badopt")));
+  }
+
+  @Test
+  void compactDotPrintsTheDocumentAndExitsZero() {
+    // jq-ref 1.8.2, recorded in diff/basics.rec (basics/compact-object): printf '{"a":1}\n' | jq-ref -c .
+    //   -> rc 0, stdout {"a":1} and LF, stderr empty.
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    ByteArrayOutputStream err = new ByteArrayOutputStream();
+    Invocation invocation =
+        new Invocation(List.of("-c", "."), Map.of(), Path.of("."), new ByteArrayInputStream("{\"a\":1}\n".getBytes(UTF_8)), out, err);
+
+    int rc = Main.run(invocation);
+
+    assertThat(rc).as("exit code").isZero();
+    assertThat(out.toString(UTF_8)).as("stdout").isEqualTo("{\"a\":1}\n");
+    assertThat(err.toString(UTF_8)).as("stderr").isEmpty();
   }
 
   @ParameterizedTest(name = "{argumentSetName}")

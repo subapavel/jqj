@@ -2,11 +2,17 @@ package io.github.subapavel.jqj.oracle;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.subapavel.jqj.query.compile.Compiler;
+import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.Source;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
  * Build skeleton (ticket 23): runs one class of each upstream module from the oracle, on the class path.
+ * query-core's probe is its compiled identity (#33).
  * jq-core's probe is the exported Limits.embedded() (ticket 24); the oracle module does not read jq-core,
  * so it is called by reflection.
  */
@@ -18,9 +24,20 @@ class SkeletonTest {
   }
 
   @Test
-  void queryCoreRunsFromTheOracle() throws Exception {
-    Object r = call("io.github.subapavel.jqj.query.internal.Placeholder", "twice", new Class<?>[] {int.class}, 4);
-    assertThat(r).isEqualTo(8);
+  void queryCoreRunsFromTheOracle() {
+    // #33 deleted the Placeholder this probed; the probe is now query-core's own API: the compiled identity (ADR-0008).
+    Object input = new Object();
+    List<Object> emitted = new ArrayList<>();
+    boolean ranOut =
+        Compiler.compile(new Identity(new Source(0, 1)))
+            .run(
+                input,
+                v -> {
+                  emitted.add(v);
+                  return true;
+                });
+    assertThat(emitted).as("results of the identity").singleElement().isSameAs(input);
+    assertThat(ranOut).as("run's answer when the sink never stops").isTrue();
   }
 
   @Test
