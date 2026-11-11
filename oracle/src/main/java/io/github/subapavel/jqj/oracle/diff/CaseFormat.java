@@ -49,7 +49,7 @@ public final class CaseFormat {
    */
   public static String family(Path file) {
     Path absolute = file.toAbsolutePath().normalize();
-    for (Path dir = absolute.getParent(); dir != null && dir.getFileName() != null; dir = dir.getParent()) {
+    for (Path dir = absolute.getParent(); dir.getFileName() != null; dir = dir.getParent()) {
       if (dir.getFileName().toString().equals("diff")) return family(dir, absolute);
     }
     return family(absolute.getParent(), absolute);

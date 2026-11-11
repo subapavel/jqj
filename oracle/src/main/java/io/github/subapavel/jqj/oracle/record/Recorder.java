@@ -127,13 +127,8 @@ public final class Recorder {
     long from = range[0];
     long to = range[1];
     String header = header();
-    Family family;
-    try {
-      family = generate(from, to, Recorder::runReference);
-    } catch (IllegalArgumentException e) {
-      System.err.println(e.getMessage());
-      return 1;
-    }
+    // Two runs that differ throw out of main before anything is written, which exits 1.
+    Family family = generate(from, to, Recorder::runReference);
     family.write(Path.of(args.get(3)), header);
     int dropped = (int) (to - from) - family.recordings().size();
     System.out.println("recorded " + family.recordings().size() + " seeds of " + ValuesV1.NAME + ", dropped " + dropped);
