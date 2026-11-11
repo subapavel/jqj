@@ -111,6 +111,7 @@ public class Gates {
             .redirectError(Redirect.INHERIT)
             .start();
     int code = jqj.waitFor();
+    // Untested until #38 builds the launcher (story 51); G7.process runs end to end there.
     if (code != 0) {
       throw new IllegalStateException(s.launcher + " exited with " + code);
     }
@@ -216,7 +217,13 @@ public class Gates {
     @Setup
     public void setUp() throws IOException {
       file = Files.createTempFile("jqj-orders-1k-", ".json");
-      Files.write(file, Inputs.orders(Size.K1));
+      try {
+        Files.write(file, Inputs.orders(Size.K1));
+      } catch (IOException | RuntimeException e) {
+        // A failed setup does not count on @TearDown: the file it created goes here.
+        Files.deleteIfExists(file);
+        throw e;
+      }
     }
 
     @TearDown
