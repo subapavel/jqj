@@ -1,6 +1,6 @@
 # Public API: engine, filter, Workspace, documents and values
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12) and ADR-0020 (issue #15)
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12), ADR-0020 (issue #15) and ADR-0024 (#24: kinds, exception shapes, F-20)
 
 Type and method names are binding from the first publish; until then a rename is one mechanical
 ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1).
@@ -77,11 +77,11 @@ ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (
 ## Values (`…jqj.value`)
 
 - `sealed interface JqValue permits JqNull, JqBool, JqNumber, JqString, JqArray, JqObject`, with
-  `detach()` and `toJson()`. The six kinds are public sealed interfaces; views, `LiteralNumber`,
+  `detach()` and `toJson()`. The four kinds with views are public sealed interfaces and `JqNull` and `JqBool` are enums (ADR-0003, ADR-0024, F-20); views, `LiteralNumber`,
   `DoubleNumber` and built classes are in the non-exported `.internal.value` and implement them. A
   sealed permit across packages needs one named module: it compiles because `jq-core`'s main code
   is compiled with its `module-info` (VERIFIED_PASS on JDK 25.0.5; javac rejects it without one).
-  The class-path test run of ADR-0013 is proved by the skeleton ticket. A host's exhaustive
+  The class-path test run of ADR-0013 is proved by the API-slice ticket #24 (F-20). A host's exhaustive
   `switch` needs no default.
 - `JqString`: `value()` (a `String`), `utf8()` (a read-only `MemorySegment`: a slice of the
   document without a copy for a tag-5 view and of the array for a built string, a decoded copy for
