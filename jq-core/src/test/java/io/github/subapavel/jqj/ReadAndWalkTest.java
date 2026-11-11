@@ -480,8 +480,11 @@ class ReadAndWalkTest {
         assertThat(keys).as("%s key order", path).containsExactlyElementsOf(o.keys());
         for (int i = 0; i < o.keys().size(); i++) {
           String key = o.keys().get(i);
-          assertWalk(o.values().get(i), object.get(key), path + ".\"" + key + "\"");
-          assertWalk(o.values().get(i), values.get(i), path + ".\"" + key + "\" (forEach)");
+          JqValue byKey = object.get(key);
+          assertWalk(o.values().get(i), byKey, path + ".\"" + key + "\"");
+          // ADR-0026: views are equal when they share a document and a tape index, so forEach's value is the
+          // one get gave; comparing instead of walking it again keeps the walk linear.
+          assertThat(values.get(i)).as("%s.\"%s\" from forEach", path, key).isEqualTo(byKey);
         }
       }
     }
