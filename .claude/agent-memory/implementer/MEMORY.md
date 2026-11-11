@@ -36,3 +36,8 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - The scratchpad is shared by parallel agents: prefix scratch files with the ticket number.
 - A ticket branch checked out in another worktree: reset the agent branch to it, then
   `git push origin HEAD:<ticket-branch>`.
+- (#23) A Bash call naming `github` or `.git` in a path is refused by the worktree guard; use globs (`io/gi*/subapavel`) or split the command.
+- (#23) `scripts/check-lf-checkout.sh` fails on any unstaged change to a tracked file: it runs only under `-Plf-check`, never in the default build.
+- (#23) license-maven-plugin: a `licenseMerge` entry must not repeat its own target name, or the build errors.
+- (#23) PIT's line count includes a private empty constructor (JaCoCo ignores it): tiny classes show low PIT line coverage.
+- (#23) PIT reaches query-core/jq-core unit tests only via `additionalClasspathElements` to their `target/test-classes`; run the reactor with `-am`.
