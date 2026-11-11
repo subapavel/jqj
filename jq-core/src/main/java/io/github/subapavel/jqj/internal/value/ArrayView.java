@@ -4,9 +4,11 @@ import io.github.subapavel.jqj.internal.Stub;
 import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqValue;
 
-/** An array of a document (ADR-0016). Public only so the kind can permit it; every method is a Stub. */
-public final class ArrayView implements JqArray {
-  ArrayView() {}
+/**
+ * An array of a document (ADR-0003, ADR-0016): its document and tape index. Public only so the kind can permit it.
+ * Equality is the record's, never jq's (ADR-0026).
+ */
+public record ArrayView(Document doc, int index) implements JqArray {
 
   @Override
   public String toJson() {
@@ -15,11 +17,27 @@ public final class ArrayView implements JqArray {
 
   @Override
   public int length() {
-    throw Stub.unbuilt("JqArray.length");
+    long[] tape = doc.live();
+    int end = Tape.end(tape, index);
+    int length = 0;
+    for (int i = index + 1; i < end; i = Tape.next(tape, i)) {
+      length++;
+    }
+    return length;
   }
 
+  /** @throws IndexOutOfBoundsException unless {@code 0 <= i < length()} (ADR-0026) */
   @Override
-  public JqValue get(int index) {
-    throw Stub.unbuilt("JqArray.get");
+  public JqValue get(int i) {
+    long[] tape = doc.live();
+    int end = Tape.end(tape, index);
+    int n = 0;
+    for (int at = index + 1; at < end; at = Tape.next(tape, at)) {
+      if (n == i) {
+        return doc.valueAt(tape, at);
+      }
+      n++;
+    }
+    throw new IndexOutOfBoundsException("Index " + i + " out of bounds for length " + n);
   }
 }

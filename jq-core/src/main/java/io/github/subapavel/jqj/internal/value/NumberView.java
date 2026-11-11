@@ -4,9 +4,11 @@ import io.github.subapavel.jqj.internal.Stub;
 import io.github.subapavel.jqj.value.JqNumber;
 import java.math.BigDecimal;
 
-/** A number of a document (ADR-0016). Public only so the kind can permit it; every method is a Stub. */
-public final class NumberView implements JqNumber {
-  NumberView() {}
+/**
+ * A number of a document (ADR-0003, ADR-0012, ADR-0016): its document and tape index. Public only so the kind can
+ * permit it. Its double and decimal values are S1.14's.
+ */
+public record NumberView(Document doc, int index) implements JqNumber {
 
   @Override
   public String toJson() {
@@ -20,12 +22,29 @@ public final class NumberView implements JqNumber {
 
   @Override
   public boolean fitsLong() {
-    throw Stub.unbuilt("JqNumber.fitsLong");
+    return (Tape.span(doc.live()[index]) & Tape.FITS_LONG) != 0;
   }
 
   @Override
   public long longValue() {
-    throw Stub.unbuilt("JqNumber.longValue");
+    long[] tape = doc.live();
+    int span = Tape.span(tape[index]);
+    if ((span & Tape.FITS_LONG) == 0) {
+      throw new ArithmeticException("the number is not an integer that a long holds");
+    }
+    byte[] bytes = doc.bytes;
+    int p = Tape.off(tape[index]);
+    int end = p + (span & Tape.NUMBER_LENGTH);
+    boolean negative = bytes[p] == '-';
+    if (negative) {
+      p++;
+    }
+    // Accumulated below zero, so the smallest long needs no special case; FITS_LONG rules out an overflow.
+    long value = 0;
+    for (; p < end; p++) {
+      value = value * 10 - (bytes[p] - '0');
+    }
+    return negative ? value : -value;
   }
 
   @Override
