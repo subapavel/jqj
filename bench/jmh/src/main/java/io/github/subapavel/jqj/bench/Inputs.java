@@ -14,7 +14,10 @@ import java.nio.file.Path;
  */
 public final class Inputs {
 
-  /** The cell sizes of ADR-0019, as the lower-case labels of ADR-0024's bench ids. */
+  /**
+   * The cell sizes of ADR-0019, as the lower-case labels of ADR-0024's bench ids. They are 1024-based: {@code 1k} is
+   * 1 KiB (1 024 bytes), {@code 100k} is 100 KiB (102 400 bytes), {@code 10m} is 10 MiB (10 485 760 bytes).
+   */
   public enum Size {
     K1("1k", 1_024),
     K100("100k", 102_400),

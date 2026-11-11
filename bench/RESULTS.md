@@ -14,12 +14,17 @@ verifier output; newest section first.
 - JMH against the Stubs: the six API scenarios end every fork in `JqCompileException` (`jqj stub:
   JqEngine.compile …`); `G7.process.1k` ends in `IOException`, because `jq-cli/target/jqj` does not
   exist yet. No jqj number exists.
-- Inputs: `orders` of `Inputs` (bench module), exactly 1 024 / 102 400 / 10 485 760 bytes, SHA-256
-  pinned in `InputsTest`. They are not the inputs of issue #12, so the rows below do not compare
+- Inputs: `orders` of `Inputs` (bench module). Sizes are 1024-based: `1k` = 1 KiB = 1 024 bytes,
+  `100k` = 100 KiB = 102 400 bytes, `10m` = 10 MiB = 10 485 760 bytes, exactly; SHA-256 pinned in
+  `InputsTest`. They are not the inputs of issue #12, so the rows below do not compare
   with the "Reference times" table under it.
 - jq-ref per ADR-0019: one discarded run, best of 5, K concatenated copies, minus the best of 5
   start-up runs of the same filter on `/dev/null`, divided by K. `G7.engine.1k` uses that rule on
-  `-c .a`; `G7.process.1k` is one whole process on one 1 KB document, nothing subtracted.
+  `-c .a`; `G7.process.1k` is one whole process on one 1 KiB document, nothing subtracted.
+- Columns: K is the number of concatenated copies per run; best and start-up are wall-clock
+  milliseconds of one jq-ref process (best of 5); per document is (best − start-up) / K, printed in
+  µs or ms as marked (the script prints µs). jqj's JMH units, once it has numbers: µs/op for the
+  `avgt` scenarios (G1, G6), ms/op for the single-shot G7.
 
 | id | filter | K | best | start-up | per document |
 | --- | --- | --- | --- | --- | --- |
@@ -40,6 +45,14 @@ A run of `G1_1k` with exactly those flags printed "Warmup: 3 iterations, 1 s eac
 (`-jvmArgsAppend`, `-jvmArgsPrepend`); the class's annotations carry these settings and G7's (`ss`,
 10 forks, no warm-up, one iteration), and a flag given on the command line overrides them for every
 benchmark, G7 included.
+
+**How to run** (from the repo root, after `./mvnw -B -Pbench package`):
+
+- Gate scenarios: `java -jar bench/jmh/target/benchmarks.jar -prof gc -rf json`, then
+  `bench/jq-ref.sh` straight after, in the same shell.
+- Small-heap fork of gate check 4 (G1 and G6 `-c` at 10 MiB; no extra ids, the same methods):
+  `java -jar bench/jmh/target/benchmarks.jar 'G1_10m|G6_compact_10m' -jvmArgs "-Xms64m -Xmx64m" -prof gc -rf json`.
+  NOT_RUN in #30 (the Stubs end every fork before a read); #39 records it.
 
 ## Build skeleton: one build alone and three in parallel (ticket #23), 2026-11-11
 
