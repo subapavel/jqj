@@ -25,9 +25,9 @@ final class JqTestCorpus {
 
   private JqTestCorpus() {}
 
-  /** {@code oracle/target/test-classes/jqtest}: the copied {@code oracle/src/test/resources/jqtest}. */
+  /** {@code oracle/target/test-classes/jq/tests}: the copied {@code oracle/src/test/resources/jq/tests}. */
   static Path dir() {
-    URL url = JqTestCorpus.class.getResource("/jqtest");
+    URL url = JqTestCorpus.class.getResource("/jq/tests");
     try {
       return Path.of(url.toURI());
     } catch (URISyntaxException e) {
@@ -52,9 +52,9 @@ final class JqTestCorpus {
     return all;
   }
 
-  /** The repository root: four levels above {@code oracle/target/test-classes/jqtest}. */
+  /** The repository root: five levels above {@code oracle/target/test-classes/jq/tests}. */
   private static Path root() {
-    return dir().getParent().getParent().getParent().getParent();
+    return dir().getParent().getParent().getParent().getParent().getParent();
   }
 
   /** The ratcheted ids and those the ticket names with {@code -Doracle.require=<file>}. */
@@ -71,7 +71,7 @@ final class JqTestCorpus {
     if (reports != null) JqTestReport.merge(Path.of(reports).resolve("jqtest-" + BACKEND + ".tsv"), rows);
   }
 
-  /** The runner over the public API. */
+  /** The runner over the public API, {@link ApiJqj}'s host for every file (ADR-0020:50). */
   static JqTestRunner runner() {
     return new JqTestRunner(new ApiJqj());
   }

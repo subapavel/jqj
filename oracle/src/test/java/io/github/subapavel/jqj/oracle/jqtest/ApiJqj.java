@@ -45,6 +45,8 @@ import java.util.function.Supplier;
  */
 final class ApiJqj implements Jqj {
 
+  // ADR-0020:50: the host is to carry UTC, a ModuleLoader over jq/tests/modules, debug discarded and, for man.test,
+  // environment({PAGER=less}); the API has no environment or ModuleLoader yet, so it is the sandbox for every file.
   private final JqEngine engine = JqEngine.builder().limits(limits()).host(Host.sandboxed()).build();
 
   /** {@link Limits#embedded()} with an unlimited deadline (ADR-0024). */
