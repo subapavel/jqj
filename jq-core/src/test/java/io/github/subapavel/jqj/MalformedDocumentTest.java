@@ -83,8 +83,18 @@ class MalformedDocumentTest {
         argumentSet("\"\\q\"", "\"\\q\"", "\"\\n\"", JqString.class),
         // jq-ref: Invalid \\uXXXX escape at line 1, column 6
         argumentSet("\"\\u12\"", "\"\\u12\"", "\"\\u1234\"", JqString.class),
+        // jq-ref: Invalid \\uXXXX escape at line 1, column 7 (the witness "\\u12ab" prints U+12AB, rc 0)
+        argumentSet("\"\\u12x\"", "\"\\u12x\"", "\"\\u12ab\"", JqString.class),
+        // jq-ref: Invalid characters in \\uXXXX escape at line 1, column 8. Four bytes follow \\u before the quote,
+        // so a reader that skipped the hex check would close the string and accept it.
+        argumentSet("\"\\u12xy\"", "\"\\u12xy\"", "\"\\u12ab\"", JqString.class),
         // jq-ref: Invalid literal at EOF at line 1, column 5
-        argumentSet("truex", "truex", "true ", JqBool.class));
+        argumentSet("truex", "truex", "true ", JqBool.class),
+        // jq-ref: Invalid literal at line 1, column 5 (the witness [true] prints [true], rc 0)
+        argumentSet("[tru]", "[tru]", "[true]", JqArray.class),
+        // jq-ref: Invalid literal at line 1, column 6. As long as true, so a reader that skipped the letters would
+        // accept it.
+        argumentSet("[trux]", "[trux]", "[true]", JqArray.class));
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
@@ -161,7 +171,8 @@ class MalformedDocumentTest {
    * The observed subset where jq-ref's line and column equal the draft's rule (k = the detecting byte + 1, or the
    * length at EOF; line = 1 + LFs before k; column = k - 1 - the last LF before k, or k without one). The rows
    * where they differ are left out: {@code {"a" 1}} (jq-ref 7, rule 6), {@code {1:2}} (3, 2), {@code [1 2]} (5,
-   * 4), {@code "a\x01"} (4, 3), {@code [1,\x002]} and {@code [1,\f2]} (6, 4), {@code "\q"} (4, 3).
+   * 4), {@code "a\x01"} (4, 3), {@code [1,\x002]} and {@code [1,\f2]} (6, 4), {@code "\q"} (4, 3), {@code "\\u12x"} (7,
+   * 6), {@code "\\u12xy"} (8, 6), {@code [trux]} (6, 5).
    */
   static Stream<Arguments> positions() {
     return Stream.of(
@@ -196,7 +207,9 @@ class MalformedDocumentTest {
         // jq-ref: Invalid \\uXXXX escape at line 1, column 6
         argumentSet("\"\\u12\"", "\"\\u12\"", 1, 6),
         // jq-ref: Invalid literal at EOF at line 1, column 5
-        argumentSet("truex", "truex", 1, 5));
+        argumentSet("truex", "truex", 1, 5),
+        // jq-ref: Invalid literal at line 1, column 5
+        argumentSet("[tru]", "[tru]", 1, 5));
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
