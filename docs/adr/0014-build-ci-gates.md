@@ -1,6 +1,6 @@
 # Build, CI and gates
 
-Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with the ADR of "How do the oracles and the ratchet work?"
+Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15); amended by ADR-0023 (issue #17: the fallbacks fire at any spec gate)
 
 - **Toolchain:**
   - Maven wrapper 3.3.4 (`only-script`) with Maven 3.9.x, `--release 25`, `-Xlint:all -Werror`, no
@@ -27,8 +27,9 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
      target is under 60 s with three gates in parallel.
   2. PIT on only the classes the ticket changed (`-DtargetClasses` from `git diff <ref>`), against
      the floor. `failWhenNoMutations` is off, for tickets that change only records or interfaces.
-     The target is under 3 minutes with three gates in parallel. If the skeleton ticket measures
-     more, PIT leaves the ticket gate by a finding, with no new owner round.
+     The target is under 3 minutes with three gates in parallel. If the skeleton ticket, or any
+     later spec gate, measures more, PIT leaves the ticket gate by a finding, with no new owner
+     round (ADR-0023, F-17).
   3. The LF check, the trailer check and the word check, each under about 2 s.
   4. `java scripts/ratchet.java check`.
 
@@ -52,7 +53,8 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
   informative only.
 - **Scripts ported from flottila-mapping:** `gate-ticket.sh`, `gate-spec.sh`, `ratchet.java` and
   `pit-summary.sh`, with their tests. Their contract, UI, stack and moved-coverage parts are
-  dropped. The oracle names are jqtest, differential, backend and json. One file lists the class-C
+  dropped. The oracle names are jqtest, differential, compile, backend and json
+  (ADR-0020). One file lists the class-C
   modules, and all three scripts read it. `function-families.java` is not ported.
 - **The VM setup** (`deploy/claude-cloud/setup.sh`) adds `javap`, `jdeps` and `jlink` to its
   alternatives and checks jq-ref's sha256.
@@ -70,3 +72,14 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
 - **Flottila's separate compile-all step:** it repeats step 1.
 - **Maven 4, `-T 4`, JMH on CI, Error Prone/SpotBugs/Checkstyle, a committed mirror:** unmeasured
   or rejected for flottila ADR-0017's reasons.
+
+## Amendment (ADR-0020, issue #15)
+
+- Ticket gate: `gate-ticket.sh` writes the ticket's required case ids to `-Doracle.require`, runs
+  `oracle-record.sh --verify` on the `.rec` files the ticket changed, and reads the floors from
+  `quality/floors.tsv`.
+- CI `build` adds `java scripts/ratchet.java check` and `oracle-record.sh --verify` on all
+  recordings.
+- The spec gate's step 4 is `regen --all`. The verifier also runs `regen --oracles` after every merge.
+- Benchmarks: ADR-0019 sets the JMH arguments and scenarios. The oracle and the module-path cases
+  run on the interpreter in milestone 1 (ADR-0018).

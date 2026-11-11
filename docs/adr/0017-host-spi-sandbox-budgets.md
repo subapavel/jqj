@@ -1,6 +1,6 @@
 # Host SPI, sandbox and budget defaults
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); rewords the sandbox list of founding §11
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); amended by ADR-0020 (CLI environment from `Invocation`, locale); rewords the sandbox list of founding §11
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1); joni facts on
 joni 2.2.9.
@@ -29,9 +29,9 @@ joni 2.2.9.
 - `now` reads the host clock; without one injected it reads the system clock (owner, 2026-11-11),
   so results vary with time as in jq. A host wanting reproducible output injects a fixed clock.
   `localtime` and `strflocaltime` use the host zone, UTC by default; jq uses the C library's local
-  zone. `mktime`, `gmtime` and `strftime` are UTC in both. Date formats use the root locale; jq
-  calls `setlocale(LC_ALL, "")`, so its `%A %B %c` follow the process locale (UNVERIFIED on
-  jq-ref, no locale on the VM).
+  zone. `mktime`, `gmtime` and `strftime` are UTC in both. Date formats use the root locale. jq
+  calls `setlocale(LC_ALL, "")`, but jq-ref 1.8.2 showed no locale effect under de_DE.UTF-8
+  (ADR-0020).
 - `debug` and `stderr` values are discarded unless a `DebugSink` is set.
 - `input`/`inputs` read only `RunOptions`' inputs; otherwise `input` raises "break" at once.
 - `halt` and `halt_error` end the run with `JqTermination(HALT)` (ADR-0008; jq-ref: `try halt catch
@@ -43,7 +43,8 @@ joni 2.2.9.
 
 - `Limits(steps, deadline, nestingDepth, recursionDepth, bytesBuilt, bytesWritten, regexMatchTime,
   stackBytes)`, set on the engine and overridable per run through `RunOptions`.
-- **`Limits.embedded()`** (the engine default; numbers provisional until #12 measures them):
+- **`Limits.embedded()`** (the engine default; the regex value is confirmed by ADR-0019, the step default
+  waits for the interpreter's steps per second):
   - 10⁹ steps; a 10 s deadline;
   - parse depth 10 000 (ADR-0015; a jq parse error, not a termination, F-13);
   - 4 194 304 live activations, which lets 10⁶ levels complete;
@@ -83,7 +84,8 @@ the flag). The run ends with
 
 ## The command-line host
 
-- Environment `System.getenv()`, clock `InstantSource.system()`, zone `ZoneId.systemDefault()`.
+- Environment, `TZ` and `HOME` from the `Invocation` (ADR-0020; the launcher passes `System.getenv()`),
+  clock `InstantSource.system()`, zone from `TZ` as an IANA id, else `ZoneId.systemDefault()`.
 - File loader: `-L` paths, else `["~/.jq", "$ORIGIN/../lib/jq", "$ORIGIN/../lib"]`, plus `~/.jq`
   as an include file when it is a file.
 - Debug: `["DEBUG:",v]` compact plus newline on stderr. `stderr`: a string raw, other values compact

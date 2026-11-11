@@ -14,5 +14,11 @@ Copyright (c) 2012 Stephen Dolan, are added to this list, with jq's copyright no
 ticket that copies or translates them (ADR-0015: the parser state machine of jv_parse.c). jq's
 licence text ships in the jq-core jar under META-INF/.
 
+jq's man.test and manonig.test are generated from the examples of the jq manual
+(https://jqlang.org), Creative Commons Attribution 3.0 Unported
+(https://creativecommons.org/licenses/by/3.0/), by the jq authors. They are added as test
+resources only (ADR-0021), by the ticket that copies them, and keep both jq's MIT notice and this
+attribution.
+
 Test inputs from JSONTestSuite (https://github.com/nst/JSONTestSuite) at commit 1ef36fa0, MIT
 License, Copyright (c) 2016 Nicolas Seriot, are added to this list by the ticket that copies them.

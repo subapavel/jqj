@@ -3,8 +3,8 @@
 Runs a jq filter over JSON bytes on the JVM: the filter is compiled once and then run on each
 input without turning the input into an object tree.
 
-Seed glossary from the founding conversation (2026-11-10). `/domain-modeling` sharpens it; a term
-marked _(open)_ is waiting for a Phase 0 decision.
+Seeded from the founding conversation (2026-11-10) and sharpened by Phase 0 (ADR-0002 to
+ADR-0023). `/domain-modeling` keeps it current; a term marked _(open)_ is waiting for a decision.
 
 ## Language
 
@@ -98,14 +98,34 @@ A built object whose keys are made at run time, so it keeps its own key list ins
 _Avoid_: dictionary, map object, hash object
 
 **Ownership marker**:
-What lets the engine update a built value in place: the mark that a running operation (`reduce`,
-`foreach`, an update, an array builder) is the value's only holder. It is cleared when the value
-escapes. _(open: the exact rule, ticket 8)_
+The `owner` field of a built array, object or string: the running activation (a `reduce` or
+`foreach` run, or an update) that made the value. A write in place needs it to match and the site
+to hold the in-place licence (a string append and an update's own rebuild need the match only;
+ADR-0022).
 _Avoid_: reference count, transient, lock
+
+**In-place licence**:
+The analysis fact that a site's target is the only use of an owning activation's state, so it may
+be written in place when its owner matches (ADR-0022).
+
+**Sole-use chain**:
+The way an activation's state goes through its body, from input to result, read once and kept
+nowhere else.
+
+**Borrow**:
+A read of the state whose result keeps no part of it.
+
+**Retire**:
+To give an owning activation a fresh owner when one of its values leaves the sole-use chain, so
+every value it made so far is copied before any later write.
+
+**Copy-only**:
+The engine-internal switch under which no owner ever matches; the ownership tests' baseline.
 
 **Escape**:
 The moment a built value becomes reachable from somewhere other than the operation that owns it:
-bound to a variable, stored in another value, or emitted.
+bound to a variable, stored in another value, emitted, captured, raised, passed to `debug`, or read
+a second time by its owner.
 
 ## Compiling
 
@@ -233,10 +253,15 @@ over is a termination that carries a jq error message. The parse depth limit and
 time are limits too, but raise jq's catchable errors (F-13, ADR-0017).
 _Avoid_: quota, timeout (one budget among several)
 
-**Automatic streaming**:
+**Host streaming**:
 Running a filter of the form `<path>[] | rest` element by element, without holding the whole
 document, when `rest` never looks back at it.
-_Avoid_: `--stream` (that is jq's event mode, a different thing)
+_Avoid_: automatic streaming (the host switches it on, F-4); `--stream` (that is jq's event mode,
+a different thing)
+
+**Walking skeleton**:
+Milestone 1's first spec: the thinnest path through every layer, `.` and `.a` over one document,
+under the full gates (ADR-0023).
 
 **Host**:
 The program embedding the engine. It supplies the clock, the time zone, the environment, the
@@ -282,23 +307,57 @@ _Avoid_: raw copy
 
 **Oracle**:
 An independent source of the expected output for a case: jq's own test files, the reference jq
-binary or the other backend. A JSON conformance suite supplies inputs; the reference jq supplies
-their verdicts.
+binary, the other backend or the other compile mode. A JSON conformance suite supplies inputs; the
+reference jq supplies their verdicts.
 
 **Case**:
 One oracle entry with a stable id: a filter, an input, flags and the expected outputs.
 _Avoid_: test (that is a JUnit method), example
 
 **Differential oracle**:
-Running a case in jqj and in the reference jq binary and requiring byte-identical output.
+Running a case in jqj and in the reference jq binary and requiring the same exit code, stdout and
+stderr, byte for byte (syntax-error text excepted, ADR-0020).
 
 **Backend oracle**:
-Running a case in both backends and requiring identical output.
+Running a case in both backends and requiring identical output. It starts with the bytecode
+backend (ADR-0018).
+
+**Compile-mode oracle**:
+Running a case under the optimised and the conservative compile of one backend and requiring the
+same output and error.
+
+**Conservative compile**:
+Compiling with every analysis fact at its safe value: cardinality many, every path TRACKED, a
+detach at every hold, no specialisation, no in-place licence.
+
+**Recording**:
+The reference jq's exit code, stdout and stderr for one case, committed beside it and written only by the
+record command.
+_Avoid_: snapshot, golden file
+
+**Required case**:
+A case the JUnit run asserts: it is in the ratchet, or the ticket names it at its gate.
+
+**Survey**:
+The run of every case that is not required; it writes the oracle report and fails only on a crash.
+
+**Oracle report**:
+Each case's verdict (PASS, FAIL, STALE, CRASH) per oracle and backend; the ratchet reads it.
+
+**Deviation case**:
+A differential case that carries jqj's column of a `DEVIATIONS.md` row; the reference jq's column is
+its recording.
+
+**Retired case**:
+A ratcheted id whose source file changed with a reference bump.
+
+**Reference profile**:
+The reference jq's build options (decNumber, Oniguruma, builtins), which jqj mirrors.
 
 **Ratchet**:
 A committed record of what passes (oracle cases, coverage, mutation scores, benchmark
-baselines). Merges into `main` may only keep or raise it; the verifier regenerates it once per
-spec, nobody edits it by hand.
+baselines). Merges may only keep or raise it. The verifier regenerates the oracle pass lists after
+every merge and the rest once per spec; nobody edits it by hand.
 
 **Floor**:
 A fixed minimum of coverage or mutation score below which the build fails, whatever the ratchet
@@ -307,6 +366,24 @@ says.
 **Benchmark scenario**:
 One measured quantity of one filter on one input size, such as the throughput of field extract on
 a 10 MB document. Its baseline is a line of the ratchet.
+
+**Gate scenario**:
+A benchmark scenario whose speed factor gate check 5 bounds (G1–G6); cold start (G7) is recorded and
+ratcheted with no factor.
+_Avoid_: headline benchmark
+
+**Diagnostic scenario**:
+A benchmark scenario that informs one named decision; recorded, with no factor.
+
+**Reference time**:
+The reference jq's time per document on the same machine in the same session, its start-up
+subtracted.
+
+**Speed factor**:
+jqj's time per document divided by the reference time.
+
+**Machine label**:
+The name of a kind of machine (`claude-cloud-4vcpu`), recorded with its CPU, kernel and JDK.
 
 **Spike**:
 A throwaway experiment that measures one risky assumption before a decision is made. Its code is
@@ -333,8 +410,8 @@ The open, unblocked, unclaimed tickets of a spec or map.
 `spec/<issue>-<slug>`, where a spec's tickets are merged one by one before one PR to `main`.
 
 **Class-C module**:
-A module on a hard path, listed in the file "How do the oracles and the ratchet work?" decides
-(today `query-core` and `jq-core`). Mutation floors apply to it, and the ticket gate
+A module on a hard path, listed in `quality/floors.tsv` (ADR-0020; today `query-core` and
+`jq-core`). Mutation floors apply to it, and the ticket gate
 runs PIT on what a ticket changed in it.
 _Avoid_: core module
 

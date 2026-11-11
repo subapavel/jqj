@@ -1,6 +1,6 @@
 # IR: one sealed node family in query-core; formats reach it as Operation data
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 and completed by ADR-0009 (issue #7)
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 and completed by ADR-0009 (issue #7); amended by ADR-0022 (issue #8: `keepsArgs`, in-place operations)
 
 The IR is one `sealed interface Node` in `query-core` with 21 record kinds, each carrying its
 source position. Both backends and every analysis switch over it exhaustively. A format such as jq
@@ -57,3 +57,10 @@ arm because each jq node would then carry its own interpretation and bytecode em
 `AltBind` catches errors and not breaks. A break passes `try`, `?` and `?//` and is listed in
 `DEVIATIONS.md`. ADR-0009 gives the call forms of an `Operation`. In path mode `.a?` is the step's
 quiet variant, which still raises path-validity errors, and not a `Try` (F-11).
+
+## Amendment (ADR-0022, issue #8)
+
+- `keepsArgs` means "the result may share a container or string with an argument or with the
+  input, at any depth" (`sort` and `tostring` on a string keep).
+- An `Operation` may carry an in-place variant, `InPlace.apply(ws, owner, target, a, b)`, used only
+  at a licensed site (ADR-0022).

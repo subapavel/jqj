@@ -1,6 +1,6 @@
 # Analysis contracts
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 (issue #7)
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 (issue #7); amended by ADR-0022 (issue #8)
 
 Analyses run once on a frozen program and write an immutable side table of facts, keyed by a
 dense node id. Nothing rewrites a frozen program. An analysis reads only node kinds and
@@ -66,3 +66,12 @@ dense node id. Nothing rewrites a frozen program. An analysis reads only node ki
   runs in the push form, never the value form.
 - The `reduce` and `foreach` state stays untracked in path mode (ADR-0010).
 - The path-validity row for `path(.a | true)` holds only on `{"a":true}` (F-10).
+
+## Amendment (ADR-0022, issue #8)
+
+- **Last read** means read at most once per binding activation, with no loop body (a reduce or
+  foreach update or extract, an update's right side, a recursive body) and no context with more
+  than one result between the binding and the read.
+- **WALK key steps:** a dynamic step (ADR-0005) whose key has at most one result and does not read
+  `.` is a WALK step; an object key at run time is a slice (ADR-0022).
+- **The in-place licence** is a new fact. Like cardinality, an over-claim gives a wrong value.
