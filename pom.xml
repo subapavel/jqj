@@ -50,7 +50,7 @@
     <assertj.version>3.27.7</assertj.version>
     <jmh.version>1.37</jmh.version>
 
-    <!-- Set -Dchecks.skip=true to skip the script checks (the Windows job has no bash). -->
+    <!-- Set -Dchecks.skip=true to skip the word check (the Windows job has no bash). -->
     <checks.skip>false</checks.skip>
     <!-- JaCoCo fills this in; surefire reads it as @{argLine}. -->
     <argLine/>
@@ -320,7 +320,7 @@
           </execution>
         </executions>
       </plugin>
-      <!-- Root only: the word check, the LF check (and, in profile trailers, the trailer check). -->
+      <!-- Root only: the word check (profiles lf-check and trailers add the other two checks). -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
@@ -340,20 +340,6 @@
               </arguments>
             </configuration>
           </execution>
-          <execution>
-            <id>check-lf-checkout</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <skip>${checks.skip}</skip>
-              <executable>bash</executable>
-              <arguments>
-                <argument>${project.basedir}/scripts/check-lf-checkout.sh</argument>
-              </arguments>
-            </configuration>
-          </execution>
         </executions>
       </plugin>
     </plugins>
@@ -367,7 +353,35 @@
         <module>bench/jmh</module>
       </modules>
     </profile>
-    <!-- ./mvnw -B -Ptrailers -Dtrailers.range=origin/main..HEAD validate -->
+    <!-- ./mvnw -B -Plf-check validate. Opt-in: the script fails while a tracked file has unstaged changes. -->
+    <profile>
+      <id>lf-check</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <inherited>false</inherited>
+            <executions>
+              <execution>
+                <id>check-lf-checkout</id>
+                <phase>validate</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>bash</executable>
+                  <arguments>
+                    <argument>${project.basedir}/scripts/check-lf-checkout.sh</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <!-- ./mvnw -B -Ptrailers-Dtrailers.range=origin/main..HEAD validate -->
     <profile>
       <id>trailers</id>
       <properties>
