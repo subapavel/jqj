@@ -124,32 +124,33 @@ public record ObjectView(Document doc, int index) implements JqObject {
         }
         codePoint = Character.toCodePoint(c, key.charAt(++i));
       }
-      p = match(bytes, p, end, codePoint);
-      if (p < 0) {
+      int length = match(bytes, p, end, codePoint);
+      if (length == 0) {
         return false;
       }
+      p += length;
     }
     return p == end;
   }
 
-  /** Where the UTF-8 form of {@code codePoint} ends if {@code bytes[p, end)} starts with it, otherwise -1. */
+  /** The length of the UTF-8 form of {@code codePoint} if {@code bytes[p, end)} starts with it, otherwise 0. */
   private static int match(byte[] bytes, int p, int end, int codePoint) {
     int length = codePoint < 0x80 ? 1 : codePoint < 0x800 ? 2 : codePoint < 0x10000 ? 3 : 4;
     if (end - p < length) {
-      return -1;
+      return 0;
     }
     // The lead byte: the code point alone below 0x80, otherwise 110, 1110 or 11110 and its top bits.
     int shift = 6 * (length - 1);
     int lead = length == 1 ? codePoint : ((0xF00 >> length) & 0xFF) | (codePoint >> shift);
     if ((bytes[p] & 0xFF) != lead) {
-      return -1;
+      return 0;
     }
     for (int i = 1; i < length; i++) {
       shift -= 6;
       if ((bytes[p + i] & 0xFF) != (0x80 | ((codePoint >> shift) & 0x3F))) {
-        return -1;
+        return 0;
       }
     }
-    return p + length;
+    return length;
   }
 }
