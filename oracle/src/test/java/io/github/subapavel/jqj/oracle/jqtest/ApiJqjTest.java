@@ -56,7 +56,9 @@ class ApiJqjTest {
   void compilingReadingAndRereadingEndWithTheStubsAsJqjExceptions() {
     ApiJqj jqj = new ApiJqj();
 
-    assertThatThrownBy(() -> jqj.compile(".")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
+    // #33 built compile("."), so this line now compiles a construct that stays a Stub (#33 design C12). read and
+    // reread of "1" still end in a Stub after #33: copying a number reads doubleValue(), which is #36's.
+    assertThatThrownBy(() -> jqj.compile(".a")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
     assertThatThrownBy(() -> jqj.read("1")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
     assertThatThrownBy(() -> jqj.reread("1")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
   }
