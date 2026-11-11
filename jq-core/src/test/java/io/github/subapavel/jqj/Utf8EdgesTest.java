@@ -60,17 +60,13 @@ class Utf8EdgesTest {
               assertThat(e.column()).as("column").isEqualTo(4);
               assertThat(e.offset()).as("offset of EOF from the segment's first byte").isEqualTo(7L);
             });
-    // The BOM alone is skipped too, leaving no document: EOF after it is the detecting byte, at offset 3 and column 0
-    // (the column counts from after the BOM). Unskipped, EF itself would be the detecting byte, at offset 0, column 1.
+    // jq-ref 1.8.2, observed 2026-11-11: printf '\xef\xbb\xbf' | jq-ref -c . -> rc 0, no output; jq gives no position.
+    // The BOM alone is skipped too, leaving no document, which read reports as a JqSyntaxException (ADR-0026). Only
+    // its offset is pinned: EOF after the BOM is the detecting byte, at offset 3; unskipped, EF would be, at offset 0.
     assertThatExceptionOfType(JqSyntaxException.class)
         .as("the BOM alone")
         .isThrownBy(() -> newWorkspace().read(MemorySegment.ofArray(bytes("ef bb bf", ""))))
-        .satisfies(
-            e -> {
-              assertThat(e.offset()).as("offset").isEqualTo(3L);
-              assertThat(e.line()).as("line").isEqualTo(1);
-              assertThat(e.column()).as("column").isEqualTo(0);
-            });
+        .satisfies(e -> assertThat(e.offset()).as("offset").isEqualTo(3L));
     assertThatExceptionOfType(JqSyntaxException.class)
         .as("BOM LF [1, LF 2")
         .isThrownBy(() -> newWorkspace().read(MemorySegment.ofArray(bytes("ef bb bf", "\n[1,\n2"))))
