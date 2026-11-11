@@ -17,6 +17,12 @@ filter .a |
 stdin {"a":1}\n
 end
 
+case basics/index-of-array
+arg -c
+filter .[0]
+stdin [1]\n
+end
+
 case basics/file-argument
 arg -c
 filter .

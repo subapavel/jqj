@@ -42,7 +42,7 @@ class DifferentialRunnerTest {
     assertThat(all)
         .extracting(e -> e.c().id())
         .filteredOn(id -> id.startsWith("basics/"))
-        .containsExactly("basics/compact-object", "basics/field-of-array", "basics/file-argument", "basics/syntax-error-eof");
+        .containsExactly("basics/compact-object", "basics/field-of-array", "basics/file-argument", "basics/index-of-array", "basics/syntax-error-eof");
     assertThat(all).extracting(e -> e.c().id()).isSorted().anyMatch(id -> id.startsWith("gen/values-v1/"));
     assertThat(all).allSatisfy(e -> assertThat(e.recording().id()).isEqualTo(e.c().id()));
   }
@@ -61,19 +61,20 @@ class DifferentialRunnerTest {
   }
 
   /**
-   * #33 built {@code -c .}, so these cases now run {@code basics/field-of-array}, whose filter {@code .a} stays a Stub
-   * in spec 1 after #33 (#33 design C12).
+   * A recorded case whose jq-ref rc differs from jqj's Stub rc. #33 built {@code -c .} and #34 {@code .a} (#33 design
+   * C12, #34 design C4), so this runs {@code basics/index-of-array}: {@code -c .[0]} on {@code [1]}, which jq-ref
+   * answers with rc 0 and {@code 1}, and which stays a compile Stub (rc 3) until spec 2.
    */
   @Test
   void aRecordedCaseFailsAgainstTheStubShellWithAReadableDiff() {
-    Verdict v = run("basics/field-of-array", Main::run);
+    Verdict v = run("basics/index-of-array", Main::run);
 
     assertThat(v.kind()).isEqualTo(Verdict.Kind.FAIL);
     assertThat(v.diff())
-        .contains("basics/field-of-array")
-        .contains("rc      jq-ref 5\n")
-        .contains("stdout  same\n")
-        .contains("stderr  jq-ref jq: error (at <stdin>:0): Cannot index array with string (\"a\")\\n\n")
+        .contains("basics/index-of-array")
+        .contains("rc      jq-ref 0\n          jqj    3\n")
+        .contains("stdout  jq-ref 1\\n\n          jqj    (empty)\n")
+        .contains("stderr  jq-ref (empty)\n")
         .contains("        jqj    jqj stub: ");
     assertThat(v.detail()).doesNotContain("\n").doesNotContain("\t");
   }
@@ -191,7 +192,7 @@ class DifferentialRunnerTest {
 
   @Test
   void aStubWithoutARecordingIsFailNotStale() {
-    // .a stays a Stub after #33, which built -c . (#33 design C12).
+    // basics/field-of-array is .a without -c: #34 builds .a, but pretty output stays a Stub until #39.
     DiffCorpus.Entry e = basics("basics/field-of-array");
 
     Verdict v = new DiffRunner(Main::run, scratch).run(e.c(), null);

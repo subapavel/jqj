@@ -37,7 +37,7 @@ class StubTest {
     Workspace workspace = engine.newWorkspace();
 
     Map<String, ThrowingCallable> stubs = new LinkedHashMap<>();
-    stubs.put("JqEngine.compile(String) of a construct other than .", () -> engine.compile("1"));
+    stubs.put("JqEngine.compile(String) of an unbuilt construct (the literal 1)", () -> engine.compile("1"));
     stubs.put(
         "JsonWriter.sink(Workspace, WritableByteChannel, OutputOptions) pretty",
         () -> JsonWriter.sink(workspace, Channels.newChannel(new ByteArrayOutputStream()), OutputOptions.pretty()));
