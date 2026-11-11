@@ -8,18 +8,24 @@ import java.lang.foreign.MemorySegment;
 
 /**
  * A string built at run time (#34 design section 7), such as jq's error texts: UTF-8 bytes {@code [offset, offset +
- * length)} of {@code bytes}. Public only so the kind can permit it. The ownership mark (ADR-0022) comes with spec 3,
- * its first reader.
+ * length)} of {@code bytes}. Public only so the kind can permit it.
  */
 public final class BuiltString implements JqString {
   private final byte[] bytes;
   private final int offset;
   private final int length;
 
+  /**
+   * The ownership mark of ADR-0022: every built class carries it from the ticket that creates the class, and it stays
+   * null until spec 3 (spec-1 grilling round 1, item 9).
+   */
+  private final Object owner;
+
   private BuiltString(byte[] bytes, int offset, int length) {
     this.bytes = bytes;
     this.offset = offset;
     this.length = length;
+    this.owner = null;
   }
 
   /** The string of {@code text}'s UTF-8 bytes. */
