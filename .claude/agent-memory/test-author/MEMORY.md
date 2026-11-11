@@ -25,3 +25,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#32) jq's depth rule: reject `[`/`{` when the parser stack (open containers plus open key values) already holds 10 000 (F-22).
 - (#33) Search the whole repo for older tests that use the construct you are building as their Stub witness (here `compile(".")`, Main on a `.` case); list them as conflicts in the hand-back.
 - (#33) AssertJ 3.27.7 deprecates `hasCauseReference` (-Werror rejects it); a required-case file lives at oracle/src/test/resources/require/<ticket>.txt.
+- (#34) Every row of an expected-value table needs its own recording or cited jq-ref run; a whitespace-skip set needs the closing byte at a block cut followed by each whitespace byte.
+- (#34) Case ids are `<family>/<name>` (ADR-0024's `bench.G1.1k` is `bench/G1.1k`); long inputs go inline as escaped `stdin` lines.
