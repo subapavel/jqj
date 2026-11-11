@@ -4,7 +4,7 @@
 case gen/values-v1/0
 arg -c
 filter .
-stdin {"😀":[[[[[{"😀":{"😀":{"":[{"😀":[{"b":{"aa":[{"Z":{"Z":[[[{"b":[[{"b":{"A":{"aa":[{"A":[[{"b":{"":[[[[[{"":{"｡":[[{"é":[[[[[{"aa":{"é":{"😀":[[{"A":[[{"b":[[{"":[{"｡":{"\\u00e9":{"":{"b":[{"é":{"A":{"😀":[{"\\u00e9":{"b":[{"aa":{"aa":[[{"b":{"":{"\\u00e9":{"Z":[[{"｡":{"b":{"｡":[{"é":[[{"aa":{"Z":[{"\\u00e9":{"é":[{"":{"A":{"😀":{"A":[{"\\u00e9":{"b":[[{"é":{"aa":[{"aa":[{"A":{"A":{"😀":{"b":{"a":{"aa":{"😀":[[{"":[[[[{"Z":[{"Z":[{"":[{"b":{"\\u00e9":{"\\u00e9":{"a":[[[[{"b":{"é":[[{"\\u00e9":{"a":{"\\u00e9":[{"":[[{"｡":{"é":{"😀":[[[[[[[[[[[{"｡":[[{"😀":[{"😀":[[{"":[[{"｡":{"A":[{"a":[{"😀":{"Z":{"é":{"é":[[[-53]]]}}}}]}]}}]]}]]}]}]]}]]]]]]]]]]]}}}]]}]}}}]]}}]]]]}}}}]}]}]}]]]]}]]}}}}}}}]}]}}]]}}]}}}}]}}]}}]]}]}}}]]}}}}]]}}]}}]}}}]}}}}]}]]}]]}]]}}}]]]]]}]]}}]]]]]}}]]}]}}}]]}]]]}}]}}]}]}}}]]]]]}\n
+stdin {"😀":[[[[[{"😀":{"😀":{"":[{"😀":[{"b":{"aa":[{"Z":{"Z":[[[{"b":[[{"b":{"A":{"aa":[{"A":[[{"b":{"":[[[[[{"":{"｡":[[{"é":[[[[[{"aa":{"é":{"😀":[[{"A":[[{"b":[[{"":[{"｡":{"\\u00e9":{"":{"b":[{"é":{"A":{"😀":[{"\\u00e9":{"b":[{"aa":{"aa":[[{"b":{"":{"\\u00e9":{"Z":[[{"｡":{"b":{"｡":[{"é":[[{"aa":{"Z":[{"\\u00e9":{"é":[{"":{"A":{"😀":{"A":[{"\\u00e9":{"b":[[{"é":{"aa":[{"aa":[{"A":{"A":{"😀":{"b":{"a":{"aa":{"😀":[[{"":[[[[{"Z":[{"Z":[{"":[{"b":{"\\u00e9":{"\\u00e9":{"a":[[true]]}}}}]}]}]}]]]]}]]}}}}}}}]}]}}]]}}]}}}}]}}]}}]]}]}}}]]}}}}]]}}]}}]}}}]}}}}]}]]}]]}]]}}}]]]]]}]]}}]]]]]}}]]}]}}}]]}]]]}}]}}]}]}}}]]]]]}\n
 end
 
 case gen/values-v1/1
@@ -109,7 +109,7 @@ case gen/values-v1/17
 arg -c
 arg -a
 filter .
-stdin {"aa":{"A":[[491720217675785.491038149363128,{"":"\\ubEF4ℐnJ\\/","é":[null],"😀":"","":354}],-9223372036854775808,"\\n\\fX\\u35eF'S\\u000c搇b\xed\xa0\x80}桺H􋭪\\u001fykB#\\/Ac"],"V\\u2694k!\xe0\x80\x80Ez_[\xc0\x80U-k2\xf0@4f1􂄱+zY\xd1u!\xe0\x80\x80cΪ򧃸n@Rⷥj^|󃈃":true,"":"","aa":true,"｡":"E1ζ\\u0001_l$R","zL":null,"Z":false,"a":true,"\\u0061a":"\xef,~'溁\x7f׼ӞVu򼁌O}PU\\"Io!!"},"\\f򟑞\xed\xa0\x80\\uDA86\\udffDzR\\uD9e9\\udF259\xdc":307}
+stdin {"aa":{"A":[[491720217675785.491038149363128,{"":"\\ubEF4ℐnJ\\/","é":[null],"😀":"","":354}],-9223372036854775808,"\\n\\fX\\u35eF'S\\u000c搇b\xed\xa0\x80}桺H􋭪\\u001fykB#\\/Ac"],"V\\u2694k!\xe0\x80\x80Ez_[\xc0\x80U-k2\xf0@4f1􂄱+zY\xd1u!\xe0\x80\x80cΪ򧃸n@Rⷥj^|󃈃":true,"":"","aa":true,"｡":"E1ζ\\u0001_l$R","zL":null,"Z":false,"a":true,"\\u0061a":null},"｡":"\xef,~'溁\x7f׼ӞVu򼁌O}PU\\""}
 end
 
 case gen/values-v1/18
@@ -181,7 +181,7 @@ end
 
 case gen/values-v1/29
 filter .
-stdin  \t [-NaN \t\n\n,"%0\\n\\u0005\\uDA4C\\udc02"\x0d\n\n,[401\n\x0d,"" ] \n,007\x0d\n \t,{"":\t\t\x0d\n\x0d\n507,"😀"\x0d\n\n\n:\n\x0d\n\t-760\x0d,"aa"\x0d \n\t:  \nnull\x0d\n\x0d\t,""\x0d:\t\n\x0d\nnull\t,"UjdJ𬽹\\/]`<\\/.g"\x0d  :\t\x0d\x0d+1\n\t\n\x0d,""\x0d\n:\t\n [\x0d\x0d\x0d\n],"é"\t \x0d\n :"\\uDa67\\ude0dS.R\\n"\n\x0d\t\t,"E":[0e-1147483650\t\n\x0d\t,true]\t\t,"Z"\x0d\n\x0d\n\t:\x0d\n\x0d\n\t"Jbpf\\u0000񭘚U\\uDbe3\\uDd5EPR\xe0\x80\x80"\n,"\\u0061a":\n\n\t ""\x0d\n \n}\x0d\x0d\x0d\n,[]\t]\x0d
+stdin  \t [-NaN \t\n\n,"%0\\n\\u0005\\uDA4C\\udc02"\x0d\n\n,[401\n\x0d,"" ] \n,007\x0d\n \t,{"":\t\t\x0d\n\x0d\n507,"😀"\x0d\n\n\n:\n\x0d\n\t-760\x0d,"aa"\x0d \n\t:  \nnull\x0d\n\x0d\t,""\x0d:\t\n\x0d\nnull\t,"UjdJ𬽹\\/]`<\\/.g"\x0d  :\t\x0d\x0d+1\n\t\n\x0d,""\x0d\n:\t\n [\x0d\x0d\x0d\n],"é"\t \x0d\n :"\\uDa67\\ude0dS.R\\n"\n\x0d\t\t,"E":[0e-1147483650\t\n\x0d\t,true]\t\t,"Z"\x0d\n\x0d\n\t:\x0d\n\x0d\n\t"Jbpf\\u0000񭘚U\\uDbe3\\uDd5EPR\xe0\x80\x80" \x0d\n,"a\\u0061"\n\t:""\x0d\n \n}\x0d\x0d\x0d\n,[]\t]\x0d
 end
 
 case gen/values-v1/30
@@ -201,7 +201,7 @@ end
 case gen/values-v1/32
 arg -c
 filter tojson
-stdin {"\\u00e9":{"\xbbf{㝱.}Dp<\\u000eRKa4i_":151.006,"A":"","\\"ez\\udd5c":[],"\\ty2W'bzCָ-Ʈ\x9f\\\\k":"","":true,"\\ty2W'bzCָ-Ʈ\x9f\\\\k":9223372036854775807},")񡜂2R0K!Ϲ\xb2\xe0\x80\x80Y\xc0\x80_x":[Infinity,"d3n"],"b":["W8",[{"E\\tn+\xcb[~BDxL":+1.E+2,"\\u6bb4\\uD40d\\u9758\xf4\x90\x80\x80i򜃯\\t\xc0\x80QU8M\xf4\x83\xa6gRh":"","b":false,"":"\xed\xa0\x80\xe0\x80\x80\\rF[\\ud889\\uDe96"},true,-.5,"cbL\\tP-",{"é":[903,{},"铕\xf4\x90\x80\x80CY\\b_嫬^","i","뭲"],"a":"\\b\xf1\xafR\xc0\x80(#>̃_\\n𮴻p8dF@K\\u0007Gʐ\xbf#v쏏\\b~XA","😀":-75e-504,"^{񝙪p\\/Z":+1.E+2,"aa":{"\\u00e9":+1.E+2,"\\u00e9":false}}],{"%{n`5\\t":""}]}\n
+stdin {"\\u00e9":{"\xbbf{㝱.}Dp<\\u000eRKa4i_":151.006,"A":"","\\"ez\\udd5c":[],"\\ty2W'bzCָ-Ʈ\x9f\\\\k":"","":true,"\\ty2W'\\u0062zCָ-Ʈ\x9f\\\\k":5e-1147483647},")񡜂2R0K!Ϲ\xb2\xe0\x80\x80Y\xc0\x80_x":[Infinity,"d3n"],"b":["W8",[{"E\\tn+\xcb[~BDxL":+1.E+2,"\\u6bb4\\uD40d\\u9758\xf4\x90\x80\x80i򜃯\\t\xc0\x80QU8M\xf4\x83\xa6gRh":"","b":false,"":"\xed\xa0\x80\xe0\x80\x80\\rF[\\ud889\\uDe96"},true,-.5,"cbL\\tP-",{"é":[903,{},"铕\xf4\x90\x80\x80CY\\b_嫬^","i","뭲"],"a":"\\b\xf1\xafR\xc0\x80(#>̃_\\n𮴻p8dF@K\\u0007Gʐ\xbf#v쏏\\b~XA","😀":-75e-504,"^{񝙪p\\/Z":+1.E+2,"aa":{"\\u00e9":+1.E+2,"\\u00e9":false},":\\uB788\x7f":98e-4}]]}\n
 end
 
 case gen/values-v1/33
@@ -532,7 +532,7 @@ case gen/values-v1/86
 arg -c
 arg -S
 filter .
-stdin \x0d\n\x0d\n{"\\u6338nTzn֦\xcfF箺ϰ\x83E=\\t0!񭻃":\t\x0d"|v\\rP\\uE0df&_6C埋","b"\n:\x0d\n\x0d\n\x0d\n10e999999999\n \x0d\n\n,"9y\\b[hk\\t\\u0017"\t\n\t:\x0d\n\x0d\x0dInfinity\x0d\n\t,"+\\u000E+" :\t\n\n{"\\u00e9"\n\n\x0d\n:"+𼭕au򊔝򲬍\xed\xa0\x80q\\r\\u001Et4{E","χ@ܨ氿~J#\\n!jo\\uDa27\\uDf80X\\uDBEb\\udCe5)aOф\\/C􃤖"\x0d\n\x0d\n:\t\x0d\n"爏L\\u0016Ets\xed\x8dJ\\u0002\\\\.^d"\t\x0d\t\n,"b"\x0d\n\t\n\x0d:\n\x0d\x0d\n{"ǋZS{\\f-R\x7f\\b\\b\\ud2e4߻": \x0d\n\x0dtrue\t\t \x0d,"` 7\x7fw񭶭WM" \x0d\n :\x0d\x0d\t{"\\u00e9":-.5\n\x0d\x0d\n,"｡"  \t\x0d:\x0d\n"뗁a"\t,""\x0d\x0d\n :\x0d\n\x0d\t\x0d"\\u000E"\x0d\n\x0d\t\t,"㦙"\x0d\n\x0d:"\\\\`Ca\\uDbC5\\uDfD5\\n򪚅\\u67e0"\x0d\x0d}\t,"\\u00e9" \x0d\x0d\t:\n\n\x0d-254\x0d },"aa"\n:.5 \t,"a": [""] \n\x0d,"U\\/q\\tn`3"\x0d\x0d\n : \t {""\x0d\n\t\t :\x0d\t\n\t7.33e+3,"\\u00e9"\t\t:\x0d"w\\\\"\x0d\n\x0d\n,"\\u0002*Z"\x0d\t: \n\t{\x0d\x0d\n\n\x0d\n},"J2":\x0d\n\n"]" \n\x0d\n\t}\t \x0d\n,"a":""\t ,"A"\n: \x0d-0.000000032\n\x0d\x0d ,"gW\\/\\r]~\xf2\xa8e\\u0003A`q-)򜤧矖2A᠐J"\n\t \t:\x0d\n\t\nnull\t\t\n\x0d\n,"Z"\n:null\x0d\n}\t  \x0d\n,"GmC\xed\xa0\x80"\x0d \x0d\n : \t"" \n,"😀":\x0d{""\n:\x0d\t007 \x0d,"b"\t \t\t:\x0d-558\x0d \n,""\x0d  :\x0d"_ֲ\x87FࣟYC\xed\xa0\x80?g\\u0001\\n"\x0d\n \t,""\t  :\t{"g]̡\x87Yx\xf4\x90\x80\x8075wl԰󙳋ះs&!p&"\n\t:\x0d -338,"😀"\t\x0d\n:\t\x0d "\\\\EN"\t,"mk\xd2lǺп2}񥗆"\t:\t\t\x0d\n\x0d\n"\\t􇺕J\\n<򂻧\\ud8B9\\uDca9\\u0018髣\\u001faҸ\\u0004񝝩\\u1bB6Y\\tіZx8\xc0\x80\xf4\x90\x80\x80\xc0\x80#V;\\\\"\n\n ,"g]̡\x87Yx\xf4\x90\x80\x8075wl԰󙳋ះs&!p&"\n\t:["",44 ]\x0d\n}\n\x0d\n\x0d,"\x7fs+\\r'R"\x0d\n\n:\t{"\\uacDdF\x7f\xdc[\\uD92a\\uDEEe\\uDE11A\xc0\x80"\t \x0d\n\n:\x0d\t"\x8d\\ud875\\uDf72<:PD\\u0016zr"\t \t,"aa"  \x0d\n:\x0d\nnull\n\t\x0d\n,"V렰"\n\x0d\n:"񠈘W"\n\x0d\n,"A" \x0d\t:\t9007199254740993\t\t\n ,"\\u0061a":\n {"b"\x0d\n:\t\t\x0d true\n\t,"\xc0\x80\xed\xa0\x80"\x0d\n\x0d\t:""\x0d\n\x0d\n ,"\xc0\x80\xed\xa0\x80"\x0d\n : \x0d ["6"\n]}\t\n },"OM񁩚\x91\\u0011\\r\\rѝ"\x0d\n\x0d\n\x0d:\t\n false \x0d,"｡"\t\t \x0d\n:\t\x0d\n{ }  \x0d,"{f":\x0d\n-0.0\x0d\n\n,"é"\x0d\n\n : \t\x0d "򍓌\\"[}\\uDA93\\udF6ByW󋩅\\t鲭&Ę:C\\t6"\t\x0d\n,"\\u998aR8(\\ud816\\uDC5A(\\u0011d\xed\xa0\x80\\r񤠻F" \n:"W"\x0d\n\x0d} \t\n,"\\/N"\n\x0d\n\t:   [null]\t\t\x0d\n,"O\\nA\xc0\x80@C\x7f7XyF=l\\f\\\\gΚ@":\x0d\n{\x0d}\x0d\n\n ,"@'hP;D\\uEBA8ˑ\xed\xa0\x80ytl~" \x0d\n:\x0d\n \x0d\n\x0d\n-999\x0d\x0d\n  ,"😀":\x0d\n\t\x0d2.e3\x0d\x0d\x0d\n,"b"\x0d:\x0d\n\nnull\x0d\x0d\n\t\t,"ق)+\\b\\\\Q\\t^\xfd\\/DYd"\t\x0d\n\x0d\n: \x0d\n\n\t{"Z"\x0d\n:\t\x0d-335\x0d\x0d\n\t,"^t(\\tz/R"\x0d\x0d\n\t:\x0d\n \x0d\nfalse,"IV䇞\\uedB9?\\n򿞌~1sFf@Xp󛃅\\b*򅒉"\x0d\n:\x0dtrue\n,"b":\n \x0d\t"\\nQ`h(\\t\\u0016K@{%Ť\x85PN"\x0d\x0d\n \n,"m\x7f_"\x0d\n:{"é":true ,"Z"\x0d\n:\n\x0d  "`n7\xed\xa0\x80\x7f","A" \n\n:\x0d\n\x0d true\t\x0d\n\t,"Z" \n:false,"😀"\x0d\n\x0d: \nfalse\t,"Z"\x0d\x0d\n\n\t: "=","𚣣6\\n섇\\t?}\\udB55\\udf7E\xe0\x80\x80y"\n\n\x0d\n\x0d:\x0d\n"\x7f䕤S򀇘C\\u0008!)ʠ9="\x0d\t\x0d ,"&\x7f\\tWc|P\\r㵩\\"":\x0d\x0d.5\t\x0d\n\x0d\n,""\t:\x0d\x0d\n\x0d\t361,"v?*LJ\\fW\\b[>\x7f\xf4\x90\x80\x80\\/":\t\x0d\n\t"4T!^#\\u000c%\\f\\\\/W+/S\xed\xa0\x80"\x0d\n,"!w\xc0\x80\\uD918\\uDe88`њ\xb08M_\x7f񽍢yj\\r\\b\\udB9A\\udc0e"\x0d\x0d:false }\x0d\x0d\x0d,"é"\t\n \x0d\n: \x0d\n "?\\n("\x0d,"b"\n\x0d :\n\x0d"$\\t\\u000D"\x0d\n\n\n,"aa" \n :\t[true\x0d\x0d\x0d\n,-612\t \x0d ]\n\t,"\xf4\x90\x80\x80H\\u0001\\t-D\\uDa53\\udFcB\xed\xa0\x80*駵"\x0d\n\x0d:\n\x0d\x0d\n"򗭦\x7fʸ'Z2U?B\\uf27eH\\bu\\t<B"\t\x0d\t\n}\n }\n
+stdin \x0d\n\x0d\n{"\\u6338nTzn֦\xcfF箺ϰ\x83E=\\t0!񭻃":\t\x0d"|v\\rP\\uE0df&_6C埋","b"\n:\x0d\n\x0d\n\x0d\n10e999999999\n \x0d\n\n,"9y\\b[hk\\t\\u0017"\t\n\t:\x0d\n\x0d\x0dInfinity\x0d\n\t,"+\\u000E+" :\t\n\n{"\\u00e9"\n\n\x0d\n:"+𼭕au򊔝򲬍\xed\xa0\x80q\\r\\u001Et4{E","χ@ܨ氿~J#\\n!jo\\uDa27\\uDf80X\\uDBEb\\udCe5)aOф\\/C􃤖"\x0d\n\x0d\n:\t\x0d\n"爏L\\u0016Ets\xed\x8dJ\\u0002\\\\.^d"\t\x0d\t\n,"b"\x0d\n\t\n\x0d:\n\x0d\x0d\n{"ǋZS{\\f-R\x7f\\b\\b\\ud2e4߻": \x0d\n\x0dtrue\t\t \x0d,"` 7\x7fw񭶭WM" \x0d\n :\x0d\x0d\t{"\\u00e9":-.5\n\x0d\x0d\n,"｡"  \t\x0d:\x0d\n"뗁a"\t,""\x0d\x0d\n :\x0d\n\x0d\t\x0d"\\u000E"\x0d\n\x0d\t\t,"㦙"\x0d\n\x0d:"\\\\`Ca\\uDbC5\\uDfD5\\n򪚅\\u67e0"\x0d\x0d}\t,"\\u00e9" \x0d\x0d\t:\n\n\x0d-254\x0d },"aa"\n:.5 \t,"a": [""] \n\x0d,"U\\/q\\tn`3"\x0d\x0d\n : \t {""\x0d\n\t\t :\x0d\t\n\t7.33e+3,"\\u00e9"\t\t:\x0d"w\\\\"\x0d\n\x0d\n,"\\u0002*Z"\x0d\t: \n\t{\x0d\x0d\n\n\x0d\n},"J2":\x0d\n\n"]" \n\x0d\n\t}\t \x0d\n,"a":""\t ,"A"\n: \x0d-0.000000032\n\x0d\x0d ,"gW\\/\\r]~\xf2\xa8e\\u0003A`q-)򜤧矖2A᠐J"\n\t \t:\x0d\n\t\nnull\t\t\n\x0d\n,"Z"\n:null\x0d\n}\t  \x0d\n,"GmC\xed\xa0\x80"\x0d \x0d\n : \t"" \n,"😀":\x0d{""\n:\x0d\t007 \x0d,"b"\t \t\t:\x0d-558\x0d \n,""\x0d  :\x0d"_ֲ\x87FࣟYC\xed\xa0\x80?g\\u0001\\n"\x0d\n \t,""\t  :\t{"g]̡\x87Yx\xf4\x90\x80\x8075wl԰󙳋ះs&!p&"\n\t:\x0d -338,"😀"\t\x0d\n:\t\x0d "\\\\EN"\t,"mk\xd2lǺп2}񥗆"\t:\t\t\x0d\n\x0d\n"\\t􇺕J\\n<򂻧\\ud8B9\\uDca9\\u0018髣\\u001faҸ\\u0004񝝩\\u1bB6Y\\tіZx8\xc0\x80\xf4\x90\x80\x80\xc0\x80#V;\\\\"\n\n ,"g]̡\x87Yx\xf4\x90\x80\x8075wl԰󙳋ះs&!p&"\n\t:["",44 ]\x0d\n}\n\x0d\n\x0d,"\x7fs+\\r'R"\x0d\n\n:\t{"\\uacDdF\x7f\xdc[\\uD92a\\uDEEe\\uDE11A\xc0\x80"\t \x0d\n\n:\x0d\t"\x8d\\ud875\\uDf72<:PD\\u0016zr"\t \t,"aa"  \x0d\n:\x0d\nnull\n\t\x0d\n,"V렰"\n\x0d\n:"񠈘W"\n\x0d\n,"A" \x0d\t:\t9007199254740993\t,"a\\u0061"  :\n {"b"\x0d\n:\t\t\x0d true\n\t,"\xc0\x80\xed\xa0\x80"\x0d\n\x0d\t:""\x0d\n\x0d\n ,"\xc0\x80\xed\xa0\x80"\x0d\n : \x0d ["6"\n]}\t\n },"OM񁩚\x91\\u0011\\r\\rѝ"\x0d\n\x0d\n\x0d:\t\n false \x0d,"｡"\t\t \x0d\n:\t\x0d\n{ }  \x0d,"{f":\x0d\n-0.0\x0d\n\n,"é"\x0d\n\n : \t\x0d "򍓌\\"[}\\uDA93\\udF6ByW󋩅\\t鲭&Ę:C\\t6"\t\x0d\n,"\\u998aR8(\\ud816\\uDC5A(\\u0011d\xed\xa0\x80\\r񤠻F" \n:"W"\x0d\n\x0d} \t\n,"\\/N"\n\x0d\n\t:   [null]\t\t\x0d\n,"O\\nA\xc0\x80@C\x7f7XyF=l\\f\\\\gΚ@":\x0d\n{\x0d}\x0d\n\n ,"@'hP;D\\uEBA8ˑ\xed\xa0\x80ytl~" \x0d\n:\x0d\n \x0d\n\x0d\n-999\x0d\x0d\n  ,"😀":\x0d\n\t\x0d2.e3\x0d\x0d\x0d\n,"b"\x0d:\x0d\n\nnull\x0d\x0d\n\t\t,"ق)+\\b\\\\Q\\t^\xfd\\/DYd"\t\x0d\n\x0d\n: \x0d\n\n\t{"Z"\x0d\n:\t\x0d-335\x0d\x0d\n\t,"^t(\\tz/R"\x0d\x0d\n\t:\x0d\n \x0d\nfalse,"IV䇞\\uedB9?\\n򿞌~1sFf@Xp󛃅\\b*򅒉"\x0d\n:\x0dtrue\n,"b":\n \x0d\t"\\nQ`h(\\t\\u0016K@{%Ť\x85PN"\x0d\x0d\n \n,"m\x7f_"\x0d\n:{"é":true ,"Z"\x0d\n:\n\x0d  "`n7\xed\xa0\x80\x7f","A" \n\n:\x0d\n\x0d true\t\x0d\n\t,"Z" \n:false,"😀"\x0d\n\x0d: \nfalse\t,"Z"\x0d\x0d\n\n\t: "=","𚣣6\\n섇\\t?}\\udB55\\udf7E\xe0\x80\x80y"\n\n\x0d\n\x0d:\x0d\n"\x7f䕤S򀇘C\\u0008!)ʠ9="\x0d\t\x0d ,"&\x7f\\tWc|P\\r㵩\\"":\x0d\x0d.5\t\x0d\n\x0d\n,""\t:\x0d\x0d\n\x0d\t361,"v?*LJ\\fW\\b[>\x7f\xf4\x90\x80\x80\\/":\t\x0d\n\t"4T!^#\\u000c%\\f\\\\/W+/S\xed\xa0\x80"\x0d\n,"!w\xc0\x80\\uD918\\uDe88`њ\xb08M_\x7f񽍢yj\\r\\b\\udB9A\\udc0e"\x0d\x0d:false }\x0d\x0d\x0d,"é"\t\n \x0d\n: \x0d\n "?\\n("\x0d,"b"\n\x0d :\n\x0d"$\\t\\u000D"\x0d\n\n\n,"aa" \n :\t[true\x0d\x0d\x0d\n,-612\t \x0d ]\n\t,"\xf4\x90\x80\x80H\\u0001\\t-D\\uDa53\\udFcB\xed\xa0\x80*駵"\x0d\n\x0d:\n\x0d\x0d\n"򗭦\x7fʸ'Z2U?B\\uf27eH\\bu\\t<B"\t\x0d\t\n}\n }\n
 end
 
 case gen/values-v1/87
@@ -625,7 +625,7 @@ case gen/values-v1/101
 arg -c
 arg -a
 filter .
-stdin {"'ac@;":{"｡":+1,"é":"N[","｡":true},"A":1.,"b":[-NaN,"j\\f2","3w^1\\u7F09𒍒","",275.362,"U;\\u0CFF\\"|߫\x9d0책m"],"؀":""}\n
+stdin {"'ac@;":{"｡":+1,"é":"N[","\\ufF61":null},"a":"\xe0\x80\x80΂\\f|򳧒\\u00042","3w^1\\u7F09𒍒":157.563}\n
 end
 
 case gen/values-v1/102
@@ -637,13 +637,13 @@ end
 case gen/values-v1/103
 arg -c
 filter [paths]
-stdin [{"é":[-0.000000002,-53e+7,-802],"g9Q9<b":-333,"é":{"\x7f\\u9baap":{},"9lD":337411578098.8967602301,"a":".\\u001Aϓ\\b\\n윉\\udbe3\\uDe42\\f峙\x7f\\/","":"kH","é":542.44,"\\/M\\ud9BD\\uDc58ro\\"":-419,"｡":577,"煔2\xe0\x80\x80":"m\x7f2O\\uD92A\\ude21]c\xf0\xb9F\\\\*,9ǜ\\f\\u001C>","a":["z\\ua78by\xed\xa0\x80\xea7d\xed\xa0\x80Fs)x\\u3011\x7f\xed\xa0\x80\\udaF5\\uDd23Gig\\u0017Rpi"],"\\t":-119.191}},488.5,{"":{},"\xed\xa0\x80s\xf4\x90\x80\x80hQ\\tX":99e+213},"","B𢁼\\n\xf4\x90\x80\x80mD')",-753,295]\n
+stdin [{"é":[-0.000000002,-53e+7,-802],"g9Q9<b":-333,"\\u00e9":-590},null,-382,-56.76E-67,978875808197.031055374115,{"R󀉱\\b":true,"R\\udAC0\\udE71\\b":[null]},"ϓ\\b\\n윉\\udbe3\\uDe42"]\n
 end
 
 case gen/values-v1/104
 arg -c
 filter tostream
-stdin \x0d\n\x0d\x0d[558.557\n\x0d\n \x0d\n,"\\udF04uQ\\ub0Ac\xa9aE\\udb9B\\uDE05O~T",{"A": \x0d\n \x0d[661.29\n\x0d\n\t\n,[">\xeaqv\\rn" ,-68,"i"\t\x0d\n,-283,true\x0d\n,"𴭙\\n+"]\n\x0d\n ,1e-1147483646\x0d\n\x0d,"4ǉ\\u0007)`e"\x0d,0.0 \x0d\n \t,820.84\t,"\\fC򎧂"\t\t\n,[76\t,{"􌏭q"\t\n\t\x0d\n:\x0d\x0d\n\n[["\\u0008E큳A\xe0\x80\x80e\\u000c#ԇ\xb4*ɂ\\""\n\x0d\n\t\x0d]]\n\x0d \t,"sA~":\x0d\n\t{"😀"\t\n\x0d\n:  -316\x0d\n\x0d\n\x0d\n\x0d,"\xf4\x90\x80\x805\\udA55\\udCe7񥑬p"\x0d\x0d\n\x0d: -813,"\xed\xa0\x80jΪgz+\\f\\bY\xbd9\\/\\r򩍚Z\\r"\n\x0d\x0d\n :\n \n756.535},"w^L&\xe0\x80\x80(蝦\\\\\\udaC6\\uDDe8󱐽":\x0d156.888\n\x0d\x0d\t,")\\"M\\u000c0\\ud9bD\\uDC3dk-(A\\u200f"\x0d\n\n\t:"\\b{Tpc+\\tȮ\\udBFC\\uDeE6\\u74bcr"\x0d\n\t\x0d\n,"｡":\x0d-689\n ,"1<0FE\xf9"\x0d\t  :{"l\\u001f" \t\t\x0d\n:\x0d\n"c#\\fQX\xf4\x90\x80\x80\\tq\\u0013%]H\xb4Fl̑\x8e񣩶\x7f̫\x86R"\n\x0d} ,"H"\x0d\n\x0d:\t\ttrue\x0d\x0d\n\t\x0d\n,"Z"\t: \n562.9\x0d,"😀":\x0d\x0d\n "[ݞl\\\\"  \x0d\x0d,"\\f\\u8A59\\\\6Tꈗ\\u1c3F\\/":\t-25.01e096\x0d\n\x0d\n,"\\u00e9"\t\x0d\n\t : \n\tnull\x0d\n,"\\f\\u8A59\\\\6Tꈗ\\u1c3F\\/"\x0d\n:-79\x0d\x0d\n}\t\n\x0d\n,null\x0d\x0d\n,{""\x0d   :\x0d\nnull}\x0d\n\x0d,{"｡":0.0000000072,"A"\x0d\n\n:\x0d\n421\x0d\n\t\n\n,"😀"\x0d : \n 189.783\x0d\n\x0d\n\n},"񝢉fO𘓊Sx",64e+5,true\x0d]\x0d\n,{"😀"\x0d\n\x0d\t:\x0d\n\n2.88e+7\x0d\n\x0d,"b":\n\n"" \x0d\n\x0d ,"｡"\x0d:"\\uD9F4\\uDFF7\\t\\r"\x0d\n,"\xc03>ܫ릒"\x0d\n\x0d\t:\x0d-962.64\n\x0d\n\n,"｡"\x0d \t:-585,"😀"\n\x0d : \x0d\n\n\x0d\n"q˲\xf4\x90\x80\x80\xe0\x80\x80\xc0\x80S"\x0d,"Z"\x0d\n\x0d: \x0d\n\x0d\n\x0d\n"\xe0\x80\x80\\"2"\t \x0d\x0d\n,"N\xf4\x90\x80\x80\x7f$WQM)6쨤"\n:\x0d \n"|)\\uD9FF\\uDdE1\\n\\uD813\\uDdd6\\u0019"\n\x0d\n\n\n,"\\u648b\\uD9b6\\uDF91iH*-Y=˨\\\\]m\x7f\\u0018"\n:\x0d-909\n\n,"'a\xc4" \t\x0d:\x0d\x0d -588\x0d,"D\\tVs𩚳񴑏􎜢ٍE"\n\x0d\t:\n\t\t7811203580136.0515343 }\x0d\n\t \x0d\n,[{"｡"\t: \n76.12e+9\t \x0d\n,"aa" :\tfalse \t}\x0d\n,"tݳ\x88\\uDBF8\\uDC85\xed\xa0\x80\\u0001\\u26FAh\\u80e1VL񾐖\\u3986\\ud999\\udC7BvN\xc0\x802"\x0d\n,"|\xe9\xab`\xed\xa0\x80\\u0007JϦjv\\bQkL"\x0d\x0d\n\n\x0d\n,[1e999999999\x0d\n,347\x0d,-660.7\x0d\x0d\n,673\t ]\n \n ] \t,"\\b{JB\\u623Ax\\u0000\\u60e3\x7f\\u0015ѻGO"\t\t\n,true \n,true ]\x0d\n\x0d\n\x0d\n\t,""\x0d :\x0d\n\t\x0d"^t񓝢Hco\\u23b2"\x0d\n\n\x0d,"｡"\n\x0d:\t\t\x0d\ntrue,"é"\x0d\n\x0d\n\x0d\n :717640543913029009447.131}\t\t ,"{_\x7f\\ueBEExd5M\\rH\\ude261Y\\"ذio\\/=%%t<\\bfb\x7f+\\""\n \x0d\x0d,false,1e10000000000\x0d\x0d\n]\n\x0d\n\t\n
+stdin \x0d\n\x0d\x0d[558.557\n\x0d\n \x0d\n,"\\udF04uQ\\ub0Ac\xa9aE\\udb9B\\uDE05O~T",{"A": \x0d\n \x0d[661.29\n\x0d\n\t\n,[">\xeaqv\\rn" ,-68,"i"\t\x0d\n,-283,true\x0d\n,"𴭙\\n+"]\n\x0d\n ,1e-1147483646\x0d\n\x0d,"4ǉ\\u0007)`e"\x0d,0.0 \x0d\n \t,820.84\t,"\\fC򎧂"\t\t\n,[76\t,{"􌏭q"\t\n\t\x0d\n:\x0d\x0d\n\n[["\\u0008E큳A\xe0\x80\x80e\\u000c#ԇ\xb4*ɂ\\""\n\x0d\n\t\x0d]]\n\x0d \t,"sA~":\x0d\n\t{"😀"\t\n\x0d\n:  -316\x0d\n\x0d\n\x0d\n\x0d,"\xf4\x90\x80\x805\\udA55\\udCe7񥑬p"\x0d\x0d\n\x0d: -813,"\xed\xa0\x80jΪgz+\\f\\bY\xbd9\\/\\r򩍚Z\\r"\n\x0d\x0d\n :\n \n756.535},"w^L&\xe0\x80\x80(蝦\\\\\\udaC6\\uDDe8󱐽":\x0d156.888\n\x0d\x0d\t,")\\"M\\u000c0\\ud9bD\\uDC3dk-(A\\u200f"\x0d\n\n\t:"\\b{Tpc+\\tȮ\\udBFC\\uDeE6\\u74bcr"\x0d\n\t\x0d\n,"｡":\x0d-689\n ,"1<0FE\xf9"\x0d\t  :{"l\\u001f" \t\t\x0d\n:\x0d\n"c#\\fQX\xf4\x90\x80\x80\\tq\\u0013%]H\xb4Fl̑\x8e񣩶\x7f̫\x86R"\n\x0d} ,"H"\x0d\n\x0d:\t\ttrue\x0d\x0d\n\t\x0d\n,"Z"\t: \n562.9\x0d,"😀":\x0d\x0d\n "[ݞl\\\\"  \x0d\x0d,"\\f\\u8A59\\\\6Tꈗ\\u1c3F\\/":\t-25.01e096\x0d\n\x0d\n,"\\u00e9"\t\x0d\n\t : \n\tnull\n\t\x0d\n,"\\f\\u8A59\\\\6\\u0054ꈗ\\u1c3F\\/":\n\t\ntrue\x0d\t\n\x0d\n}\n\x0d,".[",456\x0d  \n,"׉󺁕v!;4\\f/"\x0d\n,-0.0\x0d\x0d\n,-125 \n ,189.783]\x0d\n\x0d\n\n,-0.0\t,[\x0d \x0d\n\x0d]\x0d\n,"mbQ"\x0d\n,"1g\\n\xf4\x90\x80\x80<P|",481332726922188608.7332342]\n\n,"｡" \x0d\n\x0d :\x0d\t\x0d {"":\x0d\n \x0d\n"\xc03>ܫ릒޸r\x9e8\\u4186o\\r\xe0\x80\x80ȚY"  \x0d}\x0d\n\x0d ,"[\xdb8q"\x0d\n\t\x0d:\x0d\n\t\x0d\n-471\x0d,"Z"\x0d\n\x0d: \x0d\n\x0d\n\x0d\n[{"aa"\x0d\n\x0d\n: 1e2147483648\n\x0d\x0d}\t\n\x0d]\n\x0d\x0d }\x0d\n,{"aa"\t\n\x0d: \n\t{"Z" :\t-601 \n\n\t,""  \n\x0d\n:\n\x0d\t\x0d\n-431\n\x0d\n\n\n,"\\u648b\\uD9b6\\uDF91iH*-Y=˨\\\\]m\x7f\\u0018"\n:\x0dtrue\n\n,"Z"\n\t:\t297.7}\x0d,"a"\x0d\x0d\x0d:-588\x0d,"D\\tVs𩚳񴑏􎜢ٍE"\n\x0d\t:\n\t\t{"\\u00e9"\t\t\n:"4?\\ud9A1\\uDcE6\xf4\x90\x80\x80K)^ȳc󝍤|m"\n\x0d\x0d\n,"a":\n\x0d\x0d-0e5}\n \t,"aa"\t :\t"tݳ\x88\\uDBF8\\uDC85\xed\xa0\x80\\u0001\\u26FAh\\u80e1VL񾐖\\u3986\\ud999\\udC7B" ,"zhB"\t\x0d\n\n\x0d\n:\t"|\xe9\xab"\x0d\x0d\n\x0d\n,"|j":\x0d\nfalse,"":\n[null,-0.000000001718\n\x0d,{""\t:\x0d\n \t"\\b{JB\\u623Ax\\u0000\\u60e3"\n\x0d\n\x0d,"n8XXݦNPK,r"\x0d\n \n : \x0d\n"h(b垼7B㒦\xeb\xbd^xހ6g\\uDD84","aa"\t\x0d \n:  \x0d\n\x0d\n-459\t\x0d ,"\\t2" \x0d\n\n :\x0d\n\x0d\nfalse\x0d\n\t\t,"a"\n:\x0d\n\x0d66111829656045.1974\x0d\n\x0d\n\x0d ,"?1Y" \n:\t\x0d\n-552 \x0d,"\\uCdDF歹\\uf730\xf4\x90\x80\x80MZO򾀀kW\xf4\x90\x80\x80~"\n  \t: \ttrue\n\n,"\\uDa05\\uDD2bPr\\ft"\n\x0d :\t\x0d\n\t"!","!ႆfO5\xc0\x80NJ@z]pU\\uDbF3\\udC40\\b;3M\x7fV\\/{\\\\Jz@CQ\xf6\\r;̖\xb9"\t\t\x0d :true\x0d\n,"é"\x0d\x0d\n:\x0d\n\x0d\x0d\x0d\n[false]\x0d\t \x0d,"b" \n\x0d\n:752\t \t,"񿨮\x7fk '^0":\x0d\n\x0d\x0d-319946262201783572188582595184704,"é"\t\n:null\t\n,"｡"\t\x0d\t:true,"\\r\xc0\x80|\\uDdF2\\u5140]\\bT\\/򰻵Ñq˒\xbb\\\\i\\u001E\x94cN\x7fDF"\x0d\n :\x0d\nnull\x0d\n,"Q5^": "|"},838\t ,true\t,-904\x0d\n,0e-1147483650 \x0d\n\x0d ,true\t \n\x0d\n,null\n] ,"😀":\x0d\n\n\x0d\n[["",[null\n\n\n\n,false\n\n,{"\\u9C765jZ7B\xed\xa0\x80`d\\u0008r":  \t[-70e1  \x0d\n,9223372036854775808\x0d\n\x0d \n,null \x0d\n,[]\t \x0d\n\n,965562866436176299154105,483.141300923247665004601382\n\t\x0d\x0d,48488326141.4225803259813322\x0d\n\n\x0d\n\n,-349,"\\f񀨰"\n\n,1382713445233477330710430.9\x0d\n\x0d\t\n,"\\b`W["\n\t\x0d,""\x0d,false\x0d\x0d\n,282 ]\x0d\x0d\n\t,"\\u9C765jZ7B\xed\xa0\x80`d\\u0008r"\t:\tnull\x0d\x0d\n\x0d\n},{\t}\x0d\x0d\n\t\t]\t]\n\x0d\n,null\t\x0d\n\x0d,"-<{򡮂sX"\x0d\x0d\n\n\x0d\n,")\\/"\n,9223372036854775807\x0d\x0d\n\t\x0d,{"" :\x0d\n 66E-017 \x0d\n\t,")B"\n:"+7.䱌\\nRXΠ\xc0\x80"\x0d \x0d\n ,"Z"\n\n:  \n\nnull,"勖\x85\xbc\xed\xa0\x80\\\\1\\uDae1\\uDd07G$󂎐\\u0014E\\u0017\xf4\x90\x80\x80\\n(c["\x0d\x0d\t\x0d:\t\n{"é":\t\n\t[801\x0d\x0d\n,640\x0d\n\x0d\x0d]\t \x0d,"😀"\t\t\x0d:\t\n\x0d376.0252,"\\u00e9"\t:\n"9\\udE0C\xf4\x90\x80\x80k\x7fa\\nMC苏l\\uc85EX"\x0d,"｡"\t\x0d\t:"x'\\udbA4\\uDD29"\x0d\n\t\x0d\n\n,"aa"\n \t:80\x0d\n\n \t,"😀"\x0d:\n\x0d\n\x0d\n{"｡"\t: \t\x0d\x0dnull\x0d\n,"😀"\n\t:\x0d\n\t 983\n}\x0d\x0d\x0d\n\x0d,"\\n\xed\xa0\x8033к\x86"\n\n\t\n:\nnull\n,"\\u00e9"  \x0d\n:\x0d\nnull\t\x0d\n} \t\x0d\n}\t\x0d\n]\n \t,"é" \x0d\n:\x0d\n\n\t\x0d\n897\x0d\x0d\t,"n+"\x0d\x0d:\x0d\t-188\t,"A"\t\n\n:\n"KYc\\u000Eˎ򴞥O\x7fz\xe0\x80\x80(X5sHS","n%T$丝9\\n^(Q\x8e\xc0\x801Af0/摦"\n\x0d:\n "Dla򿩺Q8m𵏙\\uA151dè񍷥}\x8d\xc0\x80\\/Ys"\n,"A":\x0d\n\x0d\n58.78e-9\x0d\n\x0d\n\x0d\n},""\n \n ,"Ҟ르0\\\\󹄯sU&䯁uy)"]\n\n \n
 end
 
 case gen/values-v1/105
@@ -723,7 +723,7 @@ end
 case gen/values-v1/117
 arg -c
 filter [paths]
-stdin sNaN\n\n
+stdin \x0d\n\n\n\x0d\n[["\xed\xa0\x80b"\n\t,"\\fZ\\u0007a^%\\\\\\f!" \x0d\n\x0d\n,{"nkB\xc37e"\t:\x0d\n\x0d\n+1.E+2\x0d\x0d\n} \n\t\t,false,[+1]\n\x0d\n\x0d]    ,-9007199254740993] \x0d\n\t \n
 end
 
 case gen/values-v1/118
@@ -809,7 +809,7 @@ end
 case gen/values-v1/131
 arg -c
 filter [paths]
-stdin {"A":{"｡":true,"｡":"cc"},"@\\b":"","\\u00e9":[""],"\\u7ed87R\\b\\n%\\\\ի\x8e\\n\\fG":{"jX":sNaN,"Z":{"A":"?/ܛﯸq","｡":"\\b$\x7fK2:\xb2uuh\x7f","JD\\rZ\\uFD1A":-9223372036854775809,"b":"","3E":true},"S!kf":74e+292,"é":false,"S":455,"\\u0053!kf":+1.E+2},"b":false,"\\u001B\\f \\u9045򊵟":740.45}\n
+stdin {"A":{"｡":true,"｡":"cc"},"@\\b":"","\\u00e9":[""],"\\u7ed87R\\b\\n%\\\\ի\x8e\\n\\fG":{"jX":sNaN,"Z":{"A":"?/ܛﯸq","｡":"\\b$\x7fK2:\xb2uuh\x7f","JD\\rZ\\uFD1A":-9223372036854775809,"b":"","3E":true},"S!kf":74e+292,"é":false,"S":455,"S\\u0021kf":["\\u001B\\f \\u9045򊵟]'u"]},"Z":2.5E16,"f\xe0\x80\x80\\u000E\\r\\u1f68-C\x7f\\uDAd9\\udfd7X\x7fXxp\xc0\x80F\xa40":false}\n
 end
 
 case gen/values-v1/132
@@ -852,7 +852,7 @@ end
 case gen/values-v1/138
 arg -c
 filter [paths]
-stdin  \x0d\n[{\t\x0d\t\n}\t \x0d,null\t\x0d,-356\x0d,{"Ô\xbcA^q񜈔"\x0d\t:\x0d\n\x0d\t""\x0d,"A"  \n\x0d\n:\x0d "Q\\u0013\x7fi1"\x0d\x0d\n\t,"Ô\xbcA^q񜈔"\n\x0d\n:{\t\x0d\n\t}}\x0d\x0d,null \x0d ]\n\t
+stdin  \x0d\n[{\t\x0d\t\n}\t \x0d,null\t\x0d,-356\x0d,{"Ô\xbcA^q񜈔"\x0d\t:\x0d\n\x0d\t""\x0d,"A"  \n\x0d\n:\x0d "Q\\u0013\x7fi1"}\x0d\x0d,null \x0d ]\n\t
 end
 
 case gen/values-v1/139
@@ -955,7 +955,7 @@ end
 
 case gen/values-v1/155
 filter .
-stdin [[[{"Z":{"\\u00e9":{"a":[{"Z":[[{"\\u00e9":{"":{"😀":{"\\u00e9":{"Z":[{"b":[{"":{"aa":[{"b":{"b":[{"aa":[[{"b":[[{"a":[{"\\u00e9":{"\\u00e9":[{"A":[{"Z":[{"\\u00e9":{"\\u00e9":{"é":[{"｡":[{"Z":[[{"":{"\\u00e9":{"aa":{"a":[{"b":[[[[{"｡":[[{"aa":{"b":{"｡":{"Z":[{"\\u00e9":[[{"a":{"😀":[{"a":[[[[{"\\u00e9":{"é":{"é":[{"\\u00e9":{"a":{"\\u00e9":[{"a":[{"A":{"Z":[{"\\u00e9":{"\\u00e9":[[{"Z":[[{"":{"A":[[null]]}}]]}]]}}]}}]}]}}}]}}}]]]]}]}}]]}]}}}}]]}]]]]}]}}}}]]}]}]}}}]}]}]}}]}]]}]]}]}}]}}]}]}}}}}]]}]}}}]]]\n
+stdin [[[{"Z":{"\\u00e9":{"a":[{"Z":[[{"\\u00e9":{"":{"😀":{"\\u00e9":{"Z":[{"b":[{"":{"aa":[{"b":{"b":[{"aa":[[{"b":[[{"a":[{"\\u00e9":{"\\u00e9":[{"A":[{"Z":[{"\\u00e9":{"\\u00e9":{"é":[{"｡":[{"Z":[[{"":{"\\u00e9":{"aa":{"a":[{"b":[[[[{"｡":[[{"aa":{"b":{"｡":{"Z":[{"\\u00e9":[[{"a":{"😀":[{"a":[[[[{"\\u00e9":{"é":{"é":[{"\\u00e9":{"a":{"\\u00e9":[{"a":[")ᡳ\\ud987\\udE782C򞵡"]}]}}}]}}}]]]]}]}}]]}]}}}}]]}]]]]}]}}}}]]}]}]}}}]}]}]}}]}]]}]]}]}}]}}]}]}}}}}]]}]}}}]]]\n
 end
 
 case gen/values-v1/156
@@ -1313,7 +1313,7 @@ case gen/values-v1/213
 arg -c
 arg -a
 filter .
-stdin [true,47E+4,"N_\\uF6ef\\u000Cޛ\x81L","&:ٌ\xaf","D_ښ",true,1.,Infinity,[null,"f\\r","򎎣z\\\\\\u0017f\x7f\\nd}o4͐\xb3\xf0\xb4\xad~du\\uDBA2\\ude8b7\x7fM\\\\\\f\\rThP\xe0\x80\x80"]]\n
+stdin {""\x0d:\x0d\t{\n  \t}\x0d\n,"X}q^}\\u0016\xe0\x80\x80DTv\\uaEfb9`\\n핻P坶򓖨\xc0\x80"\x0d\t:\n"b:\\/\\udda7];8\\uD924\\udddc"  \n,"b":\n \t[true\n\n\x0d\n\x0d,43975605039.62992049169315\x0d\n]  ,"A"\x0d\n\t:\n\x0d\n\t\x0d\nfalse\x0d\n\t,""\n\x0d:+1\x0d\n\n,""\t\t\t\x0d\n:\x0d\n\t\n"򎎣z\\\\\\u0017f\x7f\\nd}o4"\x0d  }\x0d\n\x0d\n\n\n
 end
 
 case gen/values-v1/214
@@ -1337,7 +1337,7 @@ end
 case gen/values-v1/217
 arg -c
 filter .
-stdin {"":"󖃽!\\ud877\\uDdDa\\/b6򤃳c\\u0016j]ا\\\\%","̱\xf4\x90\x80\x80\\u0008(\xe0\x80\x80Ê\\f\xc0\x80諔e\\r\xe0\x80\x80S":709.6,"<b䕺*\\"A":null,"a":307,"u-n:9($Y":[""],"̱\xf4\x90\x80\x80\\u0008(\xe0\x80\x80Ê\\f\xc0\x80諔e\\r\xe0\x80\x80S":null}\n
+stdin {"":"󖃽!\\ud877\\uDdDa\\/b6򤃳c\\u0016j]ا\\\\%","̱\xf4\x90\x80\x80\\u0008(\xe0\x80\x80Ê\\f\xc0\x80諔e\\r\xe0\x80\x80S":709.6,"<b䕺*\\"A":null,"a":307,"u-n:9($Y":[""],"̱\xf4\x90\x80\x80\\u0008\\u0028\xe0\x80\x80Ê\\f\xc0\x80諔e\\r\xe0\x80\x80S":"?@"}\n
 end
 
 case gen/values-v1/218
@@ -1385,7 +1385,7 @@ end
 
 case gen/values-v1/225
 filter .
-stdin \t[\x0d\n \t{\t"A" \x0d\n\t\x0d\n:\n{\t\x0d\n"é"\t:[\n\x0d\t{\x0d \x0d\n"\\u00e9"\x0d\n\x0d\x0d\n:\x0d\n[\t\x0d\n \n{""\t: [\x0d\n\t\x0d\t{\n\x0d\n"｡"\x0d\n\t\x0d:\n \t[[\x0d\n\x0d\n\n [\n\x0d\n[  {\n\x0d\n\x0d\n\x0d"｡"\x0d\n:\x0d\n\n {\x0d\n\n\x0d"A"\t\x0d\n\x0d:\x0d\n{ \t"a" :[{\t  \x0d"é"\n\x0d\n\x0d\n: \x0d\x0d\n[\n  [\x0d\n [ \n\x0d\n\n{\x0d\n"a"\t \x0d\n\t:\x0d\n\x0d\n\x0d{"\\u00e9":\t\t {"é":[ {\x0d\n\n\t"aa":\t\t { \n"A" \t\x0d\n:\x0d\n[{"a":[\x0d\t[\x0d\n\n{\x0d \n"Z" \n\t:\x0d[\x0d \x0d\n\t{\x0d\n\x0d\n"😀"\t\t\n :\x0d\n\t[ \t\x0d\n\x0d[ [ [\x0d\n\n{\x0d\x0d\x0d\n\t"é" \x0d:\x0d\n [\x0d{\x0d\n\t\x0d"aa"\x0d\n\t:\n \x0d\x0d[ {\t\t "é"\x0d\x0d\t :{ "é"\x0d\n\t  :\n{\x0d\n\x0d\n\t"😀" \x0d\n:  \n\n{\n"a" \n:{"a"\x0d\t\n\n:\x0d\n\t\x0d\n{\n\t \n"Z"\t : {\x0d\n  \n"Z":\n[\n [[\x0d\n \t{\t"😀"\x0d\n\n\n\x0d\n:\t{ \x0d\n\x0d\n"é"\x0d\n\x0d\x0d\n:\x0d\n\x0d\x0d\x0d[\x0d\n\x0d\n\n[\x0d\n\x0d\n-454\x0d\n\n]]}\n}]   ]\t\x0d\x0d\n\n]\x0d  \x0d\n}\t\n\n} }}\x0d\x0d\n}\t\t\t}\x0d\t\x0d }]\n\n\t\x0d\n}]}]\x0d\n\x0d\x0d]\x0d\n ]] \x0d\n\t}\n\t]\t\t\n\x0d\n}\t ]\x0d\n]} ]\x0d\n}\x0d}]}\n\x0d\x0d\n}\t}\x0d\n]] \t\t]}]\x0d\n\t }\x0d\n}\x0d\n}\t \n]\x0d\x0d\n\n]\x0d\n]\t]\t}\x0d\n\n]}\t]\t\x0d\n  }\n\x0d\n ]\t} \n\x0d\n}\n ]\n
+stdin \t[\x0d\n \t{\t"A" \x0d\n\t\x0d\n:\n{\t\x0d\n"é"\t:[\n\x0d\t{\x0d \x0d\n"\\u00e9"\x0d\n\x0d\x0d\n:\x0d\n[\t\x0d\n \n{""\t: [\x0d\n\t\x0d\t{\n\x0d\n"｡"\x0d\n\t\x0d:\n \t[[\x0d\n\x0d\n\n [\n\x0d\n[  {\n\x0d\n\x0d\n\x0d"｡"\x0d\n:\x0d\n\n {\x0d\n\n\x0d"A"\t\x0d\n\x0d:\x0d\n{ \t"a" :[{\t  \x0d"é"\n\x0d\n\x0d\n: \x0d\x0d\n[\n  [\x0d\n [ \n\x0d\n\n{\x0d\n"a"\t \x0d\n\t:\x0d\n\x0d\n\x0d{"\\u00e9":\t\t {"é":[ {\x0d\n\n\t"aa":\t\t { \n"A" \t\x0d\n:\x0d\n[{"a":[\x0d\t[\x0d\n\n{\x0d \n"Z" \n\t:\x0d[\x0d \x0d\n\t{\x0d\n\x0d\n"😀"\t\t\n :\x0d\n\t[ \t\x0d\n\x0d[ [ [\x0d\n\n{\x0d\x0d\x0d\n\t"é" \x0d:\x0d\n [\x0d{\x0d\n\t\x0d"aa"\x0d\n\t:\n \x0d\x0d[ {\t\t "é"\x0d\x0d\t :{ "é"\x0d\n\t  :\n{\x0d\n\x0d\n\t"😀" \x0d\n:  \n\n{\n"a" \n:{"a"\x0d\t\n\n:\x0d\n\t\x0d\n{\n\t \n"Z"\t : {\x0d\n  \n"Z":\n[\n [[\x0d\n \t{\t"😀"\x0d\n\n\n\x0d\n:\t{ \x0d\n\x0d\n"é"\x0d\n\x0d\x0d\n:\x0d\n\x0d\x0d\x0d[\x0d\n\x0d\n\n[\x0d\n\x0d\n{\n"A"\n  \t: \x0d[[\x0d\n\n\x0d\n[[\n[{\x0d\n\x0d"aa"\t:\x0d\n[  \x0d\n[\x0d\n[{\x0d\n\x0d\n"😀":[\t\n\n\t{\n"é"\n\t \t: \t \t[  \x0d[\t\t\t\x0d\n{"｡"\t:[\t \t\x0d\n[\t \n[\n\t\x0d\n\t[\n{"\\u00e9"\t:\t\x0d\n  { \t\t\x0d"b":\x0d\n\n{"":\t{\x0d\n\x0d"｡":\x0d\n[\x0d\x0d\n\x0d\n\t[\x0d\n\x0d\n\x0d {\x0d\x0d"a"  \n:[\n\x0d { \n\x0d\n"aa"  :[\x0d\n\t [ \x0d\n{ "Z" \t \t:\n\t\n\x0d[ \x0d{"Z"\t\x0d: [\n\t\n[\n\x0d\n\x0d\n\x0d[{"aa":\n\x0d {\x0d\n"a"\x0d\n\t : \t{\n\x0d\n\n "Z"\t\n\t:{ \x0d\n"Z"  \x0d\n :[\n \x0d\n[\x0d\n\t \x0d\n{ \t\t\n"｡"\t\x0d\n\x0d\n\x0d\n: {\x0d\n\x0d\n\x0d\n"é" :{"😀"\t\x0d\t\n: [\x0d\t\x0d\n[\x0d\x0d\n{"é"\x0d\n\x0d\n:\t\t\x0d[\t{\n\x0d\n"b"\x0d\x0d\t:\t\t [\x0d\n\n\t[\x0d\n\n\x0d\n{\n\x0d\x0d\n\x0d\n"b":\t\x0d\n\t[ \t {"｡"\t\t\x0d\n\t:\x0d\n {\x0d\n"｡" \x0d\x0d\n :\x0d\n{\x0d\t\t\x0d"aa"\t: \x0d[  \x0d [\t\n[ \x0d\n {"a"\n\x0d\n\n: \t\x0d[  \x0d\x0d\n{\x0d\x0d\n "Z"  \x0d\x0d: \x0d \t[{\n\x0d\n"a"\t\n: \x0d\n[\t[[\x0d\n\x0d\n{\n\t "aa"  \n:\x0d\x0d\n{\x0d\n "é"  :  {\t"｡"\n:\x0d\n[\x0d\n\x0d\n{\x0d\x0d"b"\x0d:\x0d\n{\x0d\n\n\n"b"\t\n\x0d:\t{ \n \n""\x0d\x0d\n\x0d:\n[\n\x0d\x0d\n\n{\x0d\n\x0d"😀" :[\t{\n\x0d\x0d\n"aa"\x0d \t:\t\t \n[\t\t\t{\x0d\n\x0d\n "é"\n\t :\t\t{""\n:\t\t[\x0d\n{"é"\x0d:\t {\n\x0d "😀"\n :\x0d \n[[\x0d\n\x0d\n { \n\n"a"\x0d\n\x0d\n\x0d:\x0d\n[\x0d\n\t [\n\x0d\x0d\x0d\n[\x0d\n\x0d\x0d\n{\x0d\n "\\u00e9":[[\x0d\n {\x0d\n\n\t\x0d"Z":\x0d\n[{\n\x0d\n\x0d\x0d""\t:\x0d\n\t{ \x0d\n\x0d\x0d"é"\n\x0d\n  : \x0d\n[\t\n\t\x0d\n[\x0d\n \t[\x0d{ ""\x0d\t\t:\x0d[ {\n\t"A" \x0d :\x0d\n\n{\t "Z"\x0d\x0d:\x0d[\x0d\x0d\n\x0d{ \x0d\n"a" \x0d\n:\t\n\x0d\n{"｡":{\x0d\n"":{ \x0d\n"aa":\x0d{  \x0d\n\n"a" \n :\t[[\x0d\x0d\x0d\n\t{\n\n"é"\x0d\n\t:\x0d\x0d{ "A":[\x0d\n\t\x0d\n{\x0d\n\x0d\n\x0d\n "｡"\x0d\n \x0d\n:\x0d\n\n{\x0d\n "b"\n :\x0d\x0d\n\x0d\n{\x0d\n\x0d"｡"\x0d\n\x0d:\n[ \t\x0d\n[[{\x0d\n"é"\t\x0d\n:\x0d\n[  [\x0d\n"_&A9\xf4\x90\x80\x80"\x0d]]\x0d\n\n} \x0d\n\x0d\n]]\n\t\x0d\n ]\t\x0d\n\n}\t\t}}\t]\x0d}}\n\x0d\n\x0d\x0d]\n]\t}\t\x0d\n\t\x0d}\t} \n\t}\t \n\t}\n\n] }\n}\x0d \t ]\n}\n\x0d\n]\n\x0d\n\x0d]\n\x0d]}  \x0d }]\x0d\n}]\t\n]\t\x0d\n}\n\t\t\n]\x0d\n \t ]\n\n  ]\x0d\n\n}\x0d ]]\x0d}\t \n\t}]\t\n\x0d\n\n}\t \x0d\n\x0d\n}\x0d]\x0d\n } \n  ]\n}]  \x0d\t}\n\x0d\x0d }\n \x0d\n}] \t\n}\x0d\x0d\n\n\x0d\n}}\n\x0d\n\x0d\n]]]\n\n} \x0d\n]} \n\x0d\n]}\x0d\x0d\n\n\t]\t]\x0d]\t\x0d\n\n\x0d\n}\x0d\n}\t}\t\x0d\t] \x0d}\t]\n]\t \x0d}\n]} \x0d\n\n ] \t\x0d\n\x0d]} } \x0d\n}\n \x0d\t]]\x0d\n\x0d\n\x0d\n\x0d}\x0d\n\x0d\n }}\n }]]\t  ]\t\x0d\t}\n\t]}\t\x0d] \t ]\t\x0d\n}\x0d ]\x0d}\x0d\n]\n\x0d\t]\n\t\x0d\n } \n}  \t}}\t]\n\x0d\x0d\x0d\n]  \n\x0d\n]\x0d \n\t] }\x0d\n ]\x0d\t\n\n]\n\t\n\x0d}\t] \t}\t\x0d\n] \x0d\n\x0d\x0d] \n\t ] \x0d}\x0d\n\n ]]\x0d\x0d\n\t]\t\t\t ]\x0d\n\t\n] \n\t\x0d}\x0d\x0d\t]]}\x0d\n \t\x0d}]]\x0d\n\x0d\x0d\n\n]\x0d\n}\x0d\n\t\t\n} }}}\n\x0d }\t\n\t}\n\x0d\n\n]\x0d\n\t\x0d\x0d}\t\t\n\x0d]}]] \x0d]] \n}\n\t \t]\x0d\x0d }\n\n\x0d]\x0d\n \x0d]}\x0d\n \x0d]\t} \x0d\n}\n]\t } \x0d} \n\n}]\t \t]]\x0d\n\t}]\x0d}\x0d\n\t\x0d} } \x0d\n]\x0d]\x0d]\t \t]\n\n\x0d\n\t}]\t\n\t} \t\n]\x0d\x0d}\t \x0d]\x0d\n \n}  \x0d\n}\n\x0d\n\x0d\n\x0d] \t\x0d\n\n
 end
 
 case gen/values-v1/226
@@ -1399,7 +1399,7 @@ case gen/values-v1/227
 arg -c
 arg -a
 filter .
-stdin {"aa":{"b":-NaN,"|x\\ud894\\udED1w4剨\\u0010yѠ":{"é":true,"L":"","😀":"o5\\\\򫼭q\xf4\x90\x80\x802\\nꁟp\x7fyqR~0","😀":null},"aa":+1.E+2}}\n
+stdin {"aa":{"b":-NaN,"|x\\ud894\\udED1w4剨\\u0010yѠ":{"é":true,"L":"","😀":"o5\\\\򫼭q\xf4\x90\x80\x802\\nꁟp\x7fyqR~0","\\ud83d\\uDE00":""},"":[]}}\n
 end
 
 case gen/values-v1/228
@@ -1411,7 +1411,7 @@ end
 case gen/values-v1/229
 arg -c
 filter [paths]
-stdin {"\\r\\\\̏\\/0p%ʔ\x90,:\\f":false,"😀":["~֍m*뛅=\\u000EM\xc0\x80쇶l #'St\\ȓ",{"a":[["Ď",null,-0],"\\r\\u000f"],":)\xe2\x8c-Ӳ,=Ogz":[null,"V\\u7042q\\r",[0.0]],"\\u003A)\xe2\x8c-Ӳ,=Ogz":{}}],"é":false}\n
+stdin {"\\r\\\\̏\\/0p%ʔ\x90,:\\f":false,"😀":["~֍m*뛅=\\u000EM\xc0\x80쇶l #'St\\ȓ",{"a":[["Ď",null,-0],"\\r\\u000f"],":)\xe2\x8c-Ӳ,=Ogz":[null,"V\\u7042q\\r",[0.0]],":)\xe2\x8c\\u002DӲ,=Ogz":true}],"é":false}\n
 end
 
 case gen/values-v1/230
@@ -1632,7 +1632,7 @@ end
 case gen/values-v1/265
 arg -c
 filter tostream
-stdin {"a":[null],"\xed\xa0\x80\\fv\x7f\xe0\x80\x80C\xed\xa0\x80&":{"😀":{"":"e\xc0\x80]𲰵\x7f","9b":-484,"\\u0039b":{"a":75e-18,"é":2e2,"\\u00e9":-inf,"a":null,"A":{"ŷ=":"K!u\\rkdIvju\\uda5b\\uDd853","Z":NaN,"*\\f\\ff+":+1.E+2}}}}}\n
+stdin {"a":[null],"\xed\xa0\x80\\fv\x7f\xe0\x80\x80C\xed\xa0\x80&":{"😀":{"":"e\xc0\x80]𲰵\x7f","9b":-484,"\\u0039b":"C凷\\/I\\uDC36:"}},"\xed\xa0\x80\\fv\x7f\xe0\x80\x80C\xed\xa0\x80\\u0026":[623.7,"ŷ","K!u\\rkdIvju\\uda5b\\uDd853򠃰K",null,{"\xf4\x90\x80\x80\\b\\t":["B","p},Ϲ\x88jￄt",["B\\nǘ肭",false],"󻖨浌,\\"򀵫3-\\\\tCm먨"],"é":2.e3,"*\\u0014x":90173734.931639341583542947,"V\xe0\x80\x80u":[007],"a":767,"\\u00e9":+1,"SFS\\t:q\\"%K":-.5,"a":{"😀":406,"b":-9223372036854775809,"\\u00e9":null,"T\\"G":true},"😀":"jj8"},8040927954.594855133,true,"u\\r\\\\","󫉪\xb7\\u001C&",458]}\n
 end
 
 case gen/values-v1/266
@@ -1669,7 +1669,7 @@ end
 case gen/values-v1/271
 arg -c
 filter [paths]
-stdin \n\n{"A"\n\n\x0d\n\x0d: \tnull\t,"\\ud400fR𳋌:":\t{"b"\n\t\t\t: 9007199254740993\x0d ,"Z":-928,"\\u0062" \x0d\n\t:-59.8632}}\n
+stdin \n\n{"A"\n\n\x0d\n\x0d: \tnull\t,"\\ud400fR𳋌:":\t{"b"\n\t\t\t: 9007199254740993\x0d ,"Z":-928 \x0d\n\t,"\\u0062":\n\x0d\x0d\n 853  }\n\t\x0d\n\x0d}\x0d\n
 end
 
 case gen/values-v1/272
@@ -1858,7 +1858,7 @@ end
 
 case gen/values-v1/302
 filter .
-stdin {\x0d\n  "\\u00e9": null,\x0d\n  "é": 1e99999999999,\x0d\n  "A": "Sn",\x0d\n  "\\u0041": 19664949845180301685025507079574694509\x0d\n}\n
+stdin {\x0d\n  "\\u00e9": null,\x0d\n  "é": 1e99999999999,\x0d\n  "A": "Sn",\x0d\n  "\\u0041": "ZGt\\/HA< \x9a\x8a.,M"\x0d\n}\n
 end
 
 case gen/values-v1/303
@@ -1958,7 +1958,7 @@ case gen/values-v1/318
 arg -c
 arg -a
 filter .
-stdin [\t[ \x0d\n\x0d\n\t{\n"😀" \t :\n [ \x0d\n\x0d [ [[ \n\t{\x0d\n\x0d\n "a"\n \n:\x0d\n{  \n"｡"\x0d\n:\n\x0d\n\x0d\n [ {\x0d"Z" \x0d\n\x0d\n:\x0d\n[\n\n{""\t\x0d\n:{\t\t""\n\x0d\n\x0d\n:\n\x0d[\n[\n\x0d{ \x0d"a" : \t\n[{ \t"A"\t:\x0d\n\x0d\n\x0d\n\x0d[ \t\x0d\n{\x0d\n\x0d\n\n "\\u00e9": \x0d\n{"é"\x0d:\n\x0d\n[\n\t [\n\n \t{\x0d\n\x0d\n"a"\x0d\n:\x0d\x0d\n  [ {\t"｡"\x0d:{\t\n\x0d\x0d"b"\x0d\n:\x0d\n\n{\n\x0d\n\t\t"é"\n\x0d :\n\n\n {\x0d\n\x0d"😀"\t\t\t:\x0d\n\t\n[\x0d\n\x0d\n[\n\x0d\n[\x0d\n\n\t{\n\x0d\n\t\x0d\n"😀"\x0d\x0d\n \x0d\n:  \t\x0d\n[{\x0d\n\t""\x0d\n\x0d\n\t\x0d:\n\x0d \n{\x0d\n \x0d\n\n"Z"\x0d\n\n\x0d\n: \t\t\t[ \x0d\n\x0d\n{\x0d "A":\x0d[ \x0d\n[\t\t \t[\x0d\x0d\n\x0d[ \n{ "é":{\n\t"a":[\t\x0d\x0d\n[\t\x0d\x0d\n{\x0d\n"a"\x0d\n\n\t\x0d\n:{\t\x0d\t"｡"\x0d \x0d\n :\t\x0d\t\x0d\n[[\x0d\n[\t{ "aa":\x0d\t \x0d\n[\x0d{"é"\n: \t\x0d[\x0d  {\x0d\n\n"aa": \x0d\n\t[\x0d\t[\x0d\x0d[[\x0d\n\x0d\t [[\x0d\n\x0d \t[[  \x0d\x0d\n[\n{"Z" :\n\x0d\n\n{\n\n\t\x0d"Z"\n:{\x0d \t"aa"\t\x0d\n:\n {\n\n \t""\x0d\n:\x0d\n\t\x0d\n\t{\n\n\x0d\n"é"\n\t\n:{\x0d \t"aa"\x0d\n\x0d\n\t:\n\t\x0d\n\n[\t[\x0d\n[{"Z" \t\n\n:\x0d {\x0d\n "a"\t\n\x0d\n:{\x0d\n"\\u00e9"\x0d:\n[\x0d\n  \x0d[\n\t{\x0d"b"\t:[\t\t\n\x0d\n{"aa":\x0d \x0d\x0d[[\n {\n\t"é":\x0d\n[ \n[\t[ \n [\n{"｡"\t\n\x0d\x0d\n:\x0d \x0d\n[ \t{"b"\x0d\x0d\n\t\x0d: \t\x0d\n\x0d\n{  "a":\t[{"Z"\x0d:\n\x0d \x0d\n[[\x0d\n\x0d\n\t""\n\t\x0d]\x0d]\t\n\x0d\n\x0d\n}]}\t\x0d\n\x0d\n} \n\x0d\n] \n} \n]\t\t ] ]\t\t]\x0d\n\x0d\n\x0d\n}\n]\n ]\t}\x0d\n]}\x0d\n\x0d\x0d]\t\x0d\n]\n\t\x0d\n}\x0d\n \t\x0d\n}\x0d\n}\t]\x0d\n\t] \x0d\n]\t\x0d\x0d\n }\x0d \x0d\n}}\x0d\n \x0d\n}}\t\n\n\x0d\n}\t\x0d\n \t]\t]\x0d\n]\x0d\x0d\n \x0d\n]\x0d]]]]]\t\x0d\n\n }]\n\t\t\t}\t\t]}\x0d\n\x0d]\t\n ]\x0d \n] \n}\x0d\n \x0d\n}\n\n\t]\x0d\t]\n\x0d\n\n\t}}\t\x0d\n]\t\n]\n\x0d\x0d\n]\x0d\n\t\n]\n\t\t\n}\x0d\n\x0d\x0d\n]\x0d\t  }\t}\t \t]}\x0d\n \x0d]\x0d\n]\n \x0d\t]\t  }\t \t}\x0d\n} }\n\t\t]\n\t \x0d} \x0d\n ]]\t\n\x0d\n\t}\x0d\n\x0d\n}\t\x0d \n]\n\x0d\n} \t\n\t]\t \x0d}\x0d\n\x0d\n\t]\x0d]\x0d}\t\n }  \x0d\x0d\n]\t\x0d}\t] } \x0d\n\n}\t\x0d\x0d]]\n]\x0d\n\x0d\n\n]}]\n\n\n\n]\x0d\n\x0d\n
+stdin [\t[ \x0d\n\x0d\n\t{\n"😀" \t :\n [ \x0d\n\x0d [ [[ \n\t{\x0d\n\x0d\n "a"\n \n:\x0d\n{  \n"｡"\x0d\n:\n\x0d\n\x0d\n [ {\x0d"Z" \x0d\n\x0d\n:\x0d\n[\n\n{""\t\x0d\n:{\t\t""\n\x0d\n\x0d\n:\n\x0d[\n[\n\x0d{ \x0d"a" : \t\n[{ \t"A"\t:\x0d\n\x0d\n\x0d\n\x0d[ \t\x0d\n{\x0d\n\x0d\n\n "\\u00e9": \x0d\n{"é"\x0d:\n\x0d\n[\n\t [\n\n \t{\x0d\n\x0d\n"a"\x0d\n:\x0d\x0d\n  [ {\t"｡"\x0d:{\t\n\x0d\x0d"b"\x0d\n:\x0d\n\n{\n\x0d\n\t\t"é"\n\x0d :\n\n\n {\x0d\n\x0d"😀"\t\t\t:\x0d\n\t\n[\x0d\n\x0d\n[\n\x0d\n[\x0d\n\n\t{\n\x0d\n\t\x0d\n"😀"\x0d\x0d\n \x0d\n:  \t\x0d\n[{\x0d\n\t""\x0d\n\x0d\n\t\x0d:\n\x0d \n{\x0d\n \x0d\n\n"Z"\x0d\n\n\x0d\n: \t\t\t[ \x0d\n\x0d\n{\x0d "A":\x0d[ \x0d\n[\t\t \t[\x0d\x0d\n\x0d[ \n{ "é":{\n\t"a":[\t\x0d\x0d\n[\t\x0d\x0d\n{\x0d\n"a"\x0d\n\n\t\x0d\n:{\t\x0d\t"｡"\x0d \x0d\n :\t\x0d\t\x0d\n[[\x0d\n[\t{ "aa":\x0d\t \x0d\n[\x0d{"é"\n: \t\x0d[\x0d  {\x0d\n\n"aa": \x0d\n\t[\x0d\t[\x0d\x0d[[\x0d\n\x0d\t [[\x0d\n\x0d \t[[  \x0d\x0d\n[\n{"Z" :\n\x0d\n\n{\n\n\t\x0d"Z"\n:null\x0d\x0d }\n}\x0d\n]\n ] \x0d\n\n\n]]\t]\x0d\n\x0d\n\t\x0d\n]\t]\x0d]\n\x0d\n]\n\t\n}]\x0d}\x0d \t]\x0d\n\x0d\n\t}\n\t\x0d\n\n]\x0d]\t]\x0d\t}\x0d  \t}]] \t\n\n}\x0d }\t]\x0d\n ]\t\n\x0d\n]]\n\t}\t\x0d\t\n]\x0d\n\x0d\n}  \x0d }\n]\t }\t\x0d]\t]]\t\x0d\n\t\t}\x0d\n\x0d\n}  \x0d\n} \x0d\x0d}\n ]\x0d\n\n}]\t\n]\t }\x0d\n}]\n }\x0d\n\t]\t}\t] \n ]}\t\n\t\x0d}]\t\n\x0d\x0d\n}\x0d \x0d\n]}\n}]\n] \x0d\n]\x0d\n\t\x0d] \t\x0d\n\x0d\n}\t\n  ]]\t
 end
 
 case gen/values-v1/319
@@ -2050,7 +2050,7 @@ end
 case gen/values-v1/333
 arg -c
 filter tojson
-stdin {"b"\n\x0d\n\n:713\x0d  \n,"😀"\n \x0d\n\x0d\n:  ";","😀" \x0d\n:\n\x0d\n"穫\\uD990\\uDE9FI㎰󼉁 =%\\nR:\\u0012\\ub928\\u000d\\u6c06\xc0\x80d\x7f;򣳓)\xc0\x80\\ud82a\\uDeF9s\\u5103ឹm5@\\uEF444*35O\\u0002"\n\n,"b"\x0d \n\x0d\n:\t[633,768\n \x0d,.5,"hO\\ub994<g9m\\u001A^{\xf4\x90\x80\x80#"\x0d\n\x0d\n,{"｡" \x0d\n:\x0d\n\n \x0d\n-.5\x0d\n\t,"｡"\n\t\n:\t{".鐝`\xed\xa0\x80ᡲꃋ$4RoT\\ud811\\udF75\xe0\x80\x80\\/+,"\n\t\n:\n"","a"\x0d\x0d\n\x0d : sNaN,"2"\t:{\x0d\n},"?I\\f͐±Ǜ"\x0d\n:\n\n\tnull,"😀"\x0d\n\n:\x0d\n \n635.67\n \n ,""\n\x0d\n\n\x0d\n:\t  "c2","A"\t\n :\t\n\n"?\x7fD\\u0011J\\ud8B1\\uDc61\\u0019\\/}BMz!򜛨,R" \x0d\n\x0d\n}\x0d\n},-72e874\n\t\t,1.\x0d\n\x0d\t,false\x0d\n\t\t]\t\n }\x0d \t\n
+stdin {"b"\n\x0d\n\n:713\x0d  \n,"😀"\n \x0d\n\x0d\n:  ";","😀" \x0d\n:\n\x0d\n"穫\\uD990\\uDE9FI㎰󼉁 =%\\nR:\\u0012\\ub928\\u000d\\u6c06\xc0\x80d\x7f;򣳓)\xc0\x80\\ud82a\\uDeF9s\\u5103ឹm5@\\uEF444*35O\\u0002"\n\n,"b"\x0d \n\x0d\n:\t[633,768\n \x0d,.5,"hO\\ub994<g9m\\u001A^{\xf4\x90\x80\x80#"\x0d\n\x0d\n,{"｡" \x0d\n:\x0d\n\n \x0d\n-.5\n\t\n,"\\ufF61"\t:\n\t"_"\t \n}\t\t ,1.,[]\x0d\x0d \n,"ń\\r\\u0011Y<\x7fo"]\x0d\n\x0d\n\x0d\n}\t\x0d\n\t \n
 end
 
 case gen/values-v1/334
@@ -2062,7 +2062,7 @@ end
 case gen/values-v1/335
 arg -c
 filter tostream
-stdin {"\\u00e9"\t\x0d\x0d\n:  \nnull\x0d ,"😀" : false,"Z"\t\t:\x0d\n\x0d\n\x0d\t1e10000000000\x0d\x0d,"😀"\x0d\n\x0d: ["*J}Z\xe0\x80\x80"\x0d\n ,".鶡oֲ\xed\xa0\x80V滢5Rh5\xed\xa0\x80Ƴ\x8d\\uBaAdY\xed\xa0\x80m&%t9і\xa26\\b\\uca8BS\\u000a}\xc0\x80\\t'z\\u3637]\x7f\xeb\xa7qZAGY%aa"\t,007\n,{"b"\t \x0d\x0d\n:\x0d\n \x0d\n"\\n\xe0\x80\x80J+",""\x0d :[2.e3\x0d \x0d\n ,{"A"\t  : true \x0d\n\x0d\n,"\\u00e9"\n\n  :\x0d\x0d\n\x0d-328,"Ҭ":\x0d\n \x0d+1 \n\t\t}\n \t ,007,701.3277]\t\x0d\n,"｡"\x0d\n\x0d\n\x0d:.5\t,"\\u0062"\n:{"é"\x0d:\n"9~dW\\""\t\x0d\n\n\n,"😀"\n\x0d\t:\x0d\n"\\u000cW`",""\x0d\n\t\n:\n\t"x`H}鄁\\t\\b\\ud8B2\\uDc1aB2䲖?5餓ݽtg","i23O[Y<\x7f5􃄮{\\\\̼\xf4\x90\x80\x80#{\\fW"\n\n\t:\n+1  } \x0d\n\x0d}\t\t\x0d\n,false,0.0000000079\x0d\n\t\n\x0d,{  }\t\x0d\n,"Ȣ󽓣JS ɭBLg!H"\x0d\n\x0d\n  ,NaN00 ,"l\\u0018/-\\b)\\u000c퀻.ܕ쩻t"\x0d\n\t\x0d\n\n,66\n\n\x0d\n,-NaN\x0d\n],"aa"\t\t: [542 \x0d,+1.E+2\t ]\x0d\x0d\x0d\n\x0d\n,"é"\x0d\n\x0d\x0d:\t\n\x0d"mY0","˯\\u177D\\t\\r3\\fs\\uD803\\udF15瑕(\\/M􌳬n"\x0d:  \t96E-72,"a"\t :\x0d\t\t-49090.613792503450414\n\x0d\t,"ʕ\x8b>{\\bq܆\xbc" :\x0d\x0d\n {"\\uda82\\uDfc8`kĳMn)rEԋo}\\uD9ae\\uDEB0!?6뢩ڹ"\x0d \x0d:\x0d{"Z"\x0d\n:\x0d \n"̜1椓ې"\t,"𬄞Dk ~3̂/\\u0016S" :\ttrue ,""\t:\x0d\n\x0d\n\x0d\n"Y􊌩F3%\\bUz񴼄rtڨr̡\\"m8n[p5I\\np,RX\xed\xa0\x80"\n\x0d\n}\t\t\x0d\n\x0d\n,"😀"\n\n\x0d\n:null,"é"\x0d\n \t\x0d:\x0d\n\x0d\n[false]\n\x0d\n ,""\t\x0d :\x0d\n\x0d16\x0d\n\x0d,"뚭ivD": \t\t\x0d-0 ,"aa"\x0d\n:007\x0d\n,"\\u00e9"\x0d\n\x0d : \n[+1\t] ,""\x0d:\n{\x0d}\x0d\n\t} \t  }  \t\x0d\n\n
+stdin {"\\u00e9"\t\x0d\x0d\n:  \nnull\x0d ,"😀" : false,"Z"\t\t:\x0d\n\x0d\n\x0d\t1e10000000000\x0d\x0d,"😀"\x0d\n\x0d: ["*J}Z\xe0\x80\x80"\x0d\n ,".鶡oֲ\xed\xa0\x80V滢5Rh5\xed\xa0\x80Ƴ\x8d\\uBaAdY\xed\xa0\x80m&%t9і\xa26\\b\\uca8BS\\u000a}\xc0\x80\\t'z\\u3637]\x7f\xeb\xa7qZAGY%aa"\t,007\n,{"b"\t \x0d\x0d\n:\x0d\n \x0d\n"\\n\xe0\x80\x80J+",""\x0d :[2.e3\x0d \x0d\n ,{"A"\t  : true \x0d\n\x0d\n,"\\u00e9"\n\n  :\x0d\x0d\n\x0d-328,"Ҭ":\x0d\n \x0d+1 \n\t\t}\n \t ,007,701.3277]\t\x0d\n,"｡"\x0d\n\x0d\n\x0d:.5\t,"\\u0062" \x0d\n:\x0d\x0d\n \x0d[-567\x0d\x0d\n\x0d\n\x0d\n,-NaN,9223372036854775808\x0d\n,"\\u000cW`","\xc0\x80"\n\n,-946\t,"x`H}鄁\\t\\b\\ud8B2\\uDc1aB2䲖?"\x0d\n\t \n,+1,.5 \x0d\n,{"i23O[Y<\x7f5􃄮":\t\x0d\n\x0d\n1e-10000000000 ,"b"\n\x0d\n\t:\n\n\t"T|\\b"\x0d\n},{}\x0d\n \n\t,Infinity\x0d\x0d,.5\t\x0d\n] \x0d\n}\n\t,"Ȣ󽓣JS"\x0d,"Lg!"\t\x0d\n\x0d\n,291.5 ,"l\\u0018/-\\b)\\u000c퀻.ܕ쩻t"\x0d\n\t\x0d\n\n,66\n\n\x0d\n,-NaN\x0d\n,722\t,null],"JNq" :\n\t[-.5\x0d\x0d\t,"mY0\\n\\t"\x0d\n\x0d\x0d\n,[\t]\n\n\n,"S\\t\\r3"\n\n\t\x0d\n]\x0d\n,"Z" \x0d\n\x0d\x0d\n:589.6736\x0d  ,"\\u00e9" \x0d\n:\n-4176088165712513909061379  ,"A":"ʕ\x8b>{\\bq܆\xbc#q\xc0\x80Z%\\udA62\\uDfEcD"\t ,"Z" \x0d\n: \t\x0d10E-9}\n
 end
 
 case gen/values-v1/336
@@ -2209,7 +2209,7 @@ case gen/values-v1/359
 arg -c
 arg -S
 filter .
-stdin {"LMu:\\"O=R~9;r\\"I+\x7f熢򁥪k\\nK H_أ\\"":{"v$3\xed\xa0\x80":"u"},"A":false,"\\u004cMu:\\"O=R~9;r\\"I+\x7f熢򁥪k\\nK H_أ\\"":[353]}\n
+stdin {"LMu:\\"O=R~9;r\\"I+\x7f熢򁥪k\\nK H_أ\\"":{"v$3\xed\xa0\x80":"u"},"A":false,"LMu:\\"O\\u003dR~9;r\\"I+\x7f熢򁥪k\\nK H_أ\\"":"4Y)*!\x7f90"}\n
 end
 
 case gen/values-v1/360
@@ -2302,13 +2302,13 @@ case gen/values-v1/374
 arg -c
 arg -a
 filter .
-stdin  \n{"Z"\x0d\n\x0d\n: +1.E+2\x0d\n,"é": \x0d\n\t576041195293720044301.084,"\\u005A" :""\t\t\x0d\n\x0d}\x0d\n\x0d\n
+stdin  \n{"Z"\x0d\n\x0d\n: +1.E+2\x0d\n,"é": \x0d\n\t576041195293720044301.084 ,"\\u005A": [null\n\x0d\n\x0d\n]\x0d}\x0d\n\x0d\n\x0d 
 end
 
 case gen/values-v1/375
 arg -c
 filter tojson
-stdin \x0d \x0d\n{"A"\t\t\n:\x0d\x0d\t007\x0d\n\t\x0d\n}\x0d\n
+stdin [\x0d\n  +1.E+2,\x0d\n  [\x0d\n    -0e5,\x0d\n    ".x0Y\xf2\xaa\xad"\x0d\n  ]\x0d\n]\n
 end
 
 case gen/values-v1/376
@@ -2326,7 +2326,7 @@ end
 case gen/values-v1/378
 arg -c
 filter .
-stdin  \t +1\t \x0d\n
+stdin  \x0d\n {"😀"\t:\x0d\x0d\x0d 232\n\x0d\n\x0d,"" \n:\t\x0d {"\\u00e9"  \n\n:\x0d\t  -132\t\x0d\x0d\n,"a" \x0d\n:\t\n{ \t} \x0d\n \n,"é"\x0d:\n\x0d+1.E+2\n\n \n}\n\x0d\n\t }\n\x0d\x0d\n\n\n
 end
 
 case gen/values-v1/379
@@ -2388,7 +2388,7 @@ case gen/values-v1/388
 arg -c
 arg -a
 filter .
-stdin {"😀":[{"｡":{"b":[{"A":[[{"aa":{"😀":{"":{"":[{"é":{"b":[[[{"A":[[[[{"A":[{"\\u00e9":[[[{"a":["3{"]}]]]}]}]]]]}]]]}}]}}}}]]}]}}]}\n
+stdin {"😀":[{"｡":{"b":[{"A":[[{"aa":{"😀":{"":{"":[{"é":{"b":[[[{"A":[[[[{"A":[{"\\u00e9":[[[{"a":[{"":[[[{"":[{"a":{"a":[{"a":{"é":[[{"A":[{"aa":{"":[[[[[[[[[[[[{"\\u00e9":{"｡":{"aa":[{"b":{"aa":[{"":{"":{"｡":{"a":[[{"a":{"b":[[{"｡":[{"😀":[{"😀":{"\\u00e9":{"aa":{"｡":{"é":{"aa":[[{"a":{"a":{"\\u00e9":{"aa":{"\\u00e9":{"":[{"aa":[[{"":{"😀":[[[{"Z":{"a":[[[[{"Z":[{"b":[[[[[{"a":{"Z":{"A":{"b":[{"":{"｡":{"":{"a":[{"":[[[[{"\\u00e9":{"Z":{"aa":{"é":[[{"a":[{"😀":{"\\u00e9":[{"é":[[[{"\\u00e9":{"é":[false]}}]]]}]}}]}]]}}}}]]]]}]}}}}]}}}}]]]]]}]}]]]]}}]]]}}]]}]}}}}}}]]}}}}}}]}]}]]}}]]}}}}]}}]}}}]]]]]]]]]]]]}}]}]]}}]}}]}]]]}]}]]]}]}]]]]}]]]}}]}}}}]]}]}}]}\n
 end
 
 case gen/values-v1/389
@@ -2406,7 +2406,7 @@ end
 case gen/values-v1/391
 arg -c
 filter tostream
-stdin [{"😀":"","b":"߳I])","😀":{"aa":"LD"},";":1.},NaN,false,["\\f2\xf4\x90\x80\x80<ݍع\\\\f~yE\\uD955\\uDCa6","A",false,924.9,"I;7",76],"sZ",0.0,{"A":20E7,"p|{Q\xa6?\\uD9AE\\uDF82+\\r&":.5,"aa":007},-109,757,{"aa":102,"\xe0\x80\x80I":"LH\x7fǰ"},{"Z":[2.e3,"@z"],"\\u00e9":[false,"",0.00000006,-inf,""],"\\u00e9":{"T":"","䒈":"\x95򥫶\\u000BvꄧgrPc.~F\xe5"}},null,"\\u001d,hs",{"|2~\xed\xa0\x80򩧗Y\xc0\x80J<\x7f<\xc0\x80WJ":-801,"\\n":"\\t=={","":-920,"😀":-483,"\\u007c2~\xed\xa0\x80򩧗Y\xc0\x80J<\x7f<\xc0\x80WJ":+1},{},"Ϙ\x9f\x7fᤸ𯟑\\txgᄳ\\u0000_j#)(\\t\xed\xa0\x80\xf3\xb0\xa6z\xed\xa0\x80sry%Vi\xf1wy?镽:"]
+stdin [{"😀":"","b":"߳I])","😀":{"aa":"LD"},";":1.},NaN,false,["\\f2\xf4\x90\x80\x80<ݍع\\\\f~yE\\uD955\\uDCa6","A",false,924.9,"I;7",76],"sZ",0.0,{"A":20E7,"p|{Q\xa6?\\uD9AE\\uDF82+\\r&":.5,"aa":007},-109,757,{"aa":102,"\xe0\x80\x80I":"LH\x7fǰ"},{"Z":[2.e3,"@z"],"\\u00e9":[false,"",0.00000006,-inf,""],"\\u00e9":{"T":"","䒈":"\x95򥫶\\u000BvꄧgrPc.~F\xe5"}},null,"\\u001d,hs",{"|2~\xed\xa0\x80򩧗Y\xc0\x80J<\x7f<\xc0\x80WJ":-801,"\\n":"\\t=={","":-920,"😀":-483,"|2~\xed\xa0\x80\\uDA66\\uDdd7Y\xc0\x80J<\x7f<\xc0\x80WJ":["Ϙ\x9f\x7fᤸ𯟑\\txgᄳ\\u0000_j#)(\\t\xed\xa0\x80\xf3\xb0\xa6z\xed\xa0\x80sry%Vi\xf1wy","\xbdϯNѸ"]},1.,""]
 end
 
 case gen/values-v1/392
@@ -2529,7 +2529,7 @@ end
 case gen/values-v1/411
 arg -c
 filter [paths]
-stdin +1.E+2\n
+stdin \x0d\n[["󉧒\\\\V\\u9977"\x0d\n\x0d\n\t,-0,[true\x0d\n\n ,-Infinity\n,[489  \n,":v\\f\x7f4g\\u0014^ (\\u000d\\\\\xfd&]\xf4\x90\x80\x80g񿕫" \n\x0d\n,[] \n\x0d\n\x0d\n,-.5 ,""\x0d\x0d\t,""]\x0d,null\t]\x0d\n ,null\t\n\x0d\n ]\t,""\x0d,"󄋥#x2\\/"\x0d\n\n,"/\\f\\r\xe8\x8cjڅ\\uD8Ea\\uDf2eF㑣"\n,+1\x0d\n\x0d\n\n\n,281.3154\t\n,false\x0d\x0d\n\n,{"aa"\n\x0d:411\n,"Z": "?\\u0009\\"("\x0d\n\x0d\n,"A"\n\t:"{֧\x97N񞝛\\uD8e9\\uDCF7\xf4\x90\x80\x80","a"\t\t: \x0d\n \n"񛊅\\uD906\\uDd09+'.\\udA66\\uddeD\xe0\x80\x80"\x0d\n,"N"\t \t\x0d\n:\x0d\n\t\n\t""\x0d\n,"\\u00e9"\x0d\n\n \x0d:\n"̍=uFb","+BN\\rK\\n(鱝": \n\x0d\n["}\xed\xa0\x80\\f"\t\x0d\n,622.145\x0d\x0d\t,null\n\n ,"\xed\xa0\x80^#D",760.156\x0d\x0d\n\t\x0d\n,null\x0d\n,+1.E+2\n\n\x0d\x0d\n]\x0d\x0d}\x0d\n\x0d\n,null \n\x0d\n]
 end
 
 case gen/values-v1/412
@@ -2546,7 +2546,7 @@ end
 
 case gen/values-v1/414
 filter .
-stdin [null,[{"f":-.5},"\\uab69",{"":"|󆊸","2\\uD9b5\\udd59𼐼(񘆪(񪀟.BM":[],"A":false},{"A":null,"\\u0041":{}},{"\\t\xf4\x90\x80\x80{Q8\\u000d\\/.\\ud48C\x7f>̌q΃\\uDa2E\\uDdC7&":":l\\n","\\u00e9":["\x7fi\\u206bbuu:\\n\\f"]},2.e3,null,-992,-523.3,-854.935,{},[514.5681,false],{"😀":1e999999999,"a":[18]},"ꡟ"],89e+15]\n
+stdin [null,[{"f":-.5},"\\uab69",{"":"|󆊸","2\\uD9b5\\udd59𼐼(񘆪(񪀟.BM":[],"A":false},{"A":null,"\\u0041":{"\\t\xf4\x90\x80\x80{Q8\\u000d\\/.\\ud48C\x7f>̌q΃\\uDa2E\\uDdC7&":522,"":true,"a":007}},8893472973599.9631019,":","",2.e3,null,-992,-523.3,-854.935,{},[514.5681,false]],null]\n
 end
 
 case gen/values-v1/415
@@ -2584,7 +2584,7 @@ end
 case gen/values-v1/420
 arg -c
 filter .
-stdin \x0d\n\x0d\x0d{"Z"\t\x0d\n :\x0d\x0d\nfalse,"\\u005a"\x0d\n\t:\x0d\x0d\n\t"\\ud83e\\uDdc9\xd8ni˰\x86i\\u0010\\ud875\\uDcF7"\t\t\n }\n\x0d\n\x0d\n\n
+stdin \x0d\n\x0d\x0d{"Z"\t\x0d\n :\x0d\x0d\nfalse\x0d\n\t,"\\u005A"\x0d\x0d\n\t:\t\n\n"\\ud83e\\uDdc9\xd8ni"\t\x0d\n} \x0d \n
 end
 
 case gen/values-v1/421
@@ -2596,7 +2596,7 @@ case gen/values-v1/422
 arg -c
 arg -S
 filter .
-stdin {"":null,"\\u00e9":true,"A":null,"oG\\u0019\\f\xc0\x80A%":{"a":null,"é":"+\\u409a~~Ŗ\\uddfc","":{"aa":+1.E+2,"V6ЍuΧ":[[-708.1],-.5]}}}\n
+stdin [[null,true,{"é":"~\\tu$\\\\_\\nfet@&>C\\\\^$Kю4\\b+q紸h\\u0005\xed\xa0\x80","p⑍O\xed\xa0\x80V6񬗓sizu\\t醅":[]},null,{"😀":{"\\n":"ȴw\\ud8C6\\uDE68%\\u73F3ʖ\x94\\r","b":-467,"b":{"a":637,"Z":NaN,"aa":"NC\\\\","ƹ\\u0015򷞞\\u0018\\"󶧵;\\u000d*vm%\xc0\x80^\\\\BR'O":null,".V!ͭ'\\uC4d3mB +ÿ":true},"😀":"E","\\u00e9":"","":2.e3,"􊠏Q>\xc0\x80D":true,"6Qٲ\x90n&A\\ud81A\\udD30\\uDd4A":null,"\\u00e9":-21E-5,"":"\\uD902\\uddb3"},"e2~#q":"g<K3^P\\ni\\rߝ\x94rk 4f\xed\xa0\x80U@\x7f915","9h":"d\\b"},{"":[null,277,"񲫹",874,null,"[\\u0000򫃹ؚ\xb6FY",1.,",'\xc0\x80M$",[1.]]}]]
 end
 
 case gen/values-v1/423
@@ -2639,7 +2639,7 @@ case gen/values-v1/429
 arg -c
 arg -S
 filter .
-stdin \x0d\x0d\n\x0d\n{\t"é"\x0d\n\t :\x0d\x0d \x0d\n{\x0d\x0d\x0d\n"Z"  \x0d :\x0d\n\n[\n\x0d\n\n{\x0d\n \x0d\n"é"\x0d\n:\t\t\x0d\n\x0d[[\n{\x0d\n\n\x0d\n""\x0d\t \x0d\n:\t\x0d [\x0d {\n"é"\n:\x0d\n\x0d\n[ [ \x0d\n[\x0d\n[\t\x0d\n[\t\t\x0d{\t\t\t "":\n\t\t\t{\t\n "A"\x0d\x0d\n\t:\x0d\x0d\x0d\x0d{  \n\t"｡" \t \n:\n\x0d\n\n[\x0d\n\x0d\n \n{\n \t"b":\x0d\n\x0d\n\t\x0d[\n[\t\n\x0d\t[\x0d\n\n{\t\x0d\n"｡" : [ \t\t[[\x0d\n \t[\x0d\n\t{"Z" \x0d\n\n:\n\t\t\n{\x0d\n  "aa"\n: [\t \t[\x0d\n\x0d\n\x0d\n\x0d[\t{\x0d\t"😀":\x0d[\n\x0d\n\x0d\n{"a"   :[\x0d\x0d[\t\x0d\n[\n \x0d\n\t{"｡"\t\t\n\x0d\n: \t\x0d\t[\x0d\n\x0d\n[\n\t[\n [\t\x0d[\n{"é":\x0d\n\t\x0d\n\x0d[\n\t\n[\x0d[\t\x0d\n[\t\x0d\n\n{\x0d\n\x0d "é"\n:\x0d\x0d\x0d\n[\n\n[\x0d\n\t\x0d\n[ \t{\x0d\t\n "\\u00e9":\x0d\n[\t[\x0d\n\x0d\n\x0d\n{\t\x0d\n\n\n"Z"\x0d\n:{\n\x0d \t"": {"aa"\t\t:\x0d\n\t{ \t\x0d\n\n"b"\n\x0d\n  :\x0d[\t[\x0d\n\t {\x0d"aa" :\x0d\n\x0d{\t\n\t"\\u00e9":\t[\x0d\n\x0d\n{\t\t\n"b"\n:\t[\x0d{"a"\x0d\x0d\n :\x0d\t [ \x0d\x0d\n[\n\n\n\t[\x0d\n[ \t \x0d[\x0d\n\x0d\n\x0d [\x0d\n\x0d[\t\x0d\n\x0d\n{\x0d\x0d\x0d\n"a"\x0d\x0d \n:\t\n \t{\t\x0d\n"A"\t\t:\n\x0d\n\x0d[\x0d\x0d\n[\x0d[\t\t\t\x0d\n[{\n"A"\n:\x0d\n [\x0d\n\n {\x0d\n\x0d\n \x0d\n"a":\n{\x0d\n\n\x0d\n"A":\n\x0d\n{\x0d\n\t\n"😀"\x0d:{\t\x0d\n\t\t"a"\x0d\n:\x0d\n[\x0d\n{\x0d\x0d""\n: \t\t\t{\x0d\x0d\t\x0d"b"\x0d\t:[\n \x0d{\x0d\n"aa"\x0d:\t\n\x0d[\x0d\x0d\t[\x0d[ [\n\t\x0d{\x0d\n"é"\t:{\x0d\n"Z": \x0d\x0d [{\t \t\t"｡"\t\n\t:{\x0d \t"aa":\x0d\n{"\\u00e9":\t\x0d\n[\x0d\n\n\x0d\n[\x0d\n\t[{\n""\n :\x0d [\n[\t\n\x0d[\t\n{\n  "\\u00e9"\x0d\n\x0d\n \t:\x0d\n\t\n{\n"aa"\x0d\t:\n\x0d\x0d\n\x0d[ [[\x0d \t[[\x0d\n \x0d\n\n{\t "aa":\x0d\t{\x0d\n\t"A"\n\t \n:\x0d\n[\x0d\n[\x0d\n\x0d\n{\x0d\n\x0d\n\n"｡"\x0d\n\n\t:[ \x0d\x0d\n{"é"\x0d\n:\n\x0d\n \x0d{\x0d "｡"\n\n \x0d\n:\x0d\n{\n\x0d"😀"\x0d\n\n\x0d\n\x0d\n:[\x0d \n\x0d\n[{\x0d\n\t""\x0d\n\x0d\n:\n\x0d\n{\x0d"a"\x0d\n\t\n\t:\n[\x0d\n\t{\n\t"é" :\x0d[ \x0d\n \x0d\n{ \x0d\n "é"\x0d\n\n\x0d:\x0d\n[\t\x0d\n\x0d [\x0d {\x0d\n\x0d"😀"\t\x0d\n:[\x0d\n [ \x0d\n {\x0d\n "\\u00e9"\t\x0d\n \x0d: \t[\t\x0d\n\n {\x0d\n""\n \t\t:\n\x0d\n  {\x0d\n\x0d\n\t"é"\n\n:\t\x0d{\t\x0d\n "" :\t\x0d\n { \x0d\n "😀":\n \t\t[\x0d\n \x0d[{ ""\x0d\n : \x0d [\x0d\x0d\n{\t"｡"\x0d\n: [\n\x0d\n{ "é"\x0d\n:\n{"\\u00e9"\t \n:\n\x0d\n\t\n{\t \n"😀":\n\x0d\n\n\t{\x0d\n"aa"\x0d\n\n\x0d: \x0d\n{"a"\t\x0d\n :{\n "｡" : \x0d\x0d\n{\x0d\t"Z"\n : \n{\x0d\x0d\n "A"\n\t\t\x0d\n:\x0d\n\t\n {"\\u00e9" \x0d\n\x0d\n\x0d\n: \t\n\n1e-1147483648\x0d\n\t ,"\\t\\udb0f\\udD83\\ucf0F"\t\x0d:NaN00\x0d\x0d  } \t\x0d\n }\n\x0d}\t\x0d\n\x0d\n}\x0d\n \x0d\n\t} \n}}}}]\x0d\x0d\t\x0d\n}]\n}\n]\x0d\n]}}\n}}\n]\n\t}\n\x0d\n] \x0d]\x0d\n}]]\x0d\n\x0d\n\t}]\t}\x0d\n \n]\x0d\x0d\x0d}}]\x0d\n\x0d\n\n]\n}\n\x0d\t}\x0d\n }\x0d\n\t\t\x0d\n]\n\x0d}\x0d\n \x0d ]]\x0d\t} \n\x0d }\t]]\x0d\n]  \x0d] ]}\t \t\n}]  ]]}]\x0d\n\x0d\n\x0d\n\n] ] } \t }\x0d\n\t}\x0d\n]\x0d\n\x0d\x0d }\n\x0d }\x0d\n \x0d ] \n\n\t]\x0d\n \x0d\n\x0d\n]\n\x0d\t\n]\t\x0d} \x0d  ]\x0d\n\x0d\x0d}}\n]\x0d\n}\t }}}\n\t\n\x0d\n]\x0d\n}]\n\n]\t\n]]\x0d\n } \n }\t \t]\n\x0d\t\x0d\n]\x0d\n\x0d\n\n]]\x0d\x0d\n]\n\t\n ]\n\x0d \x0d]  }\x0d]\x0d\x0d}\n]}\n\n \n}\t\x0d\n]]}\n }\n\n} \n } \x0d]\x0d\n\x0d\x0d\n]\x0d\n\t}\x0d\n \n]\x0d]\t\x0d\x0d\n ]\x0d\n}\n\n]\n] \n \t]\n\t\x0d\n]\x0d\n}\n\x0d\n]] \t\x0d\n]]\x0d]\t  }\x0d\n]\n ]\x0d\x0d\n\x0d\n ]\x0d\x0d\n\x0d}\x0d ]\x0d\n}\n\n\x0d\n] \t]\t]\t \x0d}}]\n]]\x0d ]\x0d\n}\x0d\n\x0d\t\x0d\n]]]}\x0d\n ]\t\t\t\t}\t }}\x0d \x0d\n]\x0d\x0d\x0d\n\t]\t]]\x0d\n \x0d]}  ]\t  }]\x0d\n\x0d\x0d]\x0d\n \n} \t \x0d\n]\x0d\n\x0d}\x0d\n\x0d\n\n}\n \n
+stdin [\n  "\xb7\\// \xc0\x80u\\u2Fcb},\\/\\f\xed\xa0\x80=\\udba2\\uDDcA)9",\n  48.02e71,\n  [],\n  ")娦\\uDB9e\\udf27f\\\\w>NM\\nк\\r",\n  +1\n]\n
 end
 
 case gen/values-v1/430
@@ -2768,7 +2768,7 @@ case gen/values-v1/450
 arg -c
 arg -S
 filter .
-stdin [9007199254740993,27,null,[10285061132458047677838,-785,{"\\u001a\\t.a\\/\xc0\x80":{"a\xc0\x80㰈\\uDCC2\\r\\uDaBb\\uDF114\\u001b斒񫗈{t\\uDEa4@7G`M":"?\\r","\\u00e9":836,"\xe0\x80\x80":"K\\rZ","H޷\xed\xa0\x80h\x7f\\f?1L":439.01,"😀":18,"\\\\\\rFT\\u4e43":-960,"é":[-526,{"퇦Į\x81":"򔥡J󆣰\x7f"},940.6979,null],"｡":null,"E\\u1A4e󛛿j4~\xe0\x80\x80\\ub273м\xa7:\xf1\x8c~\xe0\x80\x80":["8着(%X򞏓n$y\\""],"é":"\xc0\x80\\uDBF9\\uDF5eXr赻"},"A":"/̭","Z":false,"󣲠F\\u001e":"䐜\xac\xb1","aa":"\\u936D3󎟚\\/ѧ0\xed\xa0\x80","\\u005A":"\\fz["}]]\n
+stdin [9007199254740993,27,null,[10285061132458047677838,-785,{"\\u001a\\t.a\\/\xc0\x80":{"a\xc0\x80㰈\\uDCC2\\r\\uDaBb\\uDF114\\u001b斒񫗈{t\\uDEa4@7G`M":"?\\r","\\u00e9":836,"\xe0\x80\x80":"K\\rZ","H޷\xed\xa0\x80h\x7f\\f?1L":439.01,"😀":18,"\\\\\\rFT\\u4e43":-960,"é":[-526,{"퇦Į\x81":"򔥡J󆣰\x7f"},940.6979,null],"｡":null,"E\\u1A4e󛛿j4~\xe0\x80\x80\\ub273м\xa7:\xf1\x8c~\xe0\x80\x80":["8着(%X򞏓n$y\\""],"é":"\xc0\x80\\uDBF9\\uDF5eXr赻"},"A":"/̭","Z":false,"󣲠F\\u001e":"䐜\xac\xb1","aa":"\\u936D3󎟚\\/ѧ0\xed\xa0\x80","\\u005a":[435,"\\ud8a2\\uDf81t񦩕g(𽹧g򘺛"]}]]\n
 end
 
 case gen/values-v1/451
@@ -2897,7 +2897,7 @@ case gen/values-v1/471
 arg -c
 arg -S
 filter .
-stdin {"é":"\\ucBCE!Ha =>`","😀":[],"😀":"ЏO","é":{"😀":.5,"A":157.539,"r\\udAB4\\udddcK܍":false},"aa":null,"é":{"Z":true,"%\\n":"LS\xed\xa0\x80","s\\f.1񿴠\\rL\xe1sA\x7fYA㒕\\u6f3C\xc0\x80󷣙\\"":{},"a":0.0,"Z":993.4,"%S}+\\t\\"i\\uf9d1\x7fn8~霕 p󨼌\x7f(y@gq𭴢=IM":true,"\\u00e9":-0.00000008408,"b":false}}
+stdin {"é":"\\ucBCE!Ha =>`","😀":[],"😀":"ЏO","é":{"😀":.5,"A":157.539,"r\\udAB4\\udddcK܍":false},"aa":null,"\\u00e9":+1.E+2}
 end
 
 case gen/values-v1/472
@@ -2910,7 +2910,7 @@ end
 case gen/values-v1/473
 arg -c
 filter tojson
-stdin [\n  {\n    "a": {\n      "｡": [\n        {\n          "": [\n            [\n              [\n                {\n                  "": {\n                    "\\u00e9": {\n                      "😀": [\n                        {\n                          "aa": [\n                            {\n                              "é": [\n                                {\n                                  "a": -688\n                                }\n                              ]\n                            }\n                          ]\n                        }\n                      ]\n                    }\n                  }\n                }\n              ]\n            ]\n          ]\n        }\n      ]\n    }\n  }\n]\n
+stdin [\n  {\n    "a": {\n      "｡": [\n        {\n          "": [\n            [\n              [\n                {\n                  "": {\n                    "\\u00e9": {\n                      "😀": [\n                        {\n                          "aa": [\n                            {\n                              "é": [\n                                {\n                                  "a": [\n                                    {\n                                      "\\u00e9": {\n                                        "Z": {\n                                          "": {\n                                            "aa": {\n                                              "\\u00e9": {\n                                                "b": {\n                                                  "aa": [\n                                                    {\n                                                      "": {\n                                                        "\\u00e9": [\n                                                          {\n                                                            "😀": {\n                                                              "A": {\n                                                                "é": {\n                                                                  "": {\n                                                                    "A": {\n                                                                      "b": [\n                                                                        [\n                                                                          [\n                                                                            {\n                                                                              "\\u00e9": [\n                                                                                [\n                                                                                  {\n                                                                                    "é": "̏W㻓}ބD>h\\u0004V/CL,`󟊴SվoyA?頒b귭"\n                                                                                  }\n                                                                                ]\n                                                                              ]\n                                                                            }\n                                                                          ]\n                                                                        ]\n                                                                      ]\n                                                                    }\n                                                                  }\n                                                                }\n                                                              }\n                                                            }\n                                                          }\n                                                        ]\n                                                      }\n                                                    }\n                                                  ]\n                                                }\n                                              }\n                                            }\n                                          }\n                                        }\n                                      }\n                                    }\n                                  ]\n                                }\n                              ]\n                            }\n                          ]\n                        }\n                      ]\n                    }\n                  }\n                }\n              ]\n            ]\n          ]\n        }\n      ]\n    }\n  }\n]\n
 end
 
 case gen/values-v1/474
@@ -2940,7 +2940,7 @@ case gen/values-v1/478
 arg -c
 arg -S
 filter .
-stdin [[{"a":{"":{"Z":[{"a":{"Z":{"A":[[[[[[{"\\u00e9":{"\\u00e9":{"a":{"｡":[{"😀":[{"😀":{"":[[{"b":[{"b":{"｡":{"A":[{"A":{"b":[{"😀":{"Z":[{"\\u00e9":[{"A":[{"｡":{"b":{"é":{"":[{"Z":[[{"a":{"a":{"a":[[[{"😀":[[[[{"":{"Z":{"\\u00e9":[{"é":{"A":[[[[[[{"aa":[[[{"é":[{"aa":{"Z":{"Z":{"A":{"A":{"é":{"a":{"A":[{"a":[{"aa":[{"\\u00e9":[[[{"｡":[[{"A":[[[{"aa":[[[[[{"A":{"\\u00e9":{"\\u00e9":{"b":[[{"b":{"｡":"V6"}}]]}}}}]]]]]}]]]}]]}]]]}]}]}]}}}}}}}}]}]]]}]]]]]]}}]}}}]]]]}]]]}}}]]}]}}}}]}]}]}}]}}]}}}]}]]}}]}]}}}}]]]]]]}}}]}}}]]
+stdin [[{"a":{"":{"Z":[{"a":{"Z":{"A":[[{"":-9223372036854775809,"\\u00e9":false}]]}}}]}}}]]
 end
 
 case gen/values-v1/479
@@ -2953,7 +2953,7 @@ end
 case gen/values-v1/480
 arg -c
 filter tojson
-stdin {"é":[[[{"A":[[{"A":{"b":[{"aa":[[{"b":{"｡":[{"\\u00e9":[{"\\u00e9":{"":[[[[[[{"😀":{"aa":{"aa":{"😀":[{"a":[[[{"a":[[[{"a":{"Z":[[{"é":[[[{"｡":{"\\u00e9":[[[{"é":{"aa":[{"｡":[[[[{"\\u00e9":{"A":[[[{"aa":{"😀":[[[{"\\u00e9":[[{"é":[{"😀":{"Z":{"\\u00e9":[[{"b":[[[{"A":[[{"A":{"😀":{"｡":[[{"":[{"Z":1.}]}]]}}}]]}]]]}]]}}}]}]]}]]]}}]]]}}]]]]}]}}]]]}}]]]}]]}}]]]}]]]}]}}}}]]]]]]}}]}]}}]]}]}}]]}]]]}\n
+stdin {"\\\\ᦕ\\nbw":null,"\x7f\\/򞻣6cD𑑢":"\xed\xa0\x80","":-.5,"A":"c","a":.5,"Z":null,"b":227}
 end
 
 case gen/values-v1/481
@@ -2996,7 +2996,7 @@ end
 case gen/values-v1/487
 arg -c
 filter tojson
-stdin {\n  "aa": false,\n  "\\u00e9": .5,\n  "": [\n    {\n      "A": "􍴉:",\n      "\\u0041": -.5\n    }\n  ],\n  "A": -218,\n  "麗W\xc0\x80\\uD9a4\\uDf90&㎂\\t[ӌ\x80": 007,\n  "": {\n    "f\\u00197": [],\n    "😀": -3366340562.48082389,\n    "b": 0.0,\n    "": "D\xf4\x90\x80\x80o󕏌~"\n  },\n  "񌴐傷F\\u00014": [\n    ";֫\xaa󈪑ϧ\x91b"\n  ]\n}
+stdin {\n  "aa": false,\n  "\\u00e9": .5,\n  "": [\n    {\n      "A": "􍴉:",\n      "\\u0041": -734.7728\n    }\n  ],\n  "\\u00e9": "麗W\xc0\x80\\uD9a4\\uDf90&㎂",\n  "a": [\n    12,\n    {\n      "f\\u001979\\/,Aa": true\n    },\n    []\n  ],\n  "é": null,\n  "｡": true\n}
 end
 
 case gen/values-v1/488
@@ -3033,7 +3033,7 @@ case gen/values-v1/493
 arg -c
 arg -a
 filter .
-stdin \t \x0d\n{"😀"\n\n:\x0d\x0d\t ";w\\b\x7f" \n,"Z"\x0d\n \t:[null\x0d\n\x0d\x0d\n\n,297\t\n  ,false \t\n,nan\x0d\x0d\t\t,"\\u6B14S "\t\t\x0d,true\x0d\t ,[-0e5\n\x0d\n\x0d,"|\xc0\x80#1[ 򯄈\xc0\x80\\r-\\tq\\b"\t,"{恅FkV\\tdE\\\\E󺶖",true\x0d\n,{"8A='\\u0013%<]\\uD882\\udCA9D"\x0d\n\t:\x0d\n\n"\x7fPHt\\r\\u0009\xf4\x90\x80\x80|󻮳ZgbIV)JGㄸ*]`V/"\x0d\n,"\\u0038A='\\u0013%<]\\uD882\\udCA9D"\n:\t.5\x0d\n}\n\n] \x0d\n\n]\t,"\\u00e9"\n:\t\t\n null\t\t\n,""\t\x0d\n  :\t\x0d\n\x0d\t{"a" \x0d\n: ["I􌗨$e\x7f=΋\\/Vn",-416\n\x0d\n\x0d]\n\n\t}\x0d\n\x0d\n\x0d\n}\n
+stdin \t \x0d\n{"😀"\n\n:\x0d\x0d\t ";w\\b\x7f" \n,"Z"\x0d\n \t:[null\x0d\n\x0d\x0d\n\n,297\t\n  ,false \t\n,nan\x0d\x0d\t\t,"\\u6B14S "\t\t\x0d,true\x0d\t ,[-0e5\n\x0d\n\x0d,"|\xc0\x80#1[ 򯄈\xc0\x80\\r-\\tq\\b"\t,"{恅FkV\\tdE\\\\E󺶖",true\x0d\n,{"8A='\\u0013%<]\\uD882\\udCA9D"\x0d\n\t:\x0d\n\n"\x7fPHt\\r\\u0009\xf4\x90\x80\x80|󻮳ZgbIV)JGㄸ*]`V/"\t\n\t\t,"\\u0038A='\\u0013%<]\\uD882\\udCA9D"\x0d\n\t\n\t:\n\n\n\x0dfalse\n\t\t\t}\t\n]\t\t\n ]\x0d\t\t,"\\u00e9"\x0d\n:\x0d\n[\t\x0d\n\x0d\t]\t\x0d\t\t,"|":\x0d\n\x0d{"a"\x0d\n :\x0d\t\t{"" \n:74e+2\t,""\x0d\n \t\x0d:"#"\x0d  \n,"ݟaQ" :-766\t\x0d\n\n\x0d\n,"A"\n\n : ""\x0d\x0d\n \x0d\n,"Km" :\t false   ,"|)I\xf4\x90\x80\x80+I"\n\x0d\n :\x0d\n\x0d-950 \x0d\n,"b": \n \n""   \x0d\n}\x0d\n\t\x0d }}\n
 end
 
 case gen/values-v1/494
@@ -3125,7 +3125,7 @@ end
 case gen/values-v1/508
 arg -c
 filter tojson
-stdin {\x0d\n  "y\\u000f": {},\x0d\n  "Z": [\x0d\n    -969.26\x0d\n  ],\x0d\n  "aa": -57430291304695208156,\x0d\n  "b": {\x0d\n    "": +1.E+2,\x0d\n    "a": +1,\x0d\n    "TH#,pرJ!͌\xaev\x9c쳾AET": -38108560943968130411617236657944,\x0d\n    "A": "",\x0d\n    "": null,\x0d\n    "😀": {\x0d\n      "é": null,\x0d\n      "E+": "eC-|*ڃeꖁFrߒQ𡫀F\\u000Ew=y0",\x0d\n      "b": -18.5e+446,\x0d\n      "aa": true,\x0d\n      "😀": [\x0d\n        -0.00000001377\x0d\n      ],\x0d\n      "Z": "",\x0d\n      "é": 007,\x0d\n      "😀": [\x0d\n        {\x0d\n          "<k": -177.23,\x0d\n          "A": 791.922\x0d\n        },\x0d\n        +1,\x0d\n        [\x0d\n          "",\x0d\n          true,\x0d\n          +1.E+2,\x0d\n          686434639297552211013622279\x0d\n        ],\x0d\n        {\x0d\n          "a": [\x0d\n            20.125,\x0d\n            -168,\x0d\n            "Q\\"i",\x0d\n            ""\x0d\n          ],\x0d\n          "]": null,\x0d\n          "-9\xed\xa0\x80\xe0\x80\x80E\\r": 54e+94,\x0d\n          "é": null,\x0d\n          "é": 0.0000000248,\x0d\n          "-9\xed\xa0\x80\xe0\x80\x80E\\r": [\x0d\n            "9ų\xb7,=\xc0\x80T{6\\ud836\\uDe6d ꔦjO\\u0005Mپ\x8a\\t\\n\\t\\u2Bc1'F\xbb\\u0009",\x0d\n            "33",\x0d\n            "덺Q",\x0d\n            +1\x0d\n          ]\x0d\n        },\x0d\n        "\xf1\xa1N\x7f\\uD9C2\\uDE57y",\x0d\n        "\xc2!m\\uDb13\\udF620 񠭽nh򑱀)O<H鉐'\xf4\x90\x80\x80Cf+oÄd3"\x0d\n      ],\x0d\n      "#b": [\x0d\n        {\x0d\n          "a": [\x0d\n            "\\bS_",\x0d\n            Infinity,\x0d\n            "𝛐WB\xe0\x80\x80q񤿑Q\\u57e7P4\\u001e花󑣓GC8<R.",\x0d\n            null,\x0d\n            007,\x0d\n            "֨&Y*",\x0d\n            -.5,\x0d\n            null,\x0d\n            "i\xc53q򋣡㬊\\u8481",\x0d\n            ",",\x0d\n            "\\rRaSBv"\x0d\n          ],\x0d\n          "\\tލkȆR<n\\\\": -.5,\x0d\n          "aa": true,\x0d\n          "b": true,\x0d\n          "a": false\x0d\n        },\x0d\n        657.3334,\x0d\n        -643,\x0d\n        true\x0d\n      ],\x0d\n      "[蒰z\\u0013zU": 698.089,\x0d\n      "aa": [],\x0d\n      "\\u0061a": ""\x0d\n    },\x0d\n    "\\u00e9": "ߞzʴ\x7f=p󫬷}|c@񘞛\x7f \\bmb",\x0d\n    "A": 2.e3,\x0d\n    "é": false,\x0d\n    "😀": 936,\x0d\n    "\\u0054H#,pرJ!͌\xaev\x9c쳾AET": 911\x0d\n  },\x0d\n  "鳃3\xed\xa0\x80򻴖": 782,\x0d\n  "A": {\x0d\n    "b": 96.15e+6,\x0d\n    "\\u00e9": {\x0d\n      "\\u97fd": 934542321989133664955523671579148\x0d\n    },\x0d\n    "A": 2.e3,\x0d\n    "｡": 445121408691363135250820127.5,\x0d\n    "｡": -0.000000039,\x0d\n    "b": "X󖗐",\x0d\n    "A": -110\x0d\n  }\x0d\n}\n
+stdin {\x0d\n  "y\\u000f": {},\x0d\n  "Z": [\x0d\n    -969.26\x0d\n  ],\x0d\n  "aa": -57430291304695208156,\x0d\n  "b": {\x0d\n    "": +1.E+2,\x0d\n    "a": +1,\x0d\n    "TH#,pرJ!͌\xaev\x9c쳾AET": -38108560943968130411617236657944,\x0d\n    "A": "",\x0d\n    "": null,\x0d\n    "😀": {\x0d\n      "é": null,\x0d\n      "E+": "eC-|*ڃeꖁFrߒQ𡫀F\\u000Ew=y0",\x0d\n      "b": -18.5e+446,\x0d\n      "aa": true,\x0d\n      "😀": [\x0d\n        -0.00000001377\x0d\n      ],\x0d\n      "Z": "",\x0d\n      "é": 007,\x0d\n      "😀": [\x0d\n        {\x0d\n          "<k": -177.23,\x0d\n          "A": 791.922\x0d\n        },\x0d\n        +1,\x0d\n        [\x0d\n          "",\x0d\n          true,\x0d\n          +1.E+2,\x0d\n          686434639297552211013622279\x0d\n        ],\x0d\n        {\x0d\n          "a": [\x0d\n            20.125,\x0d\n            -168,\x0d\n            "Q\\"i",\x0d\n            ""\x0d\n          ],\x0d\n          "]": null,\x0d\n          "-9\xed\xa0\x80\xe0\x80\x80E\\r": 54e+94,\x0d\n          "é": null,\x0d\n          "é": 0.0000000248,\x0d\n          "-9\xed\xa0\x80\xe0\x80\x80E\\r": [\x0d\n            "9ų\xb7,=\xc0\x80T{6\\ud836\\uDe6d ꔦjO\\u0005Mپ\x8a\\t\\n\\t\\u2Bc1'F\xbb\\u0009",\x0d\n            "33",\x0d\n            "덺Q",\x0d\n            +1\x0d\n          ]\x0d\n        },\x0d\n        "\xf1\xa1N\x7f\\uD9C2\\uDE57y",\x0d\n        "\xc2!m\\uDb13\\udF620 񠭽nh򑱀)O<H鉐'\xf4\x90\x80\x80Cf+oÄd3"\x0d\n      ],\x0d\n      "#b": [\x0d\n        {\x0d\n          "a": [\x0d\n            "\\bS_",\x0d\n            Infinity,\x0d\n            "𝛐WB\xe0\x80\x80q񤿑Q\\u57e7P4\\u001e花󑣓GC8<R.",\x0d\n            null,\x0d\n            007,\x0d\n            "֨&Y*",\x0d\n            -.5,\x0d\n            null,\x0d\n            "i\xc53q򋣡㬊\\u8481",\x0d\n            ",",\x0d\n            "\\rRaSBv"\x0d\n          ],\x0d\n          "\\tލkȆR<n\\\\": -.5,\x0d\n          "aa": true,\x0d\n          "b": true,\x0d\n          "a": false\x0d\n        },\x0d\n        657.3334,\x0d\n        -643,\x0d\n        true\x0d\n      ],\x0d\n      "[蒰z\\u0013zU": 698.089,\x0d\n      "aa": [],\x0d\n      "\\u0061a": -565\x0d\n    },\x0d\n    "b": nan,\x0d\n    "ߞzʴ\x7f=p󫬷}|c": [\x0d\n      {\x0d\n        "Z": true,\x0d\n        "7M\\"\\udB62\\udFE2m\\u000a": "\\t,I",\x0d\n        "\\u00e9": [\x0d\n          false,\x0d\n          "=$󁸤\x7fI󟮿\xe0\x80\x80t",\x0d\n          "QR\\n\\nxE溳'",\x0d\n          [\x0d\n            "C",\x0d\n            sNaN,\x0d\n            174,\x0d\n            -225,\x0d\n            "",\x0d\n            .5,\x0d\n            "2U0=\xf4\x90\x80\x80",\x0d\n            NaN00,\x0d\n            false\x0d\n          ],\x0d\n          null\x0d\n        ],\x0d\n        "A": true,\x0d\n        "": "X󖗐鰇\\udAfA\\uDe82\xa0<\xed\xa0\x80",\x0d\n        "": 007,\x0d\n        " ": -995,\x0d\n        "": "\xe4UƏ򽪜[H\xe0\x80\x804B)VU\\"\xc0\x80\\u0001IŸl<\\r5\x7f{򼱚#\\"",\x0d\n        "｡": null,\x0d\n        "": ""\x0d\n      },\x0d\n      {\x0d\n        "": false,\x0d\n        "b": [\x0d\n          .5,\x0d\n          "c"\x0d\n        ],\x0d\n        "": "t≝ul/E",\x0d\n        "": +1,\x0d\n        "A": "\\n֮"\x0d\n      }\x0d\n    ],\x0d\n    "Z": {\x0d\n      "fz": "~oZo\\uDaC8\\udcD1",\x0d\n      "": .5,\x0d\n      "": ",\\"Ȋ񠚤",\x0d\n      "a": 0e-1147483650,\x0d\n      "😀": [\x0d\n        "_Dś",\x0d\n        [\x0d\n          true,\x0d\n          false\x0d\n        ],\x0d\n        {},\x0d\n        null,\x0d\n        null,\x0d\n        "B(]",\x0d\n        -.5,\x0d\n        {},\x0d\n        "{\x7fbO"\x0d\n      ],\x0d\n      "\\u00e9": 4.4e+660,\x0d\n      "": -Infinity\x0d\n    },\x0d\n    "é": -Infinity\x0d\n  },\x0d\n  "\\b": "<z\\b\\fh\\ud895\\udDe8#3\xe0\x80\x80S\xd9",\x0d\n  "Oj": null\x0d\n}\n
 end
 
 case gen/values-v1/509
@@ -3155,7 +3155,7 @@ case gen/values-v1/513
 arg -c
 arg -S
 filter .
-stdin {"\\u00e9":909717289452418686650836944117825,"A":-679,",\\uE79CmD󑈲h?ǯ\x7f2Jj냢\\uD81D\\ude10":+1.E+2}\n
+stdin [+1,["m"]]
 end
 
 case gen/values-v1/514
@@ -3174,13 +3174,13 @@ end
 case gen/values-v1/516
 arg -c
 filter [paths]
-stdin [[[{"A":{"｡":{"a":{"":[{"é":[{"aa":{"aa":[[[{"aa":[{"😀":[{"b":[[{"":[[[[{"Z":[{"é":{"A":{"\\u00e9":{"b":{"\\u00e9":{"aa":{"a":[[{"A":{"｡":{"｡":{"｡":[{"aa":[{"｡":[{"":[[[[[[[[[[[{"aa":[[[{"｡":{"｡":{"Z":[[[[[{"A":[{"a":[[{"Z":[[[{"a":[[{"b":[{"":{"｡":{"Z":[[[[[[[[{"\\u00e9":[{"😀":[[{"a":{"｡":[{"a":[{"😀":[[[[[[{"A":[{"a":[{"Z":[{"aa":[{"aa":[[{"Z":[[{"":{"aa":[{"😀":[[[2.e3,null]]]}]}}]]}]]}]}]}]}]}]]]]]]}]}]}}]]}]}]]]]]]]]}}}]}]]}]]]}]]}]}]]]]]}}}]]]}]]]]]]]]]]]}]}]}]}}}}]]}}}}}}}]}]]]]}]]}]}]}]]]}}]}]}}}}]]]\n
+stdin .5
 end
 
 case gen/values-v1/517
 arg -c
 filter tostream
-stdin [[{"aa":[[{"Z":[[{"aa":[[{"😀":[[{"\\u00e9":[{"aa":[{"a":{"Z":{"é":[[[[[{"😀":[[{"😀":{"a":[{"aa":{"a":[{"b":{"":{"b":{"\\u00e9":[[[{"A":[{"A":[{"é":{"😀":[{"é":{"｡":{"Z":{"b":[[[{"é":{"\\u00e9":[{"｡":[[[{"\\u00e9":{"😀":{"\\u00e9":[{"aa":{"é":[{"｡":[{"😀":[[[{"｡":{"aa":{"😀":[[{"\\u00e9":{"Z":{"":{"a":[{"A":[{"aa":{"aa":[[[[[[{"":{"Z":[[[{"｡":179.9649}]]]}}]]]]]]}}]}]}}}}]]}}}]]]}]}]}}]}}}]]]}]}}]]]}}}}]}}]}]}]]]}}}}]}}]}}]]}]]]]]}}}]}]}]]}]]}]]}]]}]]
+stdin [[{"aa":[[{"Z":[[{"aa":[[{"😀":[[{"\\u00e9":[{"aa":["\\u0010"]}]}]]}]]}]]}]]}]]
 end
 
 case gen/values-v1/518
@@ -3334,7 +3334,7 @@ case gen/values-v1/542
 arg -c
 arg -a
 filter .
-stdin {"Z":{"a":{"A":[{"":[{"a":{"é":[[[[[{"aa":[{"Z":[[[{"a":[[{"aa":{"Z":[[[{"é":[{"aa":{"aa":[[{"\\u00e9":{"\\u00e9":[[{"a":[[[[[{"A":{"😀":[[{"":{"😀":{"aa":{"é":{"😀":{"b":{"A":{"\\u00e9":[{"b":[[{"b":[[[{"😀":[[[[[{"😀":{"":[{"":{"A":{"A":[[{"":[[[{"A":{"é":[[[[{"😀":[[{"｡":{"Z":{"Z":[{"\\u00e9":{"aa":[{"b":[[{"A":{"A":{"aa":[[{"a":[{"a":[[{"":{"":[[[[[[[[[{"\\u00e9":{"":{"é":{"aa":{"Z":{"é":[[{"b":{"":{"":[{"a":{"a":{"A":{"A":{"é":[{"｡":[{"":{"a":{"😀":[[[{"😀":[{"é":[{"😀":{"｡":[{"😀":[[{"A":[{"Z":{"😀":[{"é":[[[{"é":[[[{"a":{"b":{"a":{"":{"a":{"Z":{"😀":[{"😀":{"｡":[{"A":[[{"a":{"😀":[{"":[[{"aa":{"\\u00e9":[{"｡":NaN}]}}]]}]}}]]}]}}]}}}}}}}]]]}]]]}]}}]}]]}]}}]}]}]]]}}}]}]}}}}}]}}}]]}}}}}}]]]]]]]]]}}]]}]}]]}}}]]}]}}]}}}]]}]]]]}}]]]}]]}}}]}}]]]]]}]]]}]]}]}}}}}}}}]]}}]]]]]}]]}}]]}}]}]]]}}]]}]]]}]}]]]]]}}]}]}}}
+stdin {\x0d\n  "A": -.5,\x0d\n  "s1": -145,\x0d\n  "\xe0\x80\x80$c\\b{\x7fb\\f+N\xc0\x80w=\\nL\xed\xa0\x80.": +1,\x0d\n  "｡": -.5,\x0d\n  "r\\u6264\\"}": -281\x0d\n}
 end
 
 case gen/values-v1/543
@@ -3363,7 +3363,7 @@ end
 
 case gen/values-v1/547
 filter .
-stdin \t \t{"\x7f6*\x7f"\x0d\n:\t -374.3985  ,"}":\t\x0d\n\n -443\n\t,"\\u007D"\x0d\n: \x0d483\x0d\n\n\x0d\n\n}\t\n
+stdin \t \t{"\x7f6*\x7f"\x0d\n:\t -374.3985  ,"}":\t\x0d\n\n -443\t\t,"\\u007D"\n \x0d :\x0d\x0d\n\x0d\n\n"\\n[:\\"ƬP󷴎0嶜\\uD910\\uDd1A4Q" \n}\t\x0d\n\n
 end
 
 case gen/values-v1/548
@@ -3506,7 +3506,7 @@ case gen/values-v1/570
 arg -c
 arg -a
 filter .
-stdin [null,.5,{"\xb5\\\\\\\\":.5,"Z":-719,"i⚅\xe0\x80\x80Q) @Dom\\t򌖉?bW":177,"陾?\x9cezjFh\xefX7":"$󽽿9\\beȿ\\u00018OC=𳰖%\\u0012","Z":[""]}]
+stdin [null,.5,{"\xb5\\\\\\\\":.5,"Z":-719,"i⚅\xe0\x80\x80Q) @Dom\\t򌖉?bW":177,"陾?\x9cezjFh\xefX7":"$󽽿9\\beȿ\\u00018OC=𳰖%\\u0012","Z":[""]},154]
 end
 
 case gen/values-v1/571
@@ -3555,7 +3555,7 @@ end
 case gen/values-v1/578
 arg -c
 filter tojson
-stdin \x0d\x0d\t["><\\\\\\b\xed\xa0\x80~\\fG+7>9\xe0\xa5:\x7f\x7f_"\x0d\x0d\n,"" \n\n,10e999999999\n\t\n\x0d\n,-96701508635367519595373673917319007504\x0d,true\x0d\n\t\n,0.00000057\x0d\n\x0d\n,"򖑁eq\\/\\u245C\x84n󋀁hZB\xfdr\xc0\x80\\ua139𡑁s\\f$LP\xc8y^9"\t,"㢧j",884.7851\n \n\x0d,null,"+4諳ϡckG\\u00022U'D0{􅛓vTY\\\\\\"v\xec",{"A"\x0d\x0d\n: \n\x0d\t{"a"\x0d\n :\n"" \t\t ,"\\u00e9"\x0d\n:\x0d  "Ur"  \n\x0d\n,"\\u00e9":true\n,"yz"\x0d\n\n\t:861.86\x0d,"b":true\x0d\n\n,"?\xed\xa0\x80O'"\x0d\n\x0d\n\t\x0d\n:\x0d\n\tfalse\x0d\n\x0d,"\\u00e9": \x0d"%K\\uD5B5\x7fP\xe2\xa7]n"\t\t\x0d ,"" \n:[\t]\x0d\n,"SM\\u6780WgLg7ǒ\xbfi𛓊H5q\x7fN\xf1\x99I\xc0\x80Z轗P":  [-730\x0d\n,-233\x0d\n,39e-890\t]\x0d\n\x0d\x0d\n}}\x0d,"\\u41Da"\x0d\n\n ]\n
+stdin \x0d\x0d\t["><\\\\\\b\xed\xa0\x80~\\fG+7>9\xe0\xa5:\x7f\x7f_"\x0d\x0d\n,"" \n\n,10e999999999\n\t\n\x0d\n,-96701508635367519595373673917319007504\x0d,true\x0d\n\t\n,0.00000057\x0d\n\x0d\n,"򖑁eq\\/\\u245C\x84n󋀁hZB\xfdr\xc0\x80\\ua139𡑁s\\f$LP\xc8y^9"\t,"㢧j",884.7851\n \n\x0d,null,"+4諳ϡckG\\u00022U'D0{􅛓vTY\\\\\\"v\xec",{"A"\x0d\x0d\n: \n\x0d\t{"a"\x0d\n :\n"" \t\t ,"\\u00e9"\x0d\n:\x0d  "Ur"  \n\x0d\n,"\\u00e9":true\n,"yz"\x0d\n\n\t:861.86\x0d,"b":true\x0d\n\n,"?\xed\xa0\x80O'"\x0d\n\x0d\n\t\x0d\n:\x0d\n\tfalse\x0d\n\x0d,"\\u00e9": \x0d"%K\\uD5B5\x7fP\xe2\xa7]n"\t\t\x0d ,"" \n:[\t]\x0d\n,"SM\\u6780WgLg7ǒ\xbfi𛓊H5q\x7fN\xf1\x99I\xc0\x80Z轗P":  [-730\x0d\n,-233\x0d\n,39e-890\t]\x0d\n}\x0d\n}\t\x0d\n,52E-61 ]\x0d\x0d\t \n
 end
 
 case gen/values-v1/579
@@ -3578,7 +3578,7 @@ end
 
 case gen/values-v1/582
 filter .
-stdin {"é":-344.1716,"é":{"A":-675,"\\u0041":{"｡":""}},"A":"z","b":-0e5,"GQ\\u0004":"hQl睗5c͹BG\\u93eb","a":null}\n
+stdin {"é":-344.1716,"é":{"A":-675,"\\u0041":{}},"｡":453.685,"A":"񅠽","GQ":[{}],"hQl睗5c͹B":""}\n
 end
 
 case gen/values-v1/583
@@ -3707,7 +3707,7 @@ end
 
 case gen/values-v1/603
 filter .
-stdin \x0d\n{"\\udB13\\udd70\\"覷r\\uD9c8\\udC3a\\uc60D\xe2R΍[\\uDB41\\uDe64!sHHS\\u0006\\udD1e죥\\/":{"A"\t\x0d\n\x0d:\t   false\n\n\n}}\n\x0d\n\n
+stdin \x0d\n{"\\udB13\\udd70\\"覷r\\uD9c8\\udC3a\\uc60D\xe2R΍[\\uDB41\\uDe64!sHHS\\u0006\\udD1e죥\\/":{"A"\t\x0d\n\x0d:\t   false\n\n\n}\x0d\n\t \x0d} \x0d\n \x0d\n\n
 end
 
 case gen/values-v1/604
@@ -3721,7 +3721,7 @@ case gen/values-v1/605
 arg -c
 arg -a
 filter .
-stdin {"CR𽣊\xe0\x80\x80\\f^XH":{"aa":29.7E+1,"":[735],"｡":-9223372036854775809,"｡":16e9,"｡":-805958206.246066416033387,"L\\t4\xed\xa0\x80S{":{"":"G:XtQS\\ud915\\uDC6bGb","\\u00e9":{"\\/Kh":-744,"A":-41,"֩\xa3PF奁ﶘ\xed\xa0\x80Hc4q\\/\xd8Lz'\\u0017J e\\fLQ":"\\f\\/","":-385,"｡":"","A":["\\u745b\\u001e\\ud8A1\\ude05",0.000000003961,-761],"KU𻝫`5}q~(􍮌٩v~5/\\fQ":-773,"R\\/|eg\\uDA6E\\udD9A򯣡\\u001B\\udAB7\\uDE9f":"ь\\uDA82\\udC0A%)+FF񨂙`\\udb71\\uDe0E\xc2&w7\\ud97a\\uDd5bǇ$0L","é":196.114,"A":50e+655},"\\u00e9":{"\\u000E":1e-10000000000},"aa":1e-1147483646,"｡":null,"aa":242491499822215601448633},"｡":[1e-10000000000,{"é":"tNw","\\u00e9":{"é":9007199254740993,"｡":838443309258104823753073033964104,"｡":{"\\/\\n(":"g\\/"}}},null],"😀":["Ba!|򅀨d/Wv'","#",-9007199254740993,17.9e-630,[[true,"\\"Y\\n󖔣\\bH@UD\\n",{}]],690,"$lp","s\\u0001\\b{%",-0.000000093,[-274,"@",9223372036854775808,true],232],"":[],"A":-658,"uFo;l":"\xc0\x80'#","é":-0e5,"a":"𐏥$\x7f8]K.̥,qXՅ\x9d\\uB8bD;","\\uD8cc\\udEca":{"A":57.28E-03,"\\\\":[null,"\xe0\x80\x80\\bA Ȟ","zs","𾊓;",{"":91,"A":"'0"}],"A":"/\\\\"},"b":-35E8,"😀":[true,{"":[-132,[-387,592.620,true,">N~u⫏g񚼜\xe0\x80\x80\\uDb51\\uDd48\\\\c2T",-499.5177]],"\\u00e9":{"a\x7f":true},"b":[{"b":["߭\xc0\x80z8"],"aa":"򖔂*\xe0\x80\x80N\x97\\udb9B\\udC94fnڎ\x89K","aa":"<皮7󹴞qCO\\u0009\\"ڊ","A":56.21E48,"Z":"\\b\x7f㏒e\\beoݘ","":true,"񵈵?D\x7fA#嶑'}Bfg\xed\xa0\x80i\\/":null,"Mf\\uFcAe":30e+213,"Z":-0,"ܷ򛌦.":-105.0,"񻾄":true,"\\u0011kT@Ք\xbb":850,"Z":1e-1147483646,"a":987.41,"é":"fE","é":null,"é":751.3921},null,"g\\tA&\\"[\\uB06C\xed\xa0\x80\\ud906\\udf7b\\uDA96\\udeF2",129],"b":true},false],"｡":[9007199254740993,"",[651.159],"","p",964.9459],"":["􉨀䫈","\\t!\\n\xf3jRt",900.30],"｡":false},",\\\\\x9eݝf\\ua11B":"","aa":{"\\u000F":0e-1147483650,"a":"񡨈\\u001bB\\\\\\/!O)\x98ѰG\x7f3JQi\\"G\xd6$\x7f","\\u810Fm2\\"u<'[\xed\xa0\x80+[.":"󠸎Wz\xf2\xb4=_\\fS["}}\n
+stdin {"CR𽣊\xe0\x80\x80\\f^XH":{"aa":29.7E+1,"":[735],"｡":-9223372036854775809,"｡":16e9,"｡":-805958206.246066416033387,"L\\t4\xed\xa0\x80S{":{"":"G:XtQS\\ud915\\uDC6bGb","\\u00e9":{"\\/Kh":-744,"A":-41,"֩\xa3PF奁ﶘ\xed\xa0\x80Hc4q\\/\xd8Lz'\\u0017J e\\fLQ":"\\f\\/","":-385,"｡":"","A":["\\u745b\\u001e\\ud8A1\\ude05",0.000000003961,-761],"KU𻝫`5}q~(􍮌٩v~5/\\fQ":-773,"R\\/|eg\\uDA6E\\udD9A򯣡\\u001B\\udAB7\\uDE9f":"ь\\uDA82\\udC0A%)+FF񨂙`\\udb71\\uDe0E\xc2&w7\\ud97a\\uDd5bǇ$0L","é":196.114,"A":50e+655},"\\u00e9":{"\\u000E":1e-10000000000},"aa":1e-1147483646,"｡":null,"aa":242491499822215601448633},"｡":[1e-10000000000,{"é":"tNw","\\u00e9":{"é":9007199254740993,"｡":838443309258104823753073033964104,"\\uFF61":209.86}},false],"a":"g\\/","":[],">ڑ\\uda20\\udE7dS":[],"":false,"é":-740,"O\\t#r/po~\x90\\fV6":"\xf4\x90\x80\x80","aa":1e10000000000,"\\"Y\\n󖔣\\bH@":9223372036854775808,"Z":"*\\uaE1F܄","s\\u0001\\b{%":[10e999999999],"a":-945,"A":-274},"é":[],"\x7f?\\uFeAe":""}\n
 end
 
 case gen/values-v1/606
@@ -3750,7 +3750,7 @@ end
 
 case gen/values-v1/610
 filter .
-stdin {"t]{o"\n\n\x0d:\n{"aa"\t\x0d\n:\x0d\n\x0d\t {"p\\t"\x0d\n :\t\t\n[{"7\\nݝ7򋣏":\x0d \x0d12.6 \n\n ,"😀"\n\t\n\n:\x0d "]\xf4\x90\x80\x80,\x83s\\/"\x0d\n,"\xafL_V\\udE70墝q.\\udAF4\\udF5C\\t+"\x0d\t\n:\x0d\n\x0d\n\t true\x0d\n\t}\n \t,null,"(:((\\tX0kK➊z󩊆"\x0d\x0d\n\x0d\n,-946.04\t\x0d\x0d\x0d,{"😀" \t\x0d\n :\x0d\x0d\n\n\x0d939.0\x0d\x0d\x0d\n,"😀" \n:""\x0d\x0d\n }\n\x0d\n,-33E-952,-517\x0d\n\x0d\t]\x0d\n\t,"":{\t\x0d\n}\x0d,""\x0d\n\n\n:\n \x0d\n\x0d""\t\x0d,"\xc0\x80̿\\n9": 39e+266 }\x0d\n\t,"aa"\x0d\n\x0d\n: \x0d\n{"" \x0d\x0d\x0d\n:  "+","A"\t:"@顯t\xe0\x80\x80"} ,"򕬜"\x0d\x0d:"J򼪷2{ت"\t\t\x0d\n}\t\n\x0d\n,"b" \x0d:\t \x0d\n"\xe0\x80\x800!YɌJ򏴡"\x0d\n\t,"t}&>:c﵉\\r"\n\n\x0d:\x0d\n -36\t,"aa"\n\x0d\t:\n\t\x0d\x0dfalse}\n
+stdin {"t]{o"\n\n\x0d:\n{"aa"\t\x0d\n:\x0d\n\x0d\t {"p\\t"\x0d\n :\t\t\n[{"7\\nݝ7򋣏":\x0d \x0d12.6 \n\n ,"😀"\n\t\n\n:\x0d "]\xf4\x90\x80\x80,\x83s\\/"\x0d\n,"\xafL_V\\udE70墝q.\\udAF4\\udF5C\\t+"\x0d\t\n:\x0d\n\x0d\n\t true\x0d\n\t}\n \t,null,"(:((\\tX0kK➊z󩊆"\x0d\x0d\n\x0d\n,-946.04\t\x0d\x0d\x0d,{"😀" \t\x0d\n :\x0d\x0d\n\n\x0d939.0,"\\uD83D\\uDE00" \n:\x0d\n\x0d\x0d\n"ၡ闉y"} \x0d,"\\n\\u0012",{} \n\t\x0d\n]\x0d,""\x0d\n\n\n:\n \x0d\n\x0d""\t\x0d,"\xc0\x80̿\\n9": 39e+266\t ,"" :\n\x0d\n\x0d\n[\t\t\n ]\x0d\x0d\n\n,"\\u0070\\t":"+"},"é" :\x0d"@顯"\n\x0d\n,"": -0.0\x0d\n\x0d\x0d},"J򼪷2{ت":\t\t\x0d\n-38\n \n,"Z"\x0d\t :\x0d\n  \x0d\n[\n\x0d\n\n]\n\x0d\n\x0d ,"aa"\x0d\n :\n\n 581.4183 }\x0d \x0d\n\x0d\n
 end
 
 case gen/values-v1/611
@@ -3960,7 +3960,7 @@ end
 case gen/values-v1/644
 arg -c
 filter .
-stdin \x0d\n2.e3\x0d\n\x0d\n\n
+stdin \n\x0d\n\n\t.5\x0d\n\t\n\x0d\n\n
 end
 
 case gen/values-v1/645
@@ -4015,7 +4015,7 @@ case gen/values-v1/653
 arg -c
 arg -S
 filter .
-stdin {"U\x7f\x7f":{"aa":"i\\u0006󱜌\\\\\\uDe30","鿁.":{"Z":{"｡":123.6557,"😀":"M񵞼WŶ\x94\x7f","b":{"":2.e3,"b":null},"a":null,"OT":{}}}}}\n
+stdin {"a":"X","V[=r\\u0009h\\rg}\\"?񎘧\xba5P\\uDe6e\x7f\\uDa74\\udefA^:󣥭<":"ꖔ\xf4\x90\x80\x80&\\uD80E\\udc76Su\xed\xa0\x80","\\u0061":-.5}
 end
 
 case gen/values-v1/654
@@ -4065,7 +4065,7 @@ case gen/values-v1/661
 arg -c
 arg -a
 filter .
-stdin {\n\x0d\n"é" :\x0d\n\n\n\n{\x0d\n \n"A"\x0d\t:\x0d\n[\t \n[\t\t [\n\n\x0d[\x0d\n  [[ \x0d\n\x0d\n[\x0d\x0d{ \x0d\n\x0d"é"\t:{""\x0d \n:\t  \t{\t\t "é"\x0d:\n\t[  \x0d\n\x0d\n[\t\t{\x0d\n\x0d\n\n""\x0d:\n [[\n\t{"😀"\n\n\x0d\n\x0d\n:\x0d[\x0d\n\x0d[\x0d\n \x0d\n {\t\x0d\t"😀"\t\n\x0d\n\x0d:\t\x0d\x0d\n\x0d{"aa"\n\t\x0d: \x0d\x0d\n\n{\n\t \x0d\n"é"\n\t\x0d :\x0d\n\n\x0d\n\x0d\n{\n "A"\x0d\n\n\n:\t[  \t[\x0d{\x0d"":\x0d{\x0d\n\n"A"\n\t\t:[ \t{\x0d \x0d\n\x0d\n"aa" \x0d\x0d\n:\x0d\n{"é" :\t{"｡" \t:\x0d\x0d\n\x0d{\n"aa"\t:\x0d\t\n[{\t\x0d\n"Z" : [\n\n{\x0d\x0d "é"\x0d\n:\n\t{\t  "A"\n\t\x0d\n: \x0d\n\x0d[  \x0d\t{"\\u00e9"\t:\x0d\n\n\x0d\n\t[\t\t\n [\x0d\n\t[  [  [\n{ "é"\t\x0d\n\x0d:{"\\u00e9" \x0d:[\x0d\n {"é": \x0d\n\t\n{\x0d\n \x0d\x0d\n"b"   :\x0d\n\t{\x0d\n"Z":[ \x0d\n\x0d\n\x0d\n[   [ \x0d{"｡"\t\x0d\n\x0d :\x0d\n\x0d\n\x0d\n[ {\x0d\n\x0d\n\x0d"é"\x0d\x0d\n:\x0d\t{\x0d\n\x0d"😀"\x0d:\x0d{\n "a":\x0d{"b"\t\n: \t[\x0d\t[ {"A"  \x0d\n\x0d\n:\t\n {\t "😀"\x0d\t\x0d\n\x0d\n:\x0d\n\x0d\n[\n\x0d\t\t[ \n  { \x0d\n\x0d\n\n""\x0d\n:\x0d\x0d\n\x0d{\n \x0d"😀"\x0d\t :\t \n[ \n[\x0d\n[{\t \t\x0d\n"Z"\x0d\x0d\t :\x0d\n\x0d\n {\n\t"b"\n\x0d\n:[[  \n[ \n[\x0d\n\t{\n\t"A" \x0d\n\x0d:\x0d\n{\n\x0d\n\n\t"😀"\n \x0d\n:\x0d\n[\n[\x0d\x0d\n[[\x0d\x0d\t[\x0d\t\x0d\n\x0d\n{"😀"\x0d\n\x0d\n: [\t\t\n[{\t \x0d"\\u00e9"\n:\x0d \n[\x0d\n[[ [\x0d\n[\t \x0d\n [\t\t\x0d{\x0d "😀"  \t:\t\x0d\n\x0d\x0d{\x0d\n\n"\\u00e9"\n\t:\x0d \x0d\t[ {\t\x0d\x0d\n""\n:\n\t{\n\n\n"A" :\t[\x0d \x0d[[\x0d\x0d\n[\x0d\x0d\x0d\n [\t [ [[\x0d \x0d\n[\t{\t\t\x0d\n"aa":{\x0d\n\n\t\t"é"\x0d\n:\x0d\n\t\n\x0d\n[  \n\x0d{\t\t\t\t"a"\n:\n\x0d\n\n\t[ [\t{\x0d "é"\x0d\n:\x0d\x0d\n[\x0d\n\x0d\x0d\n[\t\n\x0d[[\x0d\n\x0d\n[\t{\t\n"b"\n: \t\x0d\n[\x0d{\x0d\x0d\n\n"aa"\x0d\n:\x0d\n -792\x0d\t} ]\n\x0d\n }] ]\n \t\n]] ]\n\t \n}]\x0d ]\x0d} \x0d\n]\t\t\n}\x0d\n \x0d\n\n}\t]\n\t \t]\x0d\n]]\x0d\n  ]\x0d\t\n]]\x0d\n\x0d ] \t]\x0d\n}\t\n \t}\t]\n\x0d\n} \n\t}\x0d\n\x0d\n]\t]]\x0d\x0d]\x0d\x0d\n\x0d\n]\x0d\n]\t\t\t}]\x0d\x0d\n\x0d\n\x0d]\x0d\n\n \n}\x0d\n\x0d]\x0d \t ]\n\x0d  ] ]]\n\x0d}\x0d\n\x0d}\n]\x0d\n\x0d\n]\x0d\n]\n]\x0d\n \x0d} \x0d\x0d\n} \t]\n\n\x0d\n] ]}\x0d\x0d\n}] \x0d\n]} }\x0d\n] ]  }\t\n}\x0d\n \x0d} }\n] \x0d\n\x0d}\x0d]]\t\x0d\n] }}\n }]\t\x0d\n\t\x0d\n}\n}]]]\x0d\n\n]\x0d\x0d\x0d\n ]}\x0d\t]\x0d\t \n}\t\x0d\n}\x0d\t\n] \t\x0d\n}\x0d\x0d\n]\x0d\x0d\n\x0d\n\x0d\n}\n \x0d\x0d}\n}}\x0d]\x0d\n\n\x0d\x0d\n}\x0d\n}]\x0d\n\x0d\n\n]  }}\n}}\n\t\x0d\n]\t\x0d\n\x0d\n\x0d\n]\x0d\n}\t] \x0d]\x0d\x0d\x0d\t}\x0d\n \n] \x0d]\x0d}\x0d\n \n\n}\x0d\n \x0d\n }\x0d]\x0d\n]\n ] ]\n\n ]] \n\t]  \x0d}\t\n }\t\n
+stdin {\n\x0d\n"é" :\x0d\n\n\n\n{\x0d\n \n"A"\x0d\t:\x0d\n[\t \n[\t\t [\n\n\x0d[\x0d\n  [[ \x0d\n\x0d\n[\x0d\x0d{ \x0d\n\x0d"é"\t:{""\x0d \n:\t  \t{\t\t "é"\x0d:\n\t[  \x0d\n\x0d\n[\t\t{\x0d\n\x0d\n\n""\x0d:\n [[\n\t{"😀"\n\n\x0d\n\x0d\n:\x0d[\x0d\n\x0dfalse\x0d\n] \x0d\n \x0d}\x0d\t\x0d\t]\t\n\x0d\n\x0d]\t\x0d\x0d\n\x0d}\x0d \x0d]\t\x0d] \x0d\x0d\n\n}\t\x0d\n}\t }\x0d\n\n\t\x0d]]\x0d\n\n\x0d\n\x0d\n]\x0d\n\n\n]]\x0d\n\n\n]\t]\x0d\n}  \t}\n\t\x0d\n
 end
 
 case gen/values-v1/662
@@ -4114,7 +4114,7 @@ end
 case gen/values-v1/669
 arg -c
 filter tojson
-stdin \x0d\n[338\n\x0d\n,-769\t\x0d,{"\\u00e9"\n\t\n\x0d:\t\x0d\n\x0d\x0d\n90,"b"\x0d\n\t\t:\n\x0d\n\x0d"\\uD8f8\\uDC05F\\r3" \t\x0d\x0d\n} ,[{"ҼA"\x0d\n\x0d:458 ,"\\ud928\\uDe48p"\t:\x0d\n\x0d\x0d\n\t+1.E+2 ,"ҼA"\n\n\n\n:\n\t"Sy秬" \x0d\n }\x0d\n\x0d\n\x0d\n]\t\n,"1:[H\\ud962\\ude65Cc2\\uB7C4k[\\fJ",["\\uDD06j֪@",")"\n\x0d,-6.9E-842\x0d\n\n\t,false\n]\x0d\x0d\n,0.0\x0d\n\x0d\n\x0d\n,false\n \x0d\n]\n
+stdin \x0d\n[338\n\x0d\n,-769\t\x0d,{"\\u00e9"\n\t\n\x0d:\t\x0d\n\x0d\x0d\n90,"b"\x0d\n\t\t:\n\x0d\n\x0d"\\uD8f8\\uDC05F\\r3" \t\x0d\x0d\n} ,[{"ҼA"\x0d\n\x0d:458 ,"\\ud928\\uDe48p"\t:\x0d\n\x0d\x0d\n\t+1.E+2,"Ҽ\\u0041"\n\n\n\n:\n\t"Sy秬" \x0d\n }\x0d\n\x0d\n\x0d\n]\t\n,"1:[H\\ud962\\ude65Cc2\\uB7C4k[\\fJ",["\\uDD06j֪@",")"\n\x0d,-6.9E-842\x0d\n\n\t,false\n]\x0d\x0d\n,0.0\x0d\n\x0d\n\x0d\n,false\n \x0d\n]\n
 end
 
 case gen/values-v1/670
@@ -4309,7 +4309,7 @@ end
 
 case gen/values-v1/701
 filter .
-stdin [\x0d\n  "\\nmh\\ud926\\uDCa1e",\x0d\n  [\x0d\n    {\x0d\n      "｡": null\x0d\n    }\x0d\n  ],\x0d\n  {\x0d\n    "%hVy9CfuN\x7f4󕿛B\\u0008ܳS": []\x0d\n  }\x0d\n]\n
+stdin [\x0d\n  "\\nmh\\ud926\\uDCa1e",\x0d\n  [\x0d\n    {\x0d\n      "｡": null\x0d\n    }\x0d\n  ],\x0d\n  {\x0d\n    "%hVy9CfuN\x7f4󕿛B\\u0008ܳS": []\x0d\n  },\x0d\n  []\x0d\n]\n
 end
 
 case gen/values-v1/702
@@ -4378,7 +4378,7 @@ end
 case gen/values-v1/712
 arg -c
 filter [paths]
-stdin [2.e3,nan,">G",-.5,[122,-.5,-996,{"😀":{"｡":{"A":null,"😀":-936,"A":-945,"Z":653.2424},"｡":"k","g\\u0013\xed\xa0\x80홾^;򩦀\xec\xacmz'b\xed\xa0\x80":null,"\\uBe3a\\u0011\xf1\x9aEaQԔ\x84":["Y","礹yF\xb8\\bQ@\xa8󿏚\xe0\x80\x80S"],"Λ":"\\nl","aa":[],"":[-Infinity,true,"\xf4\x90\x80\x80\xe0\x80\x80",{"&":"ͪ\\b","\\uAcBfǭ\x93$󽋄\\u0006M\\b\\/ؐ ":.5}],"𰡳+!͓\x9b\\nMg":-799,"A":-597.12,"a":"񀄿"},"😀":"L\\bA𲂫"}],false,"\\t眑jw?G",{"｡":-72,"":9007199254740993,"a":339,"J":9007199254740993}]
+stdin [2.e3,nan,">G",-.5,[122,-.5,-996,{"😀":{"｡":{"A":null,"😀":-936,"A":-945,"Z":653.2424},"｡":"k","g\\u0013\xed\xa0\x80홾^;򩦀\xec\xacmz'b\xed\xa0\x80":null,"\\uBe3a\\u0011\xf1\x9aEaQԔ\x84":["Y","礹yF\xb8\\bQ@\xa8󿏚\xe0\x80\x80S"],"Λ":"\\nl","aa":[],"":[-Infinity,true,"\xf4\x90\x80\x80\xe0\x80\x80",{"&":"ͪ\\b","\\uAcBfǭ\x93$󽋄\\u0006M\\b\\/ؐ ":.5}],"𰡳+!͓\x9b\\nMg":-799,"A":-597.12,"a":"񀄿"},"\\ud83D\\udE00":"\\t眑jw?Gwz󝿼qs?Q\\f\\/E빜"}],"Jx",true,"@(UO\\\\:uv8"]
 end
 
 case gen/values-v1/713
@@ -4567,7 +4567,7 @@ end
 
 case gen/values-v1/743
 filter .
-stdin {\x0d\n  "a": -542,\x0d\n  "\x7f%um\\\\": +1,\x0d\n  "a": "L",\x0d\n  "-3\\f\\u0000@_Fv؄b`Tz頽z\\uc845㎵": {\x0d\n    "": null\x0d\n  },\x0d\n  "\\u0061": "@0I"\x0d\n}\n
+stdin {\x0d\n  "a": -542,\x0d\n  "\x7f%um\\\\": +1,\x0d\n  "a": "L",\x0d\n  "-3\\f\\u0000@_Fv؄b`Tz頽z\\uc845㎵": {\x0d\n    "": null\x0d\n  },\x0d\n  "\\u0061": {\x0d\n    "": "M",\x0d\n    "\\u00e9": null,\x0d\n    "": "\\u5373",\x0d\n    "\\u00e9": 738\x0d\n  }\x0d\n}\n
 end
 
 case gen/values-v1/744
@@ -4648,7 +4648,7 @@ end
 case gen/values-v1/756
 arg -c
 filter .
-stdin  \x0d\n\n{"😀"\t\x0d\x0d:\x0d\n\n\ntrue,"b"\t\x0d\t:\t\x0d\t{"a"\t\x0d\x0d: \x0d\t"vi悗" ,"\\u0061"\t\x0d\n:  \x0d\n\t"㊈zk\\uD8F7\\udE94#B\\ud991\\ude75\\f8"\n}\x0d\n\x0d,"Z"\x0d \x0d\n\x0d:\n\x0d\n\t1e99999999999\x0d\n\x0d\n,"é":\x0d \x0d\x0d"Cwl+","😀" \x0d  :\t\x0d\t[false\x0d\n\x0d\n,"\x7f/s@\\ua0ADh^?"\x0d\n],"｡"\x0d\n\x0d\n\t\t:\x0d\x0d\t\x0d368.53\x0d,"\\u00e9"\t\x0d:\t47.80e+28\x0d,"a"\x0d\n\x0d\t\x0d:\x0d\n\t"\\\\H" \x0d\n\n}\x0d
+stdin  \x0d\n\n{"😀"\t\x0d\x0d:\x0d\n\n\ntrue,"b"\t\x0d\t:\t\x0d\t{"a"\t\x0d\x0d: \x0d\t"vi悗","\\u0061"\t\x0d\n:  \x0d\n\t"㊈zk\\uD8F7\\udE94#B\\ud991\\ude75\\f8"\n}\x0d\n\x0d,"Z"\x0d \x0d\n\x0d:\n\x0d\n\t1e99999999999\x0d\n\x0d\n,"é":\x0d \x0d\x0d"Cwl+","😀" \x0d  :\t\x0d\t[false\x0d\n\x0d\n,"\x7f/s@\\ua0ADh^?"\x0d\n],"｡"\x0d\n\x0d\n\t\t:\x0d\x0d\t\x0d368.53\x0d,"\\u00e9"\t\x0d:\t47.80e+28\x0d,"a"\x0d\n\x0d\t\x0d:\x0d\n\t"\\\\H" \x0d\n\n}\x0d
 end
 
 case gen/values-v1/757
@@ -4814,13 +4814,13 @@ end
 case gen/values-v1/783
 arg -c
 filter tostream
-stdin \t {"aa"\n: -NaN\t\n ,"\\u00e9"\t\x0d\t\n:\x0d\ntrue\x0d,"Z":-448 \t,"aa"\x0d\x0d\x0d:"((:\\udA5a\\udEea\\b\\/?\\uD817\\uDeeA\\u0011+"\n\x0d\x0d\n}\n
+stdin \t {"aa"\n: -NaN\t\n ,"\\u00e9"\t\x0d\t\n:\x0d\ntrue\x0d,"Z":-448 \t,"aa"\x0d\x0d\x0d:"((:\\udA5a\\udEea\\b\\/?\\uD817\\uDeeA\\u0011+"\x0d\n\n}\x0d\n\x0d\n\n\n
 end
 
 case gen/values-v1/784
 arg -c
 filter .
-stdin \t{"é" :"mE" ,""  : \t\x0d\n\n"\\rŎ"\n\t\n ,""\x0d\n: \x0d\x0d\n\t2.e3\t\t\x0d\x0d\n,"."\t\x0d:\x0d\n9.96e033,"a"\x0d\x0d\n : \x0d\n\x0d"3tpܐ\xa96Yo\\/QI\\\\≊7$\\uc863IY."\x0d\t\n ,"u=kH" :\x0d\n ""} \t\n
+stdin ﻿{"?y":null,"'D":")\\ud890\\udEC0","Oa\\/xvwA":{"b":007,"1飀$\\uDB38\\udfB8\\"Ni":{"Z":"","aa":95E-522,"｡":"\xe8\xa8Ied","\\\\\xec":[{}]}}}\n
 end
 
 case gen/values-v1/785
@@ -4931,7 +4931,7 @@ end
 case gen/values-v1/802
 arg -c
 filter tojson
-stdin {"b":"򴩺\\bLDm𶇾L","\\/h":442759027711690577513,"\\/h":1.}\n
+stdin [528.275,[],["\xcaRq\\uDAF5\\uDc2ao>t򒿮U",{"":[2.e3],"é":[92],"\\u00e9":"g+H","":[]},[627.5406,159,+1.E+2],"5Y\xe0\x80\x80\\ua1C9vtޙ\x8e\\/'7~XX"],[null,null,true,2.e3,-724,"*/s󴲁]>񣽲J'","\xf4\x90\x80\x805ra\\u0016K/",""],null]
 end
 
 case gen/values-v1/803
@@ -5047,7 +5047,7 @@ case gen/values-v1/821
 arg -c
 arg -S
 filter .
-stdin \n \x0d\nNaN0\n
+stdin {"ⲋl㳿":-inf}\n
 end
 
 case gen/values-v1/822
@@ -5169,7 +5169,7 @@ end
 
 case gen/values-v1/841
 filter .
-stdin    \t[\t\t\x0d{ "\\u00e9"\t\x0d\n\x0d\n:\x0d\n\t[\n\x0d\x0d\n\x0d{\t"é"\t:\x0d\n\n[ \n[[ \n{\x0d\n\x0d\n \n"é" :\n{"😀"\x0d\n:\n [\n\n \x0d\n[\n  \n[\x0d\n \x0d\n{\x0d\t"a"\x0d\n\x0d\n\x0d :\x0d\n \t\t{\x0d \x0d\n"b":\t \t [{"😀"\n:\t\x0d\n\t\t[\t\t\t[\n\n\x0d\t{ \n \x0d\n"aa"\x0d\n:  \t\t{\n"b"\x0d\n\x0d\n\x0d:\x0d\n\t\x0d\x0d\n[\t[\t\n\x0d\t{\n\x0d\n"b"\x0d\n\x0d\n\t:\t{ \x0d\n\x0d"é"\n:\t \x0d\n\x0d{\x0d\x0d  "｡":\x0d\n\x0d\n\t\n[\t[\x0d\n [\x0d\n{\x0d\n\t\n"Z":{"｡" \t: [\t\x0d\x0d\n\x0d[{\x0d"Z"\t:\x0d\n[ \x0d\n\n\x0d\n[\x0d\x0d\t\t{ \n\x0d\n"aa"\t\x0d\n \t:\x0d \x0d\n{\x0d\n"｡"\x0d\n :\x0d\n \n [{\x0d\n\t\x0d "a"\t\t: \x0d{"\\u00e9":\x0d\n\x0d[\n\n{\t\t\x0d\n"｡" :\n\x0d\x0d\n [\n{\n""\n\t:\x0d\n\t"#I"\t\n\n}\t]\n}\x0d\x0d\n]\n\x0d\x0d\n\n}\n\x0d}  \n\x0d]\x0d\n\x0d}\t\n}\t\n\n\x0d]\n \n]\x0d}\t]\n ]\x0d\n}}\n]\x0d\x0d\n]\t]\n}\x0d\x0d\t\x0d\n}\x0d\x0d\t\x0d\n}\t\x0d\n]\x0d\x0d ]\n}} \x0d\n\x0d] ]\x0d\x0d\n\x0d\n\t}]} \n }\t]\t\x0d\t]  \x0d]\x0d\t }}\n \x0d\n] \x0d\n] \x0d]\t\x0d\x0d}\n\n\n]  \x0d } \n\x0d]\n  \x0d\n
+stdin    \t[\t\t\x0d{ "\\u00e9"\t\x0d\n\x0d\n:\x0d\n\t[\n\x0d\x0d\n\x0d{\t"é"\t:\x0d\n\n[ \n[[ \n{\x0d\n\x0d\n \n"é" :\n{"😀"\x0d\n:\n [\n\n \x0d\n[\n  \n[\x0d\n \x0d\n{\x0d\t"a"\x0d\n\x0d\n\x0d :\x0d\n \t\t{\x0d \x0d\n"b":\t \t [{"😀"\n:\t\x0d\n\t\t[\t\t\t[\n\n\x0d\t{ \n \x0d\n"aa"\x0d\n:  \t\t{\n"b"\x0d\n\x0d\n\x0d:\x0d\n\t\x0d\x0d\n[\t[\t\n\x0d\t{\n\x0d\n"b"\x0d\n\x0d\n\t:\t{ \x0d\n\x0d"é"\n:\t \x0d\n\x0d{\x0d\x0d  "｡":\x0d\n\x0d\n\t\n[\t[\x0d\n [\x0d\n{\x0d\n\t\n"Z":{"｡" \t: [\t\x0d\x0d\n\x0d[{\x0d"Z"\t:\x0d\n[ \x0d\n\n\x0d\n[\x0d\x0d\t\t{ \n\x0d\n"aa"\t\x0d\n \t:\x0d \x0d\n{\x0d\n"｡"\x0d\n :\x0d\n \n [{\x0d\n\t\x0d "a"\t\t: \x0d{"\\u00e9":\x0d\n\x0d[\n\n{\t\t\x0d\n"｡" :\n\x0d\x0d\n [\n{\n""\n\t:\x0d\n\t{\x0d\n \n"b":\x0d\t\n\n{\n"a"\x0d\x0d\n:\n\x0d\x0d\n\n{\x0d\n  "\\u00e9"\x0d\x0d:\n\x0d\n[\t\n\n\x0d{"b"\t\x0d:\t{"\\u00e9"\x0d\n:{\x0d\x0d\n"\\u00e9"\t:\n{\t\x0d\n\x0d\n"aa"\x0d\t\x0d\n:\t\x0d\n{ \t\n"｡": \x0d\n\x0d[\x0d\x0d\n\x0d\n\t[ \n [\t\x0d\t{"Z"\x0d\x0d\t:{ \x0d\n"aa" \x0d\n: \x0d{\x0d\x0d\n"é"\n\x0d\n:[{\x0d\x0d\n""  :\x0d\n\x0d\n\n{\x0d\x0d"a"\x0d\x0d\n\t\x0d:{\n\t\x0d\n"a":\t{""\n\n\x0d\n\x0d\n:\x0d\t\n\n[\x0d\n[\x0d\n\x0d\n\t\n[\t[  \x0d\n\x0d[\t\t\x0d[[\n\n\n\x0d{\n\t"a"\x0d\n\n:\x0d\n{"a"\x0d:\t\x0d \n[ { \x0d\n"😀"\t\n:{\x0d\x0d"b"\n\n\n: \x0d\n\x0d [\n\x0d\n\x0d{\n\t\n\n"\\u00e9"\x0d\x0d\n:{"aa"\t: \n\t\x0d\n[\n \x0d{\x0d\n\x0d\n"Z": [ \x0d\n{ \t\t "é"\t \x0d\n:\t\x0d\x0d\x0d\n[\t[{\x0d\n\n\x0d\n"b"\x0d\n  :  {\n\t"aa"    :\x0d\n[\x0d \x0d\n\x0d\n{\n\x0d\t"é"\x0d \n:\n\x0d\n\x0d\n\x0d\n{\x0d\x0d\n\x0d"aa"  \n:\x0d\n\x0d\n\n{ \x0d\n"\\u00e9"  :\t{\x0d\n\x0d\n\n\t""\n:\x0d\x0d\n\n\t[\x0d\n\x0d\n [{\x0d\n"b"\x0d:\x0d\n\x0d\n{\x0d\n  \n"Z"\t\x0d\n:\x0d\n\n\x0d{"a"\t\x0d\n\x0d\n\x0d\n:{\x0d\n"b" :\t[\n\n{\n\n\t"A"\n:\x0d\x0d\x0d\n{"\\u00e9":[\n\x0d{"😀" \t:\x0d\n[[\x0d\n{"é":[\n \x0d[{\n\x0d"a": \n{\x0d\n\x0d\n\n""\x0d\n\x0d \x0d\n:[[\x0d\n[ \t\x0d\n[\x0d {\n\n"Z"\x0d:{"😀"\x0d\n\n\x0d\n:\x0d\n\x0d \t{\x0d\n\x0d"aa":\t[{\t"a" \x0d\n:{\t\t\t\n"b":\x0d\n\x0d\t{"":\x0d\n [\t[\t{"A"\x0d\n:\t\x0d\n\x0d\n{\x0d\n"":\x0d\n\x0d\n{"a"\t\n\x0d:\t\n{\t\t""\x0d\t\x0d\t:\x0d\n[ \x0d\x0d\n[  \n{\x0d\n"😀" \n\n\t:\x0d\t\t[[\x0d\n\n[  \x0d [\t\x0d{\n\x0d"😀"\x0d\n:{\x0d\n\t"\\u00e9"\x0d :\n\t\x0d{\x0d\n\n\x0d\n\n"aa"\t\t\n: \x0d\n\n{\x0d\n\x0d\x0d"a"\x0d\n :\t\n\x0d\n{""\x0d: \t\n\x0d{\n\n\n"😀":\t[\x0d\n\t\n\t{\t\t\x0d\x0d\n"😀" \x0d\n  :\x0d\t[[\t\t[\n[\n[\n\t\n\n[\t\x0d\n\n[{\x0d""\x0d\n\t\x0d\t:\x0d\n\x0d\n{\n\x0d\n\t"Z"\x0d\n\t:\n \t[[ {"A":"/"  \x0d\n}\n \x0d]]\x0d\t}\x0d\n  }]  \x0d]] \t\t]\x0d\x0d\n\x0d\n]]\x0d\n ]  \n} \n\x0d\n]\x0d\x0d\n}\x0d\n\x0d \x0d} \x0d\x0d\t}} \x0d\n\t\n}\x0d\n\x0d\n\n }\x0d]\n\n\x0d ]\x0d\x0d\n]]\n\n\x0d\n}\t\t]]\t  \x0d\n}\t \x0d\n} \x0d \x0d\n}}\n \x0d\t]\x0d]\x0d\n}\x0d \n\x0d\n}}\t\x0d]\n }\x0d\n}\x0d \x0d\n}]]\x0d\n ] \x0d\n\x0d\t] \x0d\x0d\n\n}  \x0d}\n\x0d]\x0d]} ]\n]}\t] \t\n}\n }\n\x0d\n]\x0d\t}\t\x0d }\x0d \x0d\n}\n\x0d\x0d\n}\x0d\n\x0d\n ]\x0d\n ]\x0d}}\x0d\n\n \x0d}\x0d\n \x0d} \t]\t\x0d\n\n\x0d}\n}\t\x0d\n ]\x0d\n\t ]\t}] }]\x0d\n \x0d\n\x0d} \x0d}\x0d\n]}} ] \x0d\x0d\n\t}}\x0d\n\t\x0d\n]\t\n\n\t]\x0d]]\x0d\n\t ]\x0d\n\x0d\n ]\x0d\n]\x0d}\x0d\n\x0d}}} \x0d\n\x0d\n]\x0d\n\n}\x0d} \x0d\n}\x0d\x0d\n\n]\x0d\n\t]\n\x0d\n]\t}}\x0d\n \x0d\n\x0d}\x0d\t\n\x0d}\n \n}\x0d\x0d\n\x0d] }   }}\t}\x0d\n\n\t\t]\n\x0d}\n\n\x0d\n] \n\t\x0d\n}\x0d}\x0d] \n}\x0d \x0d\n } \n]\t\n]\x0d\x0d}\t]\t\x0d ]}  }]\x0d\n\n\t\n]]}}  \t }\x0d\n \n]\t \n]\t\x0d\x0d\n}\x0d\n\x0d\n\x0d} \n\t]\n \n]  \t}\x0d]\n \x0d}\t } \n] \t]\x0d\n]  \n}\x0d\n} \x0d\n\n\t]]]\t\x0d\n}\x0d\n ]\n\t\t}\n\n\x0d\n]\n\n\x0d\t\n
 end
 
 case gen/values-v1/842
@@ -5262,7 +5262,7 @@ case gen/values-v1/856
 arg -c
 arg -S
 filter .
-stdin {"\\u000b":[true,677.1],"é":false,"-":{"aa":true,"\\u00e9":false,"%o@\x7fVDe":"\\/\xe0\x80\x80","":+1.E+2,"":false,"😀":"","a":330.29,"\\u00e9":"XPP","y164\\/񟾎1.\\f":[-.5],"Z":78e+273,"":80}}
+stdin  \x0d[""   \t,"ll"\x0d\n\x0d\n \x0d\n,{"`"\x0d\x0d\n\x0d\n: \x0d\n "耫" ,"\xed\xa0\x80F\\uBac8г\\uDBdE\\ude16\xc0\x80"\t:\ttrue},"+"\t,-616.70 \t \t,491 \n \n,007\n\x0d]  
 end
 
 case gen/values-v1/857
@@ -5287,7 +5287,7 @@ end
 case gen/values-v1/860
 arg -c
 filter tostream
-stdin \n{"b":\t\x0d\nnull ,"Cu)\\r="\x0d\x0d\n\n:\t\x0d[true,[26E+7],["An\\n1ǰ?\xd6" \n\x0d\n\n] ,false\x0d \x0d\x0d,{"aa"\n\x0d\n:\x0d\n\t""\x0d\x0d\n \t}\t\t,true\t]\n}\n
+stdin \n{"b":\t\x0d\nnull ,"Cu)\\r="\x0d\x0d\n\n:\t\x0d[true,[26E+7],["An\\n1ǰ?\xd6" \n\x0d\n\n] ,false\x0d \x0d\x0d,{"aa"\n\x0d\n:\x0d\n\t""\x0d\n}\x0d\n ,"" \t]\x0d\n } \x0d \n
 end
 
 case gen/values-v1/861
@@ -5341,7 +5341,7 @@ end
 
 case gen/values-v1/869
 filter .
-stdin ["\xd7[J\x7f$\\u0BfF\xdf@4+b",0.000000564,{"é":2.e3,"é":false}]\n
+stdin ["\xd7[J\x7f$\\u0BfF\xdf@4+b",0.000000564,{"é":2.e3,"\\u00e9":"AY򦯶\\/"}]\n
 end
 
 case gen/values-v1/870
@@ -5662,7 +5662,7 @@ end
 case gen/values-v1/921
 arg -c
 filter tojson
-stdin {"Z":-0.0,"":"\\r(","\\u001fC\xe0\x80\x80Aْ\xab\\tݥ묣\xe0\x80\x80\\u7481":"Y󮝔\\u0009ʙtdʅ\xb2\xed\xa0\x80z6","\xc0\x80&Q":false,"":"\xc0\x80o6%*\xc5n]t֗툈","😀":396030089.541877744576,"b\\u0002":"9R","Z":{":":9223372036854775807,"Z":">ꎰ;h~B\\f򼱑\\fHwxA\\ub67Eu76<\\u54a6zg\\ud97f\\uDdC6+\\uD574J|"},"A":"򣎡.b\x7f\xc0\x80\xe9\xb44\xe0\x80\x80Q\\tׅ~񾠾\\u3153xјבN$V:,-\xbbA","aa":[{"":[-0.0,"+\xf4\x90\x80\x80ޏW",[null],"c_Mq0\\ba\\u001F𼓃񾘉󾝷2L"],"aa":-282,"a":null,"A":{"7􃍷P\x7f;":-128,"vW\x7f":"ۀ-","P0d1":-452.42,"\\u0076W\x7f":-0}," ]\\u0015^惭٤\x9dm.kg":{"":null,"":true}}]}
+stdin {"Z":-0.0,"":"\\r(","\\u001fC\xe0\x80\x80Aْ\xab\\tݥ묣\xe0\x80\x80\\u7481":"Y󮝔\\u0009ʙtdʅ\xb2\xed\xa0\x80z6","\xc0\x80&Q":false,"":"\xc0\x80o6%*\xc5n]t֗툈","😀":396030089.541877744576,"b\\u0002":"9R","Z":{":":9223372036854775807,"Z":">ꎰ;h~B\\f򼱑\\fHwxA\\ub67Eu76<\\u54a6zg\\ud97f\\uDdC6+\\uD574J|"},"A":"򣎡.b\x7f\xc0\x80\xe9\xb44\xe0\x80\x80Q\\tׅ~񾠾\\u3153xјבN$V:,-\xbbA","aa":[{"":[-0.0,"+\xf4\x90\x80\x80ޏW",[null],"c_Mq0\\ba\\u001F𼓃񾘉󾝷2L"],"aa":-282,"a":null,"A":{"7􃍷P\x7f;":-128,"vW\x7f":"ۀ-","P0d1":-452.42,"\\u0076W\x7f":54241098070356676267929811947803493},"é":{"":null}}]}
 end
 
 case gen/values-v1/922
@@ -5742,7 +5742,7 @@ case gen/values-v1/934
 arg -c
 arg -a
 filter .
-stdin \n\x0d\n\x0d\n\x0d["򬾮v<𼐊"\x0d\n\n,"\\n",{"b"\x0d\n\x0d\n:  \t\x0d["\xf4\x90\x80\x80U\\"F"\x0d\n\n,[2.e3\t,NaN0,null\x0d,true]\t\n\t\t,-821\x0d\x0d\x0d\n]\t\x0d\n}\n\x0d\n\x0d ,true\x0d\n\n]\x0d \t
+stdin \n\x0d\n\x0d\n\x0d["򬾮v<𼐊"\x0d\n\n,"\\n",{"b"\x0d\n\x0d\n:  \t\x0d["\xf4\x90\x80\x80U\\"F"\x0d\n\n,[2.e3\t,NaN0,null\x0d,true]\t\n\t\t,-821\x0d\x0d\x0d\n]\x0d  \t}\t\x0d\n,0.0\n\x0d\x0d\x0d]\x0d \t
 end
 
 case gen/values-v1/935
@@ -5754,7 +5754,7 @@ end
 case gen/values-v1/936
 arg -c
 filter [paths]
-stdin [{"a":[[[{"A":[{"é":[{"｡":[[[{"｡":[{"A":{"\\u00e9":[{"｡":[{"":{"a":{"\\u00e9":[[{"｡":[[[[{"\\u00e9":[[{"Z":{"\\u00e9":-3393244754409263.8771}}]]}]]]]}]]}}}]}]}}]}]]]}]}]}]]]}]
+stdin [{"a":[[[{"A":[{"é":[{"｡":[[[{"｡":[{"A":{"\\u00e9":[{"｡":[{"":{"a":{"\\u00e9":[[{"｡":[[[[{"\\u00e9":[[{"Z":{"\\u00e9":{"":{"Z":[[[{"A":[{"A":{"😀":{"é":[[[[{"\\u00e9":{"":[[[{"😀":[[[[[{"｡":{"a":[[{"｡":[{"é":[[{"aa":[[[{"b":[{"｡":{"\\u00e9":{"A":[{"\\u00e9":[[[{"b":["\\\\\\fʛ﹝\\t"]}]]]}]}}}]}]]]}]]}]}]]}}]]]]]}]]]}}]]]]}}}]}]]]}}}}]]}]]]]}]]}}}]}]}}]}]]]}]}]}]]]}]
 end
 
 case gen/values-v1/937
@@ -5920,7 +5920,7 @@ end
 case gen/values-v1/963
 arg -c
 filter tojson
-stdin {"｡":-.5,"Z":"t\\/Y껉9j","b":[true,950],"?ս𰅗l":-962,"｡":[],"P":-103,"I9Kq2":{"b":["6\xe0\x80\x80$񀠪","{\xc0\x80Ol;,/<G"],"\\t\\u8331컋Iw\\bLE\xf4\x90\x80\x803񀻷":")w\\tڙګ\\u000F~𪗋yo[\\uDA5f\\uDF91B\x7fT","e.o=J\\u3220t":1e10000000000},"\\u0062":827.5}\n
+stdin {"｡":-.5,"Z":"t\\/Y껉9j","b":[true,950],"?ս𰅗l":-962,"｡":[],"P":-103,"I9Kq2":{"b":["6\xe0\x80\x80$񀠪","{\xc0\x80Ol;,/<G"],"\\t\\u8331컋Iw\\bLE\xf4\x90\x80\x803񀻷":")w\\tڙګ\\u000F~𪗋yo[\\uDA5f\\uDF91B\x7fT","e.o=J\\u3220t":1e10000000000},"\\u0062":"\xc3&g\\t\\ud9c8\\uDdFE}\xc0\x80_8:\x80\\fҹ\x81%S-v\\uDB2a\\uDDE3\\naԡE1O7\\u23c1 ОH"}\n
 end
 
 case gen/values-v1/964
@@ -6049,7 +6049,7 @@ end
 case gen/values-v1/984
 arg -c
 filter tojson
-stdin {\n  "aa": -537,\n  "y\\/\\ftZ[": "l\\f󚗙\xc0\x80",\n  "\xf4\x90\x80\x80-2r\\u000fn": null,\n  "ϴ\xfb8\\b\xc95Z": "p\xf0\xb4L\xed\xa0\x80k]",\n  "ϴ\xfb8\\b\xc95Z": -174\n}
+stdin {\n  "aa": -537,\n  "y\\/\\ftZ[": "l\\f󚗙\xc0\x80",\n  "\xf4\x90\x80\x80-2r\\u000fn": null,\n  "ϴ\xfb8\\b\xc95Z": "p\xf0\xb4L\xed\xa0\x80k]",\n  "ϴ\xfb8\\b\xc95\\u005A": {}\n}
 end
 
 case gen/values-v1/985
@@ -6115,7 +6115,7 @@ end
 
 case gen/values-v1/995
 filter .
-stdin ["\\ud9EF\\udF261@!'󌈌63񘺷" ,-493,true\x0d,"o݋\xb5M:J SpG"\x0d\n ,{"A"\x0d\x0d\x0d\n\n:\x0d\x0d[] \t\t\n,"\\u0041":\x0d\t\x0d\x0d\n-418\t\x0d\n\x0d}\n,982.92\x0d\x0d\n\x0d]\t\n
+stdin ["\\ud9EF\\udF261@!'󌈌63񘺷" ,-493,true\x0d,"o݋\xb5M:J SpG"\x0d\n ,{"A"\x0d\x0d\x0d\n\n:\x0d\x0d[],"\\u0041"\t: \x0d\n79E+6\x0d\t\n\x0d},null]\n \x0d\n
 end
 
 case gen/values-v1/996
@@ -6190,7 +6190,7 @@ end
 case gen/values-v1/1007
 arg -c
 filter tostream
-stdin ﻿{"Ý^":457,"Ý^":799.411}\n
+stdin ﻿{"Ý^":457,"Ý\\u005e":{"aa":[null],"😀":null,"T":null,"*'k\x7f":1E+12345678901,"\\u00e9":-707199873879851565.92093428}}\n
 end
 
 case gen/values-v1/1008
@@ -6416,7 +6416,7 @@ end
 
 case gen/values-v1/1044
 filter .
-stdin ﻿[[{"a":[{"":{"":[{"😀":[{"\\u00e9":{"｡":[[{"a":{"é":[[{"b":{"aa":[{"A":[[[{"｡":[[[[[{"":[{"b":[[{"A":{"a":{"A":[{"":[{"Z":[{"a":[{"é":[{"A":{"😀":{"":{"é":[[[{"a":[{"｡":[[{"":{"Z":{"aa":{"":[{"":[{"Z":[[{"a":{"A":{"Z":[{"aa":[{"aa":[{"é":{"😀":[[[[{"Z":{"😀":{"aa":[{"aa":{"é":[[[[[{"｡":[{"a":[{"é":{"aa":[{"😀":{"":[[{"｡":[[[[[{"😀":{"｡":{"":{"\\u00e9":{"😀":{"｡":[[[[{"｡":[[[{"é":{"":{"a":[[[{"aa":[{"😀":[null]}]}]]]}}}]]]}]]]]}}}}}}]]]]]}]]}}]}}]}]}]]]]]}}]}}}]]]]}}]}]}]}}}]]}]}]}}}}]]}]}]]]}}}}]}]}]}]}]}}}]]}]}]]]]]}]]]}]}}]]}}]]}}]}]}}]}]]\n
+stdin ﻿[[{"a":[{"":{"":[{"😀":[{"\\u00e9":{"｡":[[{"a":{"é":[[{"b":{"aa":[{"A":[[[{"｡":[[[[[{"":[{"b":[[{"A":{"a":{"A":[{"":[{"Z":[{"a":[{"é":[{"A":{"😀":{"":{"é":[[[{"a":[{"｡":[[-995.3]]}]}]]]}}}}]}]}]}]}]}}}]]}]}]]]]]}]]]}]}}]]}}]]}}]}]}}]}]]\n
 end
 
 case gen/values-v1/1045
@@ -6436,7 +6436,7 @@ end
 case gen/values-v1/1047
 arg -c
 filter tojson
-stdin {"é" \x0d:\x0d\n\n \tfalse\x0d \t,"6u"\x0d\n:\t "\\/n\\"U"\t \x0d\x0d\n,"{f\\""\t\x0d:"\xed\xa0\x80䋴" \x0d\n,"😀"\x0d\t\x0d\n:\n\x0d\n {"｡"\x0d\x0d\n\x0d:\n\t\x0d\x0d\n[[ \n  ]\n\x0d]\n\n,"é" \n\x0d\n:"6\x7f}|" \x0d\n,"é"\n\x0d\x0d\n:\x0d\n \x0d\n[]\n}\n \n,"6u":\n\t\x0d\x0d\n-913\n} 
+stdin {"é" \x0d:\x0d\n\n \tfalse\x0d \t,"6u"\x0d\n:\t "\\/n\\"U"\t \x0d\x0d\n,"{f\\""\t\x0d:"\xed\xa0\x80䋴" \x0d\n,"😀"\x0d\t\x0d\n:\n\x0d\n {"｡"\x0d\x0d\n\x0d:\n\t\x0d\x0d\n[[ \n  ]\n\x0d]\n\n,"é" \n\x0d\n:"6\x7f}|"\x0d\n\x0d\x0d\n,"\\u00E9"\x0d\n \x0d\n:  \tnull\t}\n \n}
 end
 
 case gen/values-v1/1048
@@ -6565,7 +6565,7 @@ end
 case gen/values-v1/1068
 arg -c
 filter tojson
-stdin 1.\n
+stdin {\x0d\n  "Z": "\\u7304xÛzR",\x0d\n  "": 588.7,\x0d\n  "\\tRg!\\fN\x7f_a": [\x0d\n    null,\x0d\n    {}\x0d\n  ],\x0d\n  "é": -728,\x0d\n  "😀": -877.27,\x0d\n  "\\u005a": {\x0d\n    "😀": "",\x0d\n    "\\u001C]yC>o": false,\x0d\n    "": "ᬇ\\"er|<\\b\\\\a=ٿ\\t\\uEd05C͋",\x0d\n    "a": "ぞ\\u3eB3[\\t6t_cwA\\udbC3\\uDC6Ct",\x0d\n    "Z": {\x0d\n      "aa": {\x0d\n        "s0": "\xf4\x90\x80\x80\\uDBf8\\uDdb3\\f#-",\x0d\n        "é": [],\x0d\n        "aa": 2.e3,\x0d\n        "aa": 6E-932,\x0d\n        "A": "PuI8o\\/\\ud9Df\\uDEe1Y-",\x0d\n        "😀": "\xed\xa0\x80\xf4\x90\x80\x80t{湐Ƚ",\x0d\n        "": -751\x0d\n      },\x0d\n      "b": {\x0d\n        "Z": -512,\x0d\n        "\\\\iea\\uDEC0ѓ\xbcB嬰AK": 181.0\x0d\n      },\x0d\n      "aIZ[": false,\x0d\n      "aa": "y񉮬`",\x0d\n      "\\r.": []\x0d\n    }\x0d\n  }\x0d\n}\n
 end
 
 case gen/values-v1/1069
@@ -6588,7 +6588,7 @@ end
 
 case gen/values-v1/1072
 filter .
-stdin {\x0d\n  "T": 617.6473,\x0d\n  "\\u0054": 72.0296\x0d\n}\n
+stdin {\x0d\n  "T": 617.6473,\x0d\n  "\\u0054": null\x0d\n}\n
 end
 
 case gen/values-v1/1073
@@ -6614,7 +6614,7 @@ end
 case gen/values-v1/1076
 arg -c
 filter [paths]
-stdin  \t{"é"\x0d\x0d\x0d\n\n:+1.E+2,"\\/$Ѵx"\t\n\n:\x0d\x0d\n\t\x0d{"\\u00e9"\n\n:"^캜\\/j~\\b"\t \x0d\n,"\xf4\x90\x80\x80R@Z&i󃷱r暺\\\\eP\\f\xe0\x80\x80\xed\xa0\x80f\xe0\x80\x80<Vv\xac>\\uecDe5\\b"\x0d\x0d\n \x0d\n:\n\x0d\n548\x0d\n\t,"😀":true,"\\f#=`\xc0\x80\\uD901\\uDC2F츺QZɵך\x8b\xed\xa0\x80":\x0d \x0d\x0d\n-765\t\x0d\n,"b"\x0d\n\t:\x0d \x0d")T"\x0d\n,"aa"\x0d\n  :[null\x0d\t,null\x0d\n \x0d\t]\t\n\n\x0d\n,"a":\x0d\n[\t\x0d\n\x0d\x0d\n]\x0d\n \x0d\n\x0d,"b"\x0d\x0d \n: \n[\n\t\x0d\n ]\x0d\n,"`󷽱tL"\t: 2.e3\x0d\n\x0d\n,"O,Ϲ~f\\u0d42ꆒ񲢂\\u052E\\\\": "G"\x0d\t\t,"\\u0060󷽱tL":\x0d\x0d\n\t"C."\x0d\n} ,"a"\n\x0d  : \n\x0d\nfalse\t\x0d\n\x0d ,""\x0d\n\t\t:[[""]\x0d\n\x0d\x0d,null\t\t\t\x0d]  \n\n,"é" \x0d\n\t\x0d:-NaN,""\x0d\n \x0d\n\t:-240\t\x0d\n\x0d\x0d,"\\u00e9"\t:88.1864\x0d}  
+stdin  \t{"é"\x0d\x0d\x0d\n\n:+1.E+2,"\\/$Ѵx"\t\n\n:\x0d\x0d\n\t\x0d{"\\u00e9"\n\n:"^캜\\/j~\\b"\t \x0d\n,"\xf4\x90\x80\x80R@Z&i󃷱r暺\\\\eP\\f\xe0\x80\x80\xed\xa0\x80f\xe0\x80\x80<Vv\xac>\\uecDe5\\b"\x0d\x0d\n \x0d\n:\n\x0d\n548\x0d\n\t,"😀":true,"\\f#=`\xc0\x80\\uD901\\uDC2F츺QZɵך\x8b\xed\xa0\x80":\x0d \x0d\x0d\n-765\t\x0d\n,"b"\x0d\n\t:\x0d \x0d")T"\x0d\n,"aa"\x0d\n  :[null\x0d\t,null\x0d\n \x0d\t]\t\n\n\x0d\n,"a":\x0d\n[\t\x0d\n\x0d\x0d\n]\x0d\n \x0d\n\x0d,"b"\x0d\x0d \n: \n[\n\t\x0d\n ]\x0d\n,"`󷽱tL"\t: 2.e3\x0d\n\x0d\n,"O,Ϲ~f\\u0d42ꆒ񲢂\\u052E\\\\": "G"\t\t ,"`󷽱\\u0074L"\x0d\x0d\n\t:\x0d\x0d\n  ""\t\x0d\n\t }\t,"\\u00e9"  \x0d:"`Vל&|3/X"\x0d\t\x0d\n,"d󩂮r$\\\\\\tƣhz\\"VыuV.㦛,\\fﱄ\xc0\x80\\b+"\x0d\n:\n\x0d\n\x0d\n"n\\/D","":\x0d\n\t{\n }\t \x0d\n\x0d\n,"é" :""\t\x0d\n\x0d\n}
 end
 
 case gen/values-v1/1077
@@ -6706,7 +6706,7 @@ end
 case gen/values-v1/1091
 arg -c
 filter tostream
-stdin \n\x0d \t{"b"\t\x0d\n: []\n\t\x0d\n,"\\u00e9" \x0d\n:\x0d\n\n\t{"m"\x0d :\n \n\n1.\x0d\x0d\n,"｡"\t:"Lo׀u2I" ,"é"\x0d\n\x0d\n \x0d\n:\n\t \x0d\n922\x0d\n}\t}\x0d\x0d\t\n
+stdin {\x0d\n  "｡": ")\\uD860\\uDD700E\\u0012W%qBe𨯠A2aJ\\u000c3!I\\nS[g5\xed\xa0\x80\\u001CN\xc0\x80.郄b^\\u923dha4\xd676\\u8341\\ua95F\\uD8DE\\udf24",\x0d\n  "": "<",\x0d\n  "aa": "\x8c3#ā",\x0d\n  "é": {\x0d\n    "P/H򤾑g": 614.08,\x0d\n    "a": [\x0d\n      -752,\x0d\n      "@\\r𬸩Y\\tP\\r",\x0d\n      null\x0d\n    ],\x0d\n    "\xf4\x90\x80\x80󖏡F-ֈ\xf4\x90\x80\x80": "Nru\xf8񀉅Y\xed\xa0\x80ñ񙛄6d",\x0d\n    "Z": "L-\\ue73C󝷖4QfXEG>",\x0d\n    "aa": false,\x0d\n    "｡": +1.E+2,\x0d\n    "": "",\x0d\n    "3OK~\\ud9Ee\\udC02YM8": []\x0d\n  },\x0d\n  "": [\x0d\n    "\\r_\\udc10ʌ",\x0d\n    984.4048\x0d\n  ],\x0d\n  "": null,\x0d\n  "\\u00E9": {\x0d\n    "😀": [\x0d\n      {\x0d\n        "é": 908\x0d\n      },\x0d\n      {},\x0d\n      -894,\x0d\n      "`\\/\xed\xa0\x80",\x0d\n      840.4,\x0d\n      null,\x0d\n      615,\x0d\n      186,\x0d\n      "TmA+5/@@\\r\x7f袧TV\\u0002\xc0\x80퀥㓶\\tV%#\\uDA5E\\uDF0E󔌌V"\x0d\n    ],\x0d\n    "😀": -327\x0d\n  }\x0d\n}
 end
 
 case gen/values-v1/1092
@@ -6724,7 +6724,7 @@ case gen/values-v1/1094
 arg -c
 arg -S
 filter .
-stdin {"é":{"Z":{"😀":{"😀":{"Z":[{"é":[[{"A":{"":{"｡":{"｡":[{"😀":[[[{"A":{"\\u00e9":[[[[[[[{"é":[[{"aa":{"aa":{"a":{"Z":[{"é":{"a":[{"b":true}]}}]}}}}]]}]]]]]]]}}]]]}]}}}}]]}]}}}}}\n
+stdin {"é":{"Z":{"😀":{"😀":{"Z":[{"é":[[{"A":{"":{"｡":{"｡":[{"😀":[[[{"A":{"\\u00e9":[[[[[[[{"é":[[{"aa":{"aa":{"a":{"Z":[{"é":{"a":[{"b":[{"\\u00e9":{"Z":[[{"｡":{"":{"Z":{"a":[[[[{"｡":{"b":{"b":{"A":[[{"b":[[[[[[[[{"😀":[{"Z":{"\\u00e9":[[{"｡":{"aa":[[{"Z":[{"Z":[{"":[[[[[{"\\u00e9":{"\\u00e9":[[{"é":{"é":{"é":{"A":-0.0000000022}}}}]]}}]]]]]}]}]}]]}}]]}}]}]]]]]]]]}]]}}}}]]]]}}}}]]}}]}]}}]}}}}]]}]]]]]]]}}]]]}]}}}}]]}]}}}}}\n
 end
 
 case gen/values-v1/1095
@@ -6810,7 +6810,7 @@ case gen/values-v1/1108
 arg -c
 arg -S
 filter .
-stdin \t\x0d\nNaN0 \n
+stdin \x0d\n\x0d{\x0d\n\x0d"A"\t\t\x0d\n:\n\x0d\x0d {\x0d\n\x0d\n\x0d\n\t"A"\x0d\n\x0d\n:[\t\x0d\n\x0d\x0d\n{\x0d\n\t"é" \t\t:\n \x0d\n\n{ \x0d"aa"\n:\x0d\n {\t "a"\t \x0d\n:\n\x0d\n\t[\x0d\n\x0d{\x0d\x0d\n"\\u00e9"\t  :\t\n\n\n{\t \x0d\n\t"a":\n\x0d\n{"｡"\x0d\n :.5\n\x0d\n\n}\x0d\n\t\x0d\n\x0d\n}}\x0d\n\n ]\x0d\n\n}\t\n\t\t}\x0d\n\x0d \t}\n \x0d\n]\x0d\n\t\x0d\n\x0d\n}}\x0d\n
 end
 
 case gen/values-v1/1109
@@ -6921,7 +6921,7 @@ end
 case gen/values-v1/1126
 arg -c
 filter tostream
-stdin \t{"😀":\n""\x0d,""\x0d\n\x0d\n:\t\n68,"\xb6nU|z"\t\n\x0d\n\n:-200\t,""\n\x0d\n\x0d:true\n\x0d\n\n\x0d\n,"\xb6nU|z"\x0d\n:\x0d\n["YC\xc0\x80N\\u0014hwO/Ap#W?m&#햜R:\\b5" \x0d\n ,236.235 \t]\t\t\n}\n\n
+stdin \t{"😀":\n""\x0d,""\x0d\n\x0d\n:\t\n68,"\xb6nU|z"\t\n\x0d\n\n:-200\t,""\n\x0d\n\x0d:true\n\x0d\n\t\x0d\n,"\xb6nU\\u007Cz"\x0d\n:\x0d\n\n"YC\xc0\x80N\\u0014hwO/Ap#W?m&#햜R:\\b5q" \x0d\n\n\x0d} 
 end
 
 case gen/values-v1/1127
@@ -7197,7 +7197,7 @@ case gen/values-v1/1171
 arg -c
 arg -S
 filter .
-stdin {\x0d\n  "aa": null,\x0d\n  "S跫n\\u0014\xdfnm񇡾}HK<": {\x0d\n    "I\\ud91E\\udC7D\\u000BP4": 595,\x0d\n    "b": 91,\x0d\n    "b": "ˋ?",\x0d\n    "é": {\x0d\n      "a": {}\x0d\n    },\x0d\n    "aa": -270,\x0d\n    "a": "礵",\x0d\n    "aa": false,\x0d\n    "aa": 991\x0d\n  },\x0d\n  "\\u0053跫n\\u0014\xdfnm񇡾}HK<": "{a\xf4\x90\x80\x80dd⾆"\x0d\n}\n
+stdin {\x0d\n  "aa": null,\x0d\n  "S跫n\\u0014\xdfnm񇡾}HK<": {\x0d\n    "I\\ud91E\\udC7D\\u000BP4": 595,\x0d\n    "b": 91,\x0d\n    "b": "ˋ?",\x0d\n    "é": {\x0d\n      "a": {}\x0d\n    },\x0d\n    "aa": -270,\x0d\n    "a": "礵",\x0d\n    "aa": false,\x0d\n    "aa": 991\x0d\n  },\x0d\n  "S跫n\\u0014\xdfn\\u006D񇡾}HK<": true\x0d\n}\n
 end
 
 case gen/values-v1/1172
@@ -7276,7 +7276,7 @@ end
 
 case gen/values-v1/1184
 filter .
-stdin \x0d\n\x0d\n\x0d{"a":\t\n"U\xe0\x80\x80?","'\\u5921\\u0000\\t)>v^f1j"\n:\n\x0d\n\t\x0dnull \t\x0d ,"4\\"\\f\xb9Ҫ1.?\\n\\bYR5\xd5~u皑d\\udb74\\uDD46rp"\x0d\n\x0d\n\t\n:\n\n\t"7.\\f"\x0d  \x0d\n,"aa" \x0d\n\n\x0d\n:54993594671175283374174374093 \x0d\n ,"Z"\t:\n\t\x0d\n\t{"Z":\x0d \n\x0dfalse\t \n\n,"\\u005A"\n\n\x0d: \x0d\x0d\n{"b"  \x0d\n:\t\tfalse\n\x0d\n\x0d\n,"A" :\t \n\x0d\n939\n  ,"":\x0d\n \x0dnull\t\n ,"b" \t\x0d\t:\x0d82.25e+585\n\x0d}\x0d\x0d}\t\x0d\n ,"é"\x0d\n\x0d:\x0d\n{"`P@R"\x0d\x0d \n:\t 136\t \n}\t,"｡":+1\n\t ,"aa"\t\x0d\n:\n\n "hf󴣖Kd\\uD8b1\\udE21L\\""  ,"é":null\t ,"é" \t\x0d\n\x0d\n:{ \n\n}\x0d\n}\t\n
+stdin \x0d\n\x0d-Infinity\x0d\n\n \t
 end
 
 case gen/values-v1/1185
@@ -7627,7 +7627,7 @@ case gen/values-v1/1241
 arg -c
 arg -S
 filter .
-stdin [{"😀":{"😀":{"Z":{"":[[[{"a":[{"":{"\\u00e9":{"aa":[{"｡":{"é":{"Z":[{"｡":{"｡":{"a":{"A":[{"é":[{"aa":[{"b":[{"A":{"A":[{"A":{"":[[[{"é":{"b":[[{"aa":{"a":[[[[[[{"":{"\\u00e9":{"A":{"\\u00e9":{"Z":{"b":[{"":{"é":[{"😀":{"\\u00e9":[[[[{"😀":{"aa":[{"a":{"":[{"a":{"😀":{"":{"A":[{"a":{"b":[{"aa":{"b":{"a":{"Z":[{"A":{"｡":{"A":{"é":[[{"Z":[[{"é":{"a":{"A":[[[[[[[[{"a":[{"a":[[["\\/<M\\nY:6\xfa򹚍!\xc0\x80"]]]}]}]]]]]]]]}}}]]}]]}}}}]}}}}]}}]}}}}]}}]}}]]]]}}]}}]}}}}}}]]]]]]}}]]}}]]]}}]}}]}]}]}]}}}}]}}}]}}}]}]]]}}}}]
+stdin [{"😀":{"😀":{"Z":{"":[[[{"a":[{"":{"\\u00e9":{"aa":[{"｡":{"é":{"Z":[{"｡":{"｡":{"a":{"A":[{"é":[{"aa":[{"b":[{"A":{"A":[{"A":{"":[[[{"é":{"b":[[{"aa":{"a":[[[[[[{"":{"\\u00e9":{"A":{"\\u00e9":{"Z":{"b":[{"":{"é":[{"😀":{"\\u00e9":[[[[{"😀":{"aa":[{"a":{"":[{"a":{"😀":{"":{"A":[{"a":{"b":[{"aa":{"b":{"a":{"Z":[{"A":{"｡":"2"}}]}}}}]}}]}}}}]}}]}}]]]]}}]}}]}}}}}}]]]]]]}}]]}}]]]}}]}}]}]}]}]}}}}]}}}]}}}]}]]]}}}}]
 end
 
 case gen/values-v1/1242
@@ -7689,7 +7689,7 @@ end
 case gen/values-v1/1251
 arg -c
 filter [paths]
-stdin \x0d\x0d\n[{  \x0d\n\n"\\u00e9"\x0d\n\t\x0d\n\t:\x0d\n\x0d\n{\t\x0d"A": [ [\t[\x0d \n[ {  \x0d"\\u00e9" \x0d\n:\n\t{\n\x0d\n\t"aa"\x0d\n \n\x0d\n:[\n\n\x0d{ \x0d\n\t"😀":\x0d\n\x0d{\x0d\n\n"Z"\x0d\x0d\n:\x0d\n [\n\x0d\n\x0d\t{\x0d\n\x0d\n"aa"\x0d\n\x0d:\t\n\x0d{  \t\n"A"\x0d \x0d : \x0d\n{\x0d "｡":\t\t{\n \t"Z"\t \x0d\n\x0d:\x0d\n{\n\x0d""\x0d\n\x0d  :\n\x0d\n[{\x0d"é"\n\x0d\n\x0d: \x0d\x0d\n\x0d[\x0d\x0d{\t\t"aa"\n:\t{ \x0d\n"a"\x0d\n :\n\n\x0d\t[ { \x0d"b"\x0d\n : \x0d\x0d\n[\t\n{\x0d\n\t"é"\x0d\x0d\x0d\n:\n\n {\n\x0d"é"\x0d\n\x0d :\x0d\n\t[\t\x0d\n{\t\x0d\t"aa"\x0d\x0d\x0d:{\x0d\n"aa"\n\t \t: \x0d\n [\n{"A":{\x0d\n \t"a"\x0d\t:\x0d\n [\x0d\x0d{\x0d"\\u00e9"\x0d\n\x0d \x0d\n:\x0d \x0d\t{\t\n "A"\t\t\x0d\n:\t\x0d\n\n[\n [\n\n\n[\t\t\t\x0d[\x0d\n[\t\t\n{\t\n"Z":\n\x0d{\x0d\n "é":\x0d\n\n{"b"\x0d\n\t :\x0d\t[\t\n\x0d[[\x0d\x0d\n\t[\x0d\n\x0d\n[ \x0d\x0d{\n"A"\n\n:\x0d\n\x0d{  "A"\x0d\n\x0d\n :\n \t{ \t \x0d"a"\x0d\x0d:\x0d\x0d\x0d\n\t{"｡"\t\n\x0d\n: \t\t\x0d{"": {\n\t"😀" \t\x0d\n:\t [\n\x0d {\t\x0d\n\x0d"\\u00e9" :\x0d\n[\n{\t\n\x0d\n\x0d"é"\x0d\n\x0d\t : \n {\x0d\n\x0d"Z"\t:\x0d\x0d\n\t\x0d[   \t{\n\t"\\u00e9":\t[{"a"\t: \x0d\x0d\n[\n\x0d\n\n\x0d[\x0d\n[\x0d\n\x0d\n{\t"😀"\x0d\n \x0d\x0d:\t\x0d\n \n[ [{\x0d\n \n"b"\t\x0d\n\x0d\n\x0d:\t\x0d\n [\x0d\n\t[{\t\t  "a"  \n\t:\t[\t[[\n\t\n\x0d[\x0d\n{ "aa" \x0d:\x0d\n \n{\x0d\n "A"\x0d\n\x0d\n\n:\n\x0d\n\n[\x0d{\n\t\x0d"\\u00e9"\x0d\n\n:  {\t \n"b"  \x0d\n\n:[\n\t\x0d\n{ \t"｡"\n\x0d\n:\t[ \x0d\n\x0d\n\x0d\n[\x0d\t\x0d[[\t\n\x0d\n\n[\t\x0d\n[{"Z"\n:  { \n\t\x0d\n"😀":\t\n[\n [\x0d\x0d\t[\t[\n\x0d\t[\x0d\n[\t\x0d\n\x0d{"aa"\x0d\x0d\n:\x0d{\n"A"\x0d\t\t\x0d:\t{"b" \x0d \t: \x0d\n""\n \n }}}\x0d\n \x0d\n]]\x0d\x0d\n\t\x0d]\n\x0d\n]\x0d]]\t\x0d} \n}\x0d\n\x0d\t]\t]\x0d ] ]\x0d\n\x0d \t]]\t\t}]\x0d \x0d\n\n}\t}\n]\x0d\n\x0d\n} \n\n}\x0d\n\x0d\n]]\x0d\n\t\x0d]\t\x0d\x0d\n\x0d\n] \t}]\x0d\n\t\x0d\n\n]\n }\t\t \t]\t \x0d\n\x0d\n]\x0d\x0d\n}]] \t]\x0d} ]} ]\x0d\n\x0d}\x0d\n\t }\x0d]\x0d\n\n\x0d} ]}\n\n\n }\x0d }}\x0d\n\t}\t\x0d\t}\x0d\n\x0d\n\x0d]\n\x0d]\n \x0d]]]}\n\t}}\n\x0d\n] \x0d\x0d\x0d]\n]]\n]\t\x0d\x0d }\x0d\n} ] \n\x0d\n\x0d}\n\x0d\t\t}\t\x0d ]}\x0d\n  \x0d}\x0d\n\t]\n\x0d\n}\t\n }]\x0d \x0d}\t\t\x0d\n]}\t\x0d\x0d\n}\x0d\n \x0d\n\t]\x0d\n\x0d\n}\n\x0d ] \x0d\n\t\x0d\n}\n\x0d\n} \x0d\n\t}\t}  \x0d}\n\x0d \x0d\n]\t\x0d\n  }}\t\t]}  }\t]\n]\x0d]]\x0d\n\n}\n\n \t}\x0d \n]\x0d\x0d\t\x0d\n
+stdin \x0d\x0d\n[{  \x0d\n\n"\\u00e9"\x0d\n\t\x0d\n\t:\x0d\n\x0d\n{\t\x0d"A": [ [\t[\x0d \n[ {  \x0d"\\u00e9" \x0d\n:\n\t{\n\x0d\n\t"aa"\x0d\n \n\x0d\n:[\n\n\x0d{ \x0d\n\t"😀":\x0d\n\x0d{\x0d\n\n"Z"\x0d\x0d\n:\x0d\n [\n\x0d\n\x0d\t{\x0d\n\x0d\n"aa"\x0d\n\x0d:\t\n\x0d{  \t\n"A"\x0d \x0d : \x0d\n{\x0d "｡":\t\t{\n \t"Z"\t \x0d\n\x0d:\x0d\n{\n\x0d""\x0d\n\x0d  :\n\x0d\n[{\x0d"é"\n\x0d\n\x0d: \x0d\x0d\n\x0d[\x0d\x0d{\t\t"aa"\n:\t{ \x0d\n"a"\x0d\n :\n\n\x0d\t[ { \x0d"b"\x0d\n : \x0d\x0d\n[\t\n{\x0d\n\t"é"\x0d\x0d\x0d\n:\n\n {\n\x0d"é"\x0d\n\x0d :\x0d\n\t[\t\x0d\n{\t\x0d\t"aa"\x0d\x0d\x0d:{\x0d\n"aa"\n\t \t: \x0d\n [\n{"A":{\x0d\n \t"a"\x0d\t:\x0d\n [\x0d\x0d{\x0d"\\u00e9"\x0d\n\x0d \x0d\n:\x0d \x0d\t{\t\n "A"\t\t\x0d\n:\t\x0d\n\n[\n [\n\n\n[\t\t\t\x0d[\x0d\n[\t\t\n{\t\n"Z":\n\x0d{\x0d\n "é":\x0d\n\n{"b"\x0d\n\t :\x0d\t[\t\n\x0d[[\x0d\x0d\n\t[\x0d\n\x0d\n[ \x0d\x0d{\n"A"\n\n:\x0d\n\x0d{  "A"\x0d\n\x0d\n :\n \t{ \t \x0d"a"\x0d\x0d:\x0d\x0d\x0d\n\t{"｡"\t\n\x0d\n: \t\t\x0d{"": {\n\t"😀" \t\x0d\n:\t [\n\x0d {\t\x0d\n\x0d"\\u00e9" :\x0d\n[\n{\t\n\x0d\n\x0d"é"\x0d\n\x0d\t : \n {\x0d\n\x0d"Z"\t:\x0d\x0d\n\t\x0d[   \t{\n\t"\\u00e9":\t[{"a"\t: \x0d\x0d\n[\n\x0d\n\n\x0d[\x0d\n[\x0d\n\x0d\n{\t"😀"\x0d\n \x0d\x0d:\t\x0d\n \n[ [null\x0d\x0d\n]]\x0d\n\t}\x0d\n\x0d\x0d\t] \t\x0d\n\x0d]\n\t\x0d]  \t\x0d\n}\t]}]  \n\t}\t}\x0d\n\t\t]\t}]}\x0d\n\n\t\n}\x0d \t}\t\x0d\t } \x0d}\x0d\n \n}\x0d\n]\x0d\n ]\x0d\n\x0d\n\n]\n\x0d\n\n]\x0d]\x0d}\n\x0d\n\t}\n\x0d\n\n}  ]\n\x0d\t ]\x0d\n ]]\n \x0d\x0d]\n\t\x0d\n}\x0d\n }\x0d]\x0d\n}\t}]\x0d\n}}\x0d\n\x0d\n\x0d\x0d]\x0d\t\x0d}\x0d\n \x0d}\x0d\n]\n}\n\x0d\n\x0d\n\x0d]\x0d}\t }]  }\n]  }\x0d\n\x0d\n }\t\x0d\n}}\t\n}\x0d\n]  }}\x0d\x0d\t]}}\t]\t\x0d\n\x0d]\t]]\x0d\n}\t\x0d\t}\x0d\x0d\n\x0d ]\x0d\x0d\n\n
 end
 
 case gen/values-v1/1252
@@ -7738,7 +7738,7 @@ end
 case gen/values-v1/1259
 arg -c
 filter tostream
-stdin \n\x0d\n\x0d\n\x0d{"Z":\t\n""\t \x0d ,"ܔ\x8f\xe0\x80\x800\x7f\\f瑛\\u00001L": \n\x0d\n\x0d[9223372036854775808 ,503 ,null\x0d\n ,-443  ,{  \t}] }\x0d\n\n
+stdin \n\x0d\n\x0d\n\x0d{"Z":\t\n""\t \x0d ,"ܔ\x8f\xe0\x80\x800\x7f\\f瑛\\u00001L": \n\x0d\n\x0d[9223372036854775808 ,503 ,null\x0d\n ,-443  ,{  \t}] \n}\t\t\t\n
 end
 
 case gen/values-v1/1260
@@ -7775,7 +7775,7 @@ end
 case gen/values-v1/1265
 arg -c
 filter [paths]
-stdin {"f":"\\u00188?\\r","b":-280.25,"\\u0066":702}\n
+stdin {"f":"\\u00188?\\r","b":-280.25,"\\u0066":706}\n
 end
 
 case gen/values-v1/1266
@@ -7904,7 +7904,7 @@ end
 case gen/values-v1/1286
 arg -c
 filter [paths]
-stdin  \x0d\t\x0d[["x\\uDA69\\udd4B\x90Ὀb"  ,-522.25 \x0d\n\x0d,294\t \t\t,-0e5\x0d,"㶲"\x0d\n\x0d,{ \x0d },"\\\\dQ1XQpbPj"\t   ,540\n\x0d\x0d\x0d,{"R:"\n\t:\x0d\x0d\n\x0d\nnull\x0d,"\\u0052:":\t\x0d \x0d-314}\x0d\n]  \x0d]\t\x0d\x0d\n
+stdin  \x0d\t\x0d[["x\\uDA69\\udd4B\x90Ὀb"  ,-522.25 \x0d\n\x0d,294\t \t\t,-0e5\x0d,"㶲"\x0d\n\x0d,{ \x0d },"\\\\dQ1XQpbPj"\t   ,540\n\x0d\x0d\x0d,{"R:"\n\t:\x0d\x0d\n\x0d\nnull \x0d\n\t,"\\u0052:" \x0d\t:\t "cA\\"\\n#p\\u153C@C"\x0d}\x0d\n]\x0d\x0d\n\x0d\n\x0d] \x0d\n\x0d\n\x0d\n
 end
 
 case gen/values-v1/1287
@@ -7941,7 +7941,7 @@ end
 case gen/values-v1/1292
 arg -c
 filter tojson
-stdin \n {"b"\x0d\t\n\n:\n\t\x0d\x0d"G\\f\\t" ,"A" \n\t: \t434\t\x0d ,"｡" \x0d:\t-288.603\x0d,"｡":\t{"A" \t:\x0d"5b{+2L\xf4\x90\x80\x80\\u1046li,i{c\\u3417gp]􏕔\x84Hx\xe0\x80\x80\xf4\x90\x80\x801ñ{]!~tU\\b\\ubDcb|6u\\u0019P"\x0d\n \n}\n}\x0d\n\n
+stdin \n {"b"\x0d\t\n\n:\n\t\x0d\x0d"G\\f\\t" ,"A" \n\t: \t434\t\x0d ,"｡" \x0d:\t-288.603\t,"\\uff61"\t\t\n\x0d\n: \t-172\x0d \x0d\x0d\n}\x0d\x0d\n\n\t
 end
 
 case gen/values-v1/1293
@@ -8136,7 +8136,7 @@ end
 
 case gen/values-v1/1324
 filter .
-stdin {"Z":[{"aa":{"aa":{"A":[[{"aa":{"😀":{"é":{"b":[[{"é":{"b":{"b":[[{"b":[[[{"｡":{"Z":{"｡":{"":[{"A":{"😀":[[[{"b":{"A":{"😀":{"Z":{"Z":{"｡":[[{"aa":[[[[[[[[[{"Z":[[{"aa":[[{"\\u00e9":[[{"":{"aa":{"":[{"aa":[[[{"aa":[{"aa":{"｡":{"a":[{"\\u00e9":[{"":[{"A":[{"Z":[{"a":{"\\u00e9":{"A":{"a":[[[{"a":[{"aa":[{"｡":{"A":[{"｡":{"\\u00e9":[[{"Z":[[[{"a":{"b":[{"Z":[[[{"😀":[{"😀":{"":[{"｡":[{"b":[[[{"aa":{"é":{"":[[{"b":{"｡":{"Z":{"é":{"Z":{"😀":[{"😀":[[{"é":{"\\u00e9":[[[{"aa":{"é":[{"é":{"｡":{"｡":{"😀":[[[{"a":{"A":{"a":{"A":{"":{"｡":{"\\u00e9":{"😀":{"｡":{"A":{"Z":{"Z":{"\\u00e9":{"é":{"A":{"A":[[[{"Z":[[{"b":{"a":[{"aa":{"\\u00e9":{"b":[[[{"a":{"b":["fKb"]}}]]]}}}]}}]]}]]]}}}}}}}}}}}}}}}}]]]}}}}]}}]]]}}]]}]}}}}}}]]}}}]]]}]}]}}]}]]]}]}}]]]}]]}}]}}]}]}]]]}}}}]}]}]}]}]}}}]}]]]}]}}}]]}]]}]]}]]]]]]]]]}]]}}}}}}]]]}}]}}}}]]]}]]}}}]]}}}}]]}}}]}
+stdin {"Z":[{"aa":{"aa":{"A":[[{"aa":{"😀":{"é":{"b":[[{"é":{"b":{"b":[[{"b":[[[{"｡":{"Z":{"｡":{"":[{"A":{"😀":[[[{"b":{"A":{"😀":{"Z":{"Z":{"｡":[[{"aa":[[[[[[[[[{"Z":[[{"aa":[[{"\\u00e9":[[{"":{"aa":{"":[{"aa":[[[{"aa":[{"aa":{"｡":{"a":[{"\\u00e9":[{"":[{"A":[{"Z":[{"a":{"\\u00e9":{"A":{"a":[[[{"a":[{"aa":[{"｡":{"A":[{"｡":{"\\u00e9":[[{"Z":[[[{"a":{"b":[{"Z":[[[{"😀":[{"😀":{"":[{"｡":[{"b":[[[{"aa":{"é":{"":[[{"b":{"｡":{"Z":{"é":{"Z":{"😀":[{"😀":[[{"é":{"\\u00e9":[[[{"aa":{"é":[{"é":{"｡":{"｡":{"😀":[[[{"a":{"A":{"a":{"A":{"":{"｡":-0}}}}}}]]]}}}}]}}]]]}}]]}]}}}}}}]]}}}]]]}]}]}}]}]]]}]}}]]]}]]}}]}}]}]}]]]}}}}]}]}]}]}]}}}]}]]]}]}}}]]}]]}]]}]]]]]]]]]}]]}}}}}}]]]}}]}}}}]]]}]]}}}]]}}}}]]}}}]}
 end
 
 case gen/values-v1/1325
@@ -8351,7 +8351,7 @@ end
 
 case gen/values-v1/1359
 filter .
-stdin \x0d\n\t \t["Z\xdaas\\uDB4c\\udf98" \t\x0d\x0d,5e-1147483647\n\x0d\n\t,{"😀"\x0d :\n\n2.e3\n \t} \x0d\x0d\n\x0d\n,""\t,[\t] \n\x0d\n,"\\r+\\\\+\xf4\x90\x80\x80#\\"o\\udAA6\\uDe59À\\u000BWe|\xc0\x80GH~\\u511c#G*blKL)" \n ,"oJ8\\ud872\\uDe53"\t\x0d\t,null]\n\n\x0d\n\n\n
+stdin {\x0d\n  "": "<!\\b`\\u001f\xe2\x8dn\\u0019gA*\\u0016l",\x0d\n  "aa": {},\x0d\n  "Z\xdaas": +1.E+2\x0d\n}\n
 end
 
 case gen/values-v1/1360
@@ -8394,7 +8394,7 @@ end
 
 case gen/values-v1/1366
 filter .
-stdin \t\x0d\n["U"  \x0d,[-882 ,0.0000007\n  ,null,"/=N"\x0d,true,-9223372036854775809\x0d \n,564 \x0d\n,{"b":\x0d\n\ttrue\n\x0d\x0d}\x0d\n\x0d]  ]
+stdin \t\x0d\n["U"  \x0d,[-882 ,0.0000007\n  ,null,"/=N"\x0d,true,-9223372036854775809\x0d \n,564 \x0d\n,{"b":\x0d\n\ttrue},""\n\x0d\t\x0d\n] \x0d\n  ]\t\x0d\t
 end
 
 case gen/values-v1/1367
@@ -8437,7 +8437,7 @@ end
 
 case gen/values-v1/1373
 filter .
-stdin  \t{"\\ti\\u0011Ǎv"\x0d :\x0d\n\t"\xf4\x90\x80\x80"\x0d\n\x0d\n,"\\u00e9" : 9223372036854775808  \n,"" \t:\x0d\x0d\n-662,""\x0d\n:\n\x0d\n\tnull  }\n\x0d\n\t\n
+stdin  \t{"\\ti\\u0011Ǎv"\x0d :\x0d\n\t"\xf4\x90\x80\x80"\x0d\n\x0d\n,"\\u00e9" : 9223372036854775808  \n,"" \t:\x0d\x0d\n-662,""\x0d\n:\n\x0d\n\tnull\x0d\n\t}\x0d\x0d\n\t\n
 end
 
 case gen/values-v1/1374
@@ -8555,7 +8555,7 @@ end
 case gen/values-v1/1392
 arg -c
 filter tostream
-stdin \x0d \n[\n \x0d[\t{\x0d\n \x0d"A"\n\t\n :\t{\n"\\u00e9"  \n :  \x0d\t{\t\t\x0d\n"b":\x0d\n{\x0d\n \x0d "a"\n\n\x0d\t:\x0d\t\n[\t \t{\x0d"\\u00e9"\t \x0d:{\n\x0d"aa"\x0d\x0d\n:[{\n\x0d"é" \x0d\n\x0d:\n\x0d[\x0d\n\x0d\n  {\x0d\n \t"aa"\x0d:\t \x0d[\t\x0d\n[{\n \x0d\n"\\u00e9"\t: \t[[\x0d\n{\x0d\n\n\x0d\x0d"\\u00e9"\x0d\n:[[\x0d\n\x0d\n\x0d\x0d{ \x0d"":\x0d\n[ \x0d\n[\x0d\n\t\n\x0d{ \x0d\n\x0d"｡"\n \x0d :\n\x0d\x0d[\x0d\t\x0d\x0d\n{"😀":\x0d[\x0d\x0d\x0d\n [\t\n\n\x0d[[ \n\t\x0d[\x0d{\t\t"｡"\n\n:\x0d\n[ [\n{\x0d\n\x0d\n"a" \x0d: \x0d\n {"aa"\t\x0d\t:\n{\n\n"" \x0d:\x0d\n{\x0d\n\n "é"\n:\t {\x0d "\\u00e9"\x0d\n\x0d\n\x0d\n:\x0d\n\x0d\n{"é"\x0d  \x0d:[{\x0d\n\x0d\n\n"Z" :\x0d\n\n{\x0d\x0d "A" :\x0d\n\x0d{\x0d "a"\x0d\n\n\x0d\n:[\x0d\n\x0d \t{ \x0d\t"b"\t\n :[\x0d\x0d{ "aa"  \t:\x0d\n \n\x0d\n{\x0d\n\n"é":\n{"a" \x0d\x0d\n\n:\x0d\x0d\n \x0d\n{ \n"Z"\t:\n\x0d\n\t[{\x0d \x0d\x0d\n"\\u00e9"  :\x0d\x0d[\x0d\t\t{\t"b"\t\x0d\n:{\n \x0d\t"😀": \n\n[\x0d\x0d \x0d\n[\n\x0d\n{"aa"\n:  \n[[{\t"aa":[ \n\n\t{\t\n\x0d\x0d\n"aa"\n\n\n:{\n\n \x0d"Z":\n\x0d\t\n{ \x0d\n\x0d\n"Z"\n\x0d\n\t\x0d\n:\t\t\t{\x0d\n\t"é":\t[\n\x0d\n\n\x0d{\x0d"😀"\t:\x0d\x0d {\x0d\n\n\t\x0d"｡"\x0d : \t{"😀"\x0d\n: \x0d\n[{"a"\n\t\t\x0d\n:\t\n\n\x0d\n[\x0d\n\n [\x0d \x0d{"｡"\x0d\n\t\x0d\n:{"aa"\n:\x0d\n\x0d\x0d\n { \n"é"\x0d\n\t\x0d\n\x0d\n:\x0d\n{\n\x0d\n"A":\x0d\n\t{ \n"a" \x0d\t\t:\x0d\n\x0d\n[{\n\x0d\n"A"\x0d\t\n\x0d:[ \t [\x0d\n\n\n{"Z"\n:   [ \x0d\n \n{\n\t\x0d\n"a":\x0d\n\n{\x0d\n "Z" \n\x0d\n:\x0d\n {"b"\t\x0d:[\x0d\n\n[ [\n{"a" \x0d\n :{\x0d\n\t"aa"\t\x0d : \n[ \x0d{\x0d\n"😀" \t\t:\x0d {\x0d\n\x0d"a"\n:[[ \x0d\n\n\x0d\n{\x0d\n"A":\x0d\n[{\x0d\n\n\x0d"b" \t\x0d\n :\x0d\n{\t\x0d\n"\\u00e9"\x0d\n\n: \t\t[\x0d\n [\x0d\n\n\x0d{ "b": \x0d\n{\x0d\x0d\n\x0d\n"é":\x0d\n\t\x0d\n\n{\x0d"｡" :\n\x0d\n{"a"\n:\n\n\n {\x0d\n\n "b"\x0d\n: [\n{"a"\t\x0d\n:\x0d\n \t\x0d[\t{"b"\n\x0d\n\x0d\n:  \x0d\n[\t[\n\x0d{ \x0d"｡" :[\x0d{\x0d\n\x0d\n "a"\n\x0d\n\t\x0d: [\t { \x0d\n \x0d\n"A"\n:\n[ \n \x0d\n[\n\t[\x0d\n[\x0d\n\x0d\n\x0d\t[\x0d\n[\n\t[ ""]\n]\t\t  ]\t \x0d\n\n] \x0d\x0d]\x0d\n ]] \x0d}\t\t]\t\n\x0d\n}\x0d\n\x0d]\t\x0d\n\x0d}\x0d]\t\x0d\n\n]\x0d\n \x0d\n} \n\t\n]\x0d\n }\x0d\n\t\n]\t\x0d }\n\n}\t\x0d}\t }\n}\x0d\t\x0d\n\n]\x0d\n] \n}\x0d\n}\x0d\n ]\t\x0d\t}\x0d]\x0d]\x0d\n\x0d\n} \n }]  \x0d}\x0d\n\x0d\x0d\n}] \x0d\n\x0d\n]]\t}\x0d\n\t\t\x0d\n}\x0d\t} \n]}\n ]\x0d\n] \n}\n\t\x0d\x0d\n]\x0d\n\n}\x0d\x0d }} \x0d \x0d}\x0d\x0d}]\n]\t}\x0d\n\x0d\x0d\t]\x0d\n\t\x0d\n}\n}\x0d\t\n\t}\x0d\x0d\x0d] \t\x0d} }\t \x0d\x0d}\x0d\t\n\t}\x0d\n\n]\x0d\n\x0d\x0d\n\x0d}\x0d]\n  ] \x0d\n}\x0d \x0d ]]\t}\n\x0d\n \n}]\n\n}\x0d\n\t\n]\x0d \n\n}\x0d\n}\t \x0d\n\x0d}\n\x0d\n\x0d\n}\n\n\x0d\x0d]}\n\x0d \x0d]\t\x0d \t}}}]\x0d}\t\t\t } }\n\x0d\n\t\n}}\n\x0d\x0d\x0d\n} ]\x0d\n\t\x0d\n] \x0d\n\t}] \x0d \t]\t\n\x0d\n\x0d\n]\t\x0d\n]]}\x0d\x0d\n]\x0d\n\x0d}\x0d\n\x0d\t]\t\x0d]\t} \n\x0d\n\n]\x0d\n\x0d\n\n\x0d\n]\x0d \x0d\n }\x0d\n]\x0d\n]  \x0d}\n\x0d]\x0d\n ]\t\x0d\n\t}\x0d\n ]\n }\x0d]\t\t\x0d\n} \t}]\t}\x0d\n\t}\x0d\x0d}\t  \x0d}\x0d\n \x0d\x0d\n]\x0d\x0d\x0d ] \n\n
+stdin \x0d \n[\n \x0d[\t{\x0d\n \x0d"A"\n\t\n :\t{\n"\\u00e9"  \n :  \x0d\t{\t\t\x0d\n"b":\x0d\n{\x0d\n \x0d "a"\n\n\x0d\t:\x0d\t\n[\t \t{\x0d"\\u00e9"\t \x0d:{\n\x0d"aa"\x0d\x0d\n:[{\n\x0d"é" \x0d\n\x0d:\n\x0d[\x0d\n\x0d\n  {\x0d\n \t"aa"\x0d:\t \x0d[\t\x0d\n[{\n \x0d\n"\\u00e9"\t: \t[[\x0d\n{\x0d\n\n\x0d\x0d"\\u00e9"\x0d\n:[[\x0d\n\x0d\n\x0d\x0d{ \x0d"":\x0d\n[ \x0d\n[\x0d\n\t\n\x0d{ \x0d\n\x0d"｡"\n \x0d :\n\x0d\x0d[\x0d\t\x0d\x0d\n{"😀":\x0d[\x0d\x0d\x0d\n [\t\n\n\x0d[[ \n\t\x0d[\x0d{\t\t"｡"\n\n:\x0d\n[ [\n{\x0d\n\x0d\n"a" \x0d: \x0d\n {"aa"\t\x0d\t:\n{\n\n"" \x0d:\x0d\n{\x0d\n\n "é"\n:\t {\x0d "\\u00e9"\x0d\n\x0d\n\x0d\n:\x0d\n\x0d\n{"é"\x0d  \x0d:[{\x0d\n\x0d\n\n"Z" :\x0d\n\n{\x0d\x0d "A" :\x0d\n\x0d{\x0d "a"\x0d\n\n\x0d\n:[\x0d\n\x0d \t{ \x0d\t"b"\t\n :[\x0d\x0d{ "aa"  \t:\x0d\n \n\x0d\n".\xf4\x90\x80\x80#\\f\\r\\u000C"} \n]\t}\n\x0d\n\t]\t}}\n}\x0d \x0d\x0d\n]  }\x0d\x0d}\x0d\n\x0d\x0d}\t}\n\t\t\n}\x0d\n}]\x0d\n\x0d\n] \x0d} ] \n\n]\t]\x0d\x0d \x0d\n]\n]\n\x0d\n}\x0d]}\n]  \n]\x0d\n}]\x0d\n  \x0d]\t}]]}] \n\n\t]\x0d}\t\n\x0d\x0d\n]\n\n\n}] \x0d\n}\n } \x0d\n\n]\t\n\x0d}} \x0d\n\x0d\n}\n\x0d\n\t\x0d\n}\t\t\t]\t\n\x0d\n] \n
 end
 
 case gen/values-v1/1393
@@ -8573,7 +8573,7 @@ case gen/values-v1/1395
 arg -c
 arg -S
 filter .
-stdin \t\x0d\x0d\n\x0d\n{"Eƫo65Ac𚵞}^S\xc0\x80j"\x0d :"!"\x0d\n\t\x0d\n\x0d,"é" :\t\n\t\x0d\n[[false\x0d,"\\t=\\u000c'!U\\b=e#"\t,-615 \x0d\t ,-246\x0d\n\x0d ,-99.77e-8 \x0d,"2\\u5Aa5-c\\u0013br\\\\3ƒ߰\x87\\u0011CM\\u0014NQMAKb\\b"\t\x0d\n\n,0.000000004\n\x0d\x0d,["]"\n,"8Q"] ,true  \t,330\x0d,["\\fy󯖝Ń\\uDF23" \x0d \x0d,-520\x0d\n\n]\x0d\n\x0d \t,2.e3\t ,[475\x0d\n,false\x0d\x0d\n,{"\\u00e9"\x0d\n\n\n:\t\x0d\n -321 ,"😀"\x0d\n :\x0d\n\n\x0d{"\xb7񳲺\\ud868\\uDE21\\rf\\"9ē𙦼_\\""\x0d\n\t\t:"`\\ud9e4\\uDe87\\u50882\xf4\x90\x80\x80s"\x0d,"\xc0\x80\\r!2\\"*Im8[\\u001a"\t\n\x0d:\n\x0d\n\x0dnull\n\n\n,"Z" \x0d: \t\tnull\t}\x0d\n \x0d,"w>2"\x0d\t\t\x0d\n:\t\n\x0d\x0d\n""\n\t}\x0d\n\t\t\x0d,""\n]\t\n ,[ \x0d]\t\x0d\n\t\x0d],{}\n,""\x0d\x0d\t]\n\n\n} \x0d\n\n
+stdin \t\x0d\x0d\n\x0d\n{"Eƫo65Ac𚵞}^S\xc0\x80j"\x0d :"!"\x0d\n\t\x0d\n\x0d,"é" :\t\n\t\x0d\n[[false\x0d,"\\t=\\u000c'!U\\b=e#"\t,-615 \x0d\t ,-246\x0d\n\x0d ,-99.77e-8 \x0d,"2\\u5Aa5-c\\u0013br\\\\3ƒ߰\x87\\u0011CM\\u0014NQMAKb\\b"\t\x0d\n\n,0.000000004\n\x0d\x0d,["]"\n,"8Q"] ,true  \t,330\x0d,["\\fy󯖝Ń\\uDF23" \x0d \x0d,-520\x0d\n\n]\x0d\n\x0d \t,2.e3\t ,[475\x0d\n,false\x0d\x0d\n,{"\\u00e9"\x0d\n\n\n:\t\x0d\n -321 ,"😀"\x0d\n :\x0d\n\n\x0d{"\xb7񳲺\\ud868\\uDE21\\rf\\"9ē𙦼_\\""\x0d\n\t\t:"`\\ud9e4\\uDe87\\u50882\xf4\x90\x80\x80s"\x0d,"\xc0\x80\\r!2\\"*Im8[\\u001a"\t\n\x0d:\n\x0d\n\x0dnull\n\n\n,"Z" \x0d: \t\tnull\t}\x0d\n \x0d,"w>2"\x0d\t\t\x0d\n:\t\n\x0d\x0d\n""\x0d\n}\t\t,0.0000007]\x0d\x0d\n\n,"" \x0d]\t\t\t\t]} \x0d\n\x0d\n\n
 end
 
 case gen/values-v1/1396
@@ -8745,7 +8745,7 @@ case gen/values-v1/1423
 arg -c
 arg -S
 filter .
-stdin {"A":[">\\r&\\n\xed\xa0\x80"],"":[-811]," 8˃\xb44pO":true,"😀":20,"\\b\\u0008\\u000dI\xf4\x90\x80\x80牘Zg\xeb >\xb7󙲃묠~":-4,"aa":0.00000068,"":["@\\fYJ3b\\tf\\uEEe5",false,true],"q0":0.0,"JZ":"","\\u0041":false}
+stdin {"A":[">\\r&\\n\xed\xa0\x80"],"":[-811]," 8˃\xb44pO":true,"😀":20,"\\b\\u0008\\u000dI\xf4\x90\x80\x80牘Zg\xeb >\xb7󙲃묠~":-4,"aa":0.00000068,"":["@\\fYJ3b\\tf\\uEEe5",false,true],"q0":0.0,"JZ":"","\\u0041":-729}
 end
 
 case gen/values-v1/1424
@@ -8862,7 +8862,7 @@ end
 case gen/values-v1/1442
 arg -c
 filter .
-stdin [\x0d\n  sNaN,\x0d\n  "G򿲧",\x0d\n  15E76,\x0d\n  +1.E+2\x0d\n]\n
+stdin {\n  "\\u7B5d՚o\xe0\x80\x809\\"": "ԯ\\rCהم",\n  "Z": "I 镃",\n  "\xd2}\\b])~\\u3c6Bw\\uDa4f\\uDC64*Y": ":\\nI,\\nl\\u0013YJD+z",\n  "N": "o\\udE5bt",\n  "\\"!\\ue6ec󅎇e!\\u0010{8": [\n    62E-755,\n    5091124148442924015850177.7,\n    804,\n    532\n  ],\n  "\\"!\\ue6ec󅎇e!\\u0010{\\u0038": NaN00\n}\n
 end
 
 case gen/values-v1/1443
@@ -8905,7 +8905,7 @@ end
 case gen/values-v1/1449
 arg -c
 filter .
-stdin ["Ջ\x8c",{},{"(U":null,"\\u0028U":"󙇎"}]\n
+stdin ["Ջ\x8c",{},{"(U":null,"\\u0028U":""}]\n
 end
 
 case gen/values-v1/1450
@@ -9016,7 +9016,7 @@ end
 case gen/values-v1/1467
 arg -c
 filter tojson
-stdin ﻿[{"A":{"":{"A":[{"｡":[{"aa":{"😀":{"😀":{"b":[{"｡":[[[[[{"｡":[{"":[[{"😀":[{"aa":[[[[[{"｡":[{"😀":{"":{"aa":{"😀":[[{"A":[{"b":{"Z":{"é":{"é":{"é":{"é":[{"b":[[[{"｡":{"b":[[[[{"A":[{"Z":[[[{"A":{"":{"":{"b":{"A":[{"b":[[{"｡":{"😀":{"Z":[[{"":{"Z":{"aa":[[{"aa":{"😀":{"\\u00e9":[[[{"":[{"｡":[[[{"aa":{"A":[{"\\u00e9":{"A":[[{"\\u00e9":[{"a":{"Z":[{"｡":[{"é":{"é":{"aa":"\xe8c5"}}}]}]}}]}]]}}]}}]]]}]}]]]}}}]]}}}]]}}}]]}]}}}}}]]]}]}]]]]}}]]]}]}}}}}}]}]]}}}}]}]]]]]}]}]]}]}]]]]]}]}}}}]}]}}}]\n
+stdin ﻿[{"A":{"":{"A":[{"｡":[{"aa":{"😀":{"😀":{"b":[{"｡":[[[[[{"｡":[{"":[[{"😀":[{"aa":[[[[[{"｡":[{"😀":{"":{"aa":{"😀":[[{"A":[{"b":{"Z":{"é":{"é":{"é":{"é":[{"b":[[[{"｡":{"b":[[[[{"A":[{"Z":[[[{"A":{"":{"":{"b":{"A":[{"b":[[{"｡":{"😀":{"Z":[[{"":{"Z":{"aa":[[{"aa":{"😀":{"\\u00e9":[[[{"":[{"｡":[[[{"aa":{"A":[{"\\u00e9":{"A":[[{"\\u00e9":[{"a":{"Z":[{"｡":[{"é":{"é":{"aa":[[{"\\u00e9":{"a":{"😀":[{"\\u00e9":{"a":{"｡":{"é":{"b":[{"｡":{"｡":{"A":[{"b":{"aa":[{"":{"A":[{"b":[{"b":[{"aa":["򬦋A0"]}]}]}]}}]}}]}}}]}}}}}]}}}]]}}}]}]}}]}]]}}]}}]]]}]}]]]}}}]]}}}]]}}}]]}]}}}}}]]]}]}]]]]}}]]]}]}}}}}}]}]]}}}}]}]]]]]}]}]]}]}]]]]]}]}}}}]}]}}}]\n
 end
 
 case gen/values-v1/1468
@@ -9323,7 +9323,7 @@ end
 case gen/values-v1/1517
 arg -c
 filter [paths]
-stdin \n\n[[{"㏄I넒񾷓;y"\t\n:\x0d\t \n{"A"\x0d\x0d:\t \x0d "\\fp"\n,""\x0d\n\n :\n\x0d\n""\x0d\x0d\n,"\\u0041"\n:{"aa"\n\n:-745\t,"é"\t \t\x0d:null}}\x0d\n,"A"\n\n\x0d\n:\x0d\x0d\x0d\t{"｡"\n\t\x0d:\x0d\nfalse\x0d }\t\n\n}\x0d\n,3342883627659828.2905330   ] \x0d\n ,"?/E1񇾡L0"\n\x0d\t\t,"<76"]\x0d\n\x0d\t\n\n
+stdin \n\n[[{"㏄I넒񾷓;y"\t\n:\x0d\t \n{"A"\x0d\x0d:\t \x0d "\\fp"\n,""\x0d\n\n :\n\x0d\n""\x0d\n\t\n,"\\u0041":\n\x0d\n-137\n\n},"c0$\\\\=]vғņ.x_W:j5\\\\":\t \x0d{"\\u00e9" :\x0d\n\x0d\n935\x0d \x0d,"": \x0d\n "?/E1񇾡L0"\n\x0d\t\t,"" :"R\\rNW|=\\uc506f֦$ch"\x0d\n ,"*\\n":30e-22\x0d\n\x0d  }\x0d}," d󃁘\\uDa9F\\uDD29"]\n\n\n ,"",""\n\t]\x0d\n\x0d\t\x0d\n\n
 end
 
 case gen/values-v1/1518
@@ -9426,7 +9426,7 @@ end
 
 case gen/values-v1/1534
 filter .
-stdin \n \t\n{"\\u00e9":\n\n{"\\r\\/"\t\x0d\n: \x0d9755853661475.96561050\t ,"{:@_"\n\x0d\n\n:\x0d\n\t\x0d\x0d\n"ab:\\"$","\\u00e9"\x0d \x0d\n:\x0d\n \t 007\x0d\x0d\x0d}\x0d\n \n}\x0d\n\n
+stdin {\x0d\n  "\\u00e9": {\x0d\n    "\\/,<(xt\x7fH\x7f\xf8禤\xe0\x80\x80~hR\\u000CV\\t": -9223372036854775808,\x0d\n    "Z": "{:@_a\\ud8b0\\udC54\xed\xa0\x80|"\x0d\n  },\x0d\n  "Z": "\\rX\x7fCUS",\x0d\n  "t\xed\xa0\x80\\\\": {\x0d\n    "é": {\x0d\n      "": "\\r\\u60cD󖎛W;yzj",\x0d\n      "": "'Ďᷖ\x9c<𹜙\\f\\u000d"\x0d\n    },\x0d\n    "A": "L/ )兩%C\\\\\\"Tc񡐴\\u5d93Xh\\\\y",\x0d\n    "\\u00e9": "5ER-~Eܭ"\x0d\n  },\x0d\n  "😀": 449,\x0d\n  "Ŕp": [\x0d\n    -410,\x0d\n    null,\x0d\n    [\x0d\n      "v֊h",\x0d\n      null,\x0d\n      730.0438,\x0d\n      [\x0d\n        nan,\x0d\n        false\x0d\n      ]\x0d\n    ],\x0d\n    "\\uDa59\\udCb2c\xe8\xb0>2vPT\\u1C44D"\x0d\n  ]\x0d\n}
 end
 
 case gen/values-v1/1535
@@ -9483,7 +9483,7 @@ case gen/values-v1/1543
 arg -c
 arg -a
 filter .
-stdin {"b":-70497199638915914043785405707024844685,"A":"\\u0016\\r\\uDaC2\\udF45A","":"6\\/\xc7 E","h\xfc1qLr":{"b\\"":inf,"😀":null,"｡":"\x7fCT\\udB6F\\uDEed𦘸_ڰ`E\xe0\x80\x80.ٱ\x8cR\xe0\x80\x80"},"a":"g$࿺B\\/$UG򅪟(\\u2D32","\\u00e9":[false,-600,418,"a\\"Z","\\uD8a0\\uDFc9\\t`􅎥%Z󮞷\\u000A0\\u000D","TF\xe0\x80\x80Fl>h=\\u001Bsʾ󫱿\\uD816\\uDEF876=",-317,"(",[[]],[]]}\n
+stdin \n [2.e3,{\x0d\n} \x0d\t\t,""\x0d\n\t]\t\n
 end
 
 case gen/values-v1/1544
@@ -9710,7 +9710,7 @@ end
 case gen/values-v1/1580
 arg -c
 filter [paths]
-stdin \n[{"aa"\t :\x0d\n1E+12345678901 ,"aa": \n"bd<\\uD911\\uDC29"} ,{"é":\n\n\x0d {"é"  : "t35ŀ"\x0d ,"é"\t\x0d: \t\t"\\r\\\\\x7f\xd90d\\"\x90,H;\\u800c:\\udF6C68" \x0d\n,"\\u00e9"\t:\x0d\n 34E+610}\t\t,"\xf4\x90\x80\x80Ctt":"\xc0\x80A+u񈓂fb\xe0\x80\x80Y "\x0d\n\t\x0d\n ,"aa":\x0d \x0d\n"X^>\xf4\x90\x80\x80죉\xf4\x90\x80\x808e\\b2i\\\\ŒCgaK\xf1)&" \x0d \n,"Z":\n7.23E27,"Bɽ\\ue5029CT" \n\x0d\n:  \n1.\t,"aa"\t\t:[1e99999999999 ,false\t\x0d\n\n\x0d,".YbZ"\t ,+1.E+2\x0d\n\x0d\x0d\n ]\n,"a"\t: \x0d"\\uD5d8<%򾬖\\u0001"\x0d\n}\n\t  ]
+stdin [[[403,[]],["N,2ৌ\\u19E9\\/","񪀑",[NaN00,-inf,true,"!",true,388.11,"e\\r","o\xed\xa0\x80",-300.31,true],9223372036854775808,{},""],{}]]
 end
 
 case gen/values-v1/1581
@@ -9747,13 +9747,13 @@ end
 case gen/values-v1/1586
 arg -c
 filter tojson
-stdin {\n  "\\"g+E\x7fdk*R\xed\xa0\x80r": true,\n  "aa": null,\n  "Y\xe8\xa5`\xb4v=Ba": false,\n  "é": {\n    "\\uDEF3򒒼W": 9007199254740993,\n    "😀": -0.0,\n    "😀": null\n  },\n  "iA񔂰\\uDbEB\\uDdCe": 2185203637410165248771,\n  "!hy$󣹳Y'oX": -9007199254740993,\n  "é": "ª\xba`ﯣ􀌪\\tں\x86zv\xe0\x80\x80'=\xca:\xc0\x80\xc1ڽ\xf4\x90\x80\x80",\n  "\\u0059\xe8\xa5`\xb4v=Ba": 4573209605929881072148709466284\n}\n
+stdin {\n  "\\"g+E\x7fdk*R\xed\xa0\x80r": true,\n  "aa": null,\n  "Y\xe8\xa5`\xb4v=Ba": false,\n  "é": {\n    "\\uDEF3򒒼W": 9007199254740993,\n    "😀": -0.0,\n    "😀": null\n  },\n  "iA񔂰\\uDbEB\\uDdCe": 2185203637410165248771,\n  "!hy$󣹳Y'oX": -9007199254740993,\n  "é": "ª\xba`ﯣ􀌪\\tں\x86zv\xe0\x80\x80'=\xca:\xc0\x80\xc1ڽ\xf4\x90\x80\x80",\n  "Y\xe8\xa5`\xb4\\u0076=Ba": ""\n}\n
 end
 
 case gen/values-v1/1587
 arg -c
 filter [paths]
-stdin [\x0d\n  007\x0d\n]\n
+stdin +1.E+2\n
 end
 
 case gen/values-v1/1588
@@ -9919,7 +9919,7 @@ end
 case gen/values-v1/1614
 arg -c
 filter tojson
-stdin {\n  "é": 532,\n  "aa": [\n    []\n  ],\n  "": [\n    null,\n    "򭧸\\rᷓ/𛸝Q_A\\u57e9\\u0006",\n    22.4E-6,\n    007\n  ]\n}\n
+stdin \x0d\n1.\x0d\n\n
 end
 
 case gen/values-v1/1615
@@ -10128,7 +10128,7 @@ case gen/values-v1/1648
 arg -c
 arg -a
 filter .
-stdin {"Z":[{"":"𜍧","😀":"\\/N$#w!\xf36\\u7f90\\ucFa4\\uBA9eF݊Y6\xfd","Z":[false,true,"p󷴗c\xed\xa0\x80>Y5"]},[279,null,-9223372036854775808,"\xf1\xb7","\\tP"],[150,"gu\\f",null,true,false,{"a":{"Z":590,"aa":[90.88e30,true,810,{"@噭񭿷zҐ\\r":9223372036854775807},126.3405,[true,")⯃5BG",939.6263,-1.079575329667599923978142594,-75919092712368076585790080789,57698476152364686290.1359,420342885538265610208648813,"\xf3.eW vRL񲏮\xc0\x80;j",255.48,-699],"g",-0.0000002826,326,622,"m+C\xe5\xb3gJ*7"]},"aa":["#ﶣ",129],"😀":0.0}],[{},{"A}d\x7f)":false,"｡":[],"V":false,"":800,"":-299887716903.6702191,"㋈Dc$Ԝ\\twAPd":true},"\\uD83C\\udEe7B\xe0\x80\x80'\\udb57\\udd77w򜁈֥',XMYJb"],[3069297235095745892242.55,""],"'c\x7f,k\\udB46\\udFDCqy\\ud8a5\\udf89",[null,null]],"\\u005a":[{"é":null,"a":"-d","b":897,"A":false},"\\t",9007199254740993,1e10000000000,{"a":"\xed\xa0\x80Q]","😀":null},null,-790,52.5E+062,"񺂎\\n."]}\n
+stdin {"Z":[{"":"𜍧","😀":"\\/N$#w!\xf36\\u7f90\\ucFa4\\uBA9eF݊Y6\xfd","Z":[false,true,"p󷴗c\xed\xa0\x80>Y5"]},[279,null,-9223372036854775808,"\xf1\xb7","\\tP"],[150,"gu\\f",null,true,false,{"a":{"Z":590,"aa":[90.88e30,true,810,{"@噭񭿷zҐ\\r":9223372036854775807},126.3405,[true,")⯃5BG",939.6263,-1.079575329667599923978142594,-75919092712368076585790080789,57698476152364686290.1359,420342885538265610208648813,"\xf3.eW vRL񲏮\xc0\x80;j",255.48,-699],"g",-0.0000002826,326,622,"m+C\xe5\xb3gJ*7"]},"aa":["#ﶣ",129],"😀":0.0}],[{},{"A}d\x7f)":false,"｡":[],"V":false,"":800,"":-299887716903.6702191,"㋈Dc$Ԝ\\twAPd":true},"\\uD83C\\udEe7B\xe0\x80\x80'\\udb57\\udd77w򜁈֥',XMYJb"],[3069297235095745892242.55,""],"'c\x7f,k\\udB46\\udFDCqy\\ud8a5\\udf89",[null,null]],"\\u005A":""}\n
 end
 
 case gen/values-v1/1649
@@ -10183,7 +10183,7 @@ end
 case gen/values-v1/1657
 arg -c
 filter [paths]
-stdin ["",false,{"7\\n0\\uD8dB\\udc2b R\\r)p\\r4\\"f\xbdꖿL)\xf4\x90\x80\x80\\u00071pi\\u023C\\f":"J#1-\\teI"},-842,{"a":1E+12345678901,"iޜ\xa1\xf4\x90\x80\x80,ᓲ":""}]\n
+stdin ["",false,{"7\\n0\\uD8dB\\udc2b R\\r)p\\r4\\"f\xbdꖿL)\xf4\x90\x80\x80\\u00071pi\\u023C\\f":"J#1-\\teI"},286,{"a":1E+12345678901,"iޜ\xa1\xf4\x90\x80\x80,ᓲ":""}]\n
 end
 
 case gen/values-v1/1658
@@ -10286,7 +10286,7 @@ end
 
 case gen/values-v1/1674
 filter .
-stdin [-75E31,[],41.4E+13,{"":{"A":false,"\\u0041":9007199254740993},"\\u00e9":"B绎","aa":["$_\\u0010d>","򔡊","bG_]1Y","",-230]}]\n
+stdin [-75E31,[],41.4E+13,{"":{"A":false,"\\u0041":[{"aa":-870,"\xed\xa0\x80\\"/󮪄":")\\u5c0B{uf#b","é":["\\ud842\\uDF1C\\r𓊃",["","",""]]}]}}]\n
 end
 
 case gen/values-v1/1675
@@ -10324,7 +10324,7 @@ end
 case gen/values-v1/1680
 arg -c
 filter .
-stdin {"I"\n\n\x0d\n:\n  ["" \t,"@dWXY~\\uDA4D\\uDE27š\xabN;y ?\xc0\x80KA߁\xa4;;eEO\xc0\x80\\"ՇK\\uDdae`G\\uA987\\uD848\\uDFf6-\\u0015fգᢗL}f\\f,8\\u001D|\\u001APL;vJ򾨖\xa0eü\x82S椷]F\\u3Ccd"\n,1e99999999999 \t\t,6304861688229398321095\x0d,"t"\x0d,9223372036854775808\x0d\n\x0d\n\t,121\x0d\x0d\n\t,69e577\t,"򁗃LQrHNe"\x0d\n\n]\x0d\n,"Z":\x0d\n \x0d\n{"｡"\x0d \n\x0d\n: \t \n{"e\xed\xa0\x80U\xc42䐕q\x7f:ۣb-O=ِ"\x0d\n:\t"D\xc0\x80ƈ"\x0d\x0d\n\n,"B\\t$\\u9EC1"\n\x0d\n\x0d:""\x0d\t\x0d\n,"n\xc0\x804b\\uE44B@𒁴/]s"\t\t:\x0d\n\x0d"/"\n\x0d ,"\xed\xa0\x80/l":"$\\nf"\t,"\\t󣑰\xa0B)"  :\x0d {"aa"\t:\n ""}\x0d,"😀"\x0d\n\x0d\n:\t"\xf4\x90\x80\x80M\\/\\f󹁨󴦎3\x7f򽨗"\x0d}\x0d\x0d}\t\n,"😀"\t\x0d\n : \x0d99\x0d\n\n\t\t}\n
+stdin {"I"\n\n\x0d\n:\n  ["" \t,"@dWXY~\\uDA4D\\uDE27š\xabN;y ?\xc0\x80KA߁\xa4;;eEO\xc0\x80\\"ՇK\\uDdae`G\\uA987\\uD848\\uDFf6-\\u0015fգᢗL}f\\f,8\\u001D|\\u001APL;vJ򾨖\xa0eü\x82S椷]F\\u3Ccd"\n,1e99999999999 \t\t,6304861688229398321095\x0d,"t"\x0d,9223372036854775808\x0d\n\x0d\n\t,121\x0d\x0d\n\t,69e577\t,"򁗃LQrHNe"\x0d\n\n]\x0d\n,"Z":\x0d\n \x0d\n{"｡"\x0d \n\x0d\n: \t \n{"e\xed\xa0\x80U\xc42䐕q\x7f:ۣb-O=ِ"\x0d\n:\t"D\xc0\x80ƈ"\x0d\x0d\n\n,"B\\t$\\u9EC1"\n\x0d\n\x0d:""\x0d\t\x0d\n,"n\xc0\x804b\\uE44B@𒁴/]s"\t\t:\x0d\n\x0d"/"\n\x0d ,"\xed\xa0\x80/l":"$\\nf"\t,"\\t󣑰\xa0B)"  :\x0d {"aa"\t:\n ""}\x0d,"😀"\x0d\n\x0d\n:\t"\xf4\x90\x80\x80M\\/\\f󹁨󴦎3\x7f򽨗"\x0d}\x0d\x0d}\t\n,"😀"\t\x0d\n : \x0d99\n\t}\x0d\n\n
 end
 
 case gen/values-v1/1681
@@ -10458,7 +10458,7 @@ end
 
 case gen/values-v1/1702
 filter .
-stdin [["􇣡{"],{";)2(Nqq":007,"aa":"C誰$#iur-8h\\udbF1\\uDee8~\\uEC48C","b":"4^\\t","H\xed\xa0\x80&":375.1310,"Z":{"a":""},"Z":"","a":[true],"":502,"Z":"g\xe0\x80\x80","TBʔɫiīɭ^tοjd.f":7454.08170061631522496522,"\\nl\xc0\x80ge\x7f/":{},"\\u005A":1e-10000000000},{"aa":"hs\\u001Cht\\u0003m","Z":"q>*4","\\u0061a":"|F"}]
+stdin [["􇣡{"],{";)2(Nqq":007,"aa":"C誰$#iur-8h\\udbF1\\uDee8~\\uEC48C","b":"4^\\t","H\xed\xa0\x80&":375.1310,"Z":{"a":""},"Z":"","a":[true],"":502,"Z":"g\xe0\x80\x80","TBʔɫiīɭ^tοjd.f":7454.08170061631522496522,"\\nl\xc0\x80ge\x7f/":{},"\\u005A":{"é":484.164}},[]]
 end
 
 case gen/values-v1/1703
@@ -10501,14 +10501,14 @@ end
 
 case gen/values-v1/1709
 filter .
-stdin \t \n {"😀"\x0d\n \n :\n\x0d{"@\\uCBE4?.\xf4\x90\x80\x80"\t :\x0d\t["c'\\t\\u8121\xc0\x80G\xe0\x80\x80滝w"\x0d,[[422,"~[\\t\\u31D6fʌWBZ","`B","\xea\x87Y\\uD9BC\\uDC02n􅯦ꛅ\\rɍ\x9c"\x0d\n\t\x0d]\t\x0d\n\t,+1\x0d\t,null\x0d \x0d ,"sѱ\\"2萲\x8dy\\\\\\uD796"\x0d\n\x0d\n,1e-1147483646\x0d,"M"\x0d\n\n\x0d\n,"c|\\\\I"\n \x0d] \x0d\n,true\x0d\n \t\t,"<",+1\n\t\x0d\n,null \n ]\x0d\n}\x0d\n ,"a"\t:\t\n false,"\x7f݀\\\\|\\n\x9c񼷁"\x0d\n\n:\t\n false\x0d\x0d ,"😀"\x0d\n\n\x0d :\x0d\x0d\tfalse,"{X닷"\n\x0d\n  :\x0d\n""\x0d,"a" :  -121.7016 ,"$p\\bV;O\\r\xe0\x80\x800e=W%Wdο\x7f\\\\o\\u001E\xc0\x80\xe6(􈖰a\\fa.ޑ"\x0d\t\x0d\n\n:\x0d\n\x0d\n"\\r\\\\)!ZJi:3GϘEC\\uac6F\\u0009-cV\\udE8E"\x0d,"\\u007BX닷"\n  : \x0d+1.E+2\t }\x0d \n\n
+stdin \t \n {"😀"\x0d\n \n :\n\x0d{"@\\uCBE4?.\xf4\x90\x80\x80"\t :\x0d\t["c'\\t\\u8121\xc0\x80G\xe0\x80\x80滝w"\x0d,[[422,"~[\\t\\u31D6fʌWBZ","`B","\xea\x87Y\\uD9BC\\uDC02n􅯦ꛅ\\rɍ\x9c"\x0d\n\t\x0d]\t\x0d\n\t,+1\x0d\t,null\x0d \x0d ,"sѱ\\"2萲\x8dy\\\\\\uD796"\x0d\n\x0d\n,1e-1147483646\x0d,"M"\x0d\n\n\x0d\n,"c|\\\\I"\n \x0d] \x0d\n,true\x0d\n \t\t,"<",+1\n\t\x0d\n,null \n ]\x0d\n}\x0d\n ,"a"\t:\t\n false,"\x7f݀\\\\|\\n\x9c񼷁"\x0d\n\n:\t\n false\x0d\x0d ,"😀"\x0d\n\n\x0d :\x0d\x0d\tfalse,"{X닷"\n\x0d\n  :\x0d\n""\x0d,"a" :  -121.7016 ,"$p\\bV;O\\r\xe0\x80\x800e=W%Wdο\x7f\\\\o\\u001E\xc0\x80\xe6(􈖰a\\fa.ޑ"\x0d\t\x0d\n\n:\x0d\n\x0d\n"\\r\\\\)!ZJi:3GϘEC\\uac6F\\u0009-cV\\udE8E"\n  ,"{X\\uB2F7" \x0d:\x0dnull\n\t \x0d} \n\t\n
 end
 
 case gen/values-v1/1710
 arg -c
 arg -S
 filter .
-stdin [[-781,{"😀":56,"":[true],"":{"｡":null,"b":[922,-845,true,true,[849,null,1e-10000000000],-816,"cU",-763,null,633.63]}}],[]]\n
+stdin [[-781,{"😀":56,"":[true],"":{"｡":null,"b":[922,-845,true,true,[849,null,1e-10000000000],-816,"cU",-763,null,633.63]}}],""]\n
 end
 
 case gen/values-v1/1711
@@ -10551,7 +10551,7 @@ case gen/values-v1/1717
 arg -c
 arg -S
 filter .
-stdin {"\\uD878\\udC19tt[q\xf4\x90\x80\x80":"\xc0\x80y> r","\x7fS":{"\\u00e9":007},"\\uD878\\udC19tt[q\xf4\x90\x80\x80":null}\n
+stdin {"\\uD878\\udC19tt[q\xf4\x90\x80\x80":"\xc0\x80y> r","\x7fS":{"\\u00e9":007},"\\uD878\\udC19tt[\\u0071\xf4\x90\x80\x80":[[-9223372036854775808],"\\r\xed\xa0\x80\\"@RI/ϻ\x9a\xc64L\\udCf6K","\\u000f\\u901fܪ\xa5!",-37E+19,-773,{"aa":1.,"":{"b":-837.09,"":999,"b":true,"Iy":"7H"},"9\\f>r\xc0\x80G:BP'sBr^Yϒ\x8312\\ts\\n7R:":false,"é":"궷I[\x96"},false,null]}\n
 end
 
 case gen/values-v1/1718
@@ -10637,7 +10637,7 @@ case gen/values-v1/1731
 arg -c
 arg -S
 filter .
-stdin [\t \n\n{\x0d\t"a":\x0d\n\x0d\n\n[\n\t\n[\x0d\n\n\n\n{""\x0d\x0d\t :\x0d\t\x0d\t{\x0d""\x0d:\t\n{"é":\t{\x0d\n\n\n"\\u00e9":\x0d\n\t\t\x0d\n{\x0d\n\x0d\n "A"\x0d:\t{\n\x0d\n\x0d\t"｡"\t\x0d\n\n:{\t""\x0d\t :\n\x0d\n{"é"\x0d\t\t: {\n"｡"\x0d\n\t\n :[ {\x0d\x0d\t""\t\t:\t\x0d\n\x0d\n[\n[  {\x0d""\t\x0d\n:\x0d\t\n[\t [\n\x0d [\n\x0d [[\x0d\x0d\n{"b"\x0d\x0d\n\x0d\n:\x0d\n\t\n{ \n""\x0d\n:\t\x0d\n\t\x0d\n[\x0d\n\x0d\n{\t\x0d"a"\x0d:\x0d\x0d\n {\x0d\n\t\n""\x0d\t:\x0d\n\n{"é" :\x0d[\x0d[\x0d\n\x0d\n\x0d\n{"a" \x0d\n\n:\x0d\x0d\n {\x0d\x0d\t "b"   :\n\x0d \x0d\n{\t"😀"\x0d\n:[\x0d\n{\n \x0d\n\x0d\n"a":[\x0d\x0d\x0d\n[  {\t\x0d\n"\\u00e9" \x0d\n\x0d\n : \t\n\x0d[{"A"\t \x0d\n: \n[ \t\x0d{"😀"\x0d \n\x0d\n:  \t[\n\t[\x0d\n{\t\n\x0d\x0d\n"a":\t\n{\n"b" \n\x0d\n:\x0d\t\n[{ \n\n""\t\n:\x0d {"é" \x0d\x0d:[\t \x0d {"b"\x0d\x0d\n\t\n:\t\n [\t\x0d\n \t{  \x0d\n\n""\x0d\n\x0d\n\x0d\t:[\x0d\n\t\n\t1e-1147483646\t]\t  } \n\t\n] \x0d\n\n}\n]\n\n\n\x0d\n}}\n]\x0d\n\t\n }\x0d\x0d\n}] ]\t\x0d\n }\t]\n\t\n}\x0d\x0d \x0d] \x0d\x0d\t} ] \x0d\n\n]\t\n\t\x0d\n}\x0d\n\t\n]\x0d\n\x0d\t}\x0d\x0d\x0d\n\n}\x0d\t \x0d}\n]\n\t\n]\x0d}\t}\x0d\n\t }\x0d\n]\x0d\n\x0d\n}  \t}\x0d\n\t]\n\x0d\n]\n \t\x0d\n]  ]\x0d ]\n \x0d}]\x0d\t\n]\x0d\n\x0d}\t\x0d\n\x0d]\x0d\x0d\n}\x0d\n\x0d\n\x0d}\x0d\n\x0d\n}}\n\t\t}}\n\x0d\n}\t\x0d\x0d}}  \x0d\n\x0d\n]\x0d\n\x0d\n]\x0d\x0d\n\x0d\n}\x0d\n]
+stdin [\t \n\n{\x0d\t"a":\x0d\n\x0d\n\n[\n\t\n[\x0d\n\n\n\n{""\x0d\x0d\t :\x0d\t\x0d\t{\x0d""\x0d:\t\n{"é":\t{\x0d\n\n\n"\\u00e9":\x0d\n\t\t\x0d\n{\x0d\n\x0d\n "A"\x0d:\t{\n\x0d\n\x0d\t"｡"\t\x0d\n\n:{\t""\x0d\t :\n\x0d\n{"é"\x0d\t\t: {\n"｡"\x0d\n\t\n :[ {\x0d\x0d\t""\t\t:\t\x0d\n\x0d\n[\n[  {\x0d""\t\x0d\n:\x0d\t\n[\t [\n\x0d [\n\x0d [[\x0d\x0d\n{"b"\x0d\x0d\n\x0d\n:\x0d\n\t\n{ \n""\x0d\n:\t\x0d\n\t\x0d\n[\x0d\n\x0d\n{\t\x0d"a"\x0d:\x0d\x0d\n {\x0d\n\t\n""\x0d\t:\x0d\n\n{"é" :\x0d[\x0d[\x0d\n\x0d\n\x0d\n{"a" \x0d\n\n:\x0d\x0d\n {\x0d\x0d\t "b"   :\n\x0d \x0d\n{\t"😀"\x0d\n:[\x0d\n{\n \x0d\n\x0d\n"a":[\x0d\x0d\x0d\n[  {\t\x0d\n"\\u00e9" \x0d\n\x0d\n : \t\n\x0d[{"A"\t \x0d\n: \n[ \t\x0d{"😀"\x0d \n\x0d\n:  \t[\n\t[\x0d\n{\t\n\x0d\x0d\n"a":\t\n{\n"b" \n\x0d\n:\x0d\t\n[{ \n\n""\t\n:\x0d {"é" \x0d\x0d:[\t \x0d "䯋1ĂfkMp\xc0\x80+Fe\x7f\\ud8d8\\uDFBB9׊\\u960eB\\/\xc0\x80'S*"\x0d] \t}\x0d}\t\n]\x0d\x0d \x0d} \x0d\x0d\t} ] \x0d\n\n]\t\n\t\x0d\n}\x0d\n\t\n]\x0d\n\x0d\t}\x0d\x0d\x0d\n\n]\x0d\t \x0d}\n]\n\t\n]\x0d}\t]\x0d\n\t }\x0d\n}\x0d\n\x0d\n}  \t]\x0d\n\t]\n\x0d\n}\n \t\x0d\n}  }\x0d ]\n \x0d}}\x0d\t\n]\x0d\n\x0d]\t\x0d\n\x0d]\x0d\x0d\n]\x0d\n\x0d\n\x0d]\x0d\n\x0d\n}]\n\t\t]}\n\x0d\n]\t\x0d\x0d}}  \x0d\n\x0d\n}\x0d\n\x0d\n}\x0d\x0d\n\x0d\n}\x0d\n}}\t\x0d\n}\x0d\n\x0d}\t]\x0d]\n\x0d}\x0d   ]\x0d\n\n\x0d
 end
 
 case gen/values-v1/1732
@@ -10759,7 +10759,7 @@ end
 
 case gen/values-v1/1751
 filter .
-stdin [\n  -770.1875,\n  "~",\n  "N]:CWJ;a",\n  -828,\n  {\n    "\\f\x95": [\n      695,\n      null\n    ],\n    "ԫ7p\\r\\u38962׉": {\n      "a": 135856680825182331604007134583,\n      "é": [\n        "1",\n        0.0000006\n      ],\n      ".": [\n        [\n          -942\n        ],\n        "ĭjX5.R",\n        27E+57\n      ]\n    },\n    "b": -27E+421,\n    "": "",\n    "wu": null\n  },\n  null,\n  {\n    "": [\n      "ےP\xf4\x90\x80\x80+R@I\\/",\n      " \\n"\n    ],\n    "aa": "sbTԒ\\u001D\\f",\n    "\\u00e9": "",\n    "A": null,\n    "Z": false,\n    "": "$\\u3C32񒩤񙊦,E񺏧\\/WP'Xl\\r\xe2"\n  },\n  [\n    null,\n    {\n      "xR\\"": -0.00000006\n    }\n  ],\n  "M?&APZ彆p㉧4y",\n  -196,\n  [\n    -40.93,\n    795.1,\n    "]h",\n    "\\u0014;â\x9b",\n    729.684,\n    [\n      332.5,\n      true,\n      ";5\\n\\"꠰HJ>\\u0015",\n      -340,\n      554,\n      {},\n      "cSl",\n      "\x7f\\r:o6\\u25E6R1k$Au턉\xed\xa0\x80",\n      {\n        "څ<;\\fdἻ'\\f\\uDA3e\\uDcD1R": {\n          "": "ѿ\x87(\\/l\\uDa13\\uDD0C;qh",\n          "\\u00e9": "=^zT*ml N",\n          "O(\xed\xa0\x80": "\\"\\u000b1f\\uD8fb\\uDdAc",\n          "<\\f\xed\xa0\x80": null,\n          "é": [\n            4463950472808599398282,\n            "\x7f)f\\u000d\\uF59B",\n            "",\n            null,\n            -301.4816,\n            "\xf4\x90\x80\x80u\\uDcd7ǥ\xb9>\\\\yi\\u0005W\\f@",\n            679\n          ]\n        },\n        "A": null,\n        "｡": 682.1,\n        "｡": ";\\u78245#\xe0\x80\x80S\xf4\x90\x80\x80@b"\n      },\n      261.9\n    ],\n    "4",\n    1e999999999,\n    0.000000007876,\n    786,\n    true,\n    0.000000001,\n    [\n      {\n        "B[\\/>\xed\xa0\x801\\uD884\\udf0D򕻻╉G\\tPi\xc0\x80O8G\xf0\x945N~": [\n          "\xe0\x80\x80\\"\x7f"\n        ],\n        "\\u0042[\\/>\xed\xa0\x801\\uD884\\udf0D򕻻╉G\\tPi\xc0\x80O8G\xf0\x945N~": null\n      },\n      [\n        null\n      ],\n      "\xed\xa0\x80\xed\xa0\x80\\u001b\\t",\n      false\n    ],\n    [\n      -9223372036854775808,\n      false,\n      914.50\n    ],\n    -727\n  ],\n  [\n    {\n      "\\u0015I": {}\n    },\n    {\n      "\\u00e9": null,\n      "Z": 402.77,\n      "aa": "ɧ\x9b\\uDfCC\\rU\xe0\x80\x80P\\uF8fE\\uA8ef\\t񑐐vk𗆠",\n      "\\uD892\\uDedC׬\xe0\x80\x80@;": "3>l"\n    },\n    "񿴯\x7ffNpӃ\x88:_(7#",\n    -71.72E+77,\n    [],\n    {\n      "A": ""\n    },\n    null,\n    -94E21,\n    -558\n  ],\n  -396,\n  true\n]\n
+stdin [\n  -770.1875,\n  "~",\n  "N]:CWJ;a",\n  -828,\n  {\n    "\\f\x95": [\n      695,\n      null\n    ],\n    "ԫ7p\\r\\u38962׉": {\n      "a": 135856680825182331604007134583,\n      "é": [\n        "1",\n        0.0000006\n      ],\n      ".": [\n        [\n          -942\n        ],\n        "ĭjX5.R",\n        27E+57\n      ]\n    },\n    "b": -27E+421,\n    "": "",\n    "wu": null\n  },\n  null,\n  {\n    "": [\n      "ےP\xf4\x90\x80\x80+R@I\\/",\n      " \\n"\n    ],\n    "aa": "sbTԒ\\u001D\\f",\n    "\\u00e9": "",\n    "A": null,\n    "Z": false,\n    "": "$\\u3C32񒩤񙊦,E񺏧\\/WP'Xl\\r\xe2"\n  },\n  [\n    null,\n    {\n      "xR\\"": -0.00000006\n    }\n  ],\n  "M?&APZ彆p㉧4y",\n  -196,\n  [\n    -40.93,\n    795.1,\n    "]h",\n    "\\u0014;â\x9b",\n    729.684,\n    [\n      332.5,\n      true,\n      ";5\\n\\"꠰HJ>\\u0015",\n      -340,\n      554,\n      {},\n      "cSl",\n      "\x7f\\r:o6\\u25E6R1k$Au턉\xed\xa0\x80",\n      {\n        "څ<;\\fdἻ'\\f\\uDA3e\\uDcD1R": {\n          "": "ѿ\x87(\\/l\\uDa13\\uDD0C;qh",\n          "\\u00e9": "=^zT*ml N",\n          "O(\xed\xa0\x80": "\\"\\u000b1f\\uD8fb\\uDdAc",\n          "<\\f\xed\xa0\x80": null,\n          "é": [\n            4463950472808599398282,\n            "\x7f)f\\u000d\\uF59B",\n            "",\n            null,\n            -301.4816,\n            "\xf4\x90\x80\x80u\\uDcd7ǥ\xb9>\\\\yi\\u0005W\\f@",\n            679\n          ]\n        },\n        "A": null,\n        "｡": 682.1,\n        "｡": ";\\u78245#\xe0\x80\x80S\xf4\x90\x80\x80@b"\n      },\n      261.9\n    ],\n    "4",\n    1e999999999,\n    0.000000007876,\n    786,\n    true,\n    0.000000001,\n    [\n      {\n        "B[\\/>\xed\xa0\x801\\uD884\\udf0D򕻻╉G\\tPi\xc0\x80O8G\xf0\x945N~": [\n          "\xe0\x80\x80\\"\x7f"\n        ],\n        "B[\\/>\xed\xa0\x801\\uD884\\udf0D򕻻╉G\\tPi\xc0\x80O8G\xf0\x94\\u0035N~": null\n      },\n      null,\n      "\xed\xa0\x80\xed\xa0\x80\\u001b\\t怊\\uDeD4",\n      "J3oz"\n    ],\n    "dBf2\\nID",\n    ""\n  ],\n  "$铕h[ \\uac66ɧ\x9b\\uDfCC\\rU\xe0\x80\x80P\\uF8fE\\uA8ef\\t񑐐",\n  "",\n  627.7\n]\n
 end
 
 case gen/values-v1/1752
@@ -10945,7 +10945,7 @@ case gen/values-v1/1781
 arg -c
 arg -a
 filter .
-stdin NaN00\n
+stdin [[-768\x0d\n\n]\x0d\n,-inf\t\n,["%ŗ"\t\x0d\n\n\x0d\n,[679.9\t\x0d,"l/N󆛋˛y"\x0d\n\x0d\x0d\n\t,"l"\x0d\n \n,347.6664\x0d\t \t,false]] \x0d\n,+1.E+2\n\x0d\x0d\n,952\t\x0d\n \x0d]\x0d
 end
 
 case gen/values-v1/1782
@@ -10994,7 +10994,7 @@ end
 case gen/values-v1/1789
 arg -c
 filter tojson
-stdin \x0d\x0d\n[["a𑁨Ys\\u001EY>b\\b\\uA65fS\\b"\t\n\n ,{"a":\n\t\t"{!\\t"\t ,"" \n\x0d:\n\n\x0d{"Z"  :\x0d\n\x0d\n -64,""   :\n"vO?񻚕 p,usU<󾨨񎉥V\\/" \x0d\t,"\xe0\x80\x80\\n쟿V\\tq\\tdbN㵖v\\"\\"*"\n:\x0d\n\x0d\t{"Z"\t\x0d\n:"^"\t,"\\u005A"\x0d\n:"fqֺথ:Ȏ"},"":\t\x0d\nnull\x0d\x0d,"😀":\t1e-10000000000\t\t\x0d}\x0d\n,"\\u00e9"\x0d\n:"\xed\xa0\x80Lǲq"\x0d\n  ,""\x0d \x0d:\t"dT\xe0\x80\x80"\x0d\n,"｡":\x0d\x0d\n\n"EM~G0L򀿴\x7fZb@.>"\x0d\n\n ,"😀"\x0d\x0d\n:\x0d\n"\\/`0"\n,"a"   \n:\t598.874\x0d\x0d,"😀"\n\n: \x0d\tnull \x0d\n\t,"/"\x0d\n\t\x0d\n :\n-4771145359225065617.7 \x0d\n\n,"x𭍸w"\x0d\n\t: \x0d\t-0 \n\t\x0d,"a"\x0d\t\n :"\xb2C?\xed\xa0\x80\xf4\x90\x80\x80","," \x0d\n:\x0d\n\t\x0d\t9007199254740993\t\x0d\n}\x0d\n,604 \x0d],false\t]\t\x0d\x0d\x0d
+stdin \x0d\x0d\n[["a𑁨Ys\\u001EY>b\\b\\uA65fS\\b"\t\n\n ,{"a":\n\t\t"{!\\t"\t ,"" \n\x0d:\n\n\x0d{"Z"  :\x0d\n\x0d\n -64,""   :\n"vO?񻚕 p,usU<󾨨񎉥V\\/" \x0d\t,"\xe0\x80\x80\\n쟿V\\tq\\tdbN㵖v\\"\\"*"\n:\x0d\n\x0d\t{"Z"\t\x0d\n:"^"\t,"\\u005A"   \x0d\n:\t   [""  \t,-0\x0d\n,-567\t\x0d\n ,"@a\\"\\ub793*"\t\t ,false,"%M,D" \x0d\t,"dT\xe0\x80\x80\\t",false,374\n\n,-840]}\x0d\x0d\n\t\n,"é":"\\uD8AD\\uDf42Zb@"\x0d\n,"a"\x0d\n\n :true\x0d\n\t\x0d\n}\x0d\n\t\n,""\x0d\n\n:\t\n\x0d\n0.000000005\t,"r\\ud9Bb\\udC303"\t \x0d:"/\\t\\"","\\u00e9"\x0d\n\x0d\n\n\x0d\n:\n\n\t\t[ \x0d\n\n]  ,"\\u000fwdx𭍸":\n\x0d\n\t-0\x0d,"A" \n\t\x0d:\t\x0d\n122,"😀":\x0d 441.524 \x0d\n\x0d\n,"Z"\x0d:\t\x0d{\x0d\n\x0d\n\t\x0d}\n,"\\u0015\\uB4b9\\f":\t\t\x0d\n\t-574.9645,"A" \x0d\n:\n"aڔ,"\t\x0d\n\x0d\x0d,"mC":\t\t{"N󽃱\\t":\n{ }\n\x0d\n\n\x0d,"b"\t\t: \n\x0d\n\x0d\n-978,"":\x0d\n\n""\x0d\x0d\t ,"A"\x0d\n:\x0d\n\x0d"\\t\\/\\/lӮ3\xf4\x90\x80\x804)!\\/)䆀"\x0d\n,"Z" \x0d\n\n:\n\x0d\t-46.9E5,"\\u7046\\\\P(`ס\xac\\"\x7f" \x0d\n\x0d\n:\t\x0d\x0d ""\n\x0d,"A"\n\t\t\n:""\t,"N󽃱\\t"\x0d  \x0d:\x0d\x0d\n582}\t\x0d\n,"" :\x0d\x0d\n \x0d\n"td" \t},"Crj\\\\\\rXeq\\u000c][\\b }9x\\/u콃.󹋧t~P\\b"\t\t],-751]\n\x0d
 end
 
 case gen/values-v1/1790
@@ -11024,7 +11024,7 @@ case gen/values-v1/1794
 arg -c
 arg -S
 filter .
-stdin {"😀":-960,"😀":-885}
+stdin {"😀":-960,"\\uD83d\\uDE00":-868}
 end
 
 case gen/values-v1/1795
@@ -11060,7 +11060,7 @@ end
 
 case gen/values-v1/1800
 filter .
-stdin {"\\u00e9":[{"a":{"a":{"aa":{"":{"😀":[[{"｡":{"\\ud739(":"","cHkN(q":-497.1,"":false,"b":541,"j":694988350581047774.7224,"":"sQܓA(sm","󖥩]&\\t9\\"\\fy":"\xc0\x80ӵ罕s6(\\b\xf4\x90\x80\x80h\xc0\x80E\\u000Dc\\t>k>z\x7f΄\x88X","A":"I","\\u0018[":"D\\udB94\\ude1c&p/ë\\u0012ęP9"}}]]}}}}}]}
+stdin {"\\u00e9":[{"a":{"a":{"aa":{"":{"😀":[[{"｡":[[[[[{"😀":[{"b":[[{"":[[[[[[{"":[{"a":[{"｡":{"｡":[[{"b":{"b":{"Z":[[[{"a":[[[[{"aa":[[[{"\\u00e9":[{"\\u00e9":{"b":{"😀":{"😀":[{"a":[[[[[[[{"a":{"aa":[[{"é":{"":[{"Z":[[{"｡":[[[[{"😀":[[[[{"a":{"":[{"😀":{"A":{"":[[[{"a":[[{"aa":{"b":{"😀":[{"｡":[[[{"\\u00e9":{"｡":[[{"\\u00e9":[{"A":{"😀":[{"A":{"Z":{"A":[[[[{"\\u00e9":{"b":[{"😀":[{"aa":[{"a":{"\\u00e9":{"\\u00e9":[{"aa":{"A":[[{"😀":[{"😀":[{"a":{"😀":{"aa":[[{"😀":{"":[{"｡":{"｡":[{"":{"A":{"a":{"Z":[[[[[[[[[[{"😀":{"｡":{"Z":[{"😀":{"｡":{"｡":{"A":{"😀":[[[{"aa":[[[{"":[[{"a":{"A":true}}]]}]]]}]]]}}}}}]}}}]]]]]]]]]]}}}}]}}]}}]]}}}]}]}]]}}]}}}]}]}]}}]]]]}}}]}}]}]]}}]]]}]}}}]]}]]]}}}]}}]]]]}]]]]}]]}]}}]]}}]]]]]]]}]}}}}]}]]]}]]]]}]]]}}}]]}}]}]}]]]]]]}]]}]}]]]]]}]]}}}}}]}
 end
 
 case gen/values-v1/1801
@@ -11080,7 +11080,7 @@ end
 case gen/values-v1/1803
 arg -c
 filter tojson
-stdin \x0d\n{""\x0d\n\x0d\n: \t""\x0d\x0d\x0d\t,"Z" \x0d\n :\n\t \t[-381\x0d,true\n\x0d,false\n\x0d\n,"ږ\xbe="\x0d\x0d\n,-261\x0d\n,[+1,+1.E+2\x0d\n\x0d\n,{"A"\n \x0d\n\n: \n543\n\x0d \x0d,""\n\x0d\t:\x0d\n\n"\xf4\x90\x80\x80"\n\n,"Z_" : \t\x0d\n\x0d747.3888 \x0d\n ,"j[L"\x0d:\x0d\n\x0d\n \x0d\n+1\x0d  \x0d,"Z"\x0d\n\x0d\t:\x0d\n\x0d true,"aa"\x0d:["䠱Aj$󀦲U(JW"\x0d\n\x0d\n  ,true,""\t\n\x0d\n\x0d\n,-9424567650070405983067875087703479\t\x0d\x0d\n\t]\t\x0d\x0d}\x0d\n\n\t\n,"\\/\\u0854ʱ8\\\\K\\f"\x0d\n\x0d\t\t]\x0d\x0d\n  ]\x0d\n\t\t,"񜧐a_gBfzk\\r"\n\t\x0d\x0d\n: \x0d\n\x0d\x0d\n[inf\n]\t\n\t,"\x7fXs򍯞HsA:>" \t\t:\n \x0d{""\x0d\n\n\x0d\n :\x0d\n"ٴ\x87\xe0\x80\x80"\x0d\x0d\x0d\x0d\n,"ڄ":\t \x0d\n\t{\n\n \x0d\n}\n\x0d\n,"b" \x0d\x0d:\t\t1.\x0d\n\n\x0d\n},""\n\n\x0d\n:\x0d\t\t29.7e-038,"é"\n\t\n\x0d\n:"KA"\t  }
+stdin \x0d\n{""\x0d\n\x0d\n: \t""\x0d\x0d\x0d\t,"Z" \x0d\n :\n\t \t[-381\x0d,true\n\x0d,false\n\x0d\n,"ږ\xbe="\x0d\x0d\n,-261\x0d\n,[+1,+1.E+2\x0d\n\x0d\n,{"A"\n \x0d\n\n: \n543\n\x0d \x0d,""\n\x0d\t:\x0d\n\n"\xf4\x90\x80\x80"\n\n,"Z_" : \t\x0d\n\x0d747.3888 \x0d\n ,"j[L"\x0d:\x0d\n\x0d\n \x0d\n+1\x0d  \x0d,"Z"\x0d\n\x0d\t:\x0d\n\x0d true,"aa"\x0d:["䠱Aj$󀦲U(JW"\x0d\n\x0d\n  ,true,""\t\n\x0d\n\x0d\n,-9424567650070405983067875087703479\t\x0d\x0d\n\t]\t\x0d\x0d}\x0d\n\n\t\n,"\\/\\u0854ʱ8\\\\K\\f"\x0d\n\x0d\t\t]\x0d\x0d\n  ]\x0d\n\t\t,"񜧐a_gBfzk\\r"\n\t\x0d\x0d\n: \x0d\n\x0d\x0d\n[inf\n]\t\n\t,"\x7fXs򍯞HsA:>" \t\t:\n \x0d{""\x0d\n\n\x0d\n :\x0d\n"ٴ\x87\xe0\x80\x80"\x0d\x0d\x0d\x0d\n,"ڄ":\t \x0d\n\t{\n\n \x0d\n}\n\x0d\n,"b" \x0d\x0d:\t\t1.\x0d\n\n\x0d\n},""\n\n\x0d\n:\x0d\t\t29.7e-038,"é"\n\t\n\x0d\n:"KA"\x0d} 
 end
 
 case gen/values-v1/1804
@@ -11275,7 +11275,7 @@ end
 
 case gen/values-v1/1835
 filter .
-stdin [\x0d\n [{\n\t\x0d\n"Z"\x0d\n\t\t\t: \t\n[\x0d \t{  \x0d\x0d"a"\x0d\n\x0d\n:\t\x0d\t\x0d[\x0d{\n\x0d"😀"\x0d\n:\x0d[\n\t\x0d[{\x0d\x0d\n\t\t""\x0d:\t\x0d\n\x0d\n[\n\x0d\n{"é"   \n:\x0d\t\x0d\n\t[\x0d\n\n\x0d\n[\x0d[[{\x0d\n"\\u00e9"\n\x0d\n:\x0d{\t\x0d\n"a"\n\n:\x0d{\x0d\x0d\n\x0d"aa"\x0d\n:\x0d { \x0d\x0d\n"b"\n\n:{\n \t\x0d\n"é"\x0d: [   \t{"é"\x0d:{"｡"\x0d\n :\n\x0d\n[{  \x0d\n\t"aa"\x0d:\t\x0d\n{\n\n\x0d\n"b"\x0d\n:\t\n\n\x0d\n[\n\x0d\x0d\n\n[  \x0d\n [\n\n\t[[\t {\t"😀":[{ \t "aa"\x0d\n\x0d \x0d\n:[{""\n:\x0d\n\x0d\n\x0d{\t\t"｡"\n\n\n:{\t\x0d "A"\n:\x0d\n\x0d[{\n \n "a"\x0d\x0d\n\t: \x0d {\x0d\n"A"\t:\n\t\x0d {"a"\x0d\n\x0d\n:\n{\n\x0d"a":\n {\n "😀" \x0d\n\n :{\x0d\n\t\t\t"a":[\x0d\t[\x0d{"a" \x0d\n \x0d\n: {\t\n"😀":\t\t{\x0d"a":\x0d\t \x0d\n[\n\x0d\n\n\n[\t{\t\t\x0d\n\n""\n\x0d \n:\x0d[\x0d\n[\x0d\n[\x0d{\x0d \n\n"b":[ \t\x0d\n[{\x0d\n"é":{ \x0d  ""\x0d\t :\x0d \x0d\n\n[\x0d\n\n\n{\n\x0d\n\t\t"aa"\n\t :\x0d \x0d[\x0d[{\n"b" \t\n:\t [\x0d\n\x0d\n{\x0d\n\t"😀"\x0d:{"a"\x0d\n\x0d\n\x0d\t:{\x0d \n\x0d"Z"\x0d\n\x0d\x0d\n:\n\t\x0d[{\x0d\n""\x0d\n\x0d\n :\x0d[\n\t\t\x0d\n{\n\x0d\n\n\t"A" :[\t{ \x0d\n\x0d\n\n""\t\x0d\n\x0d\n:\x0d\x0d\n\x0d\x0d{\n"aa"\t: \t\t\n{\x0d"é"\x0d\n\x0d  :\n {\n\x0d"b"\n\n:\t\x0d\n{ \x0d\n\x0d\n\n"aa"\x0d:\x0d \x0d\n[\n{ \x0d\n"é"\n\x0d\x0d:\x0d\n[ \n \x0d[[\n\x0d\n\t\x0d\n[\x0d\x0d\n[\x0d\x0d\n\x0d\n[ \x0d\n\x0d { \n\x0d"Z"\x0d\n:\x0d \x0d\x0d{"A"\n\n:\t\t\n[\t \t\n{"｡": \x0d\t\x0d\n{\x0d\x0d\n""\x0d\n \x0d\n:{ "Z"\x0d\n \x0d:\t{ \t\n"\\u00e9"\n\t\x0d\n:\t\n\x0d\x0d[\t\n[[\x0d\n[[\x0d\x0d\n\x0d\n\x0d\n{\t\t\x0d\n\x0d\n"b":\t\n\x0d\n{"😀"\x0d:  {\t\x0d"A"\t\n\x0d\n:\x0d\n\x0d\n{ \x0d\n "a"\x0d\t\n\n:\t\x0d[\n\n \t[\n\x0d [\x0d {\t\x0d\t"Z"\x0d\x0d :\x0d\n\x0d\n{ \n"a"\x0d\n\x0d\x0d\n:[\x0d\n\x0d\n{\n \n"\\u00e9"\x0d: \x0d\n\x0d\n[\n \x0d\n\x0d\n{ \x0d\t"aa"\x0d\t\n:[\t[[\n{\n\x0d\n\t "A"\x0d\n\x0d\n\t:\x0d\n\n\n[\t\t\x0d{\x0d ""\n\x0d\t:[\x0d {\n \x0d\n"\\u00e9"\x0d\n \t:\x0d\n\x0d{\n\x0d\n "😀"\x0d\n:\x0d\x0d\n[\x0d\n\x0d\n\x0d[\x0d\x0d\n[[{\n\n\t"\\u00e9" \n:\t[ \t\n[ \x0d\x0d\n {\x0d\n"é"\x0d :{"😀"\x0d\t\n:\t \x0d[  \x0d\n\x0d\n{ \x0d\n "é"\n:[\x0d{\x0d  "é":\x0d\n \n\x0d\n[[[\x0d\t{ \n\t\n"｡"\n\x0d\n :{\n"｡"\x0d:\x0d\n\n\x0d\t[\t\x0d[ \x0d{\t"｡"\x0d\n : \x0d\n[[\t\n\n{\t\x0d \t"｡":\t\x0d{\x0d\n\x0d\n"A"\n:  [ \t{\t\n"é": \x0d{\t\x0d\x0d\x0d"aa"\t  :\t\x0d\n\x0d\n[  {\t"é"\x0d\x0d\n\x0d\x0d\n:[\n \x0d\n\n{\t\x0d \x0d\n""\t:\n [\x0d\t[\x0d\n\t\x0d{"b"\n\x0d\x0d\n:{\n\t\n\x0d"aa"\x0d\n\t\x0d:{\t\x0d  "aa":{\t\x0d\n"\\u00e9" : \x0d \x0d\n[\n[\x0d\n { \n"b" \t\x0d:\x0d\x0d{\t\t\t\x0d\n"😀":\x0d\n\t\x0d\n\x0d\n[\t\n{\t"😀"\x0d\n\x0d\n: \t{"A":\x0d \t\x0d\n{\t\n\n\n"aa"\x0d\x0d\n : \t[ \n[\x0d\n\n[\x0d{\n  \n"😀" \n:\n\x0d\n[\n[\n\n\n{\x0d"aa"\x0d\x0d\x0d\n:\x0d\n[\x0d\x0d\n\x0d\n[{\x0d\n\t\x0d"😀"\x0d\n\n:\x0d\n\t\n{\x0d\n \x0d"": \t\t [\n\x0d\n\x0d\n\x0d[ 908 ]\n ]}\x0d\n}\x0d\n\t]\n\t\t]\x0d}\x0d\n]\t\n]\t}] ]\n\n\n]\n\x0d\n\x0d\n}\x0d\n} \x0d} \x0d\n\t\x0d\n]\n\x0d}\n\x0d\n\n} \x0d]\x0d  \t]}\n\n\x0d\n}\x0d\n\x0d\n\x0d\n\n}\x0d\x0d}\x0d\x0d]\n\x0d\t\x0d]\x0d \n\t}\t]\x0d\t \x0d}\x0d\n\t]\n\x0d\x0d\n}\t\x0d\t}\x0d\n ] \x0d}\x0d\n\x0d\t}\x0d]\x0d]\n\x0d\n}\x0d\n\n\n\x0d\n]\x0d\n] \t \x0d}\t  }\t\x0d]\t \x0d\n\n]\t\x0d ]\n\x0d\n\t}\x0d] }\t\x0d\n]\n\x0d\n} \x0d\x0d\n\x0d\n}\x0d\t]\x0d\t\x0d]}]\x0d\n  ]\x0d\n ]]\x0d \x0d\n\n} }\t\t ]}\n\x0d\n\x0d\t]\x0d}\n]]\n\n\t\n] \x0d\n}]\t \x0d\n}\n\x0d\n\t\n]\x0d\n} \t\x0d}]] \x0d\n] \n\x0d}\n \n\x0d\n} \n}\x0d \x0d\n\t}\t\x0d\n]\x0d\n  ]\n\x0d\x0d\n\n]\x0d\x0d\n\t\n]\x0d\n]}}\x0d\x0d\n \x0d}\x0d}] \x0d\x0d\n\n}\x0d}\t] ]\t\t \x0d\n]\n]\x0d\x0d\n] \n\n\x0d\n] \x0d\t }\x0d\t\x0d\n] } \x0d\x0d\x0d}\t\t\n\n}\n}\x0d\n} \x0d\n\n]}\n\x0d\n\n]\t}  \x0d ]\n}}\n\x0d\x0d\n}\t]} \x0d\n\x0d ]]}\n\x0d\n\x0d]\n \t\n}\n \x0d }]\t\x0d] }\x0d\t\t\x0d]\x0d] ]\x0d\n\x0d\x0d\n}]\x0d\n\x0d ] }\n}  \n}\x0d\n\x0d\x0d\n ]\x0d\t]\x0d\x0d\n\t}}\t}}\x0d\n\t\x0d\n}\t\x0d\n\x0d\t}\x0d]\t  }\x0d\n\t}\n\t}\x0d\n]\t\x0d\n}\n]\x0d \x0d}\t \x0d]\x0d] \t\x0d\n\t] \x0d\x0d\n]\t\n\t\x0d\n] }}]\t}\x0d\n}\t \x0d]\x0d\n} \t }\x0d\n\x0d\n}} \n}\x0d\n\x0d]\n\x0d\n\x0d\n ]\x0d\n\x0d\n]\n\x0d\n]}\x0d\n\t] \x0d\n\n}\x0d\n \x0d]\t\x0d]\x0d}\n\x0d\t]\x0d\n\n}\x0d\t\x0d\n\x0d]\n\t}\t ]\n\t] \x0d \x0d\n
+stdin [\x0d\n [{\n\t\x0d\n"Z"\x0d\n\t\t\t: \t\n[\x0d \t{  \x0d\x0d"a"\x0d\n\x0d\n:\t\x0d\t\x0d[\x0d{\n\x0d"😀"\x0d\n:\x0d[\n\t\x0d[{\x0d\x0d\n\t\t""\x0d:\t\x0d\n\x0d\n[\n\x0d\n{"é"   \n:\x0d\t\x0d\n\t"塗\x7fwW&Ό'WWM*/\\n\xf4\x90\x80\x80\\u0003i`@)g!\\t\\f\\f(>W9_\xc0\x80\\uDfD9\\\\\xc0\x80Y\\udAAf\\uddC6"\n\x0d\x0d\x0d\n}]} \n\x0d\n\x0d]\n\t]} ]}\n\t ]\x0d\n\t\t }]  ]\x0d\x0d \t
 end
 
 case gen/values-v1/1836
@@ -11289,7 +11289,7 @@ case gen/values-v1/1837
 arg -c
 arg -a
 filter .
-stdin {"$\\"\\n\\u0013x݊q":860356685968601.1327,"é":18.73e+148,"A":"Բah\\nir\xed\xa0\x80","@ゞV":-0e5,"Y(X\xf2\x98%+\\uD99f\\uDEfF\\fӐ":null,"񤴟9\xf8":[-173,[-562,"]$",856919041311561774195728328229955533,51.8E+856],-225,-0,"\\u0013CbU"],"H{\\r_MBRE_wO":[{},null],"\\u00e9":{"\\b\xe0\x80\x80\\t\xe0\xa1(\xea\x9flXwq]\\uDB9b\\uDe2c􌔫\\f򮜂񭅩":-74,"Z":"F48+","😀":["JS桼\\\\\\r-\\\\өE","􉣨\xc0\x80",-656,{"😀":{"A":"f","|":"􂷥","\x89\\t<R\\//\\u001cSy":{"":1e2147483648,"\\u00e9":735.93,"":-68,"｡":[-797,null,"Ӕ\x93\\\\G","eY\\n",7869185858928441307.6,true]}}}]}}\n
+stdin {"$\\"\\n\\u0013x݊q":860356685968601.1327,"é":18.73e+148,"A":"Բah\\nir\xed\xa0\x80","@ゞV":-0e5,"Y(X\xf2\x98%+\\uD99f\\uDEfF\\fӐ":null,"񤴟9\xf8":[-173,[-562,"]$",856919041311561774195728328229955533,51.8E+856],-225,-0,"\\u0013CbU"],"H{\\r_MBRE_wO":[{},null],"\\u00e9":{"\\b\xe0\x80\x80\\t\xe0\xa1(\xea\x9flXwq]\\uDB9b\\uDe2c􌔫\\f򮜂񭅩":-74,"Z":"F48+","😀":["JS桼\\\\\\r-\\\\өE","􉣨\xc0\x80",-656,{"😀":{"A":"f","|":"􂷥","\x89\\t<R\\//\\u001cSy":{"":1e2147483648,"\\u00e9":735.93,"":-68,"｡":[-797,null,"Ӕ\x93\\\\G","eY\\n",7869185858928441307.6,true]}}},""]}}\n
 end
 
 case gen/values-v1/1838
@@ -11301,7 +11301,7 @@ end
 case gen/values-v1/1839
 arg -c
 filter [paths]
-stdin .5
+stdin {"":138.10,"aa":"5>!\\f","㴳+":397,"K뗦s-t":{"b":"","%.ۓJS":991},"A":-567,"":5e-1147483647,"\xdd.𬎂bvr\x7f'\\"坱˷\xf3\xb3\xb5":-.5,"aa":[[],999.43],"":39111185926.354416677437321,"｡":-474,"$\\uDf14ӷ*\xf0\xbce_Ꝋ__\\u6aAE":false}\n
 end
 
 case gen/values-v1/1840
@@ -11356,7 +11356,7 @@ end
 case gen/values-v1/1848
 arg -c
 filter .
-stdin [\n  {\n    "\xc0\x80\\n\\th": "{\xc0\x80񉭒U漋ಬ>",\n    "\xc0\x80zk0ߌ": "jdD",\n    "A": +1.E+2,\n    "{Иڜ\xe0\x80\x80\xf4\x90\x80\x80": "H󆜈׵$m兹rn^)\\r0\\fDcT1񿥨O񕠌\xf4\x90\x80\x80 ",\n    "b\xc0S6+ֶ(\\"T+\\\\E\\t;": {\n      "é": "",\n      "a": {\n        "gJ6": "\xe0\x80\x80+",\n        "\\u00e9": null,\n        "å\x8aOĞ߁\xa6fH\\r\\ud997\\udCB2p&:\xf4\x90\x80\x80\xe0\x80\x80": []\n      },\n      "😀": 643.211,\n      "Z": "𘟓佞",\n      "\\u00e9": 1e999999999,\n      "Z": true,\n      "b": true,\n      "\\u0008\\"\\"P\\udb2A\\ude99\xed\xa0\x808RWn\\f񖌜󖩒": null,\n      "A": null\n    }\n  },\n  ""\n]\n
+stdin {\n  "｡": [\n    +1.E+2\n  ]\n}
 end
 
 case gen/values-v1/1849
@@ -11375,7 +11375,7 @@ case gen/values-v1/1851
 arg -c
 arg -a
 filter .
-stdin \n{"😀"\t \t\x0d:["tmܷ\xb3\xf4\x90\x80\x80:\\uD804\\uDeB6ݪ\x8a/T엔l"\x0d\t,{"E߀\\u052a\xed=mH\\/\\u0000*R"\x0d\x0d\n: +1\t\x0d\n,"\\r\\b\\u9e2BnW\\u0019" \n:\x0d\t+1.E+2 \x0d,"Z"\t\n\n\n:\x0d\n\x0d+1.E+2\x0d\n\x0d\x0d\n\x0d,"\\u005a" :\n {"é"\n\x0d\t :\t\n""\t,"Ь\\rv+򵦤\xc0\x80/}\x7f" \t:\t \t\t".k󙺔Zk","3"\n\t:\t"\\f2t"\n\t}}\x0d\n\t\x0d\n\x0d\n,-312\t\n\n ,201\t\t]\n,"aa"\t:\x0d"U\\uFdDd4㫳8\xe0\x80\x80[Č" \t\x0d\t,""\x0d:\x0d\n \t\x0d\n"\\u2322tYg[@.>\x7ffZf5?h" \t\x0d\n\x0d\n,"\\u00e9":\x0d\n\n\x0d\n-.5 ,"A"\t:\x0d\x0d\n [[ \x0d ]\x0d\n,true,"n \\t",{\x0d},null,"\\uDE344\\"8Jk}\\"}#" ]\n,"aa"\n\t:\x0d\x0d\t" i" ,"Z"\x0d  : {"A":\n\x0d\n \nNaN0\t,"\\u00e9" :{\n }\x0d\n\t  }\x0d\x0d\x0d}\x0d\x0d\n\x0d\n\n
+stdin \n{"😀"\t \t\x0d:["tmܷ\xb3\xf4\x90\x80\x80:\\uD804\\uDeB6ݪ\x8a/T엔l"\x0d\t,{"E߀\\u052a\xed=mH\\/\\u0000*R"\x0d\x0d\n: +1\t\x0d\n,"\\r\\b\\u9e2BnW\\u0019" \n:\x0d\t+1.E+2 \x0d,"Z"\t\n\n\n:\x0d\n\x0d+1.E+2\x0d\x0d\n\x0d\t,"\\u005a":\n {"é"\n\x0d\t :\t\n""\t,"Ь\\rv+򵦤\xc0\x80/}\x7f" \t:\t \t\t".k󙺔Zk","3"\n\t:\t"\\f2t"\n\t}}\x0d\n\t\x0d\n\x0d\n,-312\t\n\n ,201\t\t]\n,"aa"\t:\x0d"U\\uFdDd4㫳8\xe0\x80\x80[Č" \t\x0d\t,""\x0d:\x0d\n \t\x0d\n"\\u2322tYg[@.>\x7ffZf5?h" \t\x0d\n\x0d\n,"\\u00e9":\x0d\n\n\x0d\n-.5 ,"A"\t:\x0d\x0d\n [[ \x0d ]\x0d\n,true,"n \\t",{\x0d},null,"\\uDE344\\"8Jk}\\"}#" ]\n,"aa"\n\t:\x0d\x0d\t" i" ,"Z"\x0d  : {"A":\n\x0d\n \nNaN0\t,"\\u00e9" :{\n }\x0d\n\t  }\x0d\x0d\x0d}\x0d\x0d\n\x0d\n\n
 end
 
 case gen/values-v1/1852
@@ -11442,7 +11442,7 @@ end
 case gen/values-v1/1862
 arg -c
 filter .
-stdin {"a":44.57,"｡":732,"":{"结v":596.7009,"":"","Z":49.83E-210,"񻿵/3n;ZH\\uDD76׌\\uc301Vȃ[>\xed\xa0\x80jYS0\xf2\x87\xb8,{>$":"^","(Ңe\\udAF2\\udE32F\\udAcC\\uDc69􇽬\\uD884\\uDc79.񦐗W\x7flEJ\xed\xa0\x80HK":[[],-Infinity,10e999999999,[[],[.5,"\xa7VIn'p","頫\\/\xfb\\\\,6\\ude518r\\u91b7V0dg\\fRX\\f",-556,inf]]],"😀":3.670121286250945955373},"I񿦀b,\\u0011e\\ub2Cdť\xb0Wz":0.0000000475,"A":false}\n
+stdin {\x0d\n  "😀": [\x0d\n    "x\\"B;򴛻3\xf4\x90\x80\x80\xc0\x80*t[\\/Ғ\x8d|F\xd7"\x0d\n  ],\x0d\n  "\\ud83d\\udE00": {\x0d\n    "b": +1,\x0d\n    "": "\\t\\u039d",\x0d\n    "😀": -191.404,\x0d\n    "A": "2"\x0d\n  }\x0d\n}
 end
 
 case gen/values-v1/1863
@@ -11590,7 +11590,7 @@ case gen/values-v1/1886
 arg -c
 arg -a
 filter .
-stdin [{"b":true,"A":null,"é":{"b":[true,0e-1147483650,false,"",-110,9223372036854775808],"b":{"~W":"~","\\u007EW":-200}},"é":""}]
+stdin [{"b":true,"A":null,"é":{"b":[true,0e-1147483650,false,"",-110,9223372036854775808],"b":{"~W":"~","\\u007eW":"0"}}},"",[""]]
 end
 
 case gen/values-v1/1887
@@ -11608,7 +11608,7 @@ end
 case gen/values-v1/1889
 arg -c
 filter tostream
-stdin  [{"b"\n:\x0d\n\x0d-0.0\x0d\n,"\\u00e9":\x0d\n\t\n\x0d[\x0d\n\x0d]\x0d,"\\u0062"\x0d\x0d\n\t\x0d:\x0d\x0d-109\t }\n\x0d,17938092678411323696153204638313357,"ۥ",""\x0d\n \x0d\n\n]\x0d\n \n
+stdin  [{"b"\n:\x0d\n\x0d-0.0\x0d\n,"\\u00e9":\x0d\n\t\n\x0d[\x0d\n\x0d]\x0d\n\x0d\x0d\n,"\\u0062"\x0d:\x0d\x0d-109\t }\n\x0d,17938092678411323696153204638313357,"ۥ",""\x0d\n \x0d\n\n]\x0d\n \n
 end
 
 case gen/values-v1/1890
@@ -11633,7 +11633,7 @@ case gen/values-v1/1893
 arg -c
 arg -a
 filter .
-stdin [{"A":{"":"","｡":null},"":"\\u000eI","\\u00e9":"\\t\xf4\x90\x80\x80\\tj|o\xf4\x90\x80\x80\xc0\x80aoC𱬌n=\\by\\uaF79R","I\\f":[""],"a":-558,"\\u0049\\f":629},[]]
+stdin [{"A":{"":"","｡":null},"":"\\u000eI","\\u00e9":"\\t\xf4\x90\x80\x80\\tj|o\xf4\x90\x80\x80\xc0\x80aoC𱬌n=\\by\\uaF79R","I\\f":[""],"a":-558,"\\u0049\\f":-276}]
 end
 
 case gen/values-v1/1894
@@ -11725,7 +11725,7 @@ end
 case gen/values-v1/1908
 arg -c
 filter tojson
-stdin  {\x0d\n\x0d\t ""\x0d\x0d\t\x0d:\x0d\n[\x0d {\n\t\t"\\u00e9"\t\x0d\n:\t{\n\t\x0d\n\x0d"\\u00e9"\x0d\x0d\n :\x0d\n\t\x0d\n\t[\t\t\t\x0d\n[[\t[\t [  \t{\t ""\t\x0d\n :{\t\x0d"Z"\n\x0d\x0d\n:\n\x0d\n[\n\t\n[\x0d{\x0d\n\n\x0d\t"aa" \n:\n [\n\x0d\x0d\n[{\n\x0d\n\x0d\n"A"\t\t\x0d:\x0d[\x0d \n\n{\t\t "b"\x0d\n:\t\n\t\x0d[\x0d\n[\n\x0d\n\x0d\t[\t[ \t[\t\n [\x0d \n[\n \x0d\n{\x0d\t"｡"\x0d \n:\x0d \t{\x0d"｡":\x0d\x0d\n{\t\x0d\x0d\n\x0d\n"｡"\t\x0d\n\x0d\n\n:{\x0d\n"b"\x0d \x0d:[\x0d\x0d\n\x0d\n\x0d[\x0d\n\t\x0d{\x0d\n\x0d\n"Z"\x0d\n:\x0d\n{ "Z" \x0d:\n\x0d\n{\x0d\n"😀"\x0d\n\n\n:\t\n{\t\t \x0d"é"\x0d\t\t:  [ \t\n\n{ \x0d\t"Z"\x0d :\x0d\n{\n\n"\\u00e9"\n\x0d\n: { "Z"  \n:[\t\n[\t\x0d\x0d\n[{\x0d\n\t\t"aa"\x0d\n\x0d:[\t \x0d\x0d[\t\x0d\n  [[  \t[\x0d\x0d\x0d\n\t{\n "aa":[\t\x0d\n{"😀":\x0d\x0d\n[\x0d  {\n\n\t\x0d"é"\t\n\x0d:\x0d{\x0d\x0d\n\t\x0d"Z"\t:{\t"Z"\x0d \x0d\t:\x0d\n{ \n"é"\n\x0d :\n\t[\t\t\n[\n \t{\x0d\n "aa"\t :\x0d\n\t[\x0d\n\x0d\n\t\x0d[\n [\n\t\x0d{\n\t\t"😀"\x0d\n:\n\x0d[{ \x0d"b"\t: \x0d\n\x0d{\x0d\x0d\n"b"\n\t\t:\t\x0d\n [ \x0d{\t\n"é":[\t\x0d\t[{\x0d\n\t \x0d\n"｡":[  {\x0d\n\x0d\n\n""\n\t \t:\n\t\x0d\n\x0d[\x0d\n\t\x0d\x0d\n[[\n\t\n[\x0d\n\x0d\n{\n \n\x0d"\\u00e9"\x0d\x0d:\n\n\n[ [[\x0d\n\x0d\n\t0.000000085\x0d\t ]\n]\x0d\n\x0d\x0d\n]\x0d\n\t} \t ]\t\x0d\n]\n]]\n\x0d}\t ]\x0d\n\x0d\t\n}\x0d]\x0d\n\n]\t\x0d\n\x0d\n}\t\t\n] }\n\t}\n] }\x0d\x0d \t]\x0d\n\x0d\n]\n\n]\n\t}\n\n\x0d\x0d]\x0d\n\x0d\n ] \t\n }\t\n\x0d\n}\x0d\n}\t\t\x0d\n\t}]\t\t}]\x0d\n\x0d\x0d}\t\x0d\n]\t\n\x0d\n]\n \x0d\n\n] ]\x0d\n\t\t]}] \x0d\n]\t\x0d\n\x0d\n\x0d\n]\x0d\n\x0d}\x0d\n\x0d }}\n\t\t\x0d]  \x0d\n\x0d}\x0d\n\x0d\x0d\n\t} \x0d}\n\x0d\n}\x0d\n\x0d\n\n\n]\x0d\n\x0d\n\x0d\n]  }\t }\x0d\x0d\n\n\x0d\n}\x0d}  ]\t\n\n]\t\x0d\n \t]] \x0d\n\n\t]] \t\n\t]\x0d\n \x0d}\n\x0d\t ]\x0d\n\x0d\n\x0d}\x0d]\x0d\n\t]}\n\x0d\n\n\x0d\n]] }}\t  \x0d\n]\t\n\x0d ] ]]\x0d]}\x0d\n\x0d}\n \x0d\n ]\t\t \x0d} \t\n
+stdin  {\x0d\n\x0d\t ""\x0d\x0d\t\x0d:\x0d\n[\x0d {\n\t\t"\\u00e9"\t\x0d\n:\t{\n\t\x0d\n\x0d"\\u00e9"\x0d\x0d\n :\x0d\n\t\x0d\n\t[\t\t\t\x0d\n[[\t[\t [  \t{\t ""\t\x0d\n :{\t\x0d"Z"\n\x0d\x0d\n:\n\x0d\n[\n\t\n[\x0d{\x0d\n\n\x0d\t"aa" \n:\n [\n\x0d\x0d\n[{\n\x0d\n\x0d\n"A"\t\t\x0d:\x0d[\x0d \n\n{\t\t "b"\x0d\n:\t\n\t\x0d[\x0d\n[\n\x0d\n\x0d\t[\t[ \t[\t\n [\x0d \n[\n \x0d\n{\x0d\t"｡"\x0d \n:\x0d \t{\x0d"｡":\x0d\x0d\n{\t\x0d\x0d\n\x0d\n"｡"\t\x0d\n\x0d\n\n:{\x0d\n"b"\x0d \x0d:[\x0d\x0d\n\x0d\n\x0d[\x0d\n\t\x0d{\x0d\n\x0d\n"Z"\x0d\n:\x0d\n{ "Z" \x0d:\n\x0d\n{\x0d\n"😀"\x0d\n\n\n:\t\n{\t\t \x0d"é"\x0d\t\t:  [ \t\n\n{ \x0d\t"Z"\x0d :\x0d\n{\n\n"\\u00e9"\n\x0d\n: { "Z"  \n:[\t\n[\t\x0d\x0d\n[{\x0d\n\t\t"aa"\x0d\n\x0d:[\t \x0d\x0d[\t\x0d\n  [[  \t[\x0d\x0d\x0d\n\t{\n "aa":[\t\x0d\n{"😀":\x0d\x0d\n[\x0d  {\n\n\t\x0d"é"\t\n\x0d:\x0d{\x0d\x0d\n\t\x0d"Z"\t:{\t"Z"\x0d \x0d\t:\x0d\n{ \n"é"\n\x0d :\n\t[\t\t\n[\n \t{\x0d\n "aa"\t :\x0d\n\t[\x0d\n\x0d\n\t\x0d[\n [\n\t\x0d{\n\t\t"😀"\x0d\n:\n\x0d[{ \x0d"b"\t: \x0d\n\x0d{\x0d\x0d\n"b"\n\t\t:\t\x0d\n [ \x0d{\t\n"é":[\t\x0d\t[{\x0d\n\t \x0d\n"｡":[  {\x0d\n\x0d\n\n""\n\t \t:\n\t\x0d\n\x0d[\x0d\n\t\x0d\x0d\n[[\n\t\n[\x0d\n\x0d\n{\n \n\x0d"\\u00e9"\x0d\x0d:\n\n\n[ [[\x0d\n\x0d\n\t[  \x0d [ [\x0d\n\x0d\x0d\n[\t\x0d[[\t\n \n[\t {\t\n\t"A"\n\x0d\n\n:\t\x0d\n\x0d\n{\n"é" :\n\t{ "b"\x0d\x0d \t:\x0d\n\x0d\n[\n\n[\n\x0d{\x0d\n \x0d\n"A":\n[\n[\x0d\n\t\t\x0d\n{\t\t"Z":\x0d\n\x0d\x0d{\x0d\t\n\x0d\n"é"\n \x0d\n\n: [\t{ \x0d\n"Z"\t\x0d\n\x0d\n\x0d\n:\x0d\n\x0d{  \x0d\n"😀"\t\t:\x0d\n  [\x0d\n\x0d\x0d\n\t{\n\n\x0d\n"Z"\x0d\n\x0d\n\n\n:\x0d\n\x0d\n\x0d\n{"Z"\t :\x0d\x0d\n\n\x0d\n[  {\n\x0d\n"a"\x0d\n:{ \x0d\n\n\t"Z": \t\n\t{"😀"\x0d\n\n\x0d: [\x0d\t\x0d\x0d[ {\n\x0d\n \t"b":{"é":\x0d\n\t\n\x0d[[ \n\x0d\n[ \x0d\n{\t"😀":\n \t[\n\t\x0d{\x0d\n"｡" :\x0d\n\x0d\n{\t"Z"\t\t\t:{\t\x0d \x0d\n"aa"\n\x0d\x0d\n\x0d\n:\t\x0d\n[\n\n [\n\x0d\n\x0d\n[\x0d\x0d[\n{""\x0d\n\t :\n\n\x0d\n\t{\x0d\t\x0d\n"\\u00e9"\x0d\n\n:\n\t\n\t[[\x0d\n\t{"\\u00e9"\x0d \x0d\n:\t\x0d\n\n\n[ \x0d\n\n[\x0d\n\x0d[\n{\t \x0d\n"｡":\x0d\n\t 15.7e+64\x0d\n}\x0d\n  \t]\n ]\t\x0d\n\n ]\x0d\n\t\t\x0d}\t\x0d\n]\t\x0d\n\n]}\t }]\x0d]\x0d]  \x0d\n]\t \t\x0d\n}\x0d\n\x0d\n \t}\x0d\n} \n\t\n] \x0d\n\t\n}]\n\x0d\n\x0d]\x0d\n\n\x0d\n]  \n\x0d\n}\x0d\x0d}]\x0d\x0d\n \x0d] \x0d\x0d}\t\t\x0d}\t\t\x0d }\t\x0d\n\n\x0d]}\x0d\n } \n] }\x0d\n}\n\t]}\t\x0d\n\x0d\n} \n\n\x0d\n]\x0d] }\t]\t\n\t]}}\x0d}\n\x0d\n\t]\t\x0d\n \n]\x0d\n\x0d\x0d\n\x0d]]]\x0d\n\t ]\t\n] \x0d\t]\t\x0d\n\n]]\t \t}]\x0d\n\x0d]\t ]\x0d  ]\t\x0d\n\x0d}\n]\x0d}\n \x0d\n]\x0d\n\x0d\n]}\t]\x0d\x0d\n\t\x0d\n}\x0d\n\n}\n\n \t]\n\x0d \n}\x0d\x0d]]]\x0d\n \n\x0d}]\n]} }\n }}\n] \x0d\t}\x0d\n\x0d\n]}\t\x0d\n]\x0d\n]\x0d\x0d\n\x0d\x0d\n]\x0d\n\x0d\t\x0d\n]\t\x0d\n\n\t]}]]\x0d ]\t\x0d}\n\t\x0d}\t\t }\n\x0d]\x0d \x0d\n}\t}\x0d\t\t}\n}]  \t] \x0d\n}}}\t\x0d\n\x0d\t}\n]\t\x0d\n \x0d] ]]]\x0d\n\t\x0d]\n\x0d]}]\x0d \x0d\n}\n\x0d\t\n]\t]\x0d\n\x0d\x0d} ]\x0d\n\x0d]\n\n} \x0d} ]\t\t]\n]  \x0d]]\x0d\n\x0d\n\x0d\x0d\n}\x0d} ] }\x0d\n\n
 end
 
 case gen/values-v1/1909
@@ -12075,7 +12075,7 @@ end
 case gen/values-v1/1965
 arg -c
 filter [paths]
-stdin [[{"":{"":{"b":{"\\u00e9":[{"\\u00e9":{"a":[[[[{"aa":[{"é":[{"":{"":{"aa":{"b":{"b":[[{"b":[[[[[{"\\u00e9":[[{"A":[{"aa":[[{"｡":[{"é":{"b":[[{"é":[{"a":{"aa":[{"aa":{"":[[{"\\u00e9":{"":{"A":[{"｡":{"Z":{"\\u00e9":{"é":[[[{"A":{"":[{"aa":{"b":{"Z":[{"é":[{"\\u00e9":[{"b":[{"":[{"aa":{"A":[{"aa":[{"\\u00e9":[{"｡":{"aa":{"\\u00e9":[[[{"😀":[{"é":[{"A":{"é":{"Z":{"a":[{"aa":{"é":-289}}]}}}}]}]}]]]}}}]}]}]}}]}]}]}]}]}}}]}}]]]}}}}]}}}]]}}]}}]}]]}}]}]]}]}]]}]]]]]}]]}}}}}]}]}]]]]}}]}}}}]]
+stdin [[{"":{"":{"b":{"\\u00e9":[{"\\u00e9":{"a":[[[[{"aa":[{"é":[{"":{"":{"aa":{"b":{"b":[[{"b":[[[[[{"\\u00e9":[[{"A":[{"aa":[[{"｡":[{"é":{"b":[[{"é":[{"a":{"aa":[{"aa":{"":[[{"\\u00e9":{"":{"A":[{"｡":{"Z":{"\\u00e9":{"é":[[[{"A":{"":[{"aa":{"b":{"Z":[{"é":[{"\\u00e9":[{"b":[{"":[{"aa":{"A":[{"aa":[{"\\u00e9":[{"｡":{"aa":{"\\u00e9":[[[{"😀":[{"é":[{"A":{"é":{"Z":{"a":[{"aa":{"é":{"":[{"aa":[[{"Z":{"A":[[[[{"a":[[[{"😀":{"Z":[[[[[{"\\u00e9":{"é":{"b":{"é":[{"":[]}]}}}}]]]]]}}]]]}]]]]}}]]}]}}}]}}}}]}]}]]]}}}]}]}]}}]}]}]}]}]}}}]}}]]]}}}}]}}}]]}}]}}]}]]}}]}]]}]}]]}]]]]]}]]}}}}}]}]}]]]]}}]}}}}]]
 end
 
 case gen/values-v1/1966
@@ -12296,7 +12296,7 @@ end
 case gen/values-v1/2001
 arg -c
 filter tostream
-stdin {"+\\b":false,"\xfe)\xc3":null,"b":{},"A":-378.0,"A":-120.3,"\\u0041":-0}\n
+stdin {"+\\b":false,"\xfe)\xc3":null,"b":{},"A":-378.0,"A":-120.3,"\\u0041":{"":"","=𓽗'}Ѧ?a\x7fX\x7f":"Ȍ"}}\n
 end
 
 case gen/values-v1/2002
@@ -12450,7 +12450,7 @@ case gen/values-v1/2026
 arg -c
 arg -a
 filter .
-stdin \x0d\n\x0d\x0d\x0d{"aa"\x0d\n\x0d\n \x0d\n:\t \nfalse \x0d\n  ,"aa"\t\t: \x0d\n\t "Pavҽ\\fIf􂛋Z","aa"  \x0d:\x0d  \x0dtrue\n\x0d\n\n,"":\n \t\t.5 ,"aa"\n:\x0d\n\x0d\n\x0d\n\t{\t}}\t\x0d\n\n\n\n
+stdin \t{"2\\u0012\\u1295S":\x0d\n\x0d\n\x0d"'@i\\u3d74UC"\t\x0d ,"\\u0032\\u0012\\u1295S"\x0d\n\t:  .5}\x0d\n\n \n
 end
 
 case gen/values-v1/2027
@@ -12548,7 +12548,7 @@ end
 case gen/values-v1/2042
 arg -c
 filter [paths]
-stdin {"2\x7f_Q,":[null,null,null,{"é":{"｡":null,"b":"\xe170","a":387.1206,"":true},"😀":-9223372036854775809,"aa":false,"A":""},{}]}\n
+stdin {"2\x7f_Q,":[null,null,null,{"é":{"｡":null,"b":"\xe170","a":387.1206,"":true},"😀":-9223372036854775809,"aa":false,"A":""},""]}\n
 end
 
 case gen/values-v1/2043
@@ -12603,7 +12603,7 @@ end
 case gen/values-v1/2051
 arg -c
 filter .
-stdin {"😀":-881.295,"\\u00e9":{"n":"ǟ\xa1̖𡘧","\\u00e9":null,"a":0e-1147483650,"A":91300967162148194699755079509161230763},"😀":{"\xe8Zp͸\\u001C\\t\\uDD1e":"\\fAj\\u00124U񖜴\\t\\u0009sS\xc0\x80\x7fN򞋫?\xf4\x90\x80\x80\\uDE77^l DZ","Z":434,"\x7f\\n\xe0\x80\x80@fH8u<kS~":-28,"c\\\\Z򅠦":null,"b":{"?Ĉ\x96iX\xe0\x80\x80\\u000F/\\\\\xed\xa0\x80}^cn9\xf4\x90\x80\x80i䣴":[["b'r\xf4\x90\x80\x80z=򴪻25",false,"",false,"̠{",434,[396,-397,"","\xf5","뺑.C\xc0\x80Y3򩝯","肅TD\\n]w\\u0000\\u7ac2#e\xed\xa0\x80󭢽\\tս踡",[1e99999999999,"\x7f="],-526,")0Xl\x88\xcbV\\u001E","\xf4\x90\x80\x80\\n\\ua3A5]\xf4\x90\x80\x80\\u000d",true,9223372036854775807]]]}}}
+stdin {"😀":-881.295,"\\u00e9":{"n":"ǟ\xa1̖𡘧","\\u00e9":null,"a":0e-1147483650,"A":91300967162148194699755079509161230763},"\\ud83d\\ude00":"P\\uDBab\\uDD6A"}
 end
 
 case gen/values-v1/2052
@@ -12628,7 +12628,7 @@ end
 case gen/values-v1/2055
 arg -c
 filter tojson
-stdin {"｡":[[[[{"":{"":[[{"｡":{"b":{"b":[{"Z":{"A":{"Z":[{"｡":[[{"Z":[{"\\u00e9":{"":{"a":[[[[[{"｡":{"\\u00e9":[{"｡":[{"é":[{"aa":{"a":{"b":[{"aa":{"A":{"｡":[{"aa":{"｡":{"":[[[[{"Z":{"":{"":[[{"é":[[{"😀":[{"b":[{"😀":{"aa":{"b":{"b":[{"b":{"aa":{"Z":[[[{"aa":{"a":[{"":[[{"Z":[[{"aa":{"a":{"b":[[[{"😀":[{"A":[[{"😀":[{"\\u00e9":[{"":[{"Z":[{"é":[[[{"é":{"":{"":[[[{"😀":{"😀":-443}}]]]}}}]]]}]}]}]}]}]]}]}]]]}}}]]}]]}]}}]]]}}}]}}}}]}]}]]}]]}}}]]]]}}}]}}}]}}}]}]}]}}]]]]]}}}]}]]}]}}}]}}}]]}}]]]]}
+stdin {"｡":[[[[{"":{"":[[{"｡":{"b":{"b":[{"Z":{"A":{"Z":[{"｡":[[{"Z":[{"\\u00e9":{"":{"a":[[[[[{"｡":{"\\u00e9":[{"｡":[{"é":[{"aa":{"a":{"b":[{"aa":{"A":{"｡":[{"aa":{"｡":{"":[[[[{"Z":{"":{"":[[{"é":[[{"😀":[{"b":[{"😀":{"aa":{"b":{"b":[{"b":{"aa":{"Z":["\\nF\\fL$Am\\ua241\\uD865\\udd10惤;E*Rq3QչyU4t\\bE\xf4\x90\x80\x80}qGV\xe4\x99q'N"]}}}]}}}}]}]}]]}]]}}}]]]]}}}]}}}]}}}]}]}]}}]]]]]}}}]}]]}]}}}]}}}]]}}]]]]}
 end
 
 case gen/values-v1/2056
@@ -12701,7 +12701,7 @@ case gen/values-v1/2067
 arg -c
 arg -S
 filter .
-stdin ["=noKo","𜏖|lzO\\b:\\nC\\f",-59,null,73e-5,"ƍe",{"D񦡎,6󱴢":1e2147483648,"é":true,"":807,"릛\xf2\x80~W\\uDa4D\\udE63\xe0\x80\x80":{"!(":"W","\\u0021(":null}},301.2]
+stdin ["=noKo","𜏖|lzO\\b:\\nC\\f",-59,null,73e-5,"ƍe",{"D񦡎,6󱴢":1e2147483648,"é":true,"":807,"릛\xf2\x80~W\\uDa4D\\udE63\xe0\x80\x80":{"!(":"W","!\\u0028":""}},"Ų,uZA\x7fAY\xe0\x80\x80"]
 end
 
 case gen/values-v1/2068
@@ -12732,7 +12732,7 @@ end
 case gen/values-v1/2072
 arg -c
 filter .
-stdin {\x0d\n  "": "n\\u745F",\x0d\n  "\\uC29a": "񲡰\\udD69򄃿K\\ny\xed\xa0\x80k=o\\ud93d\\udF5D&򢒨Kʕ\x80.lqd@\\/Ѻ\x82oI",\x0d\n  "b": [\x0d\n    [\x0d\n      null\x0d\n    ],\x0d\n    1e2147483648,\x0d\n    "\\";Wkx6N\\n\x9a"\x0d\n  ],\x0d\n  "": "\\ufA68",\x0d\n  "aa": false,\x0d\n  "é": "$SW\\ud8df\\udf5a=H\\r",\x0d\n  "A": 2.e3,\x0d\n  "V\\\\xL": [\x0d\n    "\\nX`-񔃿=K Nݥ\x999tA:GA癖=",\x0d\n    "\\tA",\x0d\n    "hTRoӈ*",\x0d\n    -249\x0d\n  ],\x0d\n  "😀": [\x0d\n    -92e-39,\x0d\n    1e-1147483646,\x0d\n    [\x0d\n      {\x0d\n        "\\u00e9": 912,\x0d\n        "｡": 83,\x0d\n        "x[Zf": {}\x0d\n      },\x0d\n      412\x0d\n    ]\x0d\n  ]\x0d\n}
+stdin {\x0d\n  "": "n\\u745F",\x0d\n  "\\uC29a": "񲡰\\udD69򄃿K\\ny\xed\xa0\x80k=o\\ud93d\\udF5D&򢒨Kʕ\x80.lqd@\\/Ѻ\x82oI",\x0d\n  "b": [\x0d\n    [\x0d\n      null\x0d\n    ],\x0d\n    1e2147483648,\x0d\n    "\\";Wkx6N\\n\x9a"\x0d\n  ],\x0d\n  "": "\\ufA68",\x0d\n  "aa": false,\x0d\n  "é": "$SW\\ud8df\\udf5a=H\\r",\x0d\n  "A": 2.e3,\x0d\n  "V\\\\xL": [\x0d\n    "\\nX`-񔃿=K Nݥ\x999tA:GA癖=",\x0d\n    "\\tA",\x0d\n    "hTRoӈ*",\x0d\n    -249\x0d\n  ],\x0d\n  "😀": [\x0d\n    -92e-39,\x0d\n    1e-1147483646,\x0d\n    [\x0d\n      {\x0d\n        "\\u00e9": 912,\x0d\n        "｡": 83,\x0d\n        "x[Zf": {}\x0d\n      },\x0d\n      007\x0d\n    ]\x0d\n  ]\x0d\n}
 end
 
 case gen/values-v1/2073
