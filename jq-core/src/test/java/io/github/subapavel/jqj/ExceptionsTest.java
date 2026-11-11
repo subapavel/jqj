@@ -64,6 +64,9 @@ class ExceptionsTest {
   void terminationRejectsNullCauseOrValue() {
     // The approved listing: cause and value are non-null; "no value" is JqNull.NULL (ADR-0024).
     assertThatNullPointerException().as("null cause").isThrownBy(() -> new JqTermination(null, 0, JqNull.NULL, null));
+    // With a budget only the null check gives the NPE: without it, the budget-cause pairing rejects the
+    // null cause with an IllegalArgumentException.
+    assertThatNullPointerException().as("null cause with a budget").isThrownBy(() -> new JqTermination(null, 0, JqNull.NULL, Budget.STEPS));
     assertThatNullPointerException().as("null value").isThrownBy(() -> new JqTermination(Cause.HALT, 0, null, null));
   }
 

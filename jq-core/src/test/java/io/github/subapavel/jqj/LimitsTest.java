@@ -126,9 +126,14 @@ class LimitsTest {
     RandomGenerator random = new SplittableRandom(seed);
     for (int draw = 0; draw < DRAWS; draw++) {
       Invalid invalid = draw(component, random, draw);
-      assertThatExceptionOfType(invalid.rejection())
-          .as("%s = %s (seed %d, draw %d)", component.accessor, invalid.value(), seed, draw)
-          .isThrownBy(() -> with(component, invalid));
+      var rejected =
+          assertThatExceptionOfType(invalid.rejection())
+              .as("%s = %s (seed %d, draw %d)", component.accessor, invalid.value(), seed, draw)
+              .isThrownBy(() -> with(component, invalid));
+      if (invalid.value() == null) {
+        // The null draw: the NPE names the component, so it is the null check's, not a later dereference's.
+        rejected.withMessageContaining(component.accessor);
+      }
     }
   }
 
