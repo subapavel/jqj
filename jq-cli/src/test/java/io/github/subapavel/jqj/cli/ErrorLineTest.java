@@ -52,7 +52,11 @@ class ErrorLineTest {
         n("line-number-late: 1 at B4091, LF", 1, bytes(spaces(4090), "1\n")),
         n("line-literal-late: true ending at B4091, LF", 1, bytes(spaces(4087), "true\n")),
         n("line-string-cut: closing quote at B4091, LF", 0, bytes("\"", xs(4089), "\"\n")),
-        n("line-utf8-cut: C3 A9 at B4091..4092, ] at B8183, LF", 0, bytes("[\"", xs(4088), "é", xs(4089), "\"]\n")));
+        n("line-utf8-cut: C3 A9 at B4091..4092, ] at B8183, LF", 0, bytes("[\"", xs(4088), "é", xs(4089), "\"]\n")),
+        // Whitespace after ] at B4091: the completing byte is still ], so the LF at B4093 is in a later block.
+        n("line-cut-space: ] at B4091, SP, LF", 0, bytes("[\"", xs(4087), "\"] \n")),
+        n("line-cut-tab: ] at B4091, TAB, LF", 0, bytes("[\"", xs(4087), "\"]\t\n")),
+        n("line-cut-cr: ] at B4091, CR, LF", 0, bytes("[\"", xs(4087), "\"]\r\n")));
   }
 
   static Stream<Arguments> observed() {
@@ -96,7 +100,7 @@ class ErrorLineTest {
 
   @ParameterizedTest(name = "{argumentSetName} -> {1}")
   @MethodSource({"recorded", "observed"})
-  void nIsJqRefsLine(byte[] input, int expected) {
+  void nCountsTheReadBlocksEndingInLf(byte[] input, int expected) {
     assertThat(ErrorLine.of(input)).as("N of %d bytes", input.length).isEqualTo(expected);
   }
 }

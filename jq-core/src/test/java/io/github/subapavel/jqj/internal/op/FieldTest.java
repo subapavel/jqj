@@ -68,7 +68,7 @@ class FieldTest {
 
   @Test
   void otherKindsRaiseJqsText() {
-    // jq-ref 1.8.2, recorded (field/error-{array,string,number,true,false}), each with rc 5:
+    // jq-ref 1.8.2, recorded (field/error-{array,empty-array,string,number,true,false}), each with rc 5:
     //   jq: error (at <stdin>:1): Cannot index array with string ("a")
     //   jq: error (at <stdin>:1): Cannot index string with string ("a")
     //   jq: error (at <stdin>:1): Cannot index number with string ("a")
