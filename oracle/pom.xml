@@ -29,6 +29,26 @@
 
   <build>
     <plugins>
+      <!-- The command line's in-process entry is not exported API (ADR-0020); only the oracle compiles against it. -->
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgs combine.children="append">
+            <arg>--add-exports</arg>
+            <arg>io.github.subapavel.jqj.cli/io.github.subapavel.jqj.cli=io.github.subapavel.jqj.oracle</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+      <!-- Oracle reports (ADR-0020) are written under surefire only: PIT does not pass this property on, so a
+           mutant's verdicts never reach the report that ratchet.java reads. -->
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <oracle.reports>${project.build.directory}/oracle-reports</oracle.reports>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
       <!-- Coverage of query-core and jq-core from every test in the reactor (ADR-0014). -->
       <plugin>
         <groupId>org.jacoco</groupId>
@@ -49,6 +69,11 @@
         <artifactId>pitest-maven</artifactId>
         <configuration>
           <crossModule>true</crossModule>
+          <!-- The Survey runs the cases nobody requires and fails only on CRASH (ADR-0020). -->
+          <excludedTestClasses>
+            <param>io.github.subapavel.jqj.oracle.diff.DifferentialSurveyTest</param>
+            <param>io.github.subapavel.jqj.oracle.json.JsonSurveyTest</param>
+          </excludedTestClasses>
           <additionalClasspathElements>
             <additionalClasspathElement>${project.basedir}/../query-core/target/test-classes</additionalClasspathElement>
             <additionalClasspathElement>${project.basedir}/../jq-core/target/test-classes</additionalClasspathElement>
