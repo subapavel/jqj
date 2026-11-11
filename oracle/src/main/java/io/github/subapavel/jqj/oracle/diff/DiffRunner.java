@@ -112,7 +112,7 @@ public final class DiffRunner {
     }
     b.append(label).append("jq-ref ").append(window(ref, d)).append('\n');
     b.append("          jqj    ").append(window(jqj, d)).append('\n');
-    if (d > 0) b.append("          first difference at byte ").append(d).append('\n');
+    b.append("          first difference at byte ").append(d).append('\n');
   }
 
   /** Up to {@value #WINDOW} bytes from a little before the first difference, escaped. */

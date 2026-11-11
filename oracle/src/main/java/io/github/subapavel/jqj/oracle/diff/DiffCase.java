@@ -31,8 +31,8 @@ public record DiffCase(
   /**
    * The case of one block.
    *
-   * @throws IllegalArgumentException naming {@code where} and the line of an unknown key, a repeated {@code stdin}, an
-   *     {@code env} without {@code =} or a malformed escape
+   * @throws IllegalArgumentException naming {@code where} and the line of an unknown key, a repeated {@code stdin}, a
+   *     {@code file} without a name, an {@code env} without {@code =} or a malformed escape
    */
   public static DiffCase of(String where, CaseFormat.Block block) {
     List<String> args = new ArrayList<>();
@@ -49,9 +49,9 @@ public record DiffCase(
             stdin = CaseFormat.unescape(line.value());
           }
           case "file" -> {
-            int space = line.value().indexOf(' ');
-            String name = space < 0 ? line.value() : line.value().substring(0, space);
-            files.put(name, CaseFormat.unescape(space < 0 ? "" : line.value().substring(space + 1)));
+            String[] nameAndBytes = line.value().split(" ", 2);
+            if (nameAndBytes[0].isEmpty()) throw new IllegalArgumentException("'file' needs a name");
+            files.put(nameAndBytes[0], CaseFormat.unescape(nameAndBytes.length == 2 ? nameAndBytes[1] : ""));
           }
           case "env" -> {
             String kv = new String(CaseFormat.unescape(line.value()), UTF_8);

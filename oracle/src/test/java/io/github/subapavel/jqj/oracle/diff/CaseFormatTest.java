@@ -47,12 +47,14 @@ class CaseFormatTest {
     // printf 'case t/x\nfilter .\nend\n' | sha256sum
     assertThat(cases("# header\ncase t/x\nfilter .\nend\n").get(0).def()).isEqualTo("98ada9f8a537");
     assertThat(cases("case t/x\nfilter .b\nend\n").get(0).def()).isNotEqualTo("98ada9f8a537");
+    assertThat(cases("case t/w\nfilter .w\nend\n\ncase t/x\nfilter .\nend\n").get(1).def()).isEqualTo("98ada9f8a537");
   }
 
   @Test
   void escapesStandForTheirBytesAndBytesEscapeBackTheSameWay() {
-    byte[] bytes = HexFormat.of().parseHex("615c0a09007fc3a9ff0d");
-    String escaped = "a\\\\\\n\\t\\x00\\x7fé\\xff\\x0d";
+    // a \ LF TAB NUL DEL é, a malformed byte before a plain b, a space, CR
+    byte[] bytes = HexFormat.of().parseHex("615c0a09007fc3a9ff62200d");
+    String escaped = "a\\\\\\n\\t\\x00\\x7fé\\xffb \\x0d";
 
     assertThat(CaseFormat.escape(bytes)).isEqualTo(escaped);
     assertThat(CaseFormat.unescape(escaped)).isEqualTo(bytes);
@@ -68,6 +70,8 @@ class CaseFormatTest {
         Arguments.argumentSet("an id twice", bytes("case t/x\nend\ncase t/x\nend\n"), "t.cases:3: case t/x occurs twice"),
         Arguments.argumentSet("a block without end", bytes("case t/x\nfilter .\n"), "t.cases:1: case t/x has no 'end'"),
         Arguments.argumentSet("an expected output written by hand", bytes("case t/x\nfilter .\nstdout {}\nend\n"), "t.cases:3: case t/x: unknown key 'stdout'"),
+        Arguments.argumentSet("a line starting with a space", bytes("case t/x\n filter .\nend\n"), "unknown key ''"),
+        Arguments.argumentSet("a file without a name", bytes("case t/x\nfile  {}\nend\n"), "'file' needs a name"),
         Arguments.argumentSet("stdin twice", bytes("case t/x\nstdin 1\nstdin 2\nend\n"), "'stdin' given twice"),
         Arguments.argumentSet("env without =", bytes("case t/x\nenv K\nend\n"), "'env' needs K=V"),
         Arguments.argumentSet("env with an empty name", bytes("case t/x\nenv =v\nend\n"), "'env' needs K=V"),
