@@ -16,7 +16,8 @@ import org.junit.jupiter.api.Test;
 /** The values-v1 Generator over its whole seed range (ADR-0025, #28's parameter table). */
 class ValuesV1Test {
 
-  private static final List<ValuesV1.Generated> ALL = all();
+  /** Every test draws the range itself: PIT credits a static initializer to no test, so its mutants would live. */
+  private final List<ValuesV1.Generated> generated = all();
 
   private static List<ValuesV1.Generated> all() {
     List<ValuesV1.Generated> out = new ArrayList<>();
@@ -31,14 +32,14 @@ class ValuesV1Test {
   void theSeedRangeIsTwoThousandOneHundred() {
     assertThat(ValuesV1.FROM).isZero();
     assertThat(ValuesV1.TO).isEqualTo(2100);
-    assertThat(ALL).hasSize(2100);
+    assertThat(generated).hasSize(2100);
   }
 
   @Test
   void sameSeedSameBytes() {
     for (long seed = ValuesV1.TO - 1; seed >= ValuesV1.FROM; seed--) {
       ValuesV1.Generated again = ValuesV1.generate(seed);
-      ValuesV1.Generated first = ALL.get((int) seed);
+      ValuesV1.Generated first = generated.get((int) seed);
       assertThat(again.block()).as("seed %d", seed).isEqualTo(first.block());
       assertThat(again.stdin()).as("seed %d", seed).isEqualTo(first.stdin());
     }
@@ -55,7 +56,7 @@ class ValuesV1Test {
             List.of("-c", "tojson"),
             List.of("-c", "[paths]"),
             List.of("-c", "tostream"));
-    for (ValuesV1.Generated g : ALL) {
+    for (ValuesV1.Generated g : generated) {
       DiffCase c = DiffCase.of("values-v1.cases", CaseFormat.parse("values-v1.cases", "gen/values-v1", g.block().getBytes(UTF_8)).getFirst());
       assertThat(c.id()).isEqualTo("gen/values-v1/" + g.seed());
       assertThat(c.args()).as("seed %d", g.seed()).isEqualTo(forms.get((int) (g.seed() % 7)));
@@ -73,7 +74,7 @@ class ValuesV1Test {
     Map<ValuesV1.Feature, Integer> budgets =
         Map.of(ValuesV1.Feature.BUDGET_128, 128, ValuesV1.Feature.BUDGET_512, 512, ValuesV1.Feature.BUDGET_4096, 4096);
     int largest = 0;
-    for (ValuesV1.Generated g : ALL) {
+    for (ValuesV1.Generated g : generated) {
       assertThat(g.stdin().length).as("seed %d", g.seed()).isBetween(1, 4096);
       List<ValuesV1.Feature> classes = budgets.keySet().stream().filter(g.features()::contains).toList();
       assertThat(classes).as("seed %d has one budget class", g.seed()).hasSize(1);
@@ -87,7 +88,7 @@ class ValuesV1Test {
   void depthCapHolds() {
     int deepest = 0;
     int spines = 0;
-    for (ValuesV1.Generated g : ALL) {
+    for (ValuesV1.Generated g : generated) {
       int depth = Scan.of(g.stdin()).maxDepth;
       if (g.features().contains(ValuesV1.Feature.SPINE)) {
         spines++;
@@ -104,7 +105,7 @@ class ValuesV1Test {
   @Test
   void lenientFlagMatchesTokens() {
     int lenientDocuments = 0;
-    for (ValuesV1.Generated g : ALL) {
+    for (ValuesV1.Generated g : generated) {
       List<String> lenient = Scan.of(g.stdin()).tokens.stream().filter(Scan::lenient).toList();
       assertThat(LENIENT).as("seed %d", g.seed()).containsAll(lenient);
       if (g.lenient()) {
@@ -119,7 +120,7 @@ class ValuesV1Test {
 
   @Test
   void noDeviationShape() {
-    for (ValuesV1.Generated g : ALL) {
+    for (ValuesV1.Generated g : generated) {
       try {
         Scan.of(g.stdin());
       } catch (AssertionError e) {
@@ -132,7 +133,7 @@ class ValuesV1Test {
   void everyClassOccurs() {
     Map<ValuesV1.Feature, Integer> documents = new EnumMap<>(ValuesV1.Feature.class);
     for (ValuesV1.Feature f : ValuesV1.Feature.values()) documents.put(f, 0);
-    for (ValuesV1.Generated g : ALL) for (ValuesV1.Feature f : g.features()) documents.merge(f, 1, Integer::sum);
+    for (ValuesV1.Generated g : generated) for (ValuesV1.Feature f : g.features()) documents.merge(f, 1, Integer::sum);
 
     Map<ValuesV1.Feature, Integer> rare = new TreeMap<>();
     documents.forEach((f, n) -> {
@@ -144,7 +145,7 @@ class ValuesV1Test {
   /** The bytes behind three features, read from the documents rather than from the generator's word. */
   @Test
   void featuresAreInTheBytes() {
-    for (ValuesV1.Generated g : ALL) {
+    for (ValuesV1.Generated g : generated) {
       byte[] d = g.stdin();
       boolean bom = d.length >= 3 && (d[0] & 0xff) == 0xef;
       assertThat(bom).as("seed %d", g.seed()).isEqualTo(g.features().contains(ValuesV1.Feature.BOM));
