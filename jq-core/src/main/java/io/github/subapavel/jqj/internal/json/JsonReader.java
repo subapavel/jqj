@@ -15,7 +15,8 @@ import java.util.Arrays;
  * included (ADR-0026). One per Workspace; not thread-safe.
  *
  * <p>Until spec 5, a lenient token and a second top-level value are malformed, and a malformed document ends in the
- * Stub with the line and column of its detecting byte (#22, ADR-0024). A limit is jq's own error.
+ * Stub with the line and column of its detecting byte (#22, ADR-0024). A limit is jq's own error. Numbers get
+ * ADR-0012's FITS_LONG and CANONICAL flags; strings are classified by ADR-0015's tag 5 and tag 6.
  */
 public final class JsonReader {
   /** jq's parse depth (ADR-0015, ADR-0026, F-22), a constant until spec 2 wires {@code Limits.nestingDepth}. */
@@ -43,13 +44,17 @@ public final class JsonReader {
 
   private Document last;
 
+  /** The index of the segment's first byte in the array being read: an error's offset counts from it. */
+  private int origin;
+
   public JsonReader(TapeLimits limits) {
     this.limits = limits;
   }
 
   /**
    * Reads one document. A writable heap segment over a {@code byte[]} is read in place; any other segment is copied
-   * once (ADR-0015, ADR-0016).
+   * once (ADR-0015, ADR-0016). One leading UTF-8 BOM is skipped; an error's column counts from after it, its offset
+   * from the segment's first byte.
    *
    * @throws JqSyntaxException when the bytes are not exactly one JSON document, or a limit is exceeded
    */
@@ -59,21 +64,26 @@ public final class JsonReader {
     }
     long size = json.byteSize();
     if (size > limits.document()) {
-      throw overLimit("document size", json, 0, size, limits.document());
+      throw overLimit("document size", json, 0, 0, size, limits.document());
     }
     byte[] bytes;
-    int base;
     // heapBase() is empty for a read-only segment (F-12), so only a writable one is read in place.
     if (json.heapBase().orElse(null) instanceof byte[] array) {
       bytes = array;
-      base = (int) json.address();
+      origin = (int) json.address();
     } else {
       bytes = json.toArray(JAVA_BYTE);
-      base = 0;
+      origin = 0;
     }
-    parse(bytes, base, base + (int) size);
+    int end = origin + (int) size;
+    parse(bytes, hasBom(bytes, origin, end) ? origin + 3 : origin, end);
     last = new Document(bytes, tape);
     return last;
+  }
+
+  /** Whether {@code b[p, end)} starts with the UTF-8 BOM, EF BB BF. */
+  private static boolean hasBom(byte[] b, int p, int end) {
+    return end - p >= 3 && b[p] == (byte) 0xEF && b[p + 1] == (byte) 0xBB && b[p + 2] == (byte) 0xBF;
   }
 
   /** Writes the value in {@code b[base, end)} onto the tape, its root at index 0. */
@@ -191,12 +201,18 @@ public final class JsonReader {
       } else if (c < 0x20) {
         // A raw byte below 0x20 must be escaped (ADR-0015); EOF leaves the string unfinished.
         throw malformed(b, base, end, p);
-      } else {
-        if (c >= 0x7F) {
-          // DEL or a byte from 0x80: tag 6 until S1.13 classifies UTF-8 (#32, C6).
-          tag = Tape.STRING_REENCODE;
-        }
+      } else if (c < 0x7F) {
         p++;
+      } else {
+        // DEL and bytes that are not well-formed UTF-8 make tag 6 (ADR-0015); a bad byte is passed one at a time, so
+        // a quote, a backslash or a control byte after it is still seen.
+        int length = c == 0x7F ? 0 : sequence(b, p, end);
+        if (length == 0) {
+          tag = Tape.STRING_REENCODE;
+          p++;
+        } else {
+          p += length;
+        }
       }
     }
     int span = p + 1 - start;
@@ -207,8 +223,53 @@ public final class JsonReader {
     return p + 1;
   }
 
+  /**
+   * The length of the well-formed UTF-8 sequence whose lead byte, from 0x80, is at p, or 0 when the bytes there are
+   * not one (the Unicode standard's table 3-7): no overlong form, no surrogate, nothing above U+10FFFF.
+   */
+  private static int sequence(byte[] b, int p, int end) {
+    int c = b[p] & 0xFF;
+    int length;
+    int low = 0x80;
+    int high = 0xBF;
+    if (c < 0xC2) {
+      // A continuation byte, or the lead of an overlong two-byte form.
+      return 0;
+    } else if (c < 0xE0) {
+      length = 2;
+    } else if (c < 0xF0) {
+      length = 3;
+      if (c == 0xE0) {
+        low = 0xA0;
+      } else if (c == 0xED) {
+        high = 0x9F;
+      }
+    } else if (c < 0xF5) {
+      length = 4;
+      if (c == 0xF0) {
+        low = 0x90;
+      } else if (c == 0xF4) {
+        high = 0x8F;
+      }
+    } else {
+      return 0;
+    }
+    int second = peek(b, p + 1, end);
+    if (second < low || second > high) {
+      return 0;
+    }
+    for (int i = 2; i < length; i++) {
+      // EOF is -1, below every continuation byte.
+      int next = peek(b, p + i, end);
+      if (next < 0x80 || next > 0xBF) {
+        return 0;
+      }
+    }
+    return length;
+  }
+
   /** Checks the escape whose letter is at p: one of {@code "\/bfnrt}, or {@code u} and four hex digits. */
-  private static int escape(byte[] b, int base, int end, int p) {
+  private int escape(byte[] b, int base, int end, int p) {
     return switch (peek(b, p, end)) {
       case '"', '\\', '/', 'b', 'f', 'n', 'r', 't' -> p + 1;
       case 'u' -> {
@@ -236,11 +297,18 @@ public final class JsonReader {
     int integer = p;
     p = peek(b, p, end) == '0' ? p + 1 : digits(b, base, end, p);
     int integerEnd = p;
+    int flags = Tape.CANONICAL;
     if (peek(b, p, end) == '.') {
-      p = digits(b, base, end, p + 1);
+      int fraction = p + 1;
+      p = digits(b, base, end, fraction);
+      if (b[integer] == '0' && !canonicalFraction(b, fraction, p)) {
+        flags = 0;
+      }
     }
     int c = peek(b, p, end);
     if (c == 'e' || c == 'E') {
+      // ADR-0012: jq prints a token with an exponent in another text.
+      flags = 0;
       c = peek(b, ++p, end);
       if (c == '+' || c == '-') {
         p++;
@@ -251,13 +319,27 @@ public final class JsonReader {
     if (length > limits.number()) {
       throw overLimit("number size", b, base, end, p);
     }
-    int span = p == integerEnd && fitsLong(b, negative, integer, p) ? length | Tape.FITS_LONG : length;
-    put(t, Tape.entry(Tape.NUMBER, span, start));
+    if (p == integerEnd && fitsLong(b, negative, integer, p)) {
+      flags |= Tape.FITS_LONG;
+    }
+    put(t, Tape.entry(Tape.NUMBER, length | flags, start));
     return p;
   }
 
+  /**
+   * ADR-0012 CANONICAL for the fraction digits {@code b[from, to)} of a {@code [-]0.} token: fewer than 6 leading
+   * zeros, or fewer than 7 when the fraction is all zeros. jq prints the others in exponent form.
+   */
+  private static boolean canonicalFraction(byte[] b, int from, int to) {
+    int z = from;
+    while (z < to && b[z] == '0') {
+      z++;
+    }
+    return z - from < (z == to ? 7 : 6);
+  }
+
   /** Reads one or more digits from p; returns the position after the last. */
-  private static int digits(byte[] b, int base, int end, int p) {
+  private int digits(byte[] b, int base, int end, int p) {
     if (!isDigit(peek(b, p, end))) {
       throw malformed(b, base, end, p);
     }
@@ -291,7 +373,7 @@ public final class JsonReader {
   }
 
   /** Checks the bytes of {@code word} after its first, which is at p; returns the position after it. */
-  private static int literal(byte[] b, int base, int end, int p, String word) {
+  private int literal(byte[] b, int base, int end, int p, String word) {
     for (int i = 1; i < word.length(); i++) {
       if (peek(b, p + i, end) != word.charAt(i)) {
         throw malformed(b, base, end, p + i);
@@ -326,28 +408,29 @@ public final class JsonReader {
     tape[t] = entry;
   }
 
-  private static JqSyntaxException malformed(byte[] b, int base, int end, int d) {
-    Position at = Position.of(MemorySegment.ofArray(b), base, end, d);
+  private JqSyntaxException malformed(byte[] b, int base, int end, int d) {
+    Position at = Position.of(MemorySegment.ofArray(b), origin, base, end, d);
     return Stub.malformed(at.offset(), at.line(), at.column());
   }
 
-  private static JqSyntaxException overLimit(String limit, byte[] b, int base, int end, int d) {
-    return overLimit(limit, MemorySegment.ofArray(b), base, end, d);
+  private JqSyntaxException overLimit(String limit, byte[] b, int base, int end, int d) {
+    return overLimit(limit, MemorySegment.ofArray(b), origin, base, end, d);
   }
 
   /** ADR-0015's text, without the Stub mark: jq has no such limit, so no replay will make it. */
-  private static JqSyntaxException overLimit(String limit, MemorySegment in, long base, long end, long d) {
-    Position at = Position.of(in, base, end, d);
+  private static JqSyntaxException overLimit(String limit, MemorySegment in, long origin, long base, long end, long d) {
+    Position at = Position.of(in, origin, base, end, d);
     return new JqSyntaxException(
         "Exceeds " + limit + " limit for parsing at line " + at.line() + ", column " + at.column(), at.offset(), at.line(), at.column());
   }
 
   /**
    * Where the detecting byte d points (#32 design, §1): k is d + 1, or end at EOF; the line is 1 plus the LFs in
-   * {@code [base, k)}, the column k - 1 minus the last of them, or k - base without one; the offset is d - base.
+   * {@code [base, k)}, the column k - 1 minus the last of them, or k - base without one; the offset is d - origin.
+   * The base is after a skipped BOM, the origin the segment's first byte (#33 design, section 1).
    */
   private record Position(long offset, int line, int column) {
-    static Position of(MemorySegment in, long base, long end, long d) {
+    static Position of(MemorySegment in, long origin, long base, long end, long d) {
       long k = Math.min(d + 1, end);
       int line = 1;
       long lastLf = base - 1;
@@ -357,7 +440,7 @@ public final class JsonReader {
           lastLf = i;
         }
       }
-      return new Position(d - base, line, (int) (k - 1 - lastLf));
+      return new Position(d - origin, line, (int) (k - 1 - lastLf));
     }
   }
 }

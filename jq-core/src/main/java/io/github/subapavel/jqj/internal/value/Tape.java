@@ -15,7 +15,7 @@ public final class Tape {
   /** A string whose bytes are its value and its compact output. */
   public static final int STRING = 5;
 
-  /** A string that must be re-encoded: until S1.13, one with an escape, DEL or a byte from 0x80 (#32, C6). */
+  /** A string that must be re-encoded: one with an escape, DEL or bytes that are not well-formed UTF-8 (ADR-0015). */
   public static final int STRING_REENCODE = 6;
 
   public static final int ARRAY = 8;
@@ -23,6 +23,9 @@ public final class Tape {
 
   /** ADR-0012: a number's span flag for an integer token, not {@code -0}, inside the long range. */
   public static final int FITS_LONG = 1 << 27;
+
+  /** ADR-0012: a number's span flag for a token whose bytes are what jq prints for it, so the writer copies them. */
+  public static final int CANONICAL = 1 << 26;
 
   /** A number's span below its four flags: the token's byte length. */
   public static final int NUMBER_LENGTH = 0x00FF_FFFF;
@@ -49,13 +52,13 @@ public final class Tape {
    * The index of the entry after the value at {@code i} and everything inside it. A tag from 8 sets the sign bit
    * (ADR-0002), so {@code entry >> 63} is all ones for a container, whose span is skipped, and zero for a scalar.
    */
-  static int next(long[] tape, int i) {
+  public static int next(long[] tape, int i) {
     long entry = tape[i];
     return i + 1 + ((int) (entry >> 63) & span(entry));
   }
 
   /** The index after the last entry inside the container at {@code i}. */
-  static int end(long[] tape, int i) {
+  public static int end(long[] tape, int i) {
     return i + 1 + span(tape[i]);
   }
 }
