@@ -30,6 +30,34 @@
           </execution>
         </executions>
       </plugin>
+      <!-- Unit tests run on the class path (ADR-0013); the sealed-permits proof also runs with jq-core as a
+           named module, as a host puts it on its module path (ADR-0016, #24). -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>default-test</id>
+            <configuration>
+              <excludes>
+                <exclude>**/SealedPermitsModulePathTest.java</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+          <execution>
+            <id>module-path</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <useModulePath>true</useModulePath>
+              <includes>
+                <include>**/SealedPermitsModulePathTest.java</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>
