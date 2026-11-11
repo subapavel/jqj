@@ -15,8 +15,10 @@ ticket that copies or translates them (ADR-0015: the parser state machine of jv_
 licence text ships in the jq-core jar under META-INF/.
 
 jq's man.test and manonig.test are generated from the examples of the jq manual
-(https://jqlang.org/manual/), Creative Commons Attribution 3.0 Unported, by the jq authors; they
-are copied as test resources only (ADR-0021) and keep both jq's MIT notice and this attribution.
+(https://jqlang.org), Creative Commons Attribution 3.0 Unported
+(https://creativecommons.org/licenses/by/3.0/), by the jq authors. They are added as test
+resources only (ADR-0021), by the ticket that copies them, and keep both jq's MIT notice and this
+attribution.
 
 Test inputs from JSONTestSuite (https://github.com/nst/JSONTestSuite) at commit 1ef36fa0, MIT
 License, Copyright (c) 2016 Nicolas Seriot, are added to this list by the ticket that copies them.

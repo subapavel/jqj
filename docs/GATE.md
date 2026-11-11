@@ -31,7 +31,8 @@ command and the evidence it needs, and a change to a check is a finding (`docs/W
    `claude-cloud-4vcpu`, recorded in `bench/RESULTS.md` with machine, date and commit, beside the
    reference jq binary's time per document measured in the same session (`bench/jq-ref.sh`).
    Target: every G1–G6 cell at most 1.0× the reference time per document; cold start (G7) is
-   recorded with no factor. No scenario is worse than `ratchet/bench.tsv` beyond its tolerance.
+   recorded with no factor. No scenario is worse than `ratchet/bench.tsv` beyond its
+   per-cell tolerance (set in spec 6 by a finding, ADR-0019).
    (Tickets 4, 12.)
 6. **Command line.** `jqj` runs a filter over files and standard input with jq's main flags
    (ticket 1 lists them), with jq's exit codes; shown by differential cases that go through the

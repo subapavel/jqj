@@ -282,15 +282,16 @@ _Avoid_: raw copy
 
 **Oracle**:
 An independent source of the expected output for a case: jq's own test files, the reference jq
-binary or the other backend. A JSON conformance suite supplies inputs; the reference jq supplies
-their verdicts.
+binary, the other backend or the other compile mode. A JSON conformance suite supplies inputs; the
+reference jq supplies their verdicts.
 
 **Case**:
 One oracle entry with a stable id: a filter, an input, flags and the expected outputs.
 _Avoid_: test (that is a JUnit method), example
 
 **Differential oracle**:
-Running a case in jqj and in the reference jq binary and requiring byte-identical output.
+Running a case in jqj and in the reference jq binary and requiring the same exit code, stdout and
+stderr, byte for byte (syntax-error text excepted, ADR-0020).
 
 **Backend oracle**:
 Running a case in both backends and requiring identical output. It starts with the bytecode
@@ -305,7 +306,7 @@ Compiling with every analysis fact at its safe value: cardinality many, every pa
 detach at every hold, no specialisation.
 
 **Recording**:
-jq-ref's exit code, stdout and stderr for one case, committed beside it and written only by the
+The reference jq's exit code, stdout and stderr for one case, committed beside it and written only by the
 record command.
 _Avoid_: snapshot, golden file
 
@@ -319,8 +320,8 @@ The run of every case that is not required; it writes the oracle report and fail
 Each case's verdict (PASS, FAIL, STALE, CRASH) per oracle and backend; the ratchet reads it.
 
 **Deviation case**:
-A differential case that carries jqj's column of a `DEVIATIONS.md` row; jq-ref's column is its
-recording.
+A differential case that carries jqj's column of a `DEVIATIONS.md` row; the reference jq's column is
+its recording.
 
 **Retired case**:
 A ratcheted id whose source file changed with a reference bump.
@@ -342,7 +343,8 @@ One measured quantity of one filter on one input size, such as the throughput of
 a 10 MB document. Its baseline is a line of the ratchet.
 
 **Gate scenario**:
-A benchmark scenario whose speed factor gate check 5 bounds (G1–G6; cold start is recorded only).
+A benchmark scenario whose speed factor gate check 5 bounds (G1–G6); cold start (G7) is recorded and
+ratcheted with no factor.
 _Avoid_: headline benchmark
 
 **Diagnostic scenario**:

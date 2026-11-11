@@ -29,7 +29,7 @@ Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1).
   - a FAIL case only compiles;
   - the line after the program is the input, taken raw;
   - expected lines run until a skip line or EOF;
-  - a line of 4096 bytes or more is a parse error.
+  - jqj rejects a line of 4096 bytes or more (jq's `fgets` would split it at 4095).
 - **The verdict follows `jq_test.c`:**
   - too few results, a mismatch or a superfluous result fails;
   - an error after the last expected result passes;
@@ -46,7 +46,8 @@ Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1).
 
   Number text is left to the differential oracle (ADR-0012).
 - **The host** is `Host.sandboxed()` with UTC, a `ModuleLoader` over the copied `tests/modules`, and
-  debug discarded.
+  debug discarded; for `man.test` it also sets `environment({PAGER=less})` (`$ENV.PAGER` and
+  `env.PAGER` cases).
 - **Case id:** `<file>#<first 12 hex digits of SHA-256 over the case's lines>`, LF-joined with the
   marker included. Identical duplicates get `~2`, `~3` in file order. An id survives inserted,
   deleted or moved cases; a changed case gets a new id.
@@ -77,11 +78,14 @@ Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1).
 - **jqj runs in process** through `jq-cli`'s `int run(Invocation)`, where `record
   Invocation(List<String> args, Map<String,String> env, Path cwd, InputStream in, OutputStream
   out, OutputStream err)`. This replaces ADR-0013's `run(String[], …)`. The command-line host takes
-  the environment, `TZ` (an IANA id; else `ZoneId.systemDefault()`) and `HOME` from the
-  `Invocation` (amends ADR-0017).
+  the environment, `TZ` and `HOME` from the `Invocation` (amends ADR-0017). `TZ` unset →
+  `ZoneId.systemDefault()`; set to an IANA id → that zone; set to anything else → UTC, as jq-ref
+  does for an unknown name. jq-ref honours POSIX strings such as `JST-9`; supporting them is a
+  later case.
 - **Generated cases** are named `gen/<generator>/<seed>`.
   - `oracle-record.sh --generate <gen> <from> <to>` commits the cases and their recordings. It
-    drops seeds where jq-ref gives rc 3 or times out, and seeds that hit a listed deviation.
+    drops seeds where jq-ref gives rc 3 or times out. What happens to a seed that hits a listed
+    deviation is open (a later round); until then such a seed stays and fails visibly.
   - `values-v1` (spec 1, widened in spec 5) runs random documents with lenient tokens and the UTF-8
     classes under `-c .`, `.`, `-S`, `-a`, `tojson`, `[paths]` and `tostream`.
   - `core-v1` (spec 2) runs a typed core-language grammar to depth 4.
@@ -97,18 +101,22 @@ jqj matches jq's error text wherever a filter or a script can read it: caught me
 errors (ADR-0015), the runtime `jq: error (at <file>:<n>): …` line and exit codes. Compile errors
 other than syntax errors match too (`$bar is not defined`, `Module metadata must be constant`), as
 do the 13 jq.test `%%FAIL` cases that check them. **Syntax errors keep jqj's own text.** A
-differential case whose recording says `syntax error` compares rc and stdout only, and
+differential case whose recorded stderr has a line starting `jq: error: syntax error` compares rc
+and stdout only, and
 `DEVIATIONS.md` has one row for it. jq's Bison text ("expecting" lists that depend on the parser
 state, several errors after recovery) would mean emulating Bison's LALR tables, while founding §3
 chose a Pratt parser for its messages. `JqCompileException.getMessage()` (ADR-0016) is jq's whole
-command-line text: every error block, each with its source line and carets, then `jq: N compile
-error(s)`. The jqtest runner reads the last block from a list of blocks.
+command-line text when no syntax error is involved: every error block, each with its source line
+and carets, then `jq: N compile error(s)`. Bison recovery can add blocks after a syntax error
+(jq.test `{1+2:3}` prints a syntax block, then "May need parentheses…", then `jq: 2 compile
+errors`); such text is jqj's own. The jqtest runner reads the last block from a list of blocks.
 
 ## The compile-mode and backend oracles
 
 - **In milestone 1** (ADR-0018), the compile-mode oracle runs every jqtest, differential and
   generated case twice: optimised and conservative, through an engine-internal switch. It
-  compares output and error. Cases that end in a termination are left out. It runs in the ticket
+  compares output and error. Cases that end in a termination under either compile are left out (a
+tail-recursive case can finish optimised and hit the recursion budget conservative). It runs in the ticket
   gate unless the skeleton ticket measures the oracle above ADR-0014's 60 s target, in which case
   it moves to the spec gate.
 - **The backend oracle** (interpreter against bytecode) starts with the bytecode spec. It compares
@@ -121,14 +129,16 @@ error(s)`. The jqtest runner reads the last block from a list of blocks.
 - Each oracle is a `@TestFactory` of DynamicTests: one per required case and backend, sorted by id.
 - **A required case** is either in the ratchet or named by the ticket at its gate
   (`-Doracle.require=<file>`, written by `gate-ticket.sh` from the ticket body).
-- **A Survey test** runs every other case and writes
-  `oracle/target/oracle-reports/<oracle>-<backend>.tsv` (`id`, PASS, FAIL, STALE or CRASH,
-  detail). It fails only on CRASH, an exception that is not a `JqException`. PIT excludes it.
+- **The oracle report** `oracle/target/oracle-reports/<oracle>-<backend>.tsv` (`id`, PASS, FAIL,
+  STALE or CRASH, detail) holds every case: required cases write their verdict when asserted.
+- **A Survey test** runs every case that is not required and adds it to the report. It fails only
+  on CRASH, an exception that is not a `JqException`. PIT excludes it.
 - **PIT 1.30.2 with pitest-junit5-plugin 1.2.3 and JUnit 6.1.3 on JDK 25.0.5 works this way**
   (VERIFIED_PASS, adviser probe): each dynamic test is a unit, ids are positional, an aborted test
   counts as passed, and every unit run rebuilds the factory (3.0 ms with 1 case, 5.6 ms with 5000).
-- A surviving mutant covered by 5000 cases costs about 28 s. If the skeleton ticket's measurement
-  of the ticket gate exceeds 3 minutes, generated seeds are grouped per unit or kept out of PIT.
+- A surviving mutant covered by 5000 cases costs at least 28 s. If the skeleton ticket measures the
+  ticket gate's PIT step above 3 minutes, generated seeds are first grouped per unit or kept out of
+  PIT; only if that is not enough does PIT leave the ticket gate by a finding (ADR-0014).
 - **The handed-over test list of ADR-0008 to ADR-0011** (issue #7) belongs to the tickets that build
   those parts, as unit tests or oracle cases. Examples: `emitFalseStopsProducer`,
   `tryFlagPerActivation`, one test per budget, `stackBackstopIsTermination`,

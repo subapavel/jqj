@@ -43,7 +43,8 @@ joni 2.2.9.
 
 - `Limits(steps, deadline, nestingDepth, recursionDepth, bytesBuilt, bytesWritten, regexMatchTime,
   stackBytes)`, set on the engine and overridable per run through `RunOptions`.
-- **`Limits.embedded()`** (the engine default; numbers provisional until #12 measures them):
+- **`Limits.embedded()`** (the engine default; the regex value is confirmed by ADR-0019, the step default
+  waits for the interpreter's steps per second):
   - 10⁹ steps; a 10 s deadline;
   - parse depth 10 000 (ADR-0015; a jq parse error, not a termination, F-13);
   - 4 194 304 live activations, which lets 10⁶ levels complete;

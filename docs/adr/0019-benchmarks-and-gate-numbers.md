@@ -2,8 +2,9 @@
 
 Status: accepted (2026-11-11, owner, issue #12 "Interpreter or bytecode first, and what speed must milestone 1 show?"); fixes GATE checks 4 and 5; the bench module runs from spec 1 (ADR-0013, ADR-0014)
 
-The jq-ref numbers below were observed by the adviser on `claude-cloud-4vcpu` with jq-ref 1.8.2
-(issue #12 round 1, logs kept with the evidence comment).
+The reference numbers below were observed by the adviser on `claude-cloud-4vcpu` with jq 1.8.2
+(issue #12 round 1). The logs and the D-list are on issue #12 and in `bench/RESULTS.md` "Reference
+times and limits (issue #12)".
 
 ## Scenarios
 
@@ -17,7 +18,7 @@ The jq-ref numbers below were observed by the adviser on `claude-cloud-4vcpu` wi
   - `wide`: a root object of 78 841 keys.
 
   Sizes are 1 KB, 100 KB and 10 MB.
-- **Gate scenarios** (founding §12), each bounded by check 5 and ratcheted:
+- **Gate scenarios** (founding §12), each ratcheted; G1–G6 are bounded by check 5, G7 is not:
 
   | id | filter | input |
   | --- | --- | --- |
@@ -30,7 +31,7 @@ The jq-ref numbers below were observed by the adviser on `claude-cloud-4vcpu` wi
   | G7 | cold start: build the engine, compile `.a`, run on 1K; and the `jqj -c .a` process | 1K |
 
 - **Diagnostic scenarios** are recorded in `bench/RESULTS.md` with no factor. Each one informs
-  the decision named after it (issue #12 draft, D1–D15):
+  the decision named after it (D1–D15, listed on issue #12):
   - workspace after a large read (#5 shrink);
   - wide iterate (ADR-0002 first touch);
   - detach of inputs and of numbers (ADR-0004, ADR-0012);
@@ -60,7 +61,7 @@ The jq-ref numbers below were observed by the adviser on `claude-cloud-4vcpu` wi
 the same session, on the same files.
 - **Per cell:** one discarded run, then the best of 5 wall-clock runs, with output to `/dev/null`.
 - **Small documents** are timed as K concatenated copies: 10 000 at 1 KB, 100 at 100 KB, 1 at
-  10 MB.
+  10 MB; G4 uses K = 100, 10 and 1 for 10⁴, 10⁵ and 10⁶ elements.
 - **Reference time per document** = (best − best of 5 runs of the same filter on `/dev/null`) / K.
   A process on one 1 KB document took 2.08 ms against 2.07 ms of start-up, so timing one process
   per document would measure only start-up.
@@ -69,18 +70,24 @@ the same session, on the same files.
 
 - **Every G1–G6 cell at every size:** jqj's JMH time per operation ≤ **1.0 ×** the reference time
   per document.
-- **G7 has no factor.** The JVM alone takes about 12× jq-ref's 2.1 ms start-up, which nothing short
+- **G7 has no factor.** A JVM hello-world starts in 22.9–24.0 ms, 11–12× the reference's 2.0 ms
+  (adviser, issue #12 ADR review), which nothing short
   of a native image (out of the gate) could beat. G7 is recorded and ratcheted.
-- **The ratchet holds jqj's JMH time per cell,** with its tolerance. It does not hold the factor:
+- **The ratchet holds jqj's JMH time per cell,** with a tolerance per cell that spec 6 sets from the
+  JMH error, recorded by a finding (open until then). It does not hold the factor:
   the reference's best-of-5 moved by −29 % to +10 % between two sessions. The factor is computed
   only for the check-5 limit, from the same session.
+- **Open:** the 1.0 factor rests on G1's read part only; interpreter times for G2–G5 do not exist
+  yet. A cell that misses in spec 6 is a finding (GATE preamble), and the owner then revisits
+  ADR-0018 or the factor.
 
 ## Gate check 4
 
 - **Flat allocation:** G1 at 10 MB allocates at most **1 KiB per operation** more than G1 at 1 KB.
   JMH noise was 238 B against 0.015 B on Spike B's reused tape.
 - **Small heap:** G1, G2 and G6 `-c` at 10 MB complete in a **64 MiB** fork. Reading alone passed at
-  64 MiB on G1, Serial and Parallel; at 48 MiB only G1 passed. The writer, G2 and the JMH harness
+  64 MiB under the G1, Serial and Parallel collectors; at 48 MiB only the G1 collector passed both
+  documents. The writer, G2 and the JMH harness
   in such a fork are NOT_RUN.
 - **Linear accumulate:** G4 time and allocation from 10⁴ to 10⁶ grow at most **225×** (a quadratic
   run gives about 10 000×). This is bounded over the whole range, because jq-ref's own growth per
@@ -90,10 +97,13 @@ the same session, on the same files.
 
 - **`regexMatchTime`** stays at 1 s (ADR-0017). The rule is the smallest of {250 ms, 500 ms, 1 s,
   2 s} that is at least max(2 × warm, cold) joni time on `("a"*23+"b") | test("^(a+)+$")`. That
-  gave 872 ms → 1 s; n = 24 (787–828 ms warm) then passes in jqj. Regex limit tests avoid n = 24–25.
+  gave 872 ms → 1 s; n = 24 (787–828 ms warm, single runs up to 843 ms) would then pass in jqj. Regex limit tests avoid n = 24–25.
 - **The step default and the refuel interval** are set when the interpreter can count steps per
   second (diagnostic tick loop), as an ADR-0017 amendment. The refuel interval stays at 4096
   ticks if ticks at the slowest site come at most 16 ms apart and refuel costs at most 1 %.
+- **Measured in their owning tickets**, not here: kind dispatch (pattern `switch` against
+  exact-class `instanceof`, #7) in the value-model ticket; the number-flag cost in the reader (#9)
+  and reading eight bytes at a time (#11) in the reader ticket.
 
 ## Considered options
 

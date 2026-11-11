@@ -4,6 +4,53 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Reference times and limits (issue #12), 2026-11-11
+
+Observed by the grilling-adviser on `claude-cloud-4vcpu`, jq 1.8.2 (the reference jq), JDK 25.0.5,
+joni 2.2.9. Inputs synthetic (ADR-0019's generators). Logs posted on issue #12. Bind ADR-0019.
+
+**Reference jq, time per document** (best of 5 minus the best start-up run, divided by K):
+
+| cell | K | per document |
+| --- | --- | --- |
+| G1 1K / 100K / 10M | 10000 / 100 / 1 | 16.46 µs / 1.670 ms / 376.2 ms |
+| G2 1K / 100K / 10M | 10000 / 100 / 1 | 26.26 µs / 3.542 ms / 495.4 ms |
+| G3 1K / 100K / 10M | 10000 / 100 / 1 | 95.48 µs / 10.26 ms / 1907 ms |
+| G4 10⁴ / 10⁵ / 10⁶ | 100 / 10 / 1 | 5.714 ms / 49.63 ms / 660.1 ms |
+| G5 1K / 100K / 10M | 10000 / 100 / 1 | 80.79 µs / 8.018 ms / 1196 ms |
+| G6 `-c` 1K / 100K / 10M | 10000 / 100 / 1 | 32.27 µs / 3.837 ms / 476.0 ms |
+| G6 pretty 10M | 1 | 560.8 ms |
+
+- Start-up (`jq -n 1`): best 2.072 ms, median 2.214 ms. One process on one 1K document: 2.078 ms.
+- Between two sessions the reference's best-of-5 moved by −29 % to +10 % (why the ratchet holds
+  jqj's time, not the factor).
+- JVM hello-world start: 22.9–24.0 ms (G7 has no factor).
+
+**joni, `("a"*n+"b") | test("^(a+)+$")`** (one JVM in order; fresh JVM per n):
+
+| n | warm median (min–max), one JVM | warm median (min–max), fresh JVM |
+| --- | --- | --- |
+| 22 | 203.9 ms (196.8–240.5) | 195.7 ms (146.1–198.4) |
+| 23 | 436.4 ms (414.9–453.1) | 414.3 ms (396.5–421.4) |
+| 24 | 828.3 ms (702.2–843.1) | 786.7 ms (582.4–840.0) |
+| 25 | 1592 ms (1277–1809) | 1578 ms (1387–1730) |
+
+n = 23 cold 442.5 ms, warm 436.4 ms → max(2 × warm, cold) = 872 ms → `regexMatchTime` 1 s.
+
+**Small heap, reading a 10 MB document** (Spike B reader, tape 16 MiB):
+
+| heap | G1 | Serial | Parallel |
+| --- | --- | --- | --- |
+| 64 MiB | both pass | both pass | both pass |
+| 48 MiB | both pass | `Docs.make` OOM | both OOM |
+| 40 MiB | `Docs.make` OOM | both OOM | both OOM |
+
+The writer, G2 and the JMH harness in a small-heap fork: NOT_RUN.
+
+**Spike E (hybrid recursion, medians of 15 reps, three rounds):** `each` 1000 levels 0.46–0.58 ms,
+10⁶ levels 92–154 ms; `tail` 1000 levels 0.16–0.31 ms, 10⁶ levels 38–59 ms. Single runs reached
+277 ms at 10⁶.
+
 ## Spike A extension: nested drivers (issue #7), 2026-11-10
 
 - Same machine and JVM as "Spike A": OpenJDK 25.0.5, 4 vCPU, `-Xms2g -Xmx2g`, default 1 MB stack.

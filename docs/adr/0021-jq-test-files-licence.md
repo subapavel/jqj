@@ -7,11 +7,13 @@ Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratch
   examples and hold programs, inputs and outputs, with no prose (adviser, issue #15 round 1).
   COPYING does not say which licence a generated file carries.
 - **jqj copies them as test resources under both notices:** jq's MIT notice, as for every file in
-  `tests/`, and a CC BY 3.0 attribution for the examples, naming the jq manual and its authors.
+  `tests/`, and a CC BY 3.0 attribution for the examples, naming the jq manual
+  (https://jqlang.org) and its authors, with the licence URI
+  https://creativecommons.org/licenses/by/3.0/ (as jq's COPYING gives it).
   Both notices go in `NOTICE` and in the copied directory.
 - **They never enter a shipped jar.** They live only in `oracle/src/test/resources/`.
 - **The rule becomes "manual prose is not copied".** jq's manual text stays out of the repo; its
-  examples, as jq's own test files carry them, may be copied.
+  examples, as jq's own test files carry them, may be copied as test resources only.
 - This adds 250 cases. 205 of their programs appear in no other jq test file, and 11 builtins are
   named only there. GATE check 1 counts 879 cases.
 

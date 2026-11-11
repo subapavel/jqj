@@ -130,6 +130,6 @@ ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (
 
 - In milestone 1 there is no hidden class; the unloading test observes a dropped `JqFilter` and its
   interpreter tree being collected.
-- `JqCompileException.getMessage()` is jq's whole command-line text: every error block with its
-  source line and carets, then `jq: N compile error(s)`. It also gives the blocks as a list.
-  Syntax-error text is jqj's own (ADR-0020).
+- `JqCompileException.getMessage()` is jq's whole command-line text when no syntax error is
+  involved: every error block with its source line and carets, then `jq: N compile error(s)`. It
+  also gives the blocks as a list. Syntax-error text is jqj's own (ADR-0020).

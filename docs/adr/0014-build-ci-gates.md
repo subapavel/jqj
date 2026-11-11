@@ -52,7 +52,8 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
   informative only.
 - **Scripts ported from flottila-mapping:** `gate-ticket.sh`, `gate-spec.sh`, `ratchet.java` and
   `pit-summary.sh`, with their tests. Their contract, UI, stack and moved-coverage parts are
-  dropped. The oracle names are jqtest, differential, backend and json. One file lists the class-C
+  dropped. The oracle names are jqtest, differential, compile, backend and json
+  (ADR-0020). One file lists the class-C
   modules, and all three scripts read it. `function-families.java` is not ported.
 - **The VM setup** (`deploy/claude-cloud/setup.sh`) adds `javap`, `jdeps` and `jlink` to its
   alternatives and checks jq-ref's sha256.
