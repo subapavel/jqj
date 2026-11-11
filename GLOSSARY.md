@@ -303,6 +303,17 @@ What a backend makes of one filter's IR, and what a compiled filter runs: in mil
 interpreter tree.
 _Avoid_: program, plan
 
+**Read block**:
+One read of jq's input loop: the bytes through the next LF, or 4091 bytes plus the rest of a
+UTF-8 character cut there (F-25). `(at <file>:N)` counts the read blocks that end in LF, up to the
+block that holds the completing byte.
+_Avoid_: chunk, line
+
+**Completing byte**:
+The byte at which jq's parser holds a whole top-level value: a container's closing bracket, a
+string's closing quote, or the byte after a number or literal (the end of input when there is
+none).
+
 **Engine**:
 The immutable, thread-safe object a host builds once with its limits and host; it compiles filters
 and reads documents, and keeps no filter.
