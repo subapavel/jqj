@@ -19,12 +19,15 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
 /**
- * GLOSSARY "Stub", ADR-0020's Survey rule and ADR-0024: every member that compiles, reads, runs or
- * writes ends with a JqCompileException whose message starts with the Stub mark. Only the mark is
- * checked, never the text after it.
+ * GLOSSARY "Stub", ADR-0020's Survey rule and ADR-0024: every member that compiles, runs or writes ends
+ * with a JqCompileException whose message starts with the Stub mark, and the malformed-input Stub is a
+ * JqSyntaxException with the same mark. Only the mark is checked, never the text after it. #32 built
+ * {@code Workspace.read}, {@code JsonDoc.root()} and {@code JsonDoc.close()}, so their entries ended with
+ * their Stubs (#32 conflict C4).
  */
 class StubTest {
   /** ADR-0024, GLOSSARY "Stub": the mark every Stub message starts with. */
@@ -35,16 +38,12 @@ class StubTest {
     JqEngine engine = JqEngine.builder().build();
     Workspace workspace = engine.newWorkspace();
     JqFilter filter = behindTheStub(JqFilter.class);
-    JsonDoc doc = behindTheStub(JsonDoc.class);
 
     Map<String, ThrowingCallable> stubs = new LinkedHashMap<>();
     stubs.put("JqEngine.compile(String)", () -> engine.compile("."));
     stubs.put(
         "JqFilter.run(JqValue, Bindings, JqSink, Workspace)",
         () -> filter.run(JqNull.NULL, Bindings.builder().build(), v -> true, workspace));
-    stubs.put("Workspace.read(MemorySegment)", () -> workspace.read(MemorySegment.ofArray("{\"a\":1}".getBytes(UTF_8))));
-    stubs.put("JsonDoc.root()", doc::root);
-    stubs.put("JsonDoc.close()", doc::close);
     stubs.put(
         "JsonWriter.sink(Workspace, WritableByteChannel, OutputOptions)",
         () -> JsonWriter.sink(workspace, Channels.newChannel(new ByteArrayOutputStream()), OutputOptions.compact()));
@@ -66,9 +65,19 @@ class StubTest {
     return Stream.concat(mark, members);
   }
 
+  @Test
+  void malformedInputStubIsAJqSyntaxExceptionWithTheMark() {
+    // ADR-0024: "The malformed-input Stub is a JqSyntaxException with the same prefix". jq's text by replay is
+    // spec 5's, which ends this test with its Stub.
+    Workspace workspace = JqEngine.builder().build().newWorkspace();
+    assertThatThrownBy(() -> workspace.read(MemorySegment.ofArray("{\"a\":".getBytes(UTF_8))))
+        .isInstanceOf(JqSyntaxException.class)
+        .hasMessageStartingWith(MARK);
+  }
+
   /**
-   * While compile and read are Stubs no JqFilter or JsonDoc can be obtained through the API, so one is
-   * made through its constructor with zero and null arguments.
+   * While compile is a Stub no JqFilter can be obtained through the API, so one is made through its
+   * constructor with zero and null arguments.
    */
   private static <T> T behindTheStub(Class<T> type) throws ReflectiveOperationException {
     Constructor<?> constructor =
