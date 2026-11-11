@@ -167,7 +167,7 @@ class DifferentialRunnerTest {
   @Test
   void aCaseChangedAfterItsRecordingIsStale() {
     DiffCorpus.Entry e = basics("basics/compact-object");
-    DiffCase edited = new DiffCase(e.c().id(), e.c().args(), "{\"b\":1}\n".getBytes(UTF_8), e.c().files(), e.c().env(), "000000000000");
+    DiffCase edited = new DiffCase(e.c().id(), e.c().args(), "{\"b\":1}\n".getBytes(UTF_8), e.c().files(), e.c().env(), null, "000000000000");
 
     Verdict v = new DiffRunner(jqj(0, "{\"a\":1}\n", ""), scratch).run(edited, e.recording());
 

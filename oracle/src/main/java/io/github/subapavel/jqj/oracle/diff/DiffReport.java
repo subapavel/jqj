@@ -19,10 +19,19 @@ import java.util.TreeMap;
  */
 public final class DiffReport {
 
-  /** One case's line of the report. */
-  public record Row(String id, Verdict verdict, String def) {
+  /**
+   * One case's line of the report: {@code id}, verdict, detail, then {@code label} if there is one (the json
+   * oracle's), then {@code def}.
+   *
+   * @param label null for the oracles that have none
+   */
+  public record Row(String id, Verdict verdict, String label, String def) {
+    public Row(String id, Verdict verdict, String def) {
+      this(id, verdict, null, def);
+    }
+
     String line() {
-      return id + "\t" + verdict.kind() + "\t" + verdict.detail() + "\t" + def;
+      return id + "\t" + verdict.kind() + "\t" + verdict.detail() + "\t" + (label == null ? "" : label + "\t") + def;
     }
   }
 

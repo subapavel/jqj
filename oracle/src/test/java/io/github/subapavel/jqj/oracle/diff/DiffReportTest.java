@@ -31,6 +31,15 @@ class DiffReportTest {
   }
 
   @Test
+  void aRowWithALabelPutsItBetweenTheDetailAndTheDef() throws IOException {
+    Path report = dir.resolve("json-interpreter.tsv");
+
+    DiffReport.merge(report, List.of(new DiffReport.Row("json/y_x", new Verdict(Verdict.Kind.PASS, "", ""), "y_", "111111111111")));
+
+    assertThat(Files.readString(report, UTF_8)).isEqualTo("json/y_x\tPASS\t\ty_\t111111111111\n");
+  }
+
+  @Test
   void aMergeReplacesTheRowsOfItsCasesAndKeepsTheOthers() throws IOException {
     Path report = dir.resolve("differential-interpreter.tsv");
     Files.writeString(report, "a/one\tFAIL\tx\t111111111111\nc/three\tPASS\t\t333333333333\n", UTF_8);
