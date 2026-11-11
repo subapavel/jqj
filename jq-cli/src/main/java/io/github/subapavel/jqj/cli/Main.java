@@ -6,6 +6,7 @@ import io.github.subapavel.jqj.Bindings;
 import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.JqEngine;
 import io.github.subapavel.jqj.JqFilter;
+import io.github.subapavel.jqj.JqFilterException;
 import io.github.subapavel.jqj.JqSink;
 import io.github.subapavel.jqj.JqSyntaxException;
 import io.github.subapavel.jqj.JsonDoc;
@@ -14,6 +15,7 @@ import io.github.subapavel.jqj.Limits;
 import io.github.subapavel.jqj.OutputOptions;
 import io.github.subapavel.jqj.Workspace;
 import io.github.subapavel.jqj.host.Host;
+import io.github.subapavel.jqj.value.JqString;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.foreign.MemorySegment;
@@ -23,7 +25,8 @@ import java.nio.file.Files;
  * The command line (ADR-0013). Not exported API: the oracle reaches {@link #run} on the class path.
  *
  * <p>Built so far (#33): {@code -c} anywhere, the filter as the first other argument ({@code .} when there is none),
- * then at most one file, read instead of stdin. Every other option is a Stub until #38, and pretty output until #39.
+ * then at most one file, read instead of stdin. A filter error ends the run with jq's line {@code jq: error (at
+ * <name>:N): <text>} and exit code 5 (#34). Every other option is a Stub until #38, and pretty output until #39.
  */
 public final class Main {
 
@@ -36,7 +39,7 @@ public final class Main {
   /** Exit code of a filter that does not compile. */
   private static final int COMPILE = 3;
 
-  /** Exit code of a failed evaluation: a parse error of the input, a Stub during run or write. */
+  /** Exit code of a failed evaluation: a parse error of the input, a filter error, a Stub during run or write. */
   private static final int FAILED = 5;
 
   private Main() {}
@@ -89,6 +92,11 @@ public final class Main {
       if (!blank(input)) {
         try (JsonDoc doc = workspace.read(MemorySegment.ofArray(input))) {
           compiled.run(doc.root(), Bindings.builder().build(), sink, workspace);
+        } catch (JqFilterException e) {
+          // The results before the error leave first, as jq's do. Every error value built so far is a string (#34).
+          invocation.out().flush();
+          String name = file == null ? "<stdin>" : file;
+          return report(invocation, FAILED, "jq: error (at " + name + ":" + ErrorLine.of(input) + "): " + ((JqString) e.value()).value());
         }
       }
       invocation.out().flush();
