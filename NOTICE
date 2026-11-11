@@ -20,5 +20,8 @@ jq's man.test and manonig.test are generated from the examples of the jq manual
 resources only (ADR-0021), by the ticket that copies them, and keep both jq's MIT notice and this
 attribution.
 
-Test inputs from JSONTestSuite (https://github.com/nst/JSONTestSuite) at commit 1ef36fa0, MIT
-License, Copyright (c) 2016 Nicolas Seriot, are added to this list by the ticket that copies them.
+Test inputs from JSONTestSuite (https://github.com/nst/JSONTestSuite), the 318 files of its
+test_parsing directory at commit 1ef36fa01286573e846ac449e8683f8833c5b26a, MIT License,
+Copyright (c) 2016 Nicolas Seriot. They are the json oracle's cases in
+oracle/src/test/resources/json/json.cases, one `file` line each, byte for byte; the licence text is
+oracle/src/test/resources/json/LICENSE-JSONTestSuite.
