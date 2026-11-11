@@ -313,6 +313,26 @@ class ReadAndWalkTest {
     assertThat(none.get("a")).as("a key of {}").isNull();
   }
 
+  @Test
+  void keyWithALoneSurrogateIsMissing() {
+    // ADR-0026: a missing key is Java null. A String with a lone surrogate has no UTF-8 form, so no key of a
+    // document equals it; String.getBytes(UTF_8) would turn the surrogate into '?', and a compare of those bytes
+    // would find the key "?". jq-ref 1.8.2, observed 2026-11-11 (\\u stands for one backslash and u):
+    //   printf -- '{"a?":1}' | jq-ref -c '.["a?"], .["a\\udc00"], has("a\\udc00"), ("a\\udc00" | explode)'
+    //     -> 1  null  false  [97,65533]   (rc 0: jq makes the lone low surrogate U+FFFD, which is not '?')
+    //   printf -- '{"?":1}' | jq-ref -c '.["?"], .["\\ud800"], has("\\ud800")'
+    //     -> jq: error: Invalid \\uXXXX\\uXXXX surrogate pair escape ... (a compile error, rc 3): no jq string
+    //        holds a lone high surrogate.
+    Workspace workspace = newWorkspace();
+    JqObject question = kind(JqObject.class, read(workspace, "{\"?\":1}").root(), "{\"?\":1}");
+    assertThat(kind(JqNumber.class, question.get("?"), ".\"?\"").longValue()).as("witness .\"?\"").isEqualTo(1L);
+    assertThat(question.get("\uD800")).as("a lone high surrogate against the key \"?\"").isNull();
+
+    JqObject aQuestion = kind(JqObject.class, read(workspace, "{\"a?\":1}").root(), "{\"a?\":1}");
+    assertThat(kind(JqNumber.class, aQuestion.get("a?"), ".\"a?\"").longValue()).as("witness .\"a?\"").isEqualTo(1L);
+    assertThat(aQuestion.get("a\uDC00")).as("a then a lone low surrogate against the key \"a?\"").isNull();
+  }
+
   // ---- The generated tree of readThenWalkMatchesTheGeneratedTree ----
 
   /** A value of the source tree; the walk of the read document must match it. */

@@ -111,6 +111,51 @@ class StaleViewTest {
   }
 
   @Test
+  void readInsideForEachMakesTheRestOfTheWalkStale() {
+    // ADR-0016: "A mistake gives STALE_VIEW, never a wrong value". The callback reads another document into the
+    // same Workspace, so the walk's next step must not hand over that document's keys or values.
+    // jq-ref 1.8.2, observed 2026-11-11: printf -- '{"a":1,"b":2,"c":3}' | jq-ref -c '[keys_unsorted, length]'
+    //   -> [["a","b","c"],3]   (rc 0)
+    Workspace workspace = newWorkspace();
+    JqObject abc = kind(JqObject.class, read(workspace, "{\"a\":1,\"b\":2,\"c\":3}").root(), "{a,b,c}");
+    List<String> calls = new ArrayList<>();
+    List<JsonDoc> readInside = new ArrayList<>();
+    assertStale(
+        () ->
+            abc.forEach(
+                (k, v) -> {
+                  if (readInside.isEmpty()) {
+                    calls.add(k + "=" + kind(JqNumber.class, v, "forEach " + k).longValue());
+                    readInside.add(read(workspace, "{\"x\":9,\"y\":8,\"z\":7}"));
+                  } else {
+                    // A later call touches no view, so only forEach's own step can throw STALE_VIEW here.
+                    calls.add(k);
+                  }
+                }),
+        "forEach of {a,b,c} after its callback read another document");
+    assertThat(calls).as("calls before the re-read only, with the first document's key and value").containsExactly("a=1");
+    // Witness: the document read inside the callback is the current one and reads.
+    assertThat(readInside).as("documents read inside the callback").hasSize(1);
+    JqObject xyz = kind(JqObject.class, readInside.get(0).root(), "{x,y,z}");
+    assertThat(xyz.size()).as("size of {x,y,z}").isEqualTo(3);
+    assertThat(kind(JqNumber.class, xyz.get("y"), ".y").longValue()).as(".y of {x,y,z}").isEqualTo(8L);
+  }
+
+  @Test
+  void readDuringAnIndexWalkMakesTheRestStale() {
+    // The index walk's counterpart of readInsideForEachMakesTheRestOfTheWalkStale: each get(i) checks again.
+    Workspace workspace = newWorkspace();
+    JqArray three = kind(JqArray.class, read(workspace, "[1,2,3]").root(), "[1,2,3]");
+    assertThat(kind(JqNumber.class, three.get(0), "[1,2,3][0]").longValue()).as("witness: [0] before the re-read").isEqualTo(1L);
+    JqArray other = kind(JqArray.class, read(workspace, "[7,8,9]").root(), "[7,8,9]");
+    assertStale(() -> three.get(1), "get(1) of [1,2,3] after reading [7,8,9]");
+    assertStale(() -> three.get(2), "get(2) of [1,2,3] after reading [7,8,9]");
+    assertStale(three::length, "length() of [1,2,3] after reading [7,8,9]");
+    // Witness: the new document reads.
+    assertThat(kind(JqNumber.class, other.get(1), "[7,8,9][1]").longValue()).as("[7,8,9][1]").isEqualTo(8L);
+  }
+
+  @Test
   void closeDropsOnlyItsOwnDocument() {
     Workspace workspace = newWorkspace();
     JsonDoc first = read(workspace, "[1]");
