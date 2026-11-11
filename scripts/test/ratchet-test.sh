@@ -76,7 +76,7 @@ has "failing mode named" 'copy-only'
 # --- coverage and floors ---
 fresh
 printf 'module\tlines %%\tbranches %%\nquery-core\t92\t85\n' > "$root/ratchet/coverage.tsv"
-printf 'GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED\nquery-core,p,A,0,0,15,85,8,92,0,0,0,0\n' > "$tmp/agg.csv"
+printf 'GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED\noracle/query-core,p,A,0,0,15,85,8,92,0,0,0,0\n' > "$tmp/agg.csv"
 mkdir -p "$root/oracle/target/site/jacoco-aggregate"; cp "$tmp/agg.csv" "$root/oracle/target/site/jacoco-aggregate/jacoco.csv"
 check "coverage at its line" "$(run check)" 0
 sed -i 's/,8,92,/,9,91,/' "$root/oracle/target/site/jacoco-aggregate/jacoco.csv"
@@ -125,7 +125,7 @@ printf 'module\tlines %%\tbranches %%\nquery-core\t92\t85\n' > "$root/ratchet/co
 check "regen --all requires every report" "$(run regen --all)" 1
 has "missing report named" 'query-core'
 mkdir -p "$root/oracle/target/site/jacoco-aggregate" "$root/jq-cli/target/site/jacoco" "$root/query-core/target/pit-reports"
-printf 'GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED\nquery-core,p,A,0,0,10,90,5,95\n' > "$root/oracle/target/site/jacoco-aggregate/jacoco.csv"
+printf 'GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED\noracle/query-core,p,A,0,0,10,90,5,95\n' > "$root/oracle/target/site/jacoco-aggregate/jacoco.csv"
 printf 'GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED\nj,p,A,0,0,0,0,10,90\n' > "$root/jq-cli/target/site/jacoco/jacoco.csv"
 pit 95 5
 printf '[{"benchmark":"x.G1","mode":"avgt","primaryMetric":{"score":50.0,"scoreUnit":"ms/op"}}]' > "$root/jmh.json"
@@ -134,7 +134,7 @@ check "regen --all with every report" "$(run regen --all)" 0
 check "coverage rose" "$(printf 'module\tlines %%\tbranches %%\njq-cli\t90\t100\nquery-core\t95\t90\n' | cmp - "$root/ratchet/coverage.tsv"; echo $?)" 0
 check "mutation written" "$(printf 'module\tsurviving mutants\tgenerated mutants\nquery-core\t5\t100\n' | cmp - "$root/ratchet/mutation.tsv"; echo $?)" 0
 check "empty tolerance overwritten" "$(printf 'scenario\tmachine\tscore\tunit\ttolerance%%\nG1\tm1\t50\tms/op\t\n' | cmp - "$root/ratchet/bench.tsv"; echo $?)" 0
-printf 'GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED\nquery-core,p,A,0,0,10,90,9,91\n' > "$root/oracle/target/site/jacoco-aggregate/jacoco.csv"
+printf 'GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED\noracle/query-core,p,A,0,0,10,90,9,91\n' > "$root/oracle/target/site/jacoco-aggregate/jacoco.csv"
 check "regen --all refuses a coverage drop" "$(run regen --all)" 1
 
 echo "usage error"

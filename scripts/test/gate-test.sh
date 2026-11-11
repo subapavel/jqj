@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# Script test for scripts/gate-ticket.sh and scripts/gate-spec.sh (#25, ADR-0014). A throwaway repo holds copies of
+# the gate scripts and ratchet.java, a stub mvnw that logs its arguments, stub check scripts, and a stub java for
+# the JMH jar. STUB_FAIL=<word>:<rc> makes the stub mvnw or check script whose arguments contain <word> exit <rc>.
+set -uo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+fails=0
+check() { if [ "$2" != "$3" ]; then echo "FAIL $1: expected '$3' got '$2'"; fails=1; else echo "ok   $1"; fi; }
+has() { if grep -q -- "$2" "$3"; then echo "ok   $1"; else echo "FAIL $1: no '$2' in $3:"; sed 's/^/     /' "$3"; fails=1; fi; }
+hasnt() { if grep -q -- "$2" "$3"; then echo "FAIL $1: '$2' found in $3"; fails=1; else echo "ok   $1"; fi; }
+
+repo=$tmp/repo
+mkdir -p "$repo/scripts" "$repo/quality" "$repo/ratchet" "$repo/stubbin"
+g() { git -C "$repo" "$@"; }
+cp "$here/../gate-ticket.sh" "$here/../gate-spec.sh" "$here/../ratchet.java" "$repo/scripts/" 2>/dev/null
+printf 'module\tclass\tlines\tbranches\tmutation\nquery-core\tC\t90\t80\t80\njq-core\tC\t90\t80\t80\njq-cli\t-\t80\t-\t-\n' > "$repo/quality/floors.tsv"
+
+stub='#!/usr/bin/env bash
+echo "$(basename "$0") $*" >> "$STUB_CALLS"
+case "${STUB_FAIL:-}" in
+  "") ;;
+  *) w=${STUB_FAIL%%:*}; rc=${STUB_FAIL##*:}; case "$(basename "$0") $*" in *"$w"*) exit "$rc" ;; esac ;;
+esac
+exit 0'
+printf '%s\n' "$stub" > "$repo/mvnw"
+for s in check-lf-checkout check-trailers check-core-neutral oracle-record; do printf '%s\n' "$stub" > "$repo/scripts/$s.sh"; done
+# stub java: the JMH jar writes its result file, everything else runs the real java
+cat > "$repo/stubbin/java" <<JAVA
+#!/usr/bin/env bash
+if [ "\$1" = "-jar" ]; then
+  echo "java \$*" >> "\$STUB_CALLS"
+  case "\${STUB_FAIL:-}" in jmh:*) exit "\${STUB_FAIL##*:}" ;; esac
+  while [ \$# -gt 0 ]; do [ "\$1" = "-rff" ] && echo '[]' > "\$2"; shift; done
+  exit 0
+fi
+exec $(command -v java) "\$@"
+JAVA
+chmod +x "$repo/mvnw" "$repo/scripts/"*.sh "$repo/stubbin/java"
+
+g init -q -b main
+g config user.email a@b.c
+g config user.name t
+g add -A
+g commit -q -m base
+g branch base
+mkdir -p "$repo/query-core/src/main/java/io/github/subapavel/jqj/query" "$repo/jq-core/src/main/java/io/github/subapavel/jqj/core"
+echo 'class Foo {}' > "$repo/query-core/src/main/java/io/github/subapavel/jqj/query/Foo.java"
+echo 'class Bar {}' > "$repo/jq-core/src/main/java/io/github/subapavel/jqj/core/Bar.java"
+echo 'module x {}' > "$repo/query-core/src/main/java/module-info.java"
+echo 'x' > "$repo/query-core/README.md"
+g add -A
+g commit -q -m change
+
+export STUB_CALLS=$tmp/calls
+export PATH=$repo/stubbin:$PATH
+export RATCHET_MACHINE=m1
+unset STUB_FAIL
+
+ticket() { : > "$STUB_CALLS"; rm -rf "$repo/.logs"; (cd "$repo" && scripts/gate-ticket.sh "$@" > "$tmp/out" 2>&1; echo $?); }
+
+check "ticket: usage" "$(ticket 25)" 2
+check "ticket: green" "$(ticket 25 query-core,jq-core base)" 0
+has "step 1 is the whole reactor with -Pbench" "mvnw -B -Pbench verify" "$STUB_CALLS"
+has "step 2 PIT on changed query-core class" "io.github.subapavel.jqj.query.Foo\*" "$STUB_CALLS"
+has "step 2 PIT on changed jq-core class" "io.github.subapavel.jqj.core.Bar\*" "$STUB_CALLS"
+hasnt "module-info is not a class to mutate" "module-info" "$STUB_CALLS"
+has "PIT runs for the named modules with -am" "-pl query-core,jq-core -am" "$STUB_CALLS"
+has "step 3 LF check" "check-lf-checkout.sh" "$STUB_CALLS"
+has "step 3 trailer check on ref..HEAD" "check-trailers.sh base..HEAD" "$STUB_CALLS"
+has "step 3 word check" "check-core-neutral.sh" "$STUB_CALLS"
+check "logs of step 1 and 2" "$(ls "$repo/.logs" | grep -c '^25-\(verify\|pit\)\.log$')" 2
+has "step timings recorded" "^verify	" "$repo/.logs/25-steps.tsv"
+has "pit timing recorded" "^pit	" "$repo/.logs/25-steps.tsv"
+order=$(grep -o 'mvnw -B -Pbench verify\|test org.pitest\|check-lf\|check-trailers\|check-core\|java ' "$STUB_CALLS" | tr '\n' ' ')
+check "steps in ADR order" "$order" "mvnw -B -Pbench verify test org.pitest check-lf check-trailers check-core "
+
+: > "$STUB_CALLS"; rm -rf "$repo/.logs"
+(cd "$repo" && ORACLE_REQUIRE=/x/req.txt scripts/gate-ticket.sh 25 query-core base > "$tmp/out" 2>&1)
+has "required case file passed to the oracle" "-Doracle.require=/x/req.txt" "$STUB_CALLS"
+
+export STUB_FAIL=verify:7
+check "ticket: step 1 fails, its exit code" "$(ticket 25 query-core base)" 7
+hasnt "nothing after the failing step 1" "pitest" "$STUB_CALLS"
+has "failing step named" "verify" "$tmp/out"
+
+export STUB_FAIL=pitest:9
+check "ticket: step 2 fails, its exit code" "$(ticket 25 query-core base)" 9
+hasnt "step 3 not reached after step 2" "check-lf" "$STUB_CALLS"
+
+export STUB_FAIL=check-trailers:4
+check "ticket: step 3 trailer check fails" "$(ticket 25 query-core base)" 4
+hasnt "ratchet not reached" "ratchet.java check" "$tmp/out"
+unset STUB_FAIL
+
+# no changed class: PIT is skipped, the rest runs
+check "ticket: nothing to mutate" "$(ticket 25 query-core HEAD)" 0
+hasnt "PIT skipped without changed classes" "pitest" "$STUB_CALLS"
+has "skip announced" "no changed class" "$tmp/out"
+
+# step 4: the ratchet decides
+printf 'jq.test#a\tinterp\n' > "$repo/ratchet/oracle-listed.tmp"
+mkdir -p "$repo/ratchet/oracle"
+printf 'jq.test#a\tinterp\n' > "$repo/ratchet/oracle/jqtest.txt"
+check "ticket: step 4 ratchet fails" "$(ticket 25 query-core base)" 1
+has "ratchet failure shown" "jq.test#a" "$tmp/out"
+rm "$repo/ratchet/oracle/jqtest.txt" "$repo/ratchet/oracle-listed.tmp"
+
+# --- spec gate ---
+spec() { : > "$STUB_CALLS"; (cd "$repo" && scripts/gate-spec.sh "$@" > "$tmp/out" 2>&1; echo $?); }
+check "spec: usage" "$(spec)" 2
+
+rm -rf "$repo/.logs"; mkdir -p "$repo/.logs"
+printf 'verify\t50000\t0\npit\t200000\t0\nlf\t100\t0\n' > "$repo/.logs/31-steps.tsv"
+printf 'verify\t70000\t0\npit\t90000\t0\n' > "$repo/.logs/32-steps.tsv"
+mkdir -p "$repo/bench/jmh/target"
+# every report regen --all needs
+mkdir -p "$repo/oracle/target/site/jacoco-aggregate" "$repo/jq-cli/target/site/jacoco" "$repo/query-core/target/pit-reports" "$repo/jq-core/target/pit-reports"
+hdr=GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED
+printf "%s\noracle/query-core,p,A,0,0,5,95,5,95\noracle/jq-core,p,B,0,0,5,95,5,95\n" "$hdr" > "$repo/oracle/target/site/jacoco-aggregate/jacoco.csv"
+printf "%s\nj,p,C,0,0,0,0,5,95\n" "$hdr" > "$repo/jq-cli/target/site/jacoco/jacoco.csv"
+for m in query-core jq-core; do echo "<mutations><mutation status='KILLED'/></mutations>" > "$repo/$m/target/pit-reports/mutations.xml"; done
+check "spec: green" "$(spec 22)" 0
+has "slowest step 1" "slowest step 1 (verify): 32 70.0 s" "$tmp/out"
+has "step 1 over its target" "over target 60 s" "$tmp/out"
+has "slowest step 2" "slowest step 2 (pit): 31 200.0 s" "$tmp/out"
+has "step 2 over its target" "over target 180 s" "$tmp/out"
+has "spec step 1 clean verify" "mvnw -B clean verify -Pbench" "$STUB_CALLS"
+has "spec step 2 PIT on whole class-C modules" "-pl query-core,jq-core -am" "$STUB_CALLS"
+has "spec step 3 JMH" "java -jar bench/jmh/target/benchmarks.jar -prof gc -rf json" "$STUB_CALLS"
+has "spec step 4 regen --all" "regen: ok" "$tmp/out"
+has "spec logs" "regen" "$(ls "$repo/.logs" | tr '\n' ' ' > "$tmp/ls"; echo "$tmp/ls")"
+
+printf 'verify\t50000\t0\n' > "$repo/.logs/31-steps.tsv"; rm "$repo/.logs/32-steps.tsv"
+spec 22 > /dev/null
+hasnt "no 'over target' within the target" "over target" "$tmp/out"
+
+export STUB_FAIL=clean:5
+check "spec: step 1 fails, its exit code" "$(spec 22)" 5
+hasnt "spec stops after step 1" "pitest" "$STUB_CALLS"
+export STUB_FAIL=jmh:6
+check "spec: JMH fails, its exit code" "$(spec 22)" 6
+hasnt "regen not reached after JMH" "regen" "$tmp/out"
+unset STUB_FAIL
+
+rm -rf "$repo/oracle/target" "$repo/jq-cli/target"
+# regen --all refuses without reports: the gate fails with ratchet's code
+rm -rf "$repo/.logs"; mkdir -p "$repo/.logs"
+check "spec: regen --all has no coverage report" "$(spec 22)" 1
+has "regen failure shown" "no JaCoCo report" "$tmp/out"
+
+exit $fails

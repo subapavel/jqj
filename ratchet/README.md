@@ -31,3 +31,24 @@ tolerance; lowering one takes a finding.
 - `java scripts/ratchet.java regen --oracles` (after every merge): the oracle pass lists only.
 - `java scripts/ratchet.java regen --all` (spec gate): requires every report, refuses any drop,
   writes the files, prints the diff.
+
+## Inputs of `scripts/ratchet.java`
+
+`RATCHET_ROOT` (default: the current directory), `RATCHET_JMH` (default
+`bench/jmh/target/jmh-result.json`), `RATCHET_MACHINE` (label of the `bench.tsv` lines).
+
+- **Oracle reports** `oracle/target/oracle-reports/<oracle>-<suffix>.tsv`: `id`, verdict (`PASS`,
+  `FAIL`, `STALE`, `CRASH`), detail, then the extra columns. The suffix is the pass list's `backend`
+  (jqtest, differential) or `mode` (compile) column; `backend` and `json` ignore it. Extras: `def` is
+  column 4 (differential, compile, backend), `label` column 4 and `def` column 5 (json). A listed id
+  whose verdict is not `PASS`, whose extra column changed, or that is missing, fails.
+- **Coverage**: JaCoCo `jacoco.csv`; class-C modules from `oracle/target/site/jacoco-aggregate/` rows
+  whose `GROUP` is the module, any other module from `<module>/target/site/jacoco/`. A module without
+  a report prints `NOT_RUN`.
+- **Mutation**: `<module>/target/pit-reports/mutations.xml`. Killed is `KILLED`, `TIMED_OUT` or
+  `MEMORY_ERROR`; everything else counts as surviving. `java scripts/ratchet.java floor-mutation
+  <module>...` checks only the floor (ticket gate step 2).
+- **Bench**: the JMH json result, one line per benchmark (`Class.method` without the class, plus
+  `/param=value`). A `bench.tsv` line with an empty `tolerance%` is skipped by `check` and
+  overwritten by `regen --all`; otherwise the baseline moves only on a gain beyond the tolerance and
+  a loss beyond it is refused.
