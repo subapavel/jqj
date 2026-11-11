@@ -63,6 +63,15 @@ jobs:
           sudo install -m 755 jq-ref /usr/local/bin/jq-ref
           rm jq-ref
           jq-ref --version
+      # Needs git, Java 25 (ratchet.java, javac), jq-ref and the stub-driven gate scripts; all are provided above.
+      - name: Script tests (every scripts/test/*-test.sh)
+        run: |
+          set -e
+          bash scripts/check-script-tests.sh
+          for t in scripts/test/*-test.sh; do
+            echo "== $t"
+            bash "$t"
+          done
       - name: Verify (all modules, benchmarks included)
         run: ./mvnw -B -Pbench verify
       - name: LF check (the word check runs in verify)
