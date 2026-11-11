@@ -89,7 +89,8 @@ public final class Printer {
       int tag = Tape.tag(entry);
       if (tag == Tape.ARRAY || tag == Tape.OBJECT) {
         put(tag == Tape.ARRAY ? '[' : '{');
-        if (sp + 2 > stack.length) {
+        // Two slots a level, so sp and the length stay even.
+        if (sp == stack.length) {
           stack = Arrays.copyOf(stack, stack.length << 1);
         }
         stack[sp++] = at;
