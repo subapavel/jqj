@@ -3,6 +3,9 @@ package io.github.subapavel.jqj.oracle.gen;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import io.github.subapavel.jqj.oracle.diff.CaseFormat;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -26,17 +29,19 @@ import java.util.Set;
  *   <tr><td>seeds</td><td>[0, 2100), 300 per form</td></tr>
  *   <tr><td>size</td><td>budget class 50 % ≤ 128 B, 35 % ≤ 512 B, 15 % ≤ 4096 B, BOM and whitespace included; a
  *       container stops at the budget, and so does a string</td></tr>
- *   <tr><td>depth</td><td>tree ≤ 8; 2 % of documents are a spine: one array/object chain of depth 9–200 (one
- *       element per level, object keys from the pool) around a small tree of depth ≤ 2. A spine takes the 4096 B
- *       class, and its chain stops early when the next level would not leave room for the tree</td></tr>
+ *   <tr><td>depth</td><td>tree ≤ 8; 2 % of documents are a spine of depth 9–200: one array/object chain of 9–198
+ *       levels (one element per level, object keys from the pool) around a small tree of depth ≤ 2. A spine takes
+ *       the 4096 B class, and its chain stops early when the next level would not leave room for the tree</td></tr>
  *   <tr><td>top-level kind</td><td>object 35, array 30, number 15, string 10, true/false/null 10</td></tr>
  *   <tr><td>inner kind</td><td>number 28, string 28, array 15, object 15, null 6, true 4, false 4; the container
  *       weights × (8 − d) / 8 at tree depth d</td></tr>
  *   <tr><td>container length</td><td>0 with 20 %, else 1 + a geometric count of mean 3, ≤ 32</td></tr>
  *   <tr><td>keys</td><td>60 % from the pool {@code ""} {@code a} {@code b} {@code aa} {@code A} {@code Z}, é raw,
- *       é as the escape <code>&#92;u00e9</code>, U+FF61 and U+1F600 raw (their UTF-16 and UTF-8 orders differ); 40 %
- *       random strings. 15 % of non-empty objects repeat one of their keys as a last member, half of those in
- *       another spelling (a leading ASCII character as <code>&#92;u00XX</code>)</td></tr>
+ *       é as the six bytes <code>&#92;u00e9</code>, U+FF61 and U+1F600 raw (their UTF-16 and UTF-8 orders differ);
+ *       40 % random strings. 15 % of non-empty objects repeat one of their keys as a last member, half of those in
+ *       another spelling: one raw character drawn from the key as a <code>&#92;u</code> escape (a surrogate pair
+ *       above U+FFFF) in mixed-case hex, {@code "a"} then <code>"&#92;u0061"</code>; a key without a raw character
+ *       repeats as it is</td></tr>
  *   <tr><td>strings</td><td>0–64 characters, a geometric count of mean 6. Per character: printable ASCII 60;
  *       {@code \" \\ \/ \b \f \n \r \t} 10; <code>&#92;uXXXX</code> 8 (hex digits in random case; of these 25 % a
  *       surrogate pair, 5 % a lone low surrogate, 35 % U+0000–U+001F, 35 % another BMP character); raw DEL 2;
@@ -62,6 +67,10 @@ import java.util.Set;
  * {@code 1e2147483648} and the 11-digit exponents {@code 1e10000000000}, {@code 1e-10000000000},
  * {@code 1e99999999999} and {@code 1E+12345678901} all gave rc 0, so every one of them stays in the table and none
  * was removed.
+ *
+ * <p>A seed that later hits a deviation keeps its block and gains {@code deviation} and {@code jqj-*} lines (#28
+ * answer (d)); the freeze check ignores them. {@code DiffCase} does not read {@code jqj-*} keys yet: it gains them
+ * with the first deviation seed.
  */
 public final class ValuesV1 {
 
@@ -124,6 +133,9 @@ public final class ValuesV1 {
           bytes("｡"),
           bytes("😀"));
 
+  /** The index of {@code \}{@code u00e9} in {@link #POOL}. */
+  private static final int ESCAPED_POOL_KEY = 7;
+
   private static final String[] ESCAPES = {"\\\"", "\\\\", "\\/", "\\b", "\\f", "\\n", "\\r", "\\t"};
 
   /** The classes a document drew, for the test that every class occurs. */
@@ -145,6 +157,7 @@ public final class ValuesV1 {
     TOP_LITERAL,
     EMPTY_CONTAINER,
     KEY_POOL,
+    KEY_POOL_ESCAPED,
     KEY_RANDOM,
     REPEATED_KEY,
     RESPELLED_KEY,
@@ -375,9 +388,10 @@ public final class ValuesV1 {
         Mark m = new Mark();
         mark(Feature.REPEATED_KEY);
         byte[] key = keys.get(r.below(keys.size()));
-        if (r.below(2) == 0 && key.length > 0 && key[0] >= 0x20 && key[0] < 0x7f && key[0] != '\\') {
+        byte[] other = r.below(2) == 0 ? respell(key) : null;
+        if (other != null) {
           mark(Feature.RESPELLED_KEY);
-          key = respell(key);
+          key = other;
         }
         separator();
         indent(level + 1);
@@ -415,7 +429,7 @@ public final class ValuesV1 {
 
     /** A one-element chain of 9–200 levels; each level an array or an object with a pool key. */
     private void spine(int reserve) {
-      int levels = r.between(9, 200);
+      int levels = r.between(9, 198);
       List<Boolean> objects = new ArrayList<>();
       int closing = reserve;
       for (int level = 0; level < levels; level++) {
@@ -477,7 +491,9 @@ public final class ValuesV1 {
     private byte[] key() {
       if (r.below(10) < 6) {
         mark(Feature.KEY_POOL);
-        return POOL.get(r.below(POOL.size()));
+        int i = r.below(POOL.size());
+        if (i == ESCAPED_POOL_KEY) mark(Feature.KEY_POOL_ESCAPED);
+        return POOL.get(i);
       }
       mark(Feature.KEY_RANDOM);
       int start = size;
@@ -487,15 +503,60 @@ public final class ValuesV1 {
       return key;
     }
 
-    /** The key with its first character, printable ASCII, written as {@code \}{@code u00XX}. */
+    /**
+     * The key with one raw character, drawn from its raw characters, written as a {@code \}{@code u} escape (a
+     * surrogate pair above U+FFFF) in mixed-case hex; null when the key has no raw character (empty, or only escapes
+     * and invalid bytes).
+     */
     private byte[] respell(byte[] key) {
-      String hex = hex(key[0] & 0xff);
-      byte[] out = new byte[key.length + 5];
-      out[0] = '\\';
-      out[1] = 'u';
-      for (int k = 0; k < 4; k++) out[2 + k] = (byte) hex.charAt(k);
-      System.arraycopy(key, 1, out, 6, key.length - 1);
+      List<int[]> raw = new ArrayList<>(); // {start, end, code point}
+      for (int i = 0; i < key.length; ) {
+        int b = key[i] & 0xff;
+        int end;
+        if (b == '\\') {
+          end = i + (key[i + 1] == 'u' ? 6 : 2);
+        } else if (b < 0x80) {
+          end = i + 1;
+          raw.add(new int[] {i, end, b});
+        } else {
+          int n = b >= 0xf0 ? 4 : b >= 0xe0 ? 3 : 2;
+          String one = i + n <= key.length ? strictUtf8(key, i, n) : null;
+          end = one == null ? i + 1 : i + n;
+          if (one != null) raw.add(new int[] {i, end, one.codePointAt(0)});
+        }
+        i = end;
+      }
+      if (raw.isEmpty()) return null;
+      int[] u = raw.get(r.below(raw.size()));
+      int start = size;
+      if (u[2] < 0x10000) {
+        escapeUnit(u[2]);
+      } else {
+        escapeUnit(Character.highSurrogate(u[2]));
+        escapeUnit(Character.lowSurrogate(u[2]));
+      }
+      byte[] escape = Arrays.copyOfRange(buf, start, size);
+      size = start;
+      byte[] out = new byte[key.length - (u[1] - u[0]) + escape.length];
+      System.arraycopy(key, 0, out, 0, u[0]);
+      System.arraycopy(escape, 0, out, u[0], escape.length);
+      System.arraycopy(key, u[1], out, u[0] + escape.length, key.length - u[1]);
       return out;
+    }
+
+    /** The one character of {@code n} bytes at {@code from} if they are valid UTF-8, else null. */
+    private static String strictUtf8(byte[] bytes, int from, int n) {
+      try {
+        String s =
+            UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .decode(ByteBuffer.wrap(bytes, from, n))
+                .toString();
+        return s.codePointCount(0, s.length()) == 1 ? s : null;
+      } catch (CharacterCodingException e) {
+        return null;
+      }
     }
 
     private void string(int reserve) {

@@ -92,7 +92,7 @@ class ValuesV1Test {
       int depth = Scan.of(g.stdin()).maxDepth;
       if (g.features().contains(ValuesV1.Feature.SPINE)) {
         spines++;
-        assertThat(depth).as("spine seed %d", g.seed()).isBetween(9, 202);
+        assertThat(depth).as("spine seed %d", g.seed()).isBetween(9, 200);
         deepest = Math.max(deepest, depth);
       } else {
         assertThat(depth).as("tree seed %d", g.seed()).isLessThanOrEqualTo(8);
@@ -140,6 +140,39 @@ class ValuesV1Test {
       if (n < 10) rare.put(f, n);
     });
     assertThat(rare).as("classes in fewer than 10 documents").isEmpty();
+  }
+
+  /**
+   * The escaped keys are in the bytes: an escaped pool key is spelled exactly {@code \}{@code u00e9}, and a respelled
+   * duplicate is a later key of the same object that stands for the same characters with more {@code \}{@code u}
+   * escapes.
+   */
+  @Test
+  void escapedKeysAreInTheBytes() {
+    for (ValuesV1.Generated g : generated) {
+      Scan s = Scan.of(g.stdin());
+      if (g.features().contains(ValuesV1.Feature.KEY_POOL_ESCAPED)) {
+        assertThat(s.objectKeys.stream().flatMap(List::stream)).as("seed %d", g.seed()).contains("\\u00e9");
+      }
+      if (g.features().contains(ValuesV1.Feature.RESPELLED_KEY)) {
+        assertThat(s.objectKeys.stream().anyMatch(ValuesV1Test::hasEscapedDuplicate)).as("seed %d", g.seed()).isTrue();
+      }
+    }
+  }
+
+  private static boolean hasEscapedDuplicate(List<String> keys) {
+    for (int j = 1; j < keys.size(); j++) {
+      for (int i = 0; i < j; i++) {
+        String a = keys.get(i);
+        String b = keys.get(j);
+        if (!a.equals(b) && Scan.decode(a).equals(Scan.decode(b)) && escapes(b) > escapes(a)) return true;
+      }
+    }
+    return false;
+  }
+
+  private static int escapes(String spelling) {
+    return spelling.split("\\\\u", -1).length - 1;
   }
 
   /** The bytes behind three features, read from the documents rather than from the generator's word. */
