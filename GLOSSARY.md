@@ -273,6 +273,21 @@ A body that ends with a `JqCompileException` (a `JqSyntaxException` for malforme
 message starts with `jqj stub: `, until the spec that owns it. The runners score its cases FAIL by
 that prefix; no test asserts the text after it.
 
+**Generator**:
+A frozen function from a seed to one oracle case, named `<name>-v<N>`; changing any byte it
+produces makes a new name.
+_Avoid_: fuzzer
+
+**Seed**:
+The number that alone decides a generated case; the last part of its id.
+
+**Form**:
+One of a generator's fixed command lines, chosen by the seed.
+_Avoid_: mode (that is a compile mode)
+
+**Dropped seed**:
+A seed left out because jq-ref gave rc 3 or timed out on it, listed in the case file's header.
+
 **Unlimited**:
 The value of a budget that never runs out: its largest value.
 _Avoid_: none, infinite, 0, −1

@@ -1,0 +1,45 @@
+package io.github.subapavel.jqj.oracle.diff;
+
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Set;
+
+/** Where the differential corpus and the ratchet are, found from the class path so any working directory works. */
+final class Corpus {
+
+  /** The one backend so far: the report's file suffix and the pass list's backend column (ADR-0020). */
+  static final String BACKEND = "interpreter";
+
+  private Corpus() {}
+
+  /** {@code oracle/target/test-classes/diff}: the copied {@code oracle/src/test/resources/diff}. */
+  static Path casesDir() {
+    URL url = Corpus.class.getResource("/diff");
+    try {
+      return Path.of(url.toURI());
+    } catch (URISyntaxException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  /** The repository root: four levels above {@code oracle/target/test-classes/diff}. */
+  static Path root() {
+    return casesDir().getParent().getParent().getParent().getParent();
+  }
+
+  /** The ratcheted ids and those the ticket names with {@code -Doracle.require=<file>}. */
+  static Set<String> required() {
+    return DiffReport.required(root().resolve("ratchet/oracle/differential.txt"), System.getProperty("oracle.require"));
+  }
+
+  /**
+   * Writes rows into the report. Surefire sets {@code oracle.reports}; PIT does not, so a mutant's verdicts are never
+   * written.
+   */
+  static void report(List<DiffReport.Row> rows) {
+    String dir = System.getProperty("oracle.reports");
+    if (dir != null) DiffReport.merge(Path.of(dir).resolve("differential-" + BACKEND + ".tsv"), rows);
+  }
+}
