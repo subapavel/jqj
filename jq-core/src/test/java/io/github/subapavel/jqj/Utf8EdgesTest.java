@@ -71,19 +71,6 @@ class Utf8EdgesTest {
               assertThat(e.line()).as("line").isEqualTo(1);
               assertThat(e.column()).as("column").isEqualTo(0);
             });
-    // A partial BOM cut by EOF: jq-ref 1.8.2, observed 2026-11-11: printf '\xef' and printf '\xef\xbb' | jq-ref -c .
-    // -> rc 0, no output, so zero documents, which read reports as a JqSyntaxException (ADR-0026). jq-ref gives no
-    // offset, line or column for it, so only the type is pinned. Each is read alone and from a slice two bytes into
-    // its array, where the bytes left count from the slice's start, not the array's.
-    for (String hex : new String[] {"ef", "ef bb"}) {
-      assertThatExceptionOfType(JqSyntaxException.class)
-          .as("a partial BOM %s alone", hex)
-          .isThrownBy(() -> newWorkspace().read(MemorySegment.ofArray(bytes(hex, ""))));
-      MemorySegment partial = MemorySegment.ofArray(bytes("78 78 " + hex, "")).asSlice(2);
-      assertThatExceptionOfType(JqSyntaxException.class)
-          .as("a partial BOM %s in a slice at 2", hex)
-          .isThrownBy(() -> newWorkspace().read(partial));
-    }
     assertThatExceptionOfType(JqSyntaxException.class)
         .as("BOM LF [1, LF 2")
         .isThrownBy(() -> newWorkspace().read(MemorySegment.ofArray(bytes("ef bb bf", "\n[1,\n2"))))
@@ -92,6 +79,24 @@ class Utf8EdgesTest {
               assertThat(e.line()).as("line").isEqualTo(3);
               assertThat(e.column()).as("column").isEqualTo(1);
             });
+  }
+
+  @Test
+  void aPartialBomCutByEofEndsInTheMalformedInputStub() {
+    // jq-ref 1.8.2, observed 2026-11-11: printf '\xef' and printf '\xef\xbb' | jq-ref -c . -> rc 0, no output.
+    // jqj does not do that yet: the read ends in the malformed-input Stub (ADR-0024), which spec 5 rewrites. Each is
+    // read alone and from a slice two bytes into its array, where the bytes left count from the slice's start.
+    for (String hex : new String[] {"ef", "ef bb"}) {
+      assertThatExceptionOfType(JqSyntaxException.class)
+          .as("a partial BOM %s alone", hex)
+          .isThrownBy(() -> newWorkspace().read(MemorySegment.ofArray(bytes(hex, ""))))
+          .withMessageStartingWith(MARK);
+      MemorySegment partial = MemorySegment.ofArray(bytes("78 78 " + hex, "")).asSlice(2);
+      assertThatExceptionOfType(JqSyntaxException.class)
+          .as("a partial BOM %s in a slice at 2", hex)
+          .isThrownBy(() -> newWorkspace().read(partial))
+          .withMessageStartingWith(MARK);
+    }
   }
 
   @Test
