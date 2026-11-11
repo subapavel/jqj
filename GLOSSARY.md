@@ -298,6 +298,11 @@ The program embedding the engine. It supplies the clock, the time zone, the envi
 module loader for `import` and the debug sink; extra inputs come per run.
 _Avoid_: runtime, container, platform
 
+**Executable**:
+What a backend makes of one filter's IR, and what a compiled filter runs: in milestone 1, the
+interpreter tree.
+_Avoid_: program, plan
+
 **Engine**:
 The immutable, thread-safe object a host builds once with its limits and host; it compiles filters
 and reads documents, and keeps no filter.

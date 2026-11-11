@@ -1,6 +1,6 @@
 # JSON reader and writer: jq's grammar, jq's messages by replay, a byte[] loop
 
-Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits); amended by F-22 (depth counting)
+Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits); amended by F-22 (depth counting); F-24 open (whole-container copy and whitespace)
 
 jq-ref 1.8.2 decides what the reader accepts and what it prints. The adviser ran every rule below
 on it (issue #11 round 1, commands K1–K8) and read jq-1.8.2's `jv_parse.c`, `jv_unicode.c`,
