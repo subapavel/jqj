@@ -60,3 +60,9 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#24) `-Xlint:serial` warns on a non-transient interface-typed field (List, JqValue) in an exception; javac 25 does not warn on permits naming non-exported classes.
 - (#24) A null guard placed before a two-sided check needs its null test to set the other argument, or the next dereference hides a deleted guard.
 - (#24) In an API-slice ticket "every body is a Stub" covers behaviour members only; carriers (builders, records, enums, exceptions) get real bodies, as the approved tests decide.
+- (#30) jmh-core 1.37 has no Automatic-Module-Name: `requires jmh.core` trips `-Xlint:requires-automatic`; `@SuppressWarnings("requires-automatic")` on the module declaration clears it under -Werror.
+- (#30) Put JMH's `annotationProcessorPaths` on `default-compile` only; on testCompile `-Xlint:processing` fails (no processor claims JUnit's annotations).
+- (#30) Bench method names are `<gate>_<mode>_<size>`; `ratchet.java` reads `_` as `.` to get ADR-0024's ids. JMH exits 0 when a benchmark throws unless `-foe true`.
+- (#30) `gh api repos/<o>/<r>/issues/<n>` (REST) works from a subagent; `gh issue view` (GraphQL) gets 403.
+- (#26) The oracle module's main tree sees only jq-cli (module-info), its test tree compiles against jq-core: keep API adapters in the test tree.
+- (#26) The worktree guard rejects a Bash call whose text contains `io.github` (e.g. PIT targetClasses): run it from a scratch script.
