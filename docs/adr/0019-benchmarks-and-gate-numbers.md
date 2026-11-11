@@ -83,6 +83,8 @@ the same session, on the same files.
 
 ## Gate check 4
 
+The three numbers were confirmed by the owner after the ADR review (2026-11-11, issue #12).
+
 - **Flat allocation:** G1 at 10 MB allocates at most **1 KiB per operation** more than G1 at 1 KB.
   JMH noise was 238 B against 0.015 B on Spike B's reused tape.
 - **Small heap:** G1, G2 and G6 `-c` at 10 MB complete in a **64 MiB** fork. Reading alone passed at
