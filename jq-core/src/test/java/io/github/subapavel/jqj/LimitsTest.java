@@ -2,7 +2,8 @@ package io.github.subapavel.jqj;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import java.time.Duration;
@@ -69,8 +70,8 @@ class LimitsTest {
     assertThat(largest.stackBytes()).isEqualTo(LARGEST);
 
     Duration longer = LONGEST.plusNanos(1);
-    assertThatThrownBy(() -> new Limits(0, longer, 0, 0, 0, 0, Duration.ZERO, 0)).as("deadline").isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> new Limits(0, Duration.ZERO, 0, 0, 0, 0, longer, 0)).as("regexMatchTime").isInstanceOf(IllegalArgumentException.class);
+    assertThatIllegalArgumentException().as("deadline").isThrownBy(() -> new Limits(0, longer, 0, 0, 0, 0, Duration.ZERO, 0));
+    assertThatIllegalArgumentException().as("regexMatchTime").isThrownBy(() -> new Limits(0, Duration.ZERO, 0, 0, 0, 0, longer, 0));
   }
 
   @Test
@@ -125,9 +126,9 @@ class LimitsTest {
     RandomGenerator random = new SplittableRandom(seed);
     for (int draw = 0; draw < DRAWS; draw++) {
       Invalid invalid = draw(component, random, draw);
-      assertThatThrownBy(() -> with(component, invalid))
+      assertThatExceptionOfType(invalid.rejection())
           .as("%s = %s (seed %d, draw %d)", component.accessor, invalid.value(), seed, draw)
-          .isInstanceOf(invalid.rejection());
+          .isThrownBy(() -> with(component, invalid));
     }
   }
 

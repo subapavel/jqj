@@ -1,6 +1,8 @@
 package io.github.subapavel.jqj;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
@@ -54,15 +56,15 @@ class ExceptionsTest {
       assertThat(termination.cause()).isEqualTo(cause);
       assertThat(termination.budget()).isEqualTo(budget);
     } else {
-      assertThatThrownBy(() -> new JqTermination(cause, 5, JqNull.NULL, budget)).isInstanceOf(IllegalArgumentException.class);
+      assertThatIllegalArgumentException().as("cause %s with budget %s", cause, budget).isThrownBy(() -> new JqTermination(cause, 5, JqNull.NULL, budget));
     }
   }
 
   @Test
   void terminationRejectsNullCauseOrValue() {
     // The approved listing: cause and value are non-null; "no value" is JqNull.NULL (ADR-0024).
-    assertThatThrownBy(() -> new JqTermination(null, 0, JqNull.NULL, null)).as("null cause").isInstanceOf(NullPointerException.class);
-    assertThatThrownBy(() -> new JqTermination(Cause.HALT, 0, null, null)).as("null value").isInstanceOf(NullPointerException.class);
+    assertThatNullPointerException().as("null cause").isThrownBy(() -> new JqTermination(null, 0, JqNull.NULL, null));
+    assertThatNullPointerException().as("null value").isThrownBy(() -> new JqTermination(Cause.HALT, 0, null, null));
   }
 
   @Test
