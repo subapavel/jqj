@@ -2,6 +2,7 @@ package io.github.subapavel.jqj.oracle.jqtest;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import io.github.subapavel.jqj.oracle.diff.DiffReport;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
@@ -12,11 +13,15 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
 /** Where the jqtest oracle's files and its ratchet are (ADR-0020): jq 1.8.2's seven test files. */
 final class JqTestCorpus {
+
+  /** The one backend so far: the report's file suffix. */
+  static final String BACKEND = "interpreter";
 
   private JqTestCorpus() {}
 
@@ -45,6 +50,30 @@ final class JqTestCorpus {
     for (Path f : files()) all.addAll(parse(f));
     all.sort(Comparator.comparing(JqTestCase::id));
     return all;
+  }
+
+  /** The repository root: four levels above {@code oracle/target/test-classes/jqtest}. */
+  private static Path root() {
+    return dir().getParent().getParent().getParent().getParent();
+  }
+
+  /** The ratcheted ids and those the ticket names with {@code -Doracle.require=<file>}. */
+  static Set<String> required() {
+    return DiffReport.required(root().resolve("ratchet/oracle/jqtest.txt"), System.getProperty("oracle.require"));
+  }
+
+  /**
+   * Writes rows into the report. Surefire sets {@code oracle.reports}; PIT does not, so a mutant's verdicts are never
+   * written.
+   */
+  static void report(List<JqTestReport.Row> rows) {
+    String reports = System.getProperty("oracle.reports");
+    if (reports != null) JqTestReport.merge(Path.of(reports).resolve("jqtest-" + BACKEND + ".tsv"), rows);
+  }
+
+  /** The runner over the public API. */
+  static JqTestRunner runner() {
+    return new JqTestRunner(new ApiJqj());
   }
 
   /** The number of cases per file name. */
