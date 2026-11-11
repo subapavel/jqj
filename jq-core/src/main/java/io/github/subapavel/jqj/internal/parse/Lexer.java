@@ -5,7 +5,8 @@ import io.github.subapavel.jqj.internal.Stub;
 /**
  * Splits a filter into tokens. It skips SP, TAB, CR and LF, jq's whitespace (observed on jq-ref 1.8.2, #33). Built
  * (#34 design section 4): {@code .}, a {@code .} followed by {@code [A-Za-z_][A-Za-z0-9_]*} as one FIELD token (so
- * {@code .and} and {@code .__loc__} are plain names), {@code |}, {@code (} and {@code )}. Any other char is a Stub.
+ * {@code .and} and {@code .__loc__} are plain names), {@code |}, {@code (} and {@code )}. {@code ..} and any other
+ * char are Stubs.
  */
 final class Lexer {
   private final String text;
@@ -35,8 +36,11 @@ final class Lexer {
     return new Token(kind, start, p);
   }
 
-  /** After a dot: a name makes it a FIELD and is taken whole; anything else leaves a DOT. */
+  /** After a dot: a name makes it a FIELD and is taken whole; a second dot ({@code ..}) is a Stub; else a DOT. */
   private Token.Kind field() {
+    if (p < text.length() && text.charAt(p) == '.') {
+      throw Stub.unbuilt("the recursion ..");
+    }
     if (p == text.length() || !isNameStart(text.charAt(p))) {
       return Token.Kind.DOT;
     }
