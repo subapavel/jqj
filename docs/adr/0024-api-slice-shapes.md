@@ -30,7 +30,8 @@ spec 1's API slice, `docs/wayfinder/spec-1-grilling.md` round 1 item 1.
   - `G7.engine.1k` (build the engine, compile `.a`, run on 1 KB) and `G7.process.1k` (`jqj -c .a`).
 
   Their differential cases are `bench.G1.1k`, `bench.G6.compact.1k`, `bench.G6.pretty.1k` and
-  `bench.G7.1k`.
+  `bench.G7.1k`. In the case format (`<family>/<name>`, ADR-0020) they are written
+  `bench/G1.1k` and so on, in the family `diff/bench.cases` (#34).
 
 ## Considered options
 
