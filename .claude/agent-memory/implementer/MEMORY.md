@@ -71,3 +71,4 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#28) `\uXXXX` in a Java comment is an active Unicode escape; write `&#92;u`. Design tables pasted through tools may lose escapes: ask when two table cells look identical.
 - (#28) jq-ref 1.8.2 accepts `-Infinity`, `-inf`, `1e2147483648` and 11-digit exponents (rc 0, clamped to ±DBL_MAX or `0E-1147483646`). `/usr/bin/time` is absent; use bash `time`.
 - (#42) The worktree guard refuses a Bash call combining `git` with `;` or `&&`: one git command per call, or a scratch script run with `bash`.
+- (#28) PIT credits a test class's static-field initializer to no test: draw shared fixtures per test (instance field).
