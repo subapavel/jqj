@@ -6,14 +6,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import io.github.subapavel.jqj.internal.Stub;
-import io.github.subapavel.jqj.value.JqNull;
 import java.io.ByteArrayOutputStream;
 import java.lang.foreign.MemorySegment;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
 import java.nio.channels.Channels;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -27,28 +22,27 @@ import org.junit.jupiter.api.TestFactory;
  * with a JqCompileException whose message starts with the Stub mark, and the malformed-input Stub is a
  * JqSyntaxException with the same mark. Only the mark is checked, never the text after it. #32 built
  * {@code Workspace.read}, {@code JsonDoc.root()} and {@code JsonDoc.close()}, so their entries ended with
- * their Stubs (#32 conflict C4).
+ * their Stubs (#32 conflict C4). #33 built {@code compile(".")}, {@code JqFilter.run} and the compact
+ * {@code JsonWriter.sink}, so those entries ended with their Stubs too (#33 design C12): compile stays a Stub
+ * for any other text and the sink for {@code pretty()} on both overloads; {@code CompileTest} and
+ * {@code JsonWriterTest} test what was built.
  */
 class StubTest {
   /** ADR-0024, GLOSSARY "Stub": the mark every Stub message starts with. */
   private static final String MARK = "jqj stub: ";
 
   @TestFactory
-  Stream<DynamicTest> everyStubEndsInAJqCompileException() throws ReflectiveOperationException {
+  Stream<DynamicTest> everyStubEndsInAJqCompileException() {
     JqEngine engine = JqEngine.builder().build();
     Workspace workspace = engine.newWorkspace();
-    JqFilter filter = behindTheStub(JqFilter.class);
 
     Map<String, ThrowingCallable> stubs = new LinkedHashMap<>();
-    stubs.put("JqEngine.compile(String)", () -> engine.compile("."));
+    stubs.put("JqEngine.compile(String) of a construct other than .", () -> engine.compile("1"));
     stubs.put(
-        "JqFilter.run(JqValue, Bindings, JqSink, Workspace)",
-        () -> filter.run(JqNull.NULL, Bindings.builder().build(), v -> true, workspace));
+        "JsonWriter.sink(Workspace, WritableByteChannel, OutputOptions) pretty",
+        () -> JsonWriter.sink(workspace, Channels.newChannel(new ByteArrayOutputStream()), OutputOptions.pretty()));
     stubs.put(
-        "JsonWriter.sink(Workspace, WritableByteChannel, OutputOptions)",
-        () -> JsonWriter.sink(workspace, Channels.newChannel(new ByteArrayOutputStream()), OutputOptions.compact()));
-    stubs.put(
-        "JsonWriter.sink(Workspace, OutputStream, OutputOptions)",
+        "JsonWriter.sink(Workspace, OutputStream, OutputOptions) pretty",
         () -> JsonWriter.sink(workspace, new ByteArrayOutputStream(), OutputOptions.pretty()));
 
     Stream<DynamicTest> mark = Stream.of(dynamicTest("Stub.PREFIX is the mark", () -> assertThat(Stub.PREFIX).isEqualTo(MARK)));
@@ -73,24 +67,5 @@ class StubTest {
     assertThatThrownBy(() -> workspace.read(MemorySegment.ofArray("{\"a\":".getBytes(UTF_8))))
         .isInstanceOf(JqSyntaxException.class)
         .hasMessageStartingWith(MARK);
-  }
-
-  /**
-   * While compile is a Stub no JqFilter can be obtained through the API, so one is made through its
-   * constructor with zero and null arguments.
-   */
-  private static <T> T behindTheStub(Class<T> type) throws ReflectiveOperationException {
-    Constructor<?> constructor =
-        Arrays.stream(type.getDeclaredConstructors())
-            .min(Comparator.comparingInt(Constructor::getParameterCount))
-            .orElseThrow(() -> new AssertionError("no constructor in " + type.getName()));
-    constructor.setAccessible(true);
-    Object[] args = Arrays.stream(constructor.getParameterTypes()).map(StubTest::zero).toArray();
-    return type.cast(constructor.newInstance(args));
-  }
-
-  /** The default value of a parameter type: 0 or false for a primitive, null otherwise. */
-  private static Object zero(Class<?> type) {
-    return Array.get(Array.newInstance(type, 1), 0);
   }
 }
