@@ -1,0 +1,2 @@
+jq.test#1ce903e38afb	interpreter
+man.test#0ba9f00a93da	interpreter
