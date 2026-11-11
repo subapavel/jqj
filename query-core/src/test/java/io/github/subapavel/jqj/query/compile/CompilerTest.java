@@ -178,7 +178,7 @@ class CompilerTest {
 
   @Test
   void filterExceptionPassesThroughPipeUnchanged() {
-    // ADR-0008: a FilterException is every jq error; nothing in a pipe catches it, and it has no stack trace.
+    // ADR-0008: a FilterException is every error a filter raises; nothing in a pipe catches it, and it has no stack trace.
     Object in = new Object();
     Object errorValue = new Object();
     FilterException thrown = new FilterException(errorValue);
