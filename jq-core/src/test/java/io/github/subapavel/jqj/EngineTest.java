@@ -1,7 +1,7 @@
 package io.github.subapavel.jqj;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import io.github.subapavel.jqj.host.Host;
 import org.junit.jupiter.api.Test;
@@ -25,8 +25,8 @@ class EngineTest {
   @Test
   void builderRejectsNullLimitsAndHost() {
     JqEngine.Builder builder = JqEngine.builder();
-    assertThatThrownBy(() -> builder.limits(null)).as("limits(null)").isInstanceOf(NullPointerException.class);
-    assertThatThrownBy(() -> builder.host(null)).as("host(null)").isInstanceOf(NullPointerException.class);
+    assertThatNullPointerException().as("limits(null)").isThrownBy(() -> builder.limits(null));
+    assertThatNullPointerException().as("host(null)").isThrownBy(() -> builder.host(null));
     // Witness: the same builder takes non-null values, so the rejections above are the nulls'.
     assertThat(builder.limits(Limits.embedded()).host(Host.sandboxed()).build()).isNotNull();
   }
