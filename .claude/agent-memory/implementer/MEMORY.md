@@ -76,3 +76,6 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#32) PIT (junit5 plugin 1.2.3) credits a dynamic test only for lines run inside it; setup in a @TestFactory body shows its mutants as surviving.
 - (#32) An accessor that calls host code (forEach) must re-check staleness after each call: the host may read into the same Workspace inside it.
 - (#32) Error positions tested only at base 0 hide a base bug: always add a slice case at a non-zero base.
+- (#33) Gate jq-cli out of the PIT module list: PIT runs its module-path test on the class path and fails; the ratchet still checks jq-cli's 80 % line floor.
+- (#33) A mutant on a position (BOM skip, token start, `Source`) is not equivalent: kill it through the seam's offset/line/column or the IR node's `source()`; a slice at a non-zero base kills `end - p` → `end + p`.
+- (#33) Pin line and column of a read error only where jq-ref gives one (grilling item 7); a partial or bare BOM is rc 0 in jq-ref.
