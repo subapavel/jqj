@@ -53,7 +53,8 @@ A value that is a position in a document. It is valid only while its document is
 _Avoid_: reference, pointer, lazy value
 
 **Stale view**:
-A view whose document has been replaced by a later read. Using it is an error, never a wrong value.
+A view whose document was closed or replaced by a later read, a failed read included. Using it is
+an error (`STALE_VIEW`), never a wrong value.
 _Avoid_: dangling view, expired value
 
 **Built value**:

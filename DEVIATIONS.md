@@ -76,9 +76,9 @@ and pins it with oracle cases.
 
 jqj raises a jq error beyond these limits:
 - 2^31−3 bytes per document (F-12);
-- 256 MiB per string;
-- 16 MiB per number literal (jq allows up to 999 999 999 digits);
-- 2^28 entries per container.
+- 2^28−1 bytes per string, quotes included (F-21);
+- 2^24−1 bytes per number literal (jq allows up to 999 999 999 digits);
+- 2^28−1 entries per container.
 
 jq's limits are higher and of another kind: an array index up to 2^29−1 ("Array index too large"),
 strings under 2 GiB, tokens up to 1 GiB, literals up to 999 999 999 characters, and no
