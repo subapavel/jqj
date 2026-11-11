@@ -21,3 +21,4 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - `gh issue view` fails (GraphQL blocked); use `gh api repos/<owner>/<repo>/issues/N` and
   `/comments`. The approved design is in the ticket comments, and it can sanction choices that
   look like standards deviations.
+- (#33) Before prescribing a position assert, check it is jq-ref's (grilling item 7); a channel target has no flush, so "never flushed" on it is vacuous.
