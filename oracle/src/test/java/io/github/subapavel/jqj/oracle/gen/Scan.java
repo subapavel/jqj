@@ -21,6 +21,8 @@ final class Scan {
   int maxDepth;
   /** Every token outside a string that is no punctuation: numbers, lenient spellings and literals. */
   final List<String> tokens = new ArrayList<>();
+  /** The key spellings of each object, between the quotes, one byte per char (ISO-8859-1). */
+  final List<List<String>> objectKeys = new ArrayList<>();
 
   private Scan(byte[] b) {
     this.b = b;
@@ -41,6 +43,51 @@ final class Scan {
   /** True for a bare token that is neither a literal nor a strict number. */
   static boolean lenient(String token) {
     return !token.equals("true") && !token.equals("false") && !token.equals("null") && !strict(token);
+  }
+
+  /**
+   * What a key spelling stands for, as UTF-16 units: an escape gives its unit, a valid raw UTF-8 sequence its
+   * character's units, an invalid raw byte {@code -1 - byte}. Two spellings of one key give the same list.
+   */
+  static List<Integer> decode(String spelling) {
+    byte[] s = spelling.getBytes(StandardCharsets.ISO_8859_1);
+    List<Integer> out = new ArrayList<>();
+    for (int k = 0; k < s.length; ) {
+      int c = s[k] & 0xff;
+      if (c == '\\') {
+        char e = (char) s[k + 1];
+        if (e == 'u') {
+          out.add(Integer.parseInt(spelling.substring(k + 2, k + 6), 16));
+          k += 6;
+        } else {
+          out.add((int) "\"\\/\b\f\n\r\t".charAt("\"\\/bfnrt".indexOf(e)));
+          k += 2;
+        }
+        continue;
+      }
+      int n = c < 0x80 ? 1 : c >= 0xf0 ? 4 : c >= 0xe0 ? 3 : 2;
+      String one = null;
+      if (k + n <= s.length) {
+        try {
+          one =
+              StandardCharsets.UTF_8
+                  .newDecoder()
+                  .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                  .decode(java.nio.ByteBuffer.wrap(s, k, n))
+                  .toString();
+        } catch (java.nio.charset.CharacterCodingException e) {
+          one = null;
+        }
+      }
+      if (one == null || one.codePointCount(0, one.length()) != 1) {
+        out.add(-1 - c);
+        k++;
+      } else {
+        one.chars().forEach(out::add);
+        k += n;
+      }
+    }
+    return out;
   }
 
   private void document() {
@@ -85,11 +132,15 @@ final class Scan {
       depth--;
       return;
     }
+    List<String> keys = new ArrayList<>();
+    if (object) objectKeys.add(keys);
     while (true) {
       if (object) {
         ws();
         if (i == b.length || b[i] != '"') fail("a key that is no string at " + i);
+        int start = i;
         string();
+        keys.add(new String(b, start + 1, i - start - 2, StandardCharsets.ISO_8859_1));
         ws();
         expect(':');
       }
