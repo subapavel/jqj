@@ -15,8 +15,8 @@ class SkeletonTest {
 
   @Test
   void queryCoreRunsFromTheOracle() throws Exception {
-    Object r = call("io.github.subapavel.jqj.query.internal.Placeholder", "max", new Class<?>[] {int.class, int.class}, 1, 2);
-    assertThat(r).isEqualTo(2);
+    Object r = call("io.github.subapavel.jqj.query.internal.Placeholder", "twice", new Class<?>[] {int.class}, 4);
+    assertThat(r).isEqualTo(8);
   }
 
   @Test

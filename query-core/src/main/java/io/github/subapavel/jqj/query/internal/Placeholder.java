@@ -4,8 +4,13 @@ package io.github.subapavel.jqj.query.internal;
 final class Placeholder {
   private Placeholder() {}
 
-  /** The larger of two ints. */
-  static int max(int a, int b) {
-    return a >= b ? a : b;
+  /** Twice the argument. */
+  static int twice(int a) {
+    return 2 * a;
+  }
+
+  /** Whether the argument is below zero; only the unit test of this module reaches it. */
+  static boolean isNegative(int a) {
+    return a < 0;
   }
 }

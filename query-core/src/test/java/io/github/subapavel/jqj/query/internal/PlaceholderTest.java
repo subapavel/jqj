@@ -6,13 +6,20 @@ import org.junit.jupiter.api.Test;
 
 class PlaceholderTest {
   @Test
-  void maxReturnsTheLarger() {
-    assertThat(Placeholder.max(3, 7)).isEqualTo(7);
-    assertThat(Placeholder.max(7, 3)).isEqualTo(7);
+  void twiceDoubles() {
+    assertThat(Placeholder.twice(3)).isEqualTo(6);
   }
 
   @Test
-  void maxOfEqualValues() {
-    assertThat(Placeholder.max(5, 5)).isEqualTo(5);
+  void isNegativeAtTheBoundary() {
+    assertThat(Placeholder.isNegative(-1)).isTrue();
+    assertThat(Placeholder.isNegative(0)).isFalse();
+    assertThat(Placeholder.isNegative(1)).isFalse();
+  }
+
+  @Test
+  void twiceOfZeroAndNegative() {
+    assertThat(Placeholder.twice(0)).isZero();
+    assertThat(Placeholder.twice(-4)).isEqualTo(-8);
   }
 }
