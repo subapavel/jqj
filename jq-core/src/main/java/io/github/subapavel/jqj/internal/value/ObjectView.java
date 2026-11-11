@@ -1,7 +1,5 @@
 package io.github.subapavel.jqj.internal.value;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import io.github.subapavel.jqj.internal.Stub;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqValue;
@@ -29,8 +27,7 @@ public record ObjectView(Document doc, int index) implements JqObject {
     int end = Tape.end(tape, index);
     int size = 0;
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
-      StringView.requirePlain(tape[k]);
-      if (firstOf(tape, bytes, k) == k) {
+      if (isFirst(tape, bytes, k)) {
         size++;
       }
     }
@@ -43,42 +40,43 @@ public record ObjectView(Document doc, int index) implements JqObject {
     long[] tape = doc.live();
     byte[] bytes = doc.bytes;
     int end = Tape.end(tape, index);
-    byte[] wanted = key.getBytes(UTF_8);
     int value = 0; // none yet: index 0 is the root, never a member's value
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
-      long entry = tape[k];
-      StringView.requirePlain(entry);
-      int from = Tape.off(entry) + 1;
-      if (Arrays.equals(bytes, from, from + Tape.span(entry) - 2, wanted, 0, wanted.length)) {
+      StringView.requirePlain(tape[k]);
+      if (spells(bytes, tape[k], key)) {
         value = k + 1;
       }
     }
     return value == 0 ? null : doc.valueAt(tape, value);
   }
 
-  /** Each key at its first position with its last value; no call is made when a key is a Stub. */
+  /**
+   * Each key at its first position with its last value; no call is made when a key is a Stub. Each step after a
+   * call checks the document again: the action may have read another document onto this tape (ADR-0016, STALE_VIEW).
+   */
   @Override
   public void forEach(BiConsumer<? super String, ? super JqValue> action) {
     long[] tape = doc.live();
     byte[] bytes = doc.bytes;
     int end = Tape.end(tape, index);
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
-      StringView.requirePlain(tape[k]);
-      if (firstOf(tape, bytes, k) == k) {
+      if (isFirst(tape, bytes, k)) {
         // lastValueOf checks every later key, so the first call comes after all keys are checked.
         int value = lastValueOf(tape, bytes, k, end);
         action.accept(StringView.text(bytes, tape[k]), doc.valueAt(tape, value));
+        tape = doc.live();
       }
     }
   }
 
-  /** The first key equal to the key at {@code k}, which is {@code k} itself when no earlier key is. */
-  private int firstOf(long[] tape, byte[] bytes, int k) {
+  /** Whether the key at {@code k} is tag 5 and no earlier key equals it; a tag-6 key is a Stub. */
+  private boolean isFirst(long[] tape, byte[] bytes, int k) {
+    StringView.requirePlain(tape[k]);
     int first = index + 1;
     while (!sameKey(tape, bytes, first, k)) {
       first = Tape.next(tape, first + 1);
     }
-    return first;
+    return first == k;
   }
 
   /** The value of the last key equal to the key at {@code k}, checking each later key on the way. */
@@ -98,5 +96,24 @@ public record ObjectView(Document doc, int index) implements JqObject {
     int from = Tape.off(tape[a]);
     int other = Tape.off(tape[b]);
     return Arrays.equals(bytes, from, from + Tape.span(tape[a]), bytes, other, other + Tape.span(tape[b]));
+  }
+
+  /**
+   * Whether the tag-5 key {@code entry} spells {@code key}. Its bytes are printable ASCII, one per char, so each char
+   * must equal its byte, and a char outside ASCII, a lone surrogate included, never does. Encoding {@code key} to
+   * UTF-8 instead would turn a lone surrogate into {@code ?} and find the key {@code "?"}.
+   */
+  private static boolean spells(byte[] bytes, long entry, String key) {
+    int from = Tape.off(entry) + 1;
+    int length = Tape.span(entry) - 2;
+    if (length != key.length()) {
+      return false;
+    }
+    for (int i = 0; i < length; i++) {
+      if (bytes[from + i] != key.charAt(i)) {
+        return false;
+      }
+    }
+    return true;
   }
 }
