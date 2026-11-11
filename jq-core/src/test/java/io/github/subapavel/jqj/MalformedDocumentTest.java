@@ -3,6 +3,7 @@ package io.github.subapavel.jqj;
 import static io.github.subapavel.jqj.TestDocuments.kind;
 import static io.github.subapavel.jqj.TestDocuments.newWorkspace;
 import static io.github.subapavel.jqj.TestDocuments.read;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
@@ -14,6 +15,7 @@ import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
+import java.lang.foreign.MemorySegment;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -223,6 +225,41 @@ class MalformedDocumentTest {
             e -> {
               assertThat(e.line()).as("line of %s", printable(malformed)).isEqualTo(line);
               assertThat(e.column()).as("column of %s", printable(malformed)).isEqualTo(column);
+            });
+  }
+
+  /**
+   * The document is a slice of a larger array, so line and column count from the slice's first byte, never from
+   * the array's (ADR-0015: a writable byte[] heap segment is read in place at its address). jq-ref 1.8.2 on the
+   * slice's bytes alone, observed 2026-11-11 with {@code printf -- '<doc>' | jq-ref -c .}:
+   * {@code [1,]} -> "Expected another array element at line 1, column 4"; {@code [1,\n2,\n]} -> "Expected another
+   * array element at line 3, column 1"; {@code [1,2} -> "Unfinished JSON term at EOF at line 1, column 4".
+   */
+  static Stream<Arguments> slicedPositions() {
+    return Stream.of(
+        // An LF before the slice: counting it gives line 2; counting columns from the array gives 6.
+        argumentSet("x LF, then [1,]", "x\n", "[1,]", "", 1, 4),
+        // LFs inside the slice count, the one before it does not.
+        argumentSet("x LF, then [1, LF 2, LF ]", "x\n", "[1,\n2,\n]", "", 3, 1),
+        // No LF anywhere: the column counts from the slice's first byte.
+        argumentSet("xyz, then [1,]", "xyz", "[1,]", "", 1, 4),
+        // EOF is the slice's end, not the array's: the ']' after it is not read.
+        argumentSet("x LF, then [1,2 with ]]] after the slice", "x\n", "[1,2", "]]]", 1, 4));
+  }
+
+  @ParameterizedTest(name = "{argumentSetName}")
+  @MethodSource("slicedPositions")
+  void malformedPositionCountsFromTheSegmentStart(String before, String malformed, String after, int line, int column) {
+    byte[] array = (before + malformed + after).getBytes(UTF_8);
+    MemorySegment slice = MemorySegment.ofArray(array).asSlice(before.length(), malformed.length());
+    Workspace workspace = newWorkspace();
+    assertThatThrownBy(() -> workspace.read(slice))
+        .as("read(%s) at %d of %s", printable(malformed), before.length(), printable(before + malformed + after))
+        .isInstanceOfSatisfying(
+            JqSyntaxException.class,
+            e -> {
+              assertThat(e.line()).as("line").isEqualTo(line);
+              assertThat(e.column()).as("column").isEqualTo(column);
             });
   }
 

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DynamicTest;
@@ -42,36 +43,38 @@ class ViewStubTest {
   private static final String DOC =
       "[1.5,\"x\",[],{},\"a\\nb\",\"\u00e9\",\"\u007f\",{\"\\u0061\":1,\"a\":2},{\"a\":1,\"\\u0061\":2}]";
 
+  /**
+   * Each dynamic test reads {@link #DOC} itself, so the read runs inside the test: the tests that read a tag-6
+   * string then cover the reader's classification too (PIT counts a test only for what runs inside it).
+   */
   @TestFactory
   Stream<DynamicTest> viewMembersNotBuiltYetAreStubs() {
-    Workspace workspace = JqEngine.builder().build().newWorkspace();
-    JqArray root = view(JqArray.class, ArrayView.class, workspace.read(MemorySegment.ofArray(DOC.getBytes(UTF_8))).root());
-    JqNumber number = view(JqNumber.class, NumberView.class, root.get(0));
-    JqString plain = view(JqString.class, StringView.class, root.get(1));
-    JqArray array = view(JqArray.class, ArrayView.class, root.get(2));
-    JqObject object = view(JqObject.class, ObjectView.class, root.get(3));
-    JqString escaped = view(JqString.class, StringView.class, root.get(4));
-    JqString nonAscii = view(JqString.class, StringView.class, root.get(5));
-    JqString del = view(JqString.class, StringView.class, root.get(6));
-    JqObject tag6Key = view(JqObject.class, ObjectView.class, root.get(7));
-    JqObject tag6KeyLater = view(JqObject.class, ObjectView.class, root.get(8));
-
-    Map<String, ThrowingCallable> stubs = new LinkedHashMap<>();
-    stubs.put("NumberView.toJson()", number::toJson);
-    stubs.put("NumberView.doubleValue()", number::doubleValue);
-    stubs.put("NumberView.decimalValue()", number::decimalValue);
-    stubs.put("StringView.toJson()", plain::toJson);
-    stubs.put("ArrayView.toJson()", array::toJson);
-    stubs.put("ObjectView.toJson()", object::toJson);
-    stubs.put("StringView.value() of an escape", escaped::value);
-    stubs.put("StringView.utf8() of an escape", escaped::utf8);
-    stubs.put("StringView.value() of non-ASCII", nonAscii::value);
-    stubs.put("StringView.utf8() of non-ASCII", nonAscii::utf8);
-    stubs.put("StringView.value() of DEL", del::value);
-    stubs.put("StringView.utf8() of DEL", del::utf8);
-    stubs.put("ObjectView.size() meeting a tag-6 key", tag6Key::size);
-    stubs.put("ObjectView.get(String) meeting a tag-6 key", () -> tag6Key.get("a"));
-    stubs.put("ObjectView.forEach(BiConsumer) meeting a tag-6 key", () -> tag6Key.forEach((k, v) -> {}));
+    Map<String, Function<JqArray, ThrowingCallable>> stubs = new LinkedHashMap<>();
+    stubs.put("NumberView.toJson()", root -> number(root)::toJson);
+    stubs.put("NumberView.doubleValue()", root -> number(root)::doubleValue);
+    stubs.put("NumberView.decimalValue()", root -> number(root)::decimalValue);
+    stubs.put("StringView.toJson()", root -> string(root, 1)::toJson);
+    stubs.put("ArrayView.toJson()", root -> view(JqArray.class, ArrayView.class, root.get(2))::toJson);
+    stubs.put("ObjectView.toJson()", root -> object(root, 3)::toJson);
+    stubs.put("StringView.value() of an escape", root -> string(root, 4)::value);
+    stubs.put("StringView.utf8() of an escape", root -> string(root, 4)::utf8);
+    stubs.put("StringView.value() of non-ASCII", root -> string(root, 5)::value);
+    stubs.put("StringView.utf8() of non-ASCII", root -> string(root, 5)::utf8);
+    stubs.put("StringView.value() of DEL", root -> string(root, 6)::value);
+    stubs.put("StringView.utf8() of DEL", root -> string(root, 6)::utf8);
+    stubs.put("ObjectView.size() meeting a tag-6 key", root -> object(root, 7)::size);
+    stubs.put(
+        "ObjectView.get(String) meeting a tag-6 key",
+        root -> {
+          JqObject tag6Key = object(root, 7);
+          return () -> tag6Key.get("a");
+        });
+    stubs.put(
+        "ObjectView.forEach(BiConsumer) meeting a tag-6 key",
+        root -> {
+          JqObject tag6Key = object(root, 7);
+          return () -> tag6Key.forEach((k, v) -> {});
+        });
 
     Stream<DynamicTest> marked =
         stubs.entrySet().stream()
@@ -80,7 +83,7 @@ class ViewStubTest {
                     dynamicTest(
                         stub.getKey(),
                         () ->
-                            assertThatThrownBy(stub.getValue())
+                            assertThatThrownBy(stub.getValue().apply(readDoc()))
                                 .isInstanceOf(JqCompileException.class)
                                 .hasMessageStartingWith(MARK)));
     // ADR-0024 (#22 story 28): a Stub never looks like a wrong result. jq-ref 1.8.2, observed 2026-11-11:
@@ -91,6 +94,7 @@ class ViewStubTest {
             dynamicTest(
                 "ObjectView.forEach(BiConsumer) meeting a tag-6 key after a plain one calls nothing",
                 () -> {
+                  JqObject tag6KeyLater = object(readDoc(), 8);
                   List<String> calls = new ArrayList<>();
                   assertThatThrownBy(() -> tag6KeyLater.forEach((k, v) -> calls.add(k + " -> " + v)))
                       .isInstanceOf(JqCompileException.class)
@@ -98,6 +102,24 @@ class ViewStubTest {
                   assertThat(calls).as("calls made before the Stub").isEmpty();
                 }));
     return Stream.concat(marked, noCall);
+  }
+
+  /** Reads {@link #DOC} into a new Workspace and returns its root array. */
+  private static JqArray readDoc() {
+    Workspace workspace = JqEngine.builder().build().newWorkspace();
+    return view(JqArray.class, ArrayView.class, workspace.read(MemorySegment.ofArray(DOC.getBytes(UTF_8))).root());
+  }
+
+  private static JqNumber number(JqArray root) {
+    return view(JqNumber.class, NumberView.class, root.get(0));
+  }
+
+  private static JqString string(JqArray root, int index) {
+    return view(JqString.class, StringView.class, root.get(index));
+  }
+
+  private static JqObject object(JqArray root, int index) {
+    return view(JqObject.class, ObjectView.class, root.get(index));
   }
 
   /** Asserts that {@code value} is the view class {@code view} of the kind {@code kind}, and returns it. */
