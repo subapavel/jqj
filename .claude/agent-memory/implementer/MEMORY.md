@@ -41,3 +41,7 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#23) license-maven-plugin: a `licenseMerge` entry must not repeat its own target name, or the build errors.
 - (#23) PIT's line count includes a private empty constructor (JaCoCo ignores it): tiny classes show low PIT line coverage.
 - (#23) PIT reaches query-core/jq-core unit tests only via `additionalClasspathElements` to their `target/test-classes`; run the reactor with `-am`.
+- (#25) JaCoCo report-aggregate CSV GROUP is `oracle/<module>`, not `<module>`.
+- (#25) The worktree guard refuses a Bash call whose text has `github` with git/sed pipelines; use Edit instead.
+- (#25) A stub `java` first on PATH (exec-ing the real one otherwise) lets a script test fake `java -jar`.
+- (#25) Oracle report format read by `scripts/ratchet.java`: `<oracle>-<suffix>.tsv`, columns `id, verdict, detail, extras`; def in column 4 (json: label 4, def 5).
