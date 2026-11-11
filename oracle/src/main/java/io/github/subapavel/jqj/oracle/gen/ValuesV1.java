@@ -160,7 +160,8 @@ public final class ValuesV1 {
     CHAR_UTF8_4,
     CHAR_INVALID_LEAD,
     CHAR_STRAY_CONTINUATION,
-    CHAR_OVERLONG,
+    CHAR_OVERLONG_2,
+    CHAR_OVERLONG_3,
     CHAR_UTF8_SURROGATE,
     CHAR_ABOVE_MAX,
     CHAR_CUT,
@@ -611,12 +612,12 @@ public final class ValuesV1 {
           put(r.between(0x80, 0xbf));
         }
         case 2 -> {
-          mark(Feature.CHAR_OVERLONG);
+          mark(Feature.CHAR_OVERLONG_2);
           put(0xc0);
           put(0x80);
         }
         case 3 -> {
-          mark(Feature.CHAR_OVERLONG);
+          mark(Feature.CHAR_OVERLONG_3);
           put(0xe0);
           put(0x80);
           put(0x80);

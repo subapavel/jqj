@@ -82,13 +82,21 @@ class RecorderTest {
   @Test
   void generateWritesTheFamilyBelowGenWithTheReferenceHeader(@TempDir Path tmp) throws Exception {
     Path diff = tmp.resolve("diff");
-
-    int rc = Recorder.generate(List.of("values-v1", "0", "2", diff.toString()), new Fake(c -> OK));
+    PrintStream out = System.out;
+    ByteArrayOutputStream captured = new ByteArrayOutputStream();
+    System.setOut(new PrintStream(captured, true, UTF_8));
+    int rc;
+    try {
+      rc = Recorder.generate(List.of("values-v1", "0", "2", diff.toString()), new Fake(c -> c.id().endsWith("/1") ? null : OK));
+    } finally {
+      System.setOut(out);
+    }
 
     assertThat(rc).isZero();
-    assertThat(Files.readString(diff.resolve("gen/values-v1.cases"))).isEqualTo(ValuesV1.file(0, 2, Map.of()));
+    assertThat(captured.toString(UTF_8)).isEqualTo("recorded 1 seeds of values-v1, dropped 1\n");
+    assertThat(Files.readString(diff.resolve("gen/values-v1.cases"))).isEqualTo(ValuesV1.file(0, 2, Map.of(1L, "timeout")));
     assertThat(Files.readString(diff.resolve("gen/values-v1.rec"))).startsWith("# jq-fake sha256 00\n\ncase gen/values-v1/0\n");
-    assertThat(Recording.read(diff.resolve("gen/values-v1.rec"))).containsOnlyKeys("gen/values-v1/0", "gen/values-v1/1");
+    assertThat(Recording.read(diff.resolve("gen/values-v1.rec"))).containsOnlyKeys("gen/values-v1/0");
   }
 
   @Test

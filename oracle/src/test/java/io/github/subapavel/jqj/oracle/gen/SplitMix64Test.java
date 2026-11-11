@@ -56,6 +56,15 @@ class SplitMix64Test {
     assertThat(rejected).isBetween(16, 200);
   }
 
+  /** A bound that divides 2^63 has no partial block: no draw is ever rejected, the top half included. */
+  @Test
+  void aPowerOfTwoBoundRejectsNothing() {
+    long half = 1L << 62;
+    SplitMix64 bounded = new SplitMix64(13);
+    SplitMix64 raw = new SplitMix64(13);
+    for (int i = 0; i < 64; i++) assertThat(bounded.belowLong(half)).as("draw %d", i).isEqualTo((raw.nextLong() >>> 1) % half);
+  }
+
   @Test
   void betweenIsInclusive() {
     SplitMix64 r = new SplitMix64(5);
