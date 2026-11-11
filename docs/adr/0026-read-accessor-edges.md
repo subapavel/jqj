@@ -10,7 +10,9 @@ Status: accepted (2026-11-11, architect, on the designer's draft for #32 "S1.10 
   including when the read then fails, so after a failed read no document is current. `close()` is
   idempotent and drops only its own document. Every view accessor and `root()` on a stale document
   throws `JqTermination` with cause `STALE_VIEW` and exit code 5 (ADR-0017's code for a failed
-  evaluation). The check is one field load and one null test per accessor call.
+  evaluation). The check is one field load and one null test per accessor call; an accessor that
+  calls host code (`forEach`) checks again after every call, because the host may read into the same
+  Workspace inside it (#32 review).
 - **Empty input.** Empty or whitespace-only bytes throw `JqSyntaxException`: `Workspace.read` reads
   exactly one document. The CLI's rule that an empty stdin runs nothing belongs to the input-stream
   reader (#38), not to `read`.
