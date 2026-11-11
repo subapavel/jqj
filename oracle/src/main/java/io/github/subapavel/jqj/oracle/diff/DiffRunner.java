@@ -1,0 +1,126 @@
+package io.github.subapavel.jqj.oracle.diff;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import io.github.subapavel.jqj.cli.Invocation;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.ToIntFunction;
+
+/**
+ * Runs a differential case through the command line's in-process entry and judges it against its recording (ADR-0020,
+ * ADR-0024). The rules, in order:
+ *
+ * <ol>
+ *   <li>an exception out of the entry is FAIL if its message carries the Stub prefix, otherwise CRASH;
+ *   <li>jqj's stderr carrying the Stub prefix is FAIL;
+ *   <li>a case without a recording, or whose def differs from the recording's, is STALE;
+ *   <li>otherwise the exit code, stdout and stderr must equal the recording byte for byte, except that stderr is not
+ *       compared when the recorded stderr has a line starting {@code jq: error: syntax error}: PASS or FAIL.
+ * </ol>
+ */
+public final class DiffRunner {
+
+  private static final String STUB = "jqj stub: ";
+  private static final String SYNTAX_ERROR = "\njq: error: syntax error";
+  /** Bytes shown of a differing stream, starting a little before the first difference. */
+  private static final int WINDOW = 200;
+  private static final int BEFORE = 40;
+
+  private final ToIntFunction<Invocation> entry;
+  private final Path scratch;
+
+  /**
+   * @param entry the in-process entry, {@code Main::run}
+   * @param scratch where each run's working directory is made and deleted again
+   */
+  public DiffRunner(ToIntFunction<Invocation> entry, Path scratch) {
+    this.entry = entry;
+    this.scratch = scratch;
+  }
+
+  /** The verdict of one case; {@code recording} is null when the case was never recorded. */
+  public Verdict run(DiffCase c, Recording recording) {
+    Outcome jqj;
+    try (CaseDirectory dir = CaseDirectory.of(c.files(), scratch)) {
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      ByteArrayOutputStream err = new ByteArrayOutputStream();
+      Invocation invocation =
+          new Invocation(c.args(), c.environment(dir.path()), dir.path(), new ByteArrayInputStream(c.stdin()), out, err);
+      int rc;
+      try {
+        rc = entry.applyAsInt(invocation);
+      } catch (RuntimeException e) {
+        String line = CaseFormat.escape(e.toString().getBytes(UTF_8));
+        if (String.valueOf(e.getMessage()).contains(STUB)) {
+          return new Verdict(Verdict.Kind.FAIL, "jqj ended with a Stub: " + line, c.id() + ": FAIL, jqj ended with a Stub: " + e);
+        }
+        return new Verdict(Verdict.Kind.CRASH, line, c.id() + ": CRASH, the entry threw " + e);
+      }
+      jqj = new Outcome(rc, out.toByteArray(), err.toByteArray());
+    }
+    return judge(c, recording, jqj);
+  }
+
+  private static Verdict judge(DiffCase c, Recording recording, Outcome jqj) {
+    if (new String(jqj.stderr(), UTF_8).contains(STUB)) {
+      String headline = "FAIL, jqj ended with a Stub";
+      String diff = recording == null ? c.id() + ": " + headline + "; the case has no recording\n" : diff(c.id(), headline, recording.outcome(), jqj, true);
+      return new Verdict(Verdict.Kind.FAIL, "jqj ended with a Stub", diff);
+    }
+    if (recording == null) {
+      String why = "no recording; run scripts/oracle-record.sh";
+      return new Verdict(Verdict.Kind.STALE, why, c.id() + ": STALE, " + why);
+    }
+    if (!recording.def().equals(c.def())) {
+      String why = "the case's def " + c.def() + " differs from the recording's " + recording.def() + "; re-record with scripts/oracle-record.sh";
+      return new Verdict(Verdict.Kind.STALE, why, c.id() + ": STALE, " + why);
+    }
+    Outcome ref = recording.outcome();
+    boolean compareStderr = !("\n" + new String(ref.stderr(), UTF_8)).contains(SYNTAX_ERROR);
+    List<String> why = new ArrayList<>();
+    if (ref.rc() != jqj.rc()) why.add("rc " + jqj.rc() + ", jq-ref " + ref.rc());
+    int d = Arrays.mismatch(ref.stdout(), jqj.stdout());
+    if (d >= 0) why.add("stdout differs at byte " + d);
+    d = Arrays.mismatch(ref.stderr(), jqj.stderr());
+    if (compareStderr && d >= 0) why.add("stderr differs at byte " + d);
+    if (why.isEmpty()) return new Verdict(Verdict.Kind.PASS, compareStderr ? "" : "stderr not compared: syntax error", "");
+    return new Verdict(Verdict.Kind.FAIL, String.join("; ", why), diff(c.id(), "FAIL", ref, jqj, compareStderr));
+  }
+
+  /** The readable comparison: each part either "same" or jq-ref's and jqj's bytes, escaped as in the case format. */
+  private static String diff(String id, String headline, Outcome ref, Outcome jqj, boolean compareStderr) {
+    StringBuilder b = new StringBuilder(id).append(": ").append(headline).append('\n');
+    if (ref.rc() == jqj.rc()) b.append("  rc      same\n");
+    else b.append("  rc      jq-ref ").append(ref.rc()).append("\n          jqj    ").append(jqj.rc()).append('\n');
+    stream(b, "stdout", ref.stdout(), jqj.stdout());
+    if (compareStderr) stream(b, "stderr", ref.stderr(), jqj.stderr());
+    else b.append("  stderr  not compared: jq-ref's is a syntax error (ADR-0020)\n");
+    return b.toString();
+  }
+
+  private static void stream(StringBuilder b, String name, byte[] ref, byte[] jqj) {
+    String label = String.format("  %-8s", name);
+    int d = Arrays.mismatch(ref, jqj);
+    if (d < 0) {
+      b.append(label).append("same\n");
+      return;
+    }
+    b.append(label).append("jq-ref ").append(window(ref, d)).append('\n');
+    b.append("          jqj    ").append(window(jqj, d)).append('\n');
+    if (d > 0) b.append("          first difference at byte ").append(d).append('\n');
+  }
+
+  /** Up to {@value #WINDOW} bytes from a little before the first difference, escaped. */
+  private static String window(byte[] bytes, int difference) {
+    if (bytes.length == 0) return "(empty)";
+    int from = Math.max(0, difference - BEFORE);
+    int to = Math.min(bytes.length, from + WINDOW);
+    String shown = CaseFormat.escape(Arrays.copyOfRange(bytes, from, to));
+    return (from > 0 ? "..." : "") + shown + (to < bytes.length ? "... (" + bytes.length + " bytes)" : "");
+  }
+}
