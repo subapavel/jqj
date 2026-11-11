@@ -14,12 +14,20 @@ import java.util.Map;
  *
  * <p>Keys: {@code arg} and {@code filter} are the command-line arguments in the order they appear (a case may put
  * options before or after the filter); {@code stdin} once; {@code file <name> <bytes>} and {@code env K=V}, each
- * repeatable. Without {@code stdin} the input is empty.
+ * repeatable; {@code deviation <slug>} once marks a case that pins a {@code DEVIATIONS.md} row (ADR-0020). Without
+ * {@code stdin} the input is empty.
  *
  * @param files file name to content, written into the working directory of each run
+ * @param deviation the slug of the deviation the case pins, or null
  */
 public record DiffCase(
-    String id, List<String> args, byte[] stdin, Map<String, byte[]> files, Map<String, String> env, String def) {
+    String id,
+    List<String> args,
+    byte[] stdin,
+    Map<String, byte[]> files,
+    Map<String, String> env,
+    String deviation,
+    String def) {
 
   /** The cases of one {@code <family>.cases} file, in file order. */
   public static List<DiffCase> read(Path file) {
@@ -39,6 +47,7 @@ public record DiffCase(
     byte[] stdin = null;
     Map<String, byte[]> files = new LinkedHashMap<>();
     Map<String, String> env = new LinkedHashMap<>();
+    String deviation = null;
     for (CaseFormat.Line line : block.lines()) {
       String at = where + ":" + line.number() + ": ";
       try {
@@ -59,6 +68,11 @@ public record DiffCase(
             if (eq <= 0) throw new IllegalArgumentException("'env' needs K=V");
             env.put(kv.substring(0, eq), kv.substring(eq + 1));
           }
+          case "deviation" -> {
+            if (deviation != null) throw new IllegalArgumentException("'deviation' given twice");
+            if (line.value().isEmpty()) throw new IllegalArgumentException("'deviation' needs a slug");
+            deviation = line.value();
+          }
           default ->
               throw new IllegalArgumentException(
                   "unknown key '" + line.key() + "': a case holds the command line only; its expected output is"
@@ -68,7 +82,7 @@ public record DiffCase(
         throw new IllegalArgumentException(at + "case " + block.id() + ": " + e.getMessage(), e);
       }
     }
-    return new DiffCase(block.id(), List.copyOf(args), stdin == null ? new byte[0] : stdin, files, env, block.def());
+    return new DiffCase(block.id(), List.copyOf(args), stdin == null ? new byte[0] : stdin, files, env, deviation, block.def());
   }
 
   /** The environment of a run: exactly {@code HOME=<home> TZ=UTC LC_ALL=C} plus the case's {@code env} (ADR-0020). */

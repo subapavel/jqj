@@ -43,6 +43,12 @@ class CaseFormatTest {
   }
 
   @Test
+  void aCaseNamesTheDeviationItPins() {
+    assertThat(cases("case t/x\ndeviation nul\nend\n").get(0).deviation()).isEqualTo("nul");
+    assertThat(cases("case t/x\nend\n").get(0).deviation()).isNull();
+  }
+
+  @Test
   void theDefIsTwelveHexOfTheSha256OfTheCaseBlock() {
     // printf 'case t/x\nfilter .\nend\n' | sha256sum
     assertThat(cases("# header\ncase t/x\nfilter .\nend\n").get(0).def()).isEqualTo("98ada9f8a537");
@@ -73,6 +79,8 @@ class CaseFormatTest {
         Arguments.argumentSet("a line starting with a space", bytes("case t/x\n filter .\nend\n"), "unknown key ''"),
         Arguments.argumentSet("a file without a name", bytes("case t/x\nfile  {}\nend\n"), "'file' needs a name"),
         Arguments.argumentSet("stdin twice", bytes("case t/x\nstdin 1\nstdin 2\nend\n"), "'stdin' given twice"),
+        Arguments.argumentSet("deviation twice", bytes("case t/x\ndeviation a\ndeviation b\nend\n"), "'deviation' given twice"),
+        Arguments.argumentSet("deviation without a slug", bytes("case t/x\ndeviation\nend\n"), "'deviation' needs a slug"),
         Arguments.argumentSet("env without =", bytes("case t/x\nenv K\nend\n"), "'env' needs K=V"),
         Arguments.argumentSet("env with an empty name", bytes("case t/x\nenv =v\nend\n"), "'env' needs K=V"),
         Arguments.argumentSet("a lone backslash", bytes("case t/x\nstdin a\\\nend\n"), "lone"),
