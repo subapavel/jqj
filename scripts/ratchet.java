@@ -258,7 +258,7 @@ public class ratchet {
       boolean any = false;
       for (String l : ls.subList(1, ls.size())) {
         String[] c = l.split(",", -1);
-        if (e.getValue() && !c[g].equals(m)) continue;
+        if (e.getValue() && !c[g].equals(m) && !c[g].endsWith("/" + m)) continue;
         any = true;
         s[0] += Long.parseLong(c[lm]);
         s[1] += Long.parseLong(c[lc]);
