@@ -1,7 +1,8 @@
 package io.github.subapavel.jqj;
 
 import io.github.subapavel.jqj.host.Host;
-import io.github.subapavel.jqj.internal.Stub;
+import io.github.subapavel.jqj.internal.parse.Parser;
+import io.github.subapavel.jqj.query.compile.Compiler;
 import java.util.Objects;
 
 /**
@@ -22,9 +23,9 @@ public final class JqEngine {
     return new Builder();
   }
 
-  /** Compiles {@code text}; a Stub so far. */
+  /** Compiles {@code text}; only {@code .} is built, any other text is a Stub. */
   public JqFilter compile(String text) {
-    throw Stub.unbuilt("JqEngine.compile");
+    return new JqFilter(Compiler.compile(Parser.parse(text)));
   }
 
   /** A new Workspace, for one running evaluation at a time. */

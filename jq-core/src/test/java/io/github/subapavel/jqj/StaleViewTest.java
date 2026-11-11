@@ -13,6 +13,7 @@ import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqString;
+import io.github.subapavel.jqj.value.JqValue;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -181,5 +182,104 @@ class StaleViewTest {
         .isEqualTo(3);
     assertThat(fourFiveSix.length()).as("length of a [4,5,6] view taken before the closes").isEqualTo(3);
     assertThat(kind(JqNumber.class, fourFiveSix.get(2), "[4,5,6][2]").longValue()).as("[4,5,6][2]").isEqualTo(6L);
+  }
+
+  /** jq-ref 1.8.2, observed 2026-11-11: jq-ref -c '., .n, .s, .a, .o' -> the document, 1.5, "x", [true], {}. */
+  private static final String FOUR_KINDS = "{\"n\":1.5,\"s\":\"x\",\"a\":[true],\"o\":{}}";
+
+  @Test
+  void toJsonOfAStaleViewIsStale() {
+    // The #32 carry for #33 (ADR-0026): toJson() checks its document first, after close() and after a later read.
+    Workspace workspace = newWorkspace();
+    for (String supersededBy : new String[] {null, "[0]"}) {
+      String how = supersededBy == null ? "after close" : "after reading " + supersededBy;
+      JsonDoc doc = read(workspace, FOUR_KINDS);
+      JqObject root = kind(JqObject.class, doc.root(), ".");
+      JqNumber n = kind(JqNumber.class, root.get("n"), ".n");
+      JqString s = kind(JqString.class, root.get("s"), ".s");
+      JqArray a = kind(JqArray.class, root.get("a"), ".a");
+      JqObject o = kind(JqObject.class, root.get("o"), ".o");
+      // Witness: before the document goes stale each toJson() is jq's compact text.
+      assertThat(root.toJson()).as("JqObject.toJson() of . before it is stale").isEqualTo(FOUR_KINDS);
+      assertThat(n.toJson()).as("JqNumber.toJson() before it is stale").isEqualTo("1.5");
+      assertThat(s.toJson()).as("JqString.toJson() before it is stale").isEqualTo("\"x\"");
+      assertThat(a.toJson()).as("JqArray.toJson() before it is stale").isEqualTo("[true]");
+      assertThat(o.toJson()).as("JqObject.toJson() of .o before it is stale").isEqualTo("{}");
+
+      if (supersededBy == null) {
+        doc.close();
+      } else {
+        read(workspace, supersededBy);
+      }
+
+      assertStale(root::toJson, "JqObject.toJson() " + how);
+      assertStale(n::toJson, "JqNumber.toJson() " + how);
+      assertStale(s::toJson, "JqString.toJson() " + how);
+      assertStale(a::toJson, "JqArray.toJson() " + how);
+      assertStale(o::toJson, "JqObject.toJson() of a child " + how);
+    }
+  }
+
+  @Test
+  void writerOfAStaleViewWritesNothing() {
+    // ADR-0026 and ADR-0027: a stale view gives STALE_VIEW, never a wrong value, and the writer checks before it
+    // writes. jq-ref 1.8.2, observed 2026-11-11: printf -- '[1,{"a":"x"}]' | jq-ref -c . -> [1,{"a":"x"}] (rc 0).
+    Workspace workspace = newWorkspace();
+    RecordingTarget target = new RecordingTarget();
+    JqSink sink = JsonWriter.sink(workspace, target, OutputOptions.compact());
+
+    JsonDoc closed = read(workspace, "[1,{\"a\":\"x\"}]");
+    JqValue closedRoot = closed.root();
+    JqValue closedMember = kind(JqArray.class, closedRoot, ".").get(1);
+    // Witness: before close the sink writes the document.
+    assertThat(sink.emit(closedRoot)).as("emit's answer before close").isTrue();
+    assertThat(target.text()).as("bytes written before close").isEqualTo("[1,{\"a\":\"x\"}]\n");
+    closed.close();
+    assertStale(() -> sink.emit(closedRoot), "JsonWriter's emit of . after close");
+    assertStale(() -> sink.emit(closedMember), "JsonWriter's emit of .[1] after close");
+    assertThat(target.text()).as("bytes written by the emits after close").isEqualTo("[1,{\"a\":\"x\"}]\n");
+
+    JqValue superseded = read(workspace, "[2]").root();
+    JsonDoc current = read(workspace, "[3]");
+    assertStale(() -> sink.emit(superseded), "JsonWriter's emit of [2] after reading [3]");
+    assertThat(target.text()).as("bytes written by the emit after a later read").isEqualTo("[1,{\"a\":\"x\"}]\n");
+    // Witness: the current document still writes.
+    assertThat(sink.emit(current.root())).as("emit's answer for the current document").isTrue();
+    assertThat(target.text()).as("bytes written for the current document").isEqualTo("[1,{\"a\":\"x\"}]\n[3]\n");
+  }
+
+  @Test
+  void readDuringADrainMakesTheRestStale() {
+    // ADR-0027: "After each drain the writer re-checks its document: the target is host code and may read into the
+    // same Workspace." jq-ref 1.8.2, observed 2026-11-11: a compact array of 10 000 strings "abcdefgh" (110 001
+    // bytes) prints unchanged under -c . (110 002 bytes with the LF), more than one 64 KiB print buffer.
+    String big = "[" + "\"abcdefgh\",".repeat(9_999) + "\"abcdefgh\"]";
+    Workspace workspace = newWorkspace();
+
+    // Witness: with no read in between, every byte arrives, in more than one write.
+    RecordingTarget whole = new RecordingTarget();
+    assertThat(JsonWriter.sink(workspace, whole, OutputOptions.compact()).emit(read(workspace, big).root()))
+        .as("emit's answer for the 110 001-byte document")
+        .isTrue();
+    assertThat(whole.text()).as("output of the 110 001-byte document").isEqualTo(big + "\n");
+    assertThat(whole.writes).as("write calls for a 110 002-byte result").isGreaterThan(1);
+
+    // The target reads another document into the same Workspace during its first write.
+    List<JsonDoc> readInside = new ArrayList<>();
+    RecordingTarget reading =
+        new RecordingTarget(
+            n -> {
+              if (n == 1) readInside.add(read(workspace, "[7]"));
+            });
+    JqSink sink = JsonWriter.sink(workspace, reading, OutputOptions.compact());
+    JqValue root = read(workspace, big).root();
+    assertStale(() -> sink.emit(root), "emit of the big document after its target read [7]");
+    assertThat(reading.writes).as("write calls after the read inside the first one").isEqualTo(1);
+    assertThat(reading.text()).as("bytes written before the document went stale").isNotEmpty();
+    assertThat(big + "\n").as("the bytes written are a prefix of the result").startsWith(reading.text());
+    // Witness: the document read inside the write is the current one and reads.
+    assertThat(readInside).as("documents read inside the write").hasSize(1);
+    JqArray seven = kind(JqArray.class, readInside.get(0).root(), "[7]");
+    assertThat(kind(JqNumber.class, seven.get(0), "[7][0]").longValue()).as("[7][0]").isEqualTo(7L);
   }
 }
