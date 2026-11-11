@@ -1,6 +1,6 @@
 # Public API: engine, filter, Workspace, documents and values
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12) and ADR-0020 (issue #15)
 
 Type and method names are binding from the first publish; until then a rename is one mechanical
 ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1).
@@ -125,3 +125,11 @@ ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (
 - **An engine compile cache:** it blocks unloading.
 - **A `ThreadLocal` or per-filter Workspace:** founding §6.5.
 - **Exporting `LiteralNumber`:** freezes the number representation.
+
+## Amendment (ADR-0018 and ADR-0020, issues #12 and #15)
+
+- In milestone 1 there is no hidden class; the unloading test observes a dropped `JqFilter` and its
+  interpreter tree being collected.
+- `JqCompileException.getMessage()` is jq's whole command-line text: every error block with its
+  source line and carets, then `jq: N compile error(s)`. It also gives the blocks as a list.
+  Syntax-error text is jqj's own (ADR-0020).

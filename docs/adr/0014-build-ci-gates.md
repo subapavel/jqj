@@ -1,6 +1,6 @@
 # Build, CI and gates
 
-Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with the ADR of "How do the oracles and the ratchet work?"
+Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15)
 
 - **Toolchain:**
   - Maven wrapper 3.3.4 (`only-script`) with Maven 3.9.x, `--release 25`, `-Xlint:all -Werror`, no
@@ -70,3 +70,14 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
 - **Flottila's separate compile-all step:** it repeats step 1.
 - **Maven 4, `-T 4`, JMH on CI, Error Prone/SpotBugs/Checkstyle, a committed mirror:** unmeasured
   or rejected for flottila ADR-0017's reasons.
+
+## Amendment (ADR-0020, issue #15)
+
+- Ticket gate: `gate-ticket.sh` writes the ticket's required case ids to `-Doracle.require`, runs
+  `oracle-record.sh --verify` on the `.rec` files the ticket changed, and reads the floors from
+  `quality/floors.tsv`.
+- CI `build` adds `java scripts/ratchet.java check` and `oracle-record.sh --verify` on all
+  recordings.
+- The spec gate's step 4 is `regen --all`. The verifier also runs `regen --oracles` after every merge.
+- Benchmarks: ADR-0019 sets the JMH arguments and scenarios. The oracle and the module-path cases
+  run on the interpreter in milestone 1 (ADR-0018).

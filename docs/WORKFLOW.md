@@ -68,8 +68,8 @@ The architect runs `.claude/skills/run-spec/SKILL.md`. In short, per ticket on t
 5. class C only: `/code-review` on the ticket diff (both axes, xhigh) — FAIL goes back to the
    same implementer; a second FAIL means the ticket was wrong: the designer rewrites it;
 6. merger merges the ticket branch into the integration branch; the architect posts the evidence
-   comment and closes the ticket. `ratchet/` does not move here: it is regenerated once, in the
-   spec gate (§6);
+   comment and closes the ticket. The verifier then regenerates the oracle pass lists
+   (`regen --oracles`, ADR-0020); coverage, mutation and bench move only in the spec gate (§6);
 7. the frontier is recomputed and freed writer slots are refilled at once.
 
 Up to three tickets are in flight at any time (`AGENTS.md`, Concurrency).
@@ -86,19 +86,19 @@ Up to three tickets are in flight at any time (`AGENTS.md`, Concurrency).
 
 ## 6. Checks, ratchet, CI
 
-**Status: starting point.** The ticket gate, the spec gate, CI and the scripts are in ADR-0014
-(ticket 14). Read it there. Ticket 15 (oracles and ratchet) decides the ratchet and the floors
-below, and its ADR replaces this text. Logs go to `.logs/<ticket>-<check>.log`, never to `target/`
+The ticket gate, the spec gate, CI and the scripts are in ADR-0014; the oracles, the ratchet and
+the floors are in ADR-0020. Read them there. Logs go to `.logs/<ticket>-<check>.log`, never to `target/`
 (`./mvnw clean` deletes it). Until the gate scripts exist, the verifier runs ADR-0014's steps by hand,
 in its order.
 
-**Ratchet** (`ratchet/`, format in `ratchet/README.md`): oracle pass lists, coverage and mutation
-per module, benchmark baselines. Ticket gates check against the integration branch's copy, which
-equals `main`'s during a spec; the spec gate regenerates it and the verifier commits it. A drop is
-a failure; a rise is recorded at regeneration. Writers never touch it.
+**Ratchet** (`ratchet/`, format in ADR-0020): oracle pass lists, coverage and mutation per module,
+benchmark baselines. Ticket gates check against the integration branch's copy. The verifier
+regenerates the oracle pass lists after every merge and everything in the spec gate, and commits
+them. A drop is a failure; a rise is recorded at regeneration. Writers never touch it.
 
-**Floors** (fixed in the build; draft until Phase 0 ticket 15): JaCoCo lines ≥ 90 % and branches
-≥ 80 % on `query-core` and `jq-core`, lines ≥ 80 % on `jq-cli`; PIT ≥ 80 % on the class-C modules.
+**Floors** (`quality/floors.tsv`, ADR-0020): JaCoCo lines ≥ 90 % and branches ≥ 80 % on
+`query-core` and `jq-core`, lines ≥ 80 % on `jq-cli`; PIT ≥ 80 % on the class-C modules, killed
+over all generated mutants.
 
 ## 7. Decisions, findings, owner questions
 

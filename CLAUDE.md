@@ -41,7 +41,8 @@ tickets with native blocking edges. There is no backlog file.
   dependencies (any OSI licence). A new exception is an ADR.
 - Files copied or translated from jq (its function library written in jq, its test files, the
   `jv_parse.c` port of ADR-0015) keep jq's copyright
-  notice and are listed in `NOTICE`. Text from the jq manual is not copied.
+  notice and are listed in `NOTICE`. The manual's prose is not copied; its examples as jq's
+  `man.test`/`manonig.test` carry them are test resources (ADR-0021).
 - No secret, customer payload or real partner data in the repo; test inputs are synthetic.
 - When practice contradicts an ADR or the architecture: write the finding (`docs/WORKFLOW.md` §7).
 

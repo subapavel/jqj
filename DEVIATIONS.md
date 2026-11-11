@@ -1,8 +1,8 @@
 # Deviations from the reference jq
 
 Behaviours where jqj differs from the reference jq (1.8.2) on purpose, each with its reason and the
-decision that made it. A difference not listed here is a bug. Every row is pinned by an oracle case that checks both
-columns.
+decision that made it. A difference not listed here is a bug. Every row is pinned by an oracle case or a named test
+that checks both columns; the row format is ADR-0020's.
 
 ## Path expressions accept only navigation (ADR-0007, issue #6)
 
@@ -122,3 +122,14 @@ recursion with a termination. Reason: recursion depth bounded by memory, ADR-001
 ## `$JQ_BUILD_CONFIGURATION` (ADR-0017, issue #13)
 
 jq prints its configure string; jqj prints its own build string.
+
+## Syntax-error text (ADR-0020, issue #15)
+
+| filter | jq 1.8.2 (stderr) | jqj |
+| --- | --- | --- |
+| `. as [] \| null` | `jq: error: syntax error, unexpected ']', expecting BINDING or '[' or '{' at <top-level>, line 1, column 7:` … `jq: 1 compile error`, rc 3 | jqj's own syntax-error text, rc 3 |
+
+Reason: jq's syntax-error text comes from Bison's LALR tables (expecting lists that depend on the
+parser state, several errors after recovery); jqj's Pratt parser (founding §3) writes its own. A
+case whose recording says `syntax error` compares rc and stdout only. Every other error text
+matches jq.

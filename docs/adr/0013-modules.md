@@ -1,6 +1,6 @@
 # Modules and their boundaries
 
-Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?")
+Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); amended by ADR-0018 (issue #12) and ADR-0020 (issue #15)
 
 The tree is flat: a root `pom.xml` (parent and aggregator, `0.1.0-SNAPSHOT`, not published) and the
 modules `query-core/`, `jq-core/`, `jq-cli/`, `oracle/` (tests only) and `bench/jmh/` (built only
@@ -61,3 +61,10 @@ rename is a breaking release for the Flottila adapter.
 - **A shaded CLI jar:** it would drop joni's module descriptor (UNVERIFIED).
 - **One `.a` case per backend on the module path:** it misses the linkage failure above.
 - **Supporting Windows:** it needs a Windows test job and a `jqj.cmd` launcher.
+
+## Amendment (ADR-0018 and ADR-0020, issues #12 and #15)
+
+- In milestone 1 the module-path cases run on the interpreter only. The test that a generated class
+  names only `java.*` and `query-core` types moves to the bytecode spec.
+- `jq-cli`'s in-process entry is `int run(Invocation)`, with `record Invocation(List<String> args,
+  Map<String,String> env, Path cwd, InputStream in, OutputStream out, OutputStream err)`.

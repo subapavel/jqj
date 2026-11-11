@@ -7,14 +7,16 @@ command and the evidence it needs, and a change to a check is a finding (`docs/W
 
 ## Checks
 
-1. **Language.** The jq 1.8 language and builtins run: the cases of jq's own test files pass in
-   every backend the milestone ships and are listed in `ratchet/oracle/jqtest.txt` on the gate
+1. **Language.** The jq 1.8 language and builtins run: the cases of jq's own test files (879, copied
+   under ADR-0021; ADR-0020's runner) pass in every backend the milestone ships and are listed in `ratchet/oracle/jqtest.txt` on the gate
    commit. The pass list covers the whole suite except the groups ticket 17 names _(Phase 0)_;
    every case left out is in `DEVIATIONS.md` with its reason. (Tickets 1, 15.)
 2. **Agreement with jq.** On the differential cases (hand-written and generated: filter, input,
    flags) our output is byte-identical to the reference jq binary's; every case id is in
-   `ratchet/oracle/differential.txt`. If the milestone ships both backends, they agree on the
-   backend cases (`ratchet/oracle/backend.txt`). (Tickets 12, 15.)
+   `ratchet/oracle/differential.txt`; stdout, stderr and the exit code are compared, syntax-error
+   text excepted (ADR-0020). The optimised and the conservative compile agree on the compile-mode
+   cases (`ratchet/oracle/compile.txt`, ADR-0018); if the milestone ships both backends, they
+   agree on the backend cases (`ratchet/oracle/backend.txt`). (Tickets 12, 15.)
 3. **JSON.** The reader accepts and rejects what the reference jq does on every conformance case
    (`ratchet/oracle/json.txt`: JSONTestSuite inputs, jq-ref verdicts, ADR-0015), except the listed
    deviations, and an error carries jq's message, line and column and a byte-offset field. Untouched strings come out
@@ -22,27 +24,28 @@ command and the evidence it needs, and a change to a check is a finding (`docs/W
    token is canonical, otherwise in jq's canonical form (ADR-0012, F-1). Every input and output mode of ADR-0015
    has a differential case. (Tickets 9, 11.)
 4. **Memory.** Each budget (recursion depth, bytes built, bytes written, steps, deadline) ends a filter as an uncatchable termination with a jq error message (ADR-0008, F-8), while the parse depth limit and the regex match time raise jq's catchable errors (F-13, ADR-0017), shown by a test per budget whose witness would otherwise exhaust the limit.
-   On the JMH scenarios: field extract allocates no more on 10 MB than on 1 KB beyond the
-   tolerance _(Phase 0)_; accumulate is linear in the input; a large document completes in a
-   fork with a small fixed heap _(Phase 0: size)_. (Tickets 8, 12, 13.)
-5. **Speed.** The JMH scenarios of the founding architecture §12 run on the gate commit in
-   spec-gate step 2 on `claude-cloud-4vcpu`, recorded in `bench/RESULTS.md` with machine, date
-   and commit, beside the reference jq binary's time for the same work measured on the same
-   machine. Target: every scenario within the factor of the reference that ticket 12 fixes
-   _(Phase 0)_. No scenario is worse than `ratchet/bench.tsv` beyond its tolerance.
+   On the JMH scenarios (ADR-0019): field extract allocates at most 1 KiB per operation more on
+   10 MB than on 1 KB; accumulate grows at most 225× from 10⁴ to 10⁶ elements in time and
+   allocation; G1, G2 and G6 `-c` on 10 MB complete in a 64 MiB fork. (Tickets 8, 12, 13.)
+5. **Speed.** The gate scenarios of ADR-0019 run on the gate commit in spec-gate step 3 on
+   `claude-cloud-4vcpu`, recorded in `bench/RESULTS.md` with machine, date and commit, beside the
+   reference jq binary's time per document measured in the same session (`bench/jq-ref.sh`).
+   Target: every G1–G6 cell at most 1.0× the reference time per document; cold start (G7) is
+   recorded with no factor. No scenario is worse than `ratchet/bench.tsv` beyond its tolerance.
    (Tickets 4, 12.)
 6. **Command line.** `jqj` runs a filter over files and standard input with jq's main flags
    (ticket 1 lists them), with jq's exit codes; shown by differential cases that go through the
    command line. (Tickets 1, 13.)
 7. **Embedding.** The public API of ticket 13 is in place: a compiled filter is immutable and
    safe to share between threads (a concurrency test), unloads when dropped (a test that observes
-   the class collected), and under the embedding defaults cannot read the environment or the
+   the filter collected; its hidden class once bytecode exists, ADR-0018), and under the embedding defaults cannot read the environment or the
    system time zone, name a file, halt the JVM or import from disk (one test per rule, each with a witness filter).
    `import` resolves through the host. (Ticket 13.)
 8. **Quality.** The CI run of the gate commit is green in every required job. The spec gate
    (`scripts/gate-spec.sh`) passes on the VM. Floors on the gate commit: JaCoCo lines ≥ 90 % and
    branches ≥ 80 % on `query-core` and `jq-core`, lines ≥ 80 % on `jq-cli`; PIT ≥ 80 % on the
-   class-C modules (the nightly run of the gate commit) _(Phase 0: ticket 15 confirms)_. The
+   class-C modules, killed over all generated mutants (the nightly run of the gate commit;
+   `quality/floors.tsv`, ADR-0020). The
    ratchet is green (`java scripts/ratchet.java check`). `query-core` has no reference to JSON or
    jq (a build rule). Every spec of the milestone was merged through `/run-spec` with its review.
 9. **Hand-over.** `HANDOVER.md` covers: building and running from a clean clone with only JDK 25
@@ -66,7 +69,7 @@ ticket that adds a builtin or a construct also adds its oracle cases.
 | 3 | Builtins | The prelude and the native builtins by family (collections, strings, regex with joni, dates, math, formats `@…`), each with its oracle cases. | 1, 2 |
 | 4 | Paths and updates | `path()`, `paths`, `getpath` family, `del`, the assignment operators, the ownership rule and its property tests. | 1, 2, 4 |
 | 5 | JSON in full | Input and output modes, number formatting, limits and budgets, automatic streaming. | 3, 4 |
-| 6 | Speed | The benchmark module and its scenarios, the analyses that buy the fast paths, the second backend if the milestone ships both, the bench rules in the ratchet. | 4, 5 |
+| 6 | Speed | The jq-ref timing script, the speed factors and the bench rules in the ratchet (the bench module and each spec's scenarios exist from spec 1, ADR-0019), the analyses that buy the fast paths. Milestone 1 ships the interpreter only (ADR-0018). | 4, 5 |
 | 7 | Embedding and command line | The public API and host SPI, sandbox defaults, `import`, the remaining flags. Its last ticket writes `HANDOVER.md`. | 6, 7, 9 |
 
 ## Out of the gate

@@ -293,12 +293,45 @@ _Avoid_: test (that is a JUnit method), example
 Running a case in jqj and in the reference jq binary and requiring byte-identical output.
 
 **Backend oracle**:
-Running a case in both backends and requiring identical output.
+Running a case in both backends and requiring identical output. It starts with the bytecode
+backend (ADR-0018).
+
+**Compile-mode oracle**:
+Running a case under the optimised and the conservative compile of one backend and requiring the
+same output and error.
+
+**Conservative compile**:
+Compiling with every analysis fact at its safe value: cardinality many, every path TRACKED, a
+detach at every hold, no specialisation.
+
+**Recording**:
+jq-ref's exit code, stdout and stderr for one case, committed beside it and written only by the
+record command.
+_Avoid_: snapshot, golden file
+
+**Required case**:
+A case the JUnit run asserts: it is in the ratchet, or the ticket names it at its gate.
+
+**Survey**:
+The run of every case that is not required; it writes the oracle report and fails only on a crash.
+
+**Oracle report**:
+Each case's verdict (PASS, FAIL, STALE, CRASH) per oracle and backend; the ratchet reads it.
+
+**Deviation case**:
+A differential case that carries jqj's column of a `DEVIATIONS.md` row; jq-ref's column is its
+recording.
+
+**Retired case**:
+A ratcheted id whose source file changed with a reference bump.
+
+**Reference profile**:
+The reference jq's build options (decNumber, Oniguruma, builtins), which jqj mirrors.
 
 **Ratchet**:
 A committed record of what passes (oracle cases, coverage, mutation scores, benchmark
-baselines). Merges into `main` may only keep or raise it; the verifier regenerates it once per
-spec, nobody edits it by hand.
+baselines). Merges may only keep or raise it. The verifier regenerates the oracle pass lists after
+every merge and the rest once per spec; nobody edits it by hand.
 
 **Floor**:
 A fixed minimum of coverage or mutation score below which the build fails, whatever the ratchet
@@ -307,6 +340,23 @@ says.
 **Benchmark scenario**:
 One measured quantity of one filter on one input size, such as the throughput of field extract on
 a 10 MB document. Its baseline is a line of the ratchet.
+
+**Gate scenario**:
+A benchmark scenario whose speed factor gate check 5 bounds (G1–G6; cold start is recorded only).
+_Avoid_: headline benchmark
+
+**Diagnostic scenario**:
+A benchmark scenario that informs one named decision; recorded, with no factor.
+
+**Reference time**:
+The reference jq's time per document on the same machine in the same session, its start-up
+subtracted.
+
+**Speed factor**:
+jqj's time per document divided by the reference time.
+
+**Machine label**:
+The name of a kind of machine (`claude-cloud-4vcpu`), recorded with its CPU, kernel and JDK.
 
 **Spike**:
 A throwaway experiment that measures one risky assumption before a decision is made. Its code is
@@ -333,8 +383,8 @@ The open, unblocked, unclaimed tickets of a spec or map.
 `spec/<issue>-<slug>`, where a spec's tickets are merged one by one before one PR to `main`.
 
 **Class-C module**:
-A module on a hard path, listed in the file "How do the oracles and the ratchet work?" decides
-(today `query-core` and `jq-core`). Mutation floors apply to it, and the ticket gate
+A module on a hard path, listed in `quality/floors.tsv` (ADR-0020; today `query-core` and
+`jq-core`). Mutation floors apply to it, and the ticket gate
 runs PIT on what a ticket changed in it.
 _Avoid_: core module
 
