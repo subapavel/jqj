@@ -71,6 +71,14 @@ class Utf8EdgesTest {
               assertThat(e.line()).as("line").isEqualTo(1);
               assertThat(e.column()).as("column").isEqualTo(0);
             });
+    // A partial BOM cut by EOF: jq-ref 1.8.2, observed 2026-11-11: printf '\xef' and printf '\xef\xbb' | jq-ref -c .
+    // -> rc 0, no output, so zero documents, which read reports as a JqSyntaxException (ADR-0026). jq-ref gives no
+    // offset, line or column for it, so only the type is pinned.
+    for (String hex : new String[] {"ef", "ef bb"}) {
+      assertThatExceptionOfType(JqSyntaxException.class)
+          .as("a partial BOM %s alone", hex)
+          .isThrownBy(() -> newWorkspace().read(MemorySegment.ofArray(bytes(hex, ""))));
+    }
     assertThatExceptionOfType(JqSyntaxException.class)
         .as("BOM LF [1, LF 2")
         .isThrownBy(() -> newWorkspace().read(MemorySegment.ofArray(bytes("ef bb bf", "\n[1,\n2"))))
