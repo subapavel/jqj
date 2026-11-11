@@ -20,6 +20,20 @@ jq's man.test and manonig.test are generated from the examples of the jq manual
 resources only (ADR-0021), by the ticket that copies them, and keep both jq's MIT notice and this
 attribution.
 
+jq's test files (ADR-0020, ADR-0021), copied byte for byte from the jq 1.8.2 release tarball's
+tests/ directory into oracle/src/test/resources/jq/tests/, together with jq's COPYING and their
+SHA-256 sums in SOURCES.sha256. jq is copyright (C) 2012 Stephen Dolan, MIT License (the full text
+is oracle/src/test/resources/jq/tests/COPYING):
+
+- jq.test
+- onig.test
+- base64.test
+- uri.test
+- optional.test
+- man.test (examples of the jq manual, also under the CC BY 3.0 attribution above)
+- manonig.test (examples of the jq manual, also under the CC BY 3.0 attribution above)
+- modules/** (the 19 files of jq's tests/modules, the library the test files import)
+
 Test inputs from JSONTestSuite (https://github.com/nst/JSONTestSuite), the 318 files of its
 test_parsing directory at commit 1ef36fa01286573e846ac449e8683f8833c5b26a, MIT License,
 Copyright (c) 2016 Nicolas Seriot. They are the json oracle's cases in
