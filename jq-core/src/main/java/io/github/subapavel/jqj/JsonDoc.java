@@ -1,19 +1,28 @@
 package io.github.subapavel.jqj;
 
-import io.github.subapavel.jqj.internal.Stub;
+import io.github.subapavel.jqj.internal.value.Document;
 import io.github.subapavel.jqj.value.JqValue;
 
-/** A document that was read (ADR-0016). Both members are Stubs so far. */
+/** A document that was read (ADR-0016). Closing it makes its views stale (ADR-0026). */
 public final class JsonDoc implements AutoCloseable {
-  JsonDoc() {}
+  private final Document document;
 
-  /** The document's root value, the run input. */
-  public JqValue root() {
-    throw Stub.unbuilt("JsonDoc.root");
+  JsonDoc(Document document) {
+    this.document = document;
   }
 
+  /**
+   * The document's root value, the run input.
+   *
+   * @throws JqTermination with cause {@code STALE_VIEW} once the document is closed or superseded
+   */
+  public JqValue root() {
+    return document.root();
+  }
+
+  /** Makes the document and its views stale; closing it again, or after a later read, does nothing more. */
   @Override
   public void close() {
-    throw Stub.unbuilt("JsonDoc.close");
+    document.drop();
   }
 }
