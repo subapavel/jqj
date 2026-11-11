@@ -1,6 +1,6 @@
 # Milestone 1 ships the interpreter; the bytecode backend opens milestone 2
 
-Status: accepted (2026-11-11, owner, issue #12 "Interpreter or bytecode first, and what speed must milestone 1 show?"); amends ADR-0011 (calibration), ADR-0013 (module-path cases, linkage test) and ADR-0016 (unloading); reads founding §4, §9 and §12 layers 1–2 for milestone 1
+Status: accepted (2026-11-11, owner, issue #12 "Interpreter or bytecode first, and what speed must milestone 1 show?"); amends ADR-0011 (calibration), ADR-0013 (module-path cases, linkage test) and ADR-0016 (unloading); reads founding §4, §9 and §12 layers 1–2 for milestone 1; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch)
 
 - **Milestone 1 ships only the interpreter backend.** It starts in spec 1 (walking skeleton) and
   is complete by spec 5. The bytecode backend is the first spec of milestone 2.
@@ -24,8 +24,9 @@ Status: accepted (2026-11-11, owner, issue #12 "Interpreter or bytecode first, a
 - **The second opinion in milestone 1 is the compile-mode oracle** (ADR-0020). It compares the
   optimised compile with a conservative compile of the same filter, on output and error. The
   conservative compile sets cardinality to many everywhere, makes every Update and PathOf
-  TRACKED, detaches at every hold and caps specialisation at 0. Because cardinality is many
-  everywhere, it has no tail calls, so its deep-recursion cases run on the trampoline. "Backend
+  TRACKED, detaches at every hold and caps specialisation at 0. It grants no in-place licence but
+  keeps the update's own owner (ADR-0022); the copy-only switch, under which no owner matches, is
+  the ownership tests' baseline. Because cardinality is many everywhere, it has no tail calls, so its deep-recursion cases run on the trampoline. "Backend
   oracle" and `ratchet/oracle/backend.txt` stay reserved for the interpreter against bytecode.
 - **Module path:** ADR-0013's ten-or-so `jq-cli` cases run on the interpreter. The test that a
   generated class names only `java.*` and `query-core` types moves to the bytecode spec.

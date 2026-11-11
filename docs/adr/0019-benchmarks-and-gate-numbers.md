@@ -1,6 +1,6 @@
 # Benchmarks: gate scenarios against same-session jq-ref, and the numbers of gate checks 4 and 5
 
-Status: accepted (2026-11-11, owner, issue #12 "Interpreter or bytecode first, and what speed must milestone 1 show?"); fixes GATE checks 4 and 5; the bench module runs from spec 1 (ADR-0013, ADR-0014)
+Status: accepted (2026-11-11, owner, issue #12 "Interpreter or bytecode first, and what speed must milestone 1 show?"); fixes GATE checks 4 and 5; the bench module runs from spec 1 (ADR-0013, ADR-0014); amended by ADR-0022 (issue #8: the analyses-gain diagnostic times G4 at 10⁴ only)
 
 The reference numbers below were observed by the adviser on `claude-cloud-4vcpu` with jq 1.8.2
 (issue #12 round 1). The logs and the D-list are on issue #12 and in `bench/RESULTS.md` "Reference
@@ -42,7 +42,9 @@ times and limits (issue #12)".
   - computed against literal printing (the Ryu trigger, ADR-0012);
   - per-message cost (ADR-0016);
   - compile cap (ADR-0006);
-  - the gain of the analyses, under the conservative compile (ADR-0018).
+  - the gain of the analyses, under the conservative compile (ADR-0018); G4 there at 10⁴ only,
+    since at 10⁶ it makes about 5×10¹¹ slot copies (ADR-0022);
+  - the gain of in-place updates, `ownershipGain` (ADR-0022).
 - Every gate and diagnostic filter on its 1 KB input is also a differential case
   (`bench.<name>.1k`), so jqj is timed on the same work jq does.
 

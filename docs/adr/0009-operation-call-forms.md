@@ -1,6 +1,6 @@
 # Operation call forms
 
-Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); completes ADR-0005, amends ADR-0006
+Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); completes ADR-0005, amends ADR-0006; amended by ADR-0022 (issue #8: `keepsArgs`, in-place operations)
 
 An `Operation` (ADR-0005) is called through a functional interface that matches its cardinality.
 
@@ -34,3 +34,8 @@ An `Operation` (ADR-0005) is called through a functional interface that matches 
 - **MethodHandles for every arity:** one type fits all, but `invokeExact` on a non-constant handle
   is slow in the interpreter.
 - **A sink form for many results:** the trampoline cannot resume it.
+
+## Amendment (ADR-0022, issue #8)
+
+An operation's in-place variant is called like its value form with the owner and the target first.
+It is never called at a site without the in-place licence.

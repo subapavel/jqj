@@ -1,6 +1,6 @@
 # Value model: kind-first sealed JqValue, views and built values
 
-Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?")
+Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0022 (issue #8: owner on built strings)
 
 Every jq value is a `sealed interface JqValue`, split first by kind and then by family. Builtins
 and hosts first ask "is it a string?", which is then one type test. Whether it is a view into a
@@ -25,8 +25,8 @@ document or a value the filter built is the second question, and it is answered 
     appended in place while one operation owns it. Without the growable form, `INDEX`,
     `from_entries`, `with_entries` and `add` would copy the key list on every insert and go
     quadratic. jq-ref builds a 400 000-key `INDEX` in 1.2 s.
-- **Ownership**: only built arrays and objects carry an owner field. When it may be used belongs
-  to "When may a value be updated in place?".
+- **Ownership**: built arrays, objects and strings carry an owner field (strings added by
+  ADR-0022). When it may be used is ADR-0022's.
 
 ## Considered options
 

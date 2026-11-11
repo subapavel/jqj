@@ -1,6 +1,6 @@
 # Oracles and ratchet: copied jq tests, recorded jq-ref expectations, required cases, per-merge pass lists
 
-Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14
+Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1). Every runner lives in
 `oracle` on the class path, in `…jqj.oracle.{jqtest,diff,compile,backend,json,gen,record}`.
@@ -116,7 +116,9 @@ errors`); such text is jqj's own. The jqtest runner reads the last block from a 
 - **In milestone 1** (ADR-0018), the compile-mode oracle runs every jqtest, differential and
   generated case twice: optimised and conservative, through an engine-internal switch. It
   compares output and error. Cases that end in a termination under either compile are left out (a
-tail-recursive case can finish optimised and hit the recursion budget conservative). It runs in the ticket
+  tail-recursive case can finish optimised and hit the recursion budget conservative). A third run
+  under the copy-only switch (ADR-0022) checks in-place updates the same way; cases that end in a
+  termination under copy-only are left out. The oracle runs in the ticket
   gate unless the skeleton ticket measures the oracle above ADR-0014's 60 s target, in which case
   it moves to the spec gate.
 - **The backend oracle** (interpreter against bytecode) starts with the bytecode spec. It compares

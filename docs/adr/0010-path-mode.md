@@ -1,6 +1,6 @@
 # Path mode is a second variant over parent-linked paths
 
-Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?")
+Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); amended by ADR-0022 (issue #8: a licensed WALK writes in place)
 
 Path mode is a second variant of the nodes. It is built only for the nodes that a TRACKED
 `PathOf` or `Update` can reach (ADR-0007; WALK may run as TRACKED).
@@ -34,6 +34,7 @@ Path mode is a second variant of the nodes. It is built only for the nodes that 
 - **Shapes:**
   - FIXED updates run `getpath`/`setpath` on the constant chain.
   - WALK rebuilds along the steps with the Workspace path stack, and deletes apply after the walk.
+    A licensed FIXED or WALK update writes owned levels in place (ADR-0022); TRACKED is never licensed.
   - TRACKED follows jq's `_modify`: the first right-hand result wins, a path whose right-hand side
     is empty goes to the delete list, and `delpaths` runs last. On jq-ref,
     `(.[0], .[1]) |= empty` gives `[3]` and `{"a":0} | .a |= (1,2)` gives `{"a":1}`.

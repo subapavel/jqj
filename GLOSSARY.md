@@ -98,14 +98,34 @@ A built object whose keys are made at run time, so it keeps its own key list ins
 _Avoid_: dictionary, map object, hash object
 
 **Ownership marker**:
-What lets the engine update a built value in place: the mark that a running operation (`reduce`,
-`foreach`, an update, an array builder) is the value's only holder. It is cleared when the value
-escapes. _(open: the exact rule, ticket 8)_
+The `owner` field of a built array, object or string: the running activation (a `reduce` or
+`foreach` run, or an update) that made the value. A write in place needs it to match and the site
+to hold the in-place licence (a string append and an update's own rebuild need the match only;
+ADR-0022).
 _Avoid_: reference count, transient, lock
+
+**In-place licence**:
+The analysis fact that a site's target is the only use of an owning activation's state, so it may
+be written in place when its owner matches (ADR-0022).
+
+**Sole-use chain**:
+The way an activation's state goes through its body, from input to result, read once and kept
+nowhere else.
+
+**Borrow**:
+A read of the state whose result keeps no part of it.
+
+**Retire**:
+To give an owning activation a fresh owner when one of its values leaves the sole-use chain, so
+every value it made so far is copied before any later write.
+
+**Copy-only**:
+The engine-internal switch under which no owner ever matches; the ownership tests' baseline.
 
 **Escape**:
 The moment a built value becomes reachable from somewhere other than the operation that owns it:
-bound to a variable, stored in another value, or emitted.
+bound to a variable, stored in another value, emitted, captured, raised, passed to `debug`, or read
+a second time by its owner.
 
 ## Compiling
 
@@ -303,7 +323,7 @@ same output and error.
 
 **Conservative compile**:
 Compiling with every analysis fact at its safe value: cardinality many, every path TRACKED, a
-detach at every hold, no specialisation.
+detach at every hold, no specialisation, no in-place licence.
 
 **Recording**:
 The reference jq's exit code, stdout and stderr for one case, committed beside it and written only by the
