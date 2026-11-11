@@ -66,3 +66,8 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#30) `gh api repos/<o>/<r>/issues/<n>` (REST) works from a subagent; `gh issue view` (GraphQL) gets 403.
 - (#26) The oracle module's main tree sees only jq-cli (module-info), its test tree compiles against jq-core: keep API adapters in the test tree.
 - (#26) The worktree guard rejects a Bash call whose text contains `io.github` (e.g. PIT targetClasses): run it from a scratch script.
+- (#26) Run `git fetch origin <b>:refs/remotes/origin/<b>` before the gate so its `origin/<b>` base is the current tip.
+- (#28) `gate-ticket.sh` with the default `origin/main` ref fails trailers on the integration branch's architect commits; pass `origin/spec/<spec>-<slug>` as ref.
+- (#28) `\uXXXX` in a Java comment is an active Unicode escape; write `&#92;u`. Design tables pasted through tools may lose escapes: ask when two table cells look identical.
+- (#28) jq-ref 1.8.2 accepts `-Infinity`, `-inf`, `1e2147483648` and 11-digit exponents (rc 0, clamped to ±DBL_MAX or `0E-1147483646`). `/usr/bin/time` is absent; use bash `time`.
+- (#42) The worktree guard refuses a Bash call combining `git` with `;` or `&&`: one git command per call, or a scratch script run with `bash`.
