@@ -9,12 +9,15 @@ import io.github.subapavel.jqj.oracle.diff.DiffCase;
 import io.github.subapavel.jqj.oracle.diff.Outcome;
 import io.github.subapavel.jqj.oracle.diff.Recording;
 import io.github.subapavel.jqj.oracle.gen.ValuesV1;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -26,6 +29,19 @@ class RecorderTest {
 
   private static final Outcome OK = new Outcome(0, "1\n".getBytes(UTF_8), new byte[0]);
 
+  /** A reference that answers each case with {@code outcome}. */
+  private record Fake(Function<DiffCase, Outcome> outcome) implements Recorder.Reference {
+    @Override
+    public String header() {
+      return "# jq-fake sha256 00";
+    }
+
+    @Override
+    public Outcome run(DiffCase c) {
+      return outcome.apply(c);
+    }
+  }
+
   private static long seed(DiffCase c) {
     return Long.parseLong(c.id().substring(ValuesV1.FAMILY.length() + 1));
   }
@@ -34,14 +50,15 @@ class RecorderTest {
   void aSeedWithRc3OrATimeoutIsDroppedAndEveryOtherIsRecorded() throws Exception {
     List<Long> runs = new ArrayList<>();
     Recorder.Reference ref =
-        c -> {
-          long seed = seed(c);
-          runs.add(seed);
-          if (seed == 1) return new Outcome(3, new byte[0], "jq: error\n".getBytes(UTF_8));
-          if (seed == 2 && runs.stream().filter(s -> s == 2).count() == 2) return null;
-          if (seed == 3) return null;
-          return OK;
-        };
+        new Fake(
+            c -> {
+              long seed = seed(c);
+              runs.add(seed);
+              if (seed == 1) return new Outcome(3, new byte[0], "jq: error\n".getBytes(UTF_8));
+              if (seed == 2 && runs.stream().filter(s -> s == 2).count() == 2) return null;
+              if (seed == 3) return null;
+              return OK;
+            });
 
     Recorder.Family f = Recorder.generate(0, 5, ref);
 
@@ -57,30 +74,39 @@ class RecorderTest {
   @Test
   void twoRunsThatDifferRejectTheRange() {
     int[] n = {0};
-    Recorder.Reference ref = c -> new Outcome(n[0]++, new byte[0], new byte[0]);
+    Recorder.Reference ref = new Fake(c -> new Outcome(n[0]++, new byte[0], new byte[0]));
 
     assertThatThrownBy(() -> Recorder.generate(7, 8, ref)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("gen/values-v1/7").hasMessageContaining("differ");
   }
 
   @Test
-  void aFamilyIsWrittenBelowGen(@TempDir Path tmp) throws Exception {
+  void generateWritesTheFamilyBelowGenWithTheReferenceHeader(@TempDir Path tmp) throws Exception {
     Path diff = tmp.resolve("diff");
-    Recorder.Family f = new Recorder.Family("# h\n", List.of(new Recording("gen/values-v1/0", "abc", OK)));
 
-    f.write(diff, "# jq-1.8.2 sha256 00");
+    int rc = Recorder.generate(List.of("values-v1", "0", "2", diff.toString()), new Fake(c -> OK));
 
-    assertThat(Files.readString(diff.resolve("gen/values-v1.cases"))).isEqualTo("# h\n");
-    assertThat(Recording.read(diff.resolve("gen/values-v1.rec"))).containsOnlyKeys("gen/values-v1/0");
+    assertThat(rc).isZero();
+    assertThat(Files.readString(diff.resolve("gen/values-v1.cases"))).isEqualTo(ValuesV1.file(0, 2, Map.of()));
+    assertThat(Files.readString(diff.resolve("gen/values-v1.rec"))).startsWith("# jq-fake sha256 00\n\ncase gen/values-v1/0\n");
+    assertThat(Recording.read(diff.resolve("gen/values-v1.rec"))).containsOnlyKeys("gen/values-v1/0", "gen/values-v1/1");
   }
 
   @Test
   void aMalformedGenerateIsAUsageError(@TempDir Path diff) throws Exception {
     String dir = diff.toString();
-    assertThat(Recorder.run(List.of("--generate", "values-v2", "0", "1", dir))).isEqualTo(2);
-    assertThat(Recorder.run(List.of("--generate", "values-v1", "0", "x", dir))).isEqualTo(2);
-    assertThat(Recorder.run(List.of("--generate", "values-v1", "1", "1", dir))).isEqualTo(2);
-    assertThat(Recorder.run(List.of("--generate", "values-v1", "-1", "1", dir))).isEqualTo(2);
-    assertThat(Recorder.run(List.of("--generate", "values-v1", "0", "1"))).isEqualTo(2);
+    PrintStream err = System.err;
+    ByteArrayOutputStream captured = new ByteArrayOutputStream();
+    System.setErr(new PrintStream(captured, true, UTF_8));
+    try {
+      assertThat(Recorder.run(List.of("--generate", "values-v2", "0", "1", dir))).isEqualTo(2);
+      assertThat(Recorder.run(List.of("--generate", "values-v1", "0", "x", dir))).isEqualTo(2);
+      assertThat(Recorder.run(List.of("--generate", "values-v1", "1", "1", dir))).isEqualTo(2);
+      assertThat(Recorder.run(List.of("--generate", "values-v1", "-1", "1", dir))).isEqualTo(2);
+      assertThat(Recorder.run(List.of("--generate", "values-v1", "0", "1"))).isEqualTo(2);
+    } finally {
+      System.setErr(err);
+    }
+    assertThat(captured.toString(UTF_8).lines()).hasSize(5).allMatch(l -> l.contains("--generate values-v1 <from> <to>"));
     try (var left = Files.list(diff)) {
       assertThat(left).isEmpty();
     }

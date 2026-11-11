@@ -34,7 +34,8 @@ class SplitMix64Test {
 
   /**
    * A bound that does not divide 2^63 must reject the draws of its last, partial block. With {@code bound = 2^62 + 1}
-   * nearly half of all 63-bit draws fall there, so 64 bounded draws use far more than 64 raw ones.
+   * the only full block is [0, bound), so a bounded draw is the first raw 63-bit draw below the bound, and nearly half
+   * of the raw draws are rejected.
    */
   @Test
   void belowRejectsTheBiasedTail() {
@@ -42,12 +43,17 @@ class SplitMix64Test {
     for (int i = 0; i < 1000; i++) assertThat(r.below(Integer.MAX_VALUE)).isBetween(0, Integer.MAX_VALUE - 1);
     long big = (1L << 62) + 1;
     SplitMix64 bounded = new SplitMix64(11);
-    for (int i = 0; i < 64; i++) assertThat(bounded.belowLong(big)).isBetween(0L, big - 1);
-    long next = bounded.nextLong();
     SplitMix64 raw = new SplitMix64(11);
-    int used = 0;
-    while (raw.nextLong() != next) used++;
-    assertThat(used).as("raw draws behind 64 bounded ones").isBetween(80, 200);
+    int rejected = 0;
+    for (int i = 0; i < 64; i++) {
+      long u = raw.nextLong() >>> 1;
+      while (u >= big) {
+        rejected++;
+        u = raw.nextLong() >>> 1;
+      }
+      assertThat(bounded.belowLong(big)).as("draw %d", i).isEqualTo(u);
+    }
+    assertThat(rejected).isBetween(16, 200);
   }
 
   @Test

@@ -41,10 +41,28 @@ public final class Recorder {
   private static final Path JQ_REF = Path.of("/usr/local/bin/jq-ref");
   private static final long TIMEOUT_SECONDS = 10;
 
-  /** jq-ref's outcome of one case, or null when it ran over the timeout. */
+  /** The reference binary as {@code --generate} sees it; tests stand a fake in for jq-ref. */
   interface Reference {
+
+    /** The recording header, {@code # jq-<version> sha256 <hex>}. */
+    String header() throws IOException, InterruptedException;
+
+    /** The outcome of one case, or null when it ran over the timeout. */
     Outcome run(DiffCase c) throws IOException, InterruptedException;
   }
+
+  private static final Reference JQ_REF_BINARY =
+      new Reference() {
+        @Override
+        public String header() throws IOException, InterruptedException {
+          return Recorder.header();
+        }
+
+        @Override
+        public Outcome run(DiffCase c) throws IOException, InterruptedException {
+          return runReference(c);
+        }
+      };
 
   /**
    * A generated family: the text of its case file and the recordings of the seeds that were not dropped.
@@ -69,7 +87,7 @@ public final class Recorder {
   }
 
   static int run(List<String> args) throws IOException, InterruptedException {
-    if (!args.isEmpty() && args.get(0).equals("--generate")) return generate(args.subList(1, args.size()));
+    if (!args.isEmpty() && args.get(0).equals("--generate")) return generate(args.subList(1, args.size()), JQ_REF_BINARY);
     boolean verify = !args.isEmpty() && args.get(0).equals("--verify");
     List<String> files = verify ? args.subList(1, args.size()) : args;
     String extension = verify ? ".rec" : ".cases";
@@ -118,7 +136,7 @@ public final class Recorder {
   }
 
   /** {@code --generate values-v1 <from> <to> <diff-dir>}, with {@code 0 <= from < to}. */
-  private static int generate(List<String> args) throws IOException, InterruptedException {
+  static int generate(List<String> args, Reference reference) throws IOException, InterruptedException {
     long[] range = range(args);
     if (range == null) {
       System.err.println("usage: scripts/oracle-record.sh --generate " + ValuesV1.NAME + " <from> <to>, 0 <= from < to");
@@ -126,9 +144,9 @@ public final class Recorder {
     }
     long from = range[0];
     long to = range[1];
-    String header = header();
+    String header = reference.header();
     // Two runs that differ throw out of main before anything is written, which exits 1.
-    Family family = generate(from, to, Recorder::runReference);
+    Family family = generate(from, to, reference);
     family.write(Path.of(args.get(3)), header);
     int dropped = (int) (to - from) - family.recordings().size();
     System.out.println("recorded " + family.recordings().size() + " seeds of " + ValuesV1.NAME + ", dropped " + dropped);
