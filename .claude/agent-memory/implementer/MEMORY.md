@@ -55,3 +55,8 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#29) The worktree guard refuses a Bash call mixing `python3 <<EOF`, `$S` variables in a git-adjacent command, or `git fetch` chained with other commands: use Edit, one plain git command per call.
 - (#29) `git fetch origin <branch>:refs/remotes/origin/<branch>` creates the remote-tracking ref when plain `fetch <branch>` does not.
 - (#29) An oracle family with extra report columns needs a `DiffReport.Row` label, not a new report class; byte-exact inputs go in through `CaseFormat.escape` plus a `file` line.
+- (#24) PIT skips a module whose targetClasses match nothing; a module-path-only test in jq-cli never runs on PIT's class path.
+- (#24) surefire 3.6.1 `useModulePath=true` on jq-cli patches the tests into the module and opens their package; no extra add-opens.
+- (#24) `-Xlint:serial` warns on a non-transient interface-typed field (List, JqValue) in an exception; javac 25 does not warn on permits naming non-exported classes.
+- (#24) A null guard placed before a two-sided check needs its null test to set the other argument, or the next dereference hides a deleted guard.
+- (#24) In an API-slice ticket "every body is a Stub" covers behaviour members only; carriers (builders, records, enums, exceptions) get real bodies, as the approved tests decide.
