@@ -373,7 +373,8 @@ public class ratchet {
     for (Object o : (List<?>) doc) {
       Map<?, ?> m = (Map<?, ?>) o;
       String name = (String) m.get("benchmark");
-      name = name.substring(name.lastIndexOf('.') + 1);
+      // The method name is the ADR-0024 id with each '.' written '_' (G6_compact_10m is G6.compact.10m).
+      name = name.substring(name.lastIndexOf('.') + 1).replace('_', '.');
       if (m.get("params") instanceof Map<?, ?> ps) {
         StringBuilder b = new StringBuilder(name);
         new TreeMap<>(ps).forEach((k, v) -> b.append('/').append(k).append('=').append(v));

@@ -4,6 +4,56 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Bench module and jq-ref.sh: jq-ref per document (ticket #30), 2026-11-11
+
+- Machine: `claude-cloud-4vcpu` (4 vCPU Intel Xeon Processor @ 2.10GHz, Linux 6.18.44-fc-v378),
+  `java version "25.0.5.0.3" 2026-10-25 LTS`, jq-ref `jq-1.8.2`. Date 2026-11-11T17:06Z.
+- Commit: `44de834` on `t/30-bench-module`. Command: `java -jar bench/jmh/target/benchmarks.jar -prof
+  gc -rf json`, then `bench/jq-ref.sh` straight after in the same shell (`.logs/30-jmh-session.log`,
+  `.logs/30-jq-ref-session.log`).
+- JMH against the Stubs: the six API scenarios end every fork in `JqCompileException` (`jqj stub:
+  JqEngine.compile …`); `G7.process.1k` ends in `IOException`, because `jq-cli/target/jqj` does not
+  exist yet. No jqj number exists.
+- Inputs: `orders` of `Inputs` (bench module). Sizes are 1024-based: `1k` = 1 KiB = 1 024 bytes,
+  `100k` = 100 KiB = 102 400 bytes, `10m` = 10 MiB = 10 485 760 bytes, exactly; SHA-256 pinned in
+  `InputsTest`. They are not the inputs of issue #12, so the rows below do not compare
+  with the "Reference times" table under it.
+- jq-ref per ADR-0019: one discarded run, best of 5, K concatenated copies, minus the best of 5
+  start-up runs of the same filter on `/dev/null`, divided by K. `G7.engine.1k` uses that rule on
+  `-c .a`; `G7.process.1k` is one whole process on one 1 KiB document, nothing subtracted.
+- Columns: K is the number of concatenated copies per run; best and start-up are wall-clock
+  milliseconds of one jq-ref process (best of 5); per document is (best − start-up) / K, printed in
+  µs or ms as marked (the script prints µs). jqj's JMH units, once it has numbers: µs/op for the
+  `avgt` scenarios (G1, G6), ms/op for the single-shot G7.
+
+| id | filter | K | best | start-up | per document |
+| --- | --- | --- | --- | --- | --- |
+| G1.1k | `-c .a.b.c` | 10000 | 214.853 ms | 2.311 ms | 21.25 µs |
+| G1.100k | `-c .a.b.c` | 100 | 244.976 ms | 2.348 ms | 2.426 ms |
+| G1.10m | `-c .a.b.c` | 1 | 407.432 ms | 2.343 ms | 405.1 ms |
+| G6.compact.10m | `-c .` | 1 | 548.518 ms | 2.367 ms | 546.2 ms |
+| G6.pretty.10m | `.` | 1 | 689.134 ms | 2.423 ms | 686.7 ms |
+| G7.engine.1k | `-c .a` | 10000 | 225.628 ms | 2.442 ms | 22.32 µs |
+| G7.process.1k | `-c .a` | 1 | 2.352 ms | – | 2.352 ms (one process) |
+
+**JMH flag spelling (ADR-0019, "UNVERIFIED" there).** Checked on JMH 1.37 from the jar's own `-h`,
+`-lrf` and `-lprof` (`.logs/30-jmh-help.log`; Context7 is not offered in the implementer's session).
+`-bm avgt -f 2 -wi 3 -w 1s -i 5 -r 1s -prof gc -rf json` is the right spelling: `-bm` takes
+`avgt` and `ss`, `-w`/`-r` take a `<time>` such as `1s`, `-rf` lists `json`, `-lprof` lists `gc`.
+A run of `G1_1k` with exactly those flags printed "Warmup: 3 iterations, 1 s each", "Measurement:
+5 iterations, 1 s each", "Average time" and 2 forks (`.logs/30-jmh-flags.log`). Heap: `-jvmArgs`
+(`-jvmArgsAppend`, `-jvmArgsPrepend`); the class's annotations carry these settings and G7's (`ss`,
+10 forks, no warm-up, one iteration), and a flag given on the command line overrides them for every
+benchmark, G7 included.
+
+**How to run** (from the repo root, after `./mvnw -B -Pbench package`):
+
+- Gate scenarios: `java -jar bench/jmh/target/benchmarks.jar -prof gc -rf json`, then
+  `bench/jq-ref.sh` straight after, in the same shell.
+- Small-heap fork of gate check 4 (G1 and G6 `-c` at 10 MiB; no extra ids, the same methods):
+  `java -jar bench/jmh/target/benchmarks.jar 'G1_10m|G6_compact_10m' -jvmArgs "-Xms64m -Xmx64m" -prof gc -rf json`.
+  NOT_RUN in #30 (the Stubs end every fork before a read); #39 records it.
+
 ## Build skeleton: one build alone and three in parallel (ticket #23), 2026-11-11
 
 - Machine: `claude-cloud-4vcpu` (4 vCPU Intel Xeon @ 2.10GHz, 15 GB RAM, Linux 6.18), JDK 25.0.5,
