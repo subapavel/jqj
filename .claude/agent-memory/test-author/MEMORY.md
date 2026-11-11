@@ -17,3 +17,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#24) JDK 25 `Class.toGenericString()` prints sealed/non-sealed/enum/record; record equals/hashCode/toString are `public final`; enum `values()`/`valueOf` are not synthetic, `$values`/`$VALUES` are.
 - (#24) A surefire second execution with `useModulePath=true` runs a jq-cli test with jq-core as a named module.
 - (#24) To prove red tests can go green without touching the branch: `cp -r` the worktree to the scratchpad, `rm` its `.git` file, write a stand-in, build with `-Dchecks.skip=true`.
+- (#24) Stub tests lose entries as bodies are built; deleting an entry with its Stub is not weakening a test — say so in the test's Javadoc.
+- (#24) A null-argument test must set every other argument so that only the null guard can produce the expected exception.
