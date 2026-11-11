@@ -79,3 +79,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#33) Gate jq-cli out of the PIT module list: PIT runs its module-path test on the class path and fails; the ratchet still checks jq-cli's 80 % line floor.
 - (#33) A mutant on a position (BOM skip, token start, `Source`) is not equivalent: kill it through the seam's offset/line/column or the IR node's `source()`; a slice at a non-zero base kills `end - p` → `end + p`.
 - (#33) Pin line and column of a read error only where jq-ref gives one (grilling item 7); a partial or bare BOM is rc 0 in jq-ref.
+- (#34) The word check scans query-core test comments too; and a lexer must reject a token-pair Stub (`..`) itself — the parser rejecting the bare pair leaves `..a` running.
+- (#34) Grilling decisions bind even when they look speculative (BuiltString `owner`, grilling 1.9): never drop them as a deviation.
