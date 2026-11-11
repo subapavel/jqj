@@ -269,8 +269,13 @@ scripts, the bench module or CI, before the language exists.
 _Avoid_: skeleton ticket, build skeleton ticket
 
 **Stub**:
-A body that ends with a fixed jqj-only error until the spec that owns it; the runners score its
-cases FAIL, and its text is never asserted.
+A body that ends with a `JqCompileException` (a `JqSyntaxException` for malformed input) whose
+message starts with `jqj stub: `, until the spec that owns it. The runners score its cases FAIL by
+that prefix; no test asserts the text after it.
+
+**Unlimited**:
+The value of a budget that never runs out: its largest value.
+_Avoid_: none, infinite, 0, −1
 
 **Host**:
 The program embedding the engine. It supplies the clock, the time zone, the environment, the
