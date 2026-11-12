@@ -155,8 +155,9 @@ class SyntaxErrorTest {
         new SyntaxError(".[0] +", "end of file", 1, 6, "    .[0] +\n         ^"),
         new SyntaxError(".a, .b |", "end of file", 1, 8, "    .a, .b |\n           ^"),
         new SyntaxError(".[0] | )", "INVALID_CHARACTER", 1, 8, "    .[0] | )\n           ^"));
-    // Witness: without the error the unbuilt construct is a Stub (jq-ref -c '.[0]' on [1] -> 1).
-    assertThatExceptionOfType(JqCompileException.class).as("compile of .[0]").isThrownBy(() -> ENGINE.compile(".[0]")).withMessageStartingWith(MARK);
+    // Witness: without the error an unbuilt construct is a Stub. #63 built .[0], so the witness moved to .., a Stub until
+    // spec 2b (jq-ref -c '..' on [1] -> [1] 1, CompileTest).
+    assertThatExceptionOfType(JqCompileException.class).as("compile of ..").isThrownBy(() -> ENGINE.compile("..")).withMessageStartingWith(MARK);
   }
 
   @Test

@@ -36,8 +36,10 @@ class CompileTest {
     //   entry moved to 1, 2 (observed 2026-11-12: 1 2, rc 0), whose comma stays a Stub until #63.
     // #62 built the syntax errors and the not-given message (ADR-0032), so '', '   ', FF and VT left the Stub list and
     // are asserted as jq's errors below (diff/syntax.rec program-empty, program-only-spaces, form-feed-before-dot and
-    // vertical-tab-before-dot); none was dropped.
-    for (String text : List.of("1, 2", ".[0]", "..")) {
+    // vertical-tab-before-dot); none was dropped. #63 built 1, 2 and .[0] (NavigationBudgetTest and diff/comma.rec,
+    // index.rec run them), so their entries ended with their Stubs; .. and ..? stay Stubs until spec 2b (ResolverTest's
+    // GRAMMAR list: jq-ref runs both).
+    for (String text : List.of("..", "..?")) {
       assertThatExceptionOfType(JqCompileException.class)
           .as("compile of %s", quoted(text))
           .isThrownBy(() -> engine.compile(text))
