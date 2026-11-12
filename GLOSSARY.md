@@ -384,6 +384,12 @@ reference jq supplies their verdicts.
 One oracle entry with a stable id: a filter, an input, flags and the expected outputs.
 _Avoid_: test (that is a JUnit method), example
 
+**Case census**:
+The assignment of every jq-test case to the spec that makes it pass, from the builtins and
+constructs its filter reaches in the reference jq. Each spec gate requires the cases the census
+gives it.
+_Avoid_: case budget, target count
+
 **Differential oracle**:
 Running a case in jqj and in the reference jq binary and requiring the same exit code, stdout and
 stderr, byte for byte (syntax-error text excepted, ADR-0020).
