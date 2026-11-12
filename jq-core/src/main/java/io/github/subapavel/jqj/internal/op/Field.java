@@ -6,6 +6,7 @@ import io.github.subapavel.jqj.internal.json.Printer;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.query.run.FilterException;
 import io.github.subapavel.jqj.query.run.Fn0;
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
@@ -51,7 +52,7 @@ public final class Field implements Fn0 {
 
   /** One case per kind of the sealed {@link JqValue} (ADR-0016), so the switch needs no default. */
   @Override
-  public Object apply(Object in) {
+  public Object apply(RunState state, Object in) {
     return switch ((JqValue) in) {
       case JqObject object -> {
         JqValue value = object.get(name);
