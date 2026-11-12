@@ -42,7 +42,8 @@ public final class JsonWriter {
           } catch (IOException e) {
             throw new UncheckedIOException(e);
           }
-          workspace.tick((length + 1023) >>> 10);
+          // Outside a run these ticks count in the steps but not against the next run (ADR-0030, #77).
+          workspace.state.tickWritten((length + 1023) >>> 10);
         };
     return v -> {
       printer.line(v, pretty, target);

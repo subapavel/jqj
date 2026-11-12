@@ -201,6 +201,39 @@ class RunStateTest {
     assertThat(idle.steps()).as("ticks at a begin with no primed read").isZero();
   }
 
+  /**
+   * The next run keeps the primed read's ticks only (ADR-0030, #77): the writer's ticks outside a run count in the
+   * steps, but not against the run; in a run they count against it like any tick.
+   */
+  @Test
+  void writerTicksOutsideARunAreNotKept() {
+    RunState state = new RunState();
+    state.prime();
+    state.tick(10);
+    state.tickWritten(7);
+    assertThat(state.steps()).as("ticks after a read of 10 and a print of 7 outside a run").isEqualTo(17L);
+    state.begin(10, Long.MAX_VALUE, Long.MAX_VALUE);
+    assertThat(state.steps()).as("ticks kept from the read, not the print").isEqualTo(10L);
+    assertBudget(state::tick, Budget.STEPS, "the first tick of a run that kept the read's 10 ticks with 10 steps");
+    state.end();
+
+    // In a run the writer's ticks count against it.
+    state.begin(5, Long.MAX_VALUE, Long.MAX_VALUE);
+    state.tickWritten(5);
+    assertThat(state.steps()).as("ticks of a print of 5 in a run").isEqualTo(5L);
+    assertBudget(() -> state.tickWritten(1), Budget.STEPS, "a print of one more tick in a run with 5 steps");
+    state.end();
+
+    // A main read starts the count again: a print before it is not taken off the read's ticks.
+    state.tickWritten(4);
+    state.prime();
+    state.tickWritten(5);
+    state.prime();
+    state.tick(3);
+    state.begin(10, Long.MAX_VALUE, Long.MAX_VALUE);
+    assertThat(state.steps()).as("ticks kept from the last read, the prints before it not taken off").isEqualTo(3L);
+  }
+
   /** A read during a run is charged to that run (ADR-0030: reads during a run count too): it does not prime. */
   @Test
   void readDuringARunIsChargedToIt() {

@@ -8,9 +8,10 @@ import java.util.function.LongSupplier;
  * count, in a phase that is idle, primed or running. The engine's Workspace owns one and hands it to each run, so it
  * is never shared between two running evaluations; it is not thread-safe.
  *
- * <p>A main read primes it: the run that begins next keeps the read's ticks and every tick after them, so a large
- * document counts against the run that consumes it. A read during a run is charged to that run. {@link #end} leaves
- * every budget unlimited until the next {@link #begin}: outside a run nothing is checked.
+ * <p>A main read primes it: the run that begins next keeps the ticks counted since, less those the writer charged
+ * through {@link #tickWritten} outside a run, so a large document counts against the run that consumes it and a print
+ * between the read and the run does not. A read during a run is charged to that run. {@link #end} leaves every budget
+ * unlimited until the next {@link #begin}: outside a run nothing is checked.
  *
  * <p>A tick is {@code if (--fuel < 0) refuel()}. Refuel comes every 4096 ticks, or at the step budget when that is
  * nearer, and checks the step budget, then the deadline, then the thread's interrupt.
@@ -34,6 +35,9 @@ public final class RunState {
 
   /** The ticks counted before the current fill: the ticks counted so far are {@code counted + filled - fuel}. */
   private long counted;
+
+  /** The writer's ticks outside a run since the last main read outside a run: counted, but no run keeps them. */
+  private long unkept;
 
   /** The fuel the current fill gave. */
   private long filled = UNLIMITED;
@@ -76,13 +80,15 @@ public final class RunState {
   public void prime() {
     if (!running) {
       primed = true;
+      unkept = 0;
       fill(0, UNLIMITED);
     }
   }
 
   /**
    * Begins a run with its budgets, each {@code Long.MAX_VALUE} when unlimited: the steps, the deadline in nanoseconds
-   * and the bytes written. A primed read's ticks count against it; without one it starts from no tick.
+   * and the bytes written. A primed read's ticks count against it, the writer's outside a run do not; without a primed
+   * read it starts from no tick.
    *
    * @throws IllegalStateException when a run is running on this state, which then stays as it was
    * @throws Termination over the step budget when the primed ticks already pass it; no run is then running
@@ -91,7 +97,7 @@ public final class RunState {
     if (running) {
       throw new IllegalStateException("a run is already running on this run state");
     }
-    long kept = primed ? steps() : 0;
+    long kept = primed ? steps() - unkept : 0;
     primed = false;
     if (kept > steps) {
       throw Termination.over(Budget.STEPS);
@@ -136,6 +142,19 @@ public final class RunState {
     if (fuel < 0) {
       refuel();
     }
+  }
+
+  /**
+   * Charges the writer's {@code n} ticks for a drain it wrote, one per KiB (ADR-0015): in a run as {@link #tick(int)};
+   * outside a run they count in {@link #steps()}, but the next run does not keep them (ADR-0030).
+   *
+   * @throws Termination when refuel finds a budget over or the thread interrupted
+   */
+  public void tickWritten(int n) {
+    if (!running) {
+      unkept += n;
+    }
+    tick(n);
   }
 
   /**
