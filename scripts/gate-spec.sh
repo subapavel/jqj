@@ -55,7 +55,10 @@ step() { # <name> <show> <command…>
   fi
 }
 
+# jq-cli's module-path and launcher tests, then oracle's Survey tests (oracle/pom.xml, ADR-0020).
 pit_cli_exclusions="-DexcludedTestClasses=io.github.subapavel.jqj.cli.LauncherTest,io.github.subapavel.jqj.cli.*ModulePathTest"
+pit_cli_exclusions+=",io.github.subapavel.jqj.oracle.diff.DifferentialSurveyTest,io.github.subapavel.jqj.oracle.json.JsonSurveyTest"
+pit_cli_exclusions+=",io.github.subapavel.jqj.oracle.jqtest.JqTestSurveyTest"
 classc=$(awk -F'\t' 'NR > 1 && $2 == "C" { printf "%s%s", sep, $1; sep = "," }' quality/floors.tsv)
 
 step clean-verify 0 ./mvnw -B clean verify -Pbench
@@ -65,7 +68,8 @@ while IFS= read -r path; do recordings+=("$path"); done < <(git ls-files -- 'ora
 step record 0 scripts/oracle-record.sh --verify "${recordings[@]}"
 # oracle's crossModule run mutates the class-C classes under every oracle test; ratchet.java combines it (ADR-0014).
 # oracle pulls in jq-cli, whose module-path and launcher tests need surefire executions PIT does not run; they are
-# kept out of PIT here (a module whose POM sets excludedTestClasses, as oracle does, keeps its own list).
+# kept out of PIT here. The property replaces the list of every module's POM, oracle's too (observed with -X,
+# #45), so oracle's own exclusions are repeated in it.
 step pit 0 ./mvnw -B -pl "$classc,oracle" -am test org.pitest:pitest-maven:mutationCoverage "$pit_cli_exclusions"
 step jmh 0 java -jar "${JMH_JAR:-bench/jmh/target/benchmarks.jar}" -prof gc -rf json -rff ".logs/spec$spec-jmh.json"
 export RATCHET_JMH=".logs/spec$spec-jmh.json"
