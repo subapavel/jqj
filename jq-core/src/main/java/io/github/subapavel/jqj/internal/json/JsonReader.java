@@ -194,10 +194,15 @@ public final class JsonReader {
   private int string(byte[] b, int base, int end, int p, int t) {
     int start = p++;
     int tag = Tape.STRING;
+    boolean unpaired = false;
     for (int c = peek(b, p, end); c != '"'; c = peek(b, p, end)) {
       if (c == '\\') {
         tag = Tape.STRING_REENCODE;
-        p = escape(b, base, end, p + 1);
+        int next = escape(b, base, end, p + 1);
+        if (isSurrogate(b, p, end, 0xD800) && !isSurrogate(b, next, end, 0xDC00)) {
+          unpaired = true;
+        }
+        p = next;
       } else if (c < 0x20) {
         // A raw byte below 0x20 must be escaped (ADR-0015); EOF leaves the string unfinished.
         throw malformed(b, base, end, p);
@@ -214,6 +219,10 @@ public final class JsonReader {
           p += length;
         }
       }
+    }
+    if (unpaired) {
+      // ADR-0015: a high surrogate escape not followed by a low one; jq's found_string meets it at the closing quote.
+      throw malformed(b, base, end, p);
     }
     int span = p + 1 - start;
     if (span > limits.string()) {
@@ -266,6 +275,22 @@ public final class JsonReader {
       }
     }
     return length;
+  }
+
+  /**
+   * Whether {@code b[p, end)} starts with a {@code \\u} escape whose code unit is in {@code [low, low + 0x400)}: from
+   * D800 a high surrogate, from DC00 a low one. A digit that is not hex (or EOF) is -1, which sets every bit above it,
+   * so the unit's top six bits are all ones and match neither; the reader then stops at that digit anyway.
+   */
+  private static boolean isSurrogate(byte[] b, int p, int end, int low) {
+    if (peek(b, p, end) != '\\' || peek(b, p + 1, end) != 'u') {
+      return false;
+    }
+    int unit = 0;
+    for (int i = p + 2; i < p + 6; i++) {
+      unit = unit << 4 | Character.digit(peek(b, i, end), 16);
+    }
+    return (unit & 0xFC00) == low;
   }
 
   /** Checks the escape whose letter is at p: one of {@code "\/bfnrt}, or {@code u} and four hex digits. */
