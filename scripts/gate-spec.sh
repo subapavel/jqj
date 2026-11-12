@@ -5,6 +5,7 @@
 #   scripts/gate-spec.sh <spec>
 #
 # Steps: 1 clean-verify   ./mvnw -B clean verify -Pbench
+#          record         scripts/oracle-record.sh --verify on every tracked oracle .rec file
 #        2 pit            PIT on the whole class-C modules of quality/floors.tsv and on oracle (crossModule)
 #        3 jmh            benchmarks.jar -prof gc -rf json (JMH_JAR overrides bench/jmh/target/benchmarks.jar)
 #        4 regen          java scripts/ratchet.java regen --all (RATCHET_MACHINE labels the bench lines)
@@ -57,6 +58,10 @@ step() { # <name> <show> <command…>
 classc=$(awk -F'\t' 'NR > 1 && $2 == "C" { printf "%s%s", sep, $1; sep = "," }' quality/floors.tsv)
 
 step clean-verify 0 ./mvnw -B clean verify -Pbench
+# Every recording, not only the changed ones of the ticket gate (ADR-0020, ADR-0014).
+recordings=()
+while IFS= read -r path; do recordings+=("$path"); done < <(git ls-files -- 'oracle/src/test/resources/**/*.rec')
+step record 0 scripts/oracle-record.sh --verify "${recordings[@]}"
 # oracle's crossModule run mutates the class-C classes under every oracle test; ratchet.java combines it (ADR-0014).
 step pit 0 ./mvnw -B -pl "$classc,oracle" -am test org.pitest:pitest-maven:mutationCoverage
 step jmh 0 java -jar "${JMH_JAR:-bench/jmh/target/benchmarks.jar}" -prof gc -rf json -rff ".logs/spec$spec-jmh.json"

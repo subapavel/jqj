@@ -394,7 +394,12 @@ public class ratchet {
 
   // --- bench
 
+  /** A JMH result; score is null when JMH gave no finite number. */
   record Bench(String scenario, BigDecimal score, String unit) {}
+
+  static String noScore(Bench b) {
+    return "bench " + b.scenario() + " has no finite score (NaN or INF)";
+  }
 
   static List<Bench> jmh() throws IOException {
     Path f = Path.of(System.getenv().getOrDefault("RATCHET_JMH", root.resolve("bench/jmh/target/jmh-result.json").toString()));
@@ -412,7 +417,8 @@ public class ratchet {
         name = b.toString();
       }
       Map<?, ?> pm = (Map<?, ?>) m.get("primaryMetric");
-      out.add(new Bench(name, (BigDecimal) pm.get("score"), (String) pm.get("scoreUnit")));
+      // JMH 1.37 writes a non-finite score as a string ("NaN", "+INF", "-INF"): no score.
+      out.add(new Bench(name, pm.get("score") instanceof BigDecimal s ? s : null, (String) pm.get("scoreUnit")));
     }
     return out;
   }
@@ -437,13 +443,20 @@ public class ratchet {
         System.out.println("NOT_RUN bench " + line[0] + " on " + line[1] + ": no result for that machine");
         continue;
       }
+      boolean found = false;
       for (Bench b : now) {
         if (!b.scenario().equals(line[0])) continue;
+        found = true;
+        if (b.score() == null) {
+          fail(noScore(b));
+          continue;
+        }
         BigDecimal limit = new BigDecimal(line[2]).multiply(BigDecimal.ONE.add(new BigDecimal(line[4]).movePointLeft(2)));
         if (b.score().compareTo(limit) > 0) {
           fail("bench " + line[0] + " " + plain(b.score()) + " " + b.unit() + " is slower than " + line[2] + " by more than " + line[4] + " %");
         }
       }
+      if (!found) fail("bench " + line[0] + " is missing from the JMH result of " + line[1]);
     }
   }
 
@@ -519,6 +532,10 @@ public class ratchet {
         Map<String, String> lines = new TreeMap<>();
         for (var e : oldBench.entrySet()) lines.put(e.getKey(), String.join("\t", e.getValue()));
         for (Bench b : now) {
+          if (b.score() == null) {
+            fail(noScore(b));
+            continue;
+          }
           String key = b.scenario() + "\t" + machine();
           String[] o = oldBench.get(key);
           String line = key + "\t" + plain(b.score()) + "\t" + b.unit() + "\t";
@@ -623,7 +640,7 @@ public class ratchet {
         case "true" -> Boolean.TRUE;
         case "false" -> Boolean.FALSE;
         case "null" -> "null";
-        case "NaN" -> BigDecimal.ZERO;
+        case "NaN" -> "NaN";
         default -> new BigDecimal(lit);
       };
     }
