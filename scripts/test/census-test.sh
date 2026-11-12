@@ -40,11 +40,11 @@ null
 1
 "1"
 
-map(.+1)
+map(.)
 [1]
-[2]
+[1]
 
-select(. > 1)
+select(.)
 2
 2
 
@@ -63,7 +63,7 @@ $__loc__
 null
 {"file":"<top-level>","line":1}
 
-reduce .[] as $x (0; . + $x)
+reduce .[] as $x (0; $x)
 [1]
 1
 
@@ -138,9 +138,9 @@ def map(f): f; map(1)
 null
 1
 
-def range(a; b; c): a; [range(0; 2)] | map(. + 1)
+def range(a; b; c): a; [range(0; 2)] | map(.)
 null
-[1,2]
+[0,1]
 
 %%FAIL IGNORE MSG
 . as [] | null
@@ -173,6 +173,19 @@ null
 def empty: 1; [empty]
 null
 [1]
+
+[.[]]
+[1]
+[1]
+
+1 + 2 == 3
+null
+true
+
+1, 2
+null
+1
+2
 CASES
 out=$tmp/fixture.tsv
 CENSUS_TESTS=$fx java "$tool" write "$out" > "$tmp/write.log" 2>&1
@@ -203,13 +216,14 @@ check "env" "$(at "$out" x.test:87)" "7 -"
 check "import" "$(at "$out" x.test:91)" "7 -"
 check "%%FAIL constant object key: construction" "$(at "$out" x.test:95)" "2a S2a.14"
 check "%%FAIL syntax error: the parser" "$(at "$out" x.test:99)" "2a S2a.12"
-check "%%FAIL unknown label: control flow" "$(at "$out" x.test:103)" "2a S2a.18"
+check "%%FAIL unknown label: variables and control flow meet at definitions" "$(at "$out" x.test:103)" "2a S2a.20"
 check "%%FAIL module directive" "$(at "$out" x.test:107)" "7 -"
 check "a computed format name" "$(at "$out" x.test:111)" "4 -"
 check "a definition shadowing a builtin is the program's" "$(at "$out" x.test:115)" "2a S2a.20"
-check "a shadowed name's builtin before another builtin is the prelude's" "$(at "$out" x.test:119)" "2a S2a.21"
+check "a shadowed name's builtin before another builtin is the prelude's, with range/2 no ticket follows both" \
+  "$(at "$out" x.test:119)" "2a S2a.25"
 check "... and its native range/2 is needed" "$(awk -F'\t' '$4 == "x.test:119" { print $5 }' "$out")" \
-  "S2a.11,S2a.14,S2a.15,S2a.19,S2a.20,S2a.21"
+  "S2a.11,S2a.14,S2a.19,S2a.20,S2a.21"
 check "%%FAIL IGNORE MSG: the parser" "$(at "$out" x.test:123)" "2a S2a.12"
 check "a parenthesis in an interpolation does not end it" "$(at "$out" x.test:127)" "2a S2a.13"
 check "a comment is not code" "$(at "$out" x.test:131)" "1 -"
@@ -218,7 +232,11 @@ check "[ after a parenthesis indexes" "$(at "$out" x.test:139)" "2a S2a.13"
 check "[ after ? indexes" "$(at "$out" x.test:143)" "2a S2a.13"
 check "mutual recursion" "$(at "$out" x.test:147)" "2b -"
 check "a definition named like a native is the program's" "$(at "$out" x.test:151)" "2a S2a.20"
-check "every fixture case has a line" "$(grep -vc '^#' "$out")" 39
+check "needs .13 and .14: the earliest ticket blocked by both, .15" "$(at "$out" x.test:155)" "2a S2a.15"
+check "... and why names both" "$(awk -F'\t' '$4 == "x.test:155" { print $6 }' "$out")" ".[] []"
+check "needs .15 and .16: only the census sweep follows both" "$(at "$out" x.test:159)" "2a S2a.25"
+check "needs .11 and .13: .13 follows .11, unchanged" "$(at "$out" x.test:163)" "2a S2a.13"
+check "every fixture case has a line" "$(grep -vc '^#' "$out")" 42
 has "why names the deciding builtin" "_match_impl" "$out"
 CENSUS_TESTS=$fx java "$tool" verify "$out" > "$tmp/verify.log" 2>&1
 check "fixture: the list is reproduced" "$?" 0

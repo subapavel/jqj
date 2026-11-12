@@ -27,9 +27,10 @@
 //   folds constants (1 + 2 is LOADK 3), so the constructs cannot come from the disassembly.
 //
 // A case needing nothing beyond `.`, field access, `|` and parentheses is spec 1's. A spec-2a case's ticket is the
-// latest S2a ticket among its needs (TICKETS order). A %%FAIL case is not compiled by jq-ref: with a module
+// earliest S2a ticket (TICKETS order) that is, or transitively follows in BLOCKED_BY, every ticket the case needs;
+// when no ticket up to S2a.23 does, the census sweep S2a.25. A %%FAIL case is not compiled by jq-ref: with a module
 // directive it is spec 7's; one whose expected message is a syntax error, a parser message (PARSER_MESSAGES) or not
-// compared is the parser's (S2a.12); otherwise the latest ticket among its tokens.
+// compared needs only the parser (S2a.12); otherwise the tickets of its tokens.
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -70,7 +71,7 @@ public class census {
 
   record Ticket(String name, int issue, String title) {}
 
-  /** The S2a tickets in build order: a case's ticket is the latest it needs. */
+  /** The S2a tickets a case can get, in numbering order; S2a.25 is the census sweep, which follows them all. */
   static final List<Ticket> TICKETS =
       List.of(
           new Ticket("S2a.11", 61, "Literals and the full lexer"),
@@ -85,7 +86,41 @@ public class census {
           new Ticket("S2a.20", 70, "Definitions and closures"),
           new Ticket("S2a.21", 71, "Prelude loader"),
           new Ticket("S2a.22", 72, "Language natives"),
-          new Ticket("S2a.23", 73, "Sort and its kin"));
+          new Ticket("S2a.23", 73, "Sort and its kin"),
+          new Ticket("S2a.25", 75, "Census sweep"));
+
+  /**
+   * The blocking graph: each ticket's direct blockers, from the "Blocked by" section of its issue body (2026-11-12).
+   * S2a.10 is #59 and S2a.02 is #58; neither gets cases. A case's ticket is the earliest of TICKETS that is, or
+   * transitively follows, every ticket the case needs.
+   */
+  static final Map<String, List<String>> BLOCKED_BY =
+      Map.ofEntries(
+          Map.entry("S2a.11", List.of("S2a.10")), // #61 <- #59
+          Map.entry("S2a.12", List.of("S2a.11")), // #62 <- #61
+          Map.entry("S2a.13", List.of("S2a.12")), // #63 <- #62
+          Map.entry("S2a.14", List.of("S2a.12")), // #64 <- #62
+          Map.entry("S2a.15", List.of("S2a.13", "S2a.14")), // #65 <- #63, #64
+          Map.entry("S2a.16", List.of("S2a.14")), // #66 <- #64
+          Map.entry("S2a.17", List.of("S2a.13", "S2a.14")), // #67 <- #63, #64
+          Map.entry("S2a.18", List.of("S2a.13")), // #68 <- #63
+          Map.entry("S2a.19", List.of("S2a.17")), // #69 <- #67
+          Map.entry("S2a.20", List.of("S2a.17", "S2a.18")), // #70 <- #67, #68
+          Map.entry("S2a.21", List.of("S2a.20")), // #71 <- #70
+          Map.entry("S2a.22", List.of("S2a.21")), // #72 <- #71
+          Map.entry("S2a.23", List.of("S2a.16", "S2a.21")), // #73 <- #66, #71
+          Map.entry("S2a.25", List.of("S2a.15", "S2a.16", "S2a.19", "S2a.22", "S2a.23", "S2a.02"))); // #75 <- #65, #66, #69, #72, #73, #58
+
+  /** The ticket itself and every ticket it transitively follows. */
+  static Set<String> follows(String ticket) {
+    Set<String> out = new HashSet<>();
+    Deque<String> todo = new ArrayDeque<>(List.of(ticket));
+    while (!todo.isEmpty()) {
+      String t = todo.pop();
+      if (out.add(t)) todo.addAll(BLOCKED_BY.getOrDefault(t, List.of()));
+    }
+    return out;
+  }
 
   /** What a case needs: a spec, the S2a ticket for spec 2a (null otherwise), and the item that says why. */
   record Need(String spec, String ticket, String item) {}
@@ -140,7 +175,8 @@ public class census {
       # The case census (#57): each case of jq's test files, the spec that makes it pass and, for spec 2a, the S2a
       # ticket that completes it. Written by `java scripts/census.java write`; never edited by hand.
       # Columns: id, spec, ticket, line (file:line of the case), tickets (every S2a ticket the case needs),
-      # why (what decides the spec, or for spec 2a the ticket). Rules: the comment at the top of scripts/census.java.
+      # why (what decides the spec, or for spec 2a the needs of the tickets no other needed ticket follows).
+      # Rules: the comment at the top of scripts/census.java.
       """;
 
   public static void main(String[] args) throws Exception {
@@ -360,9 +396,12 @@ public class census {
     if (spec.equals("2a")) {
       TreeSet<String> all = new TreeSet<>(Comparator.comparingInt(census::ticketIndex));
       for (Need n : needs) all.add(n.ticket());
-      ticket = all.last();
+      ticket = TICKETS.stream().map(Ticket::name).filter(x -> follows(x).containsAll(all)).findFirst().orElseThrow();
       tickets = String.join(",", all);
-      for (Need n : needs) if (n.ticket().equals(all.last())) why.add(n.item());
+      // why: the needs of the tickets no other needed ticket follows.
+      for (Need n : needs) {
+        if (all.stream().noneMatch(o -> !o.equals(n.ticket()) && follows(o).contains(n.ticket()))) why.add(n.item());
+      }
     } else {
       for (Need n : needs) if (n.spec().equals(spec)) why.add(n.item());
     }
