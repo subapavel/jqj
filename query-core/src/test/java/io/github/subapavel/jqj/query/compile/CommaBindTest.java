@@ -22,6 +22,7 @@ import io.github.subapavel.jqj.query.run.Many;
 import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.query.run.Termination;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -279,6 +280,93 @@ class CommaBindTest {
     // An empty Many emits nothing and charges nothing.
     RunState empty = running(0);
     assertThat(results(call("empty", over()), empty, new Object())).as("results of an empty Many").isEmpty();
+  }
+
+  @Test
+  void aVarAsANodeGivesItsSlotsValueWhateverItsInput() {
+    // ADR-0034: a Var is a node as well as an argument; it gives its slot's one value.
+    Object in = new Object();
+    assertThat(results(new Bind(AT, new Identity(AT), 0, new Var(AT, 0)), new RunState(), in)).as("results of . as $0 | $0").containsExactly(in);
+    // Witness that the Var reads its slot, not its input: a value that is not the input, and a Var after a Pipe.
+    Object c = new Object();
+    Object mid = new Object();
+    assertThat(results(new Bind(AT, new Const(AT, c), 0, new Var(AT, 0)), new RunState(), in)).as("results of c as $0 | $0").containsExactly(c);
+    Bind piped = new Bind(AT, new Const(AT, c), 0, new Pipe(AT, new Const(AT, mid), new Var(AT, 0)));
+    assertThat(results(piped, new RunState(), in)).as("results of c as $0 | mid | $0").containsExactly(c);
+    // A value with two results gives both, in order.
+    Object a = new Object();
+    Object b = new Object();
+    Bind two = new Bind(AT, new Comma(AT, new Const(AT, a), new Const(AT, b)), 0, new Var(AT, 0));
+    assertThat(results(two, new RunState(), in)).as("results of (a, b) as $0 | $0").containsExactly(a, b);
+    // Two slots: each Var reads its own.
+    Bind slots = new Bind(AT, new Const(AT, a), 0, new Bind(AT, new Const(AT, b), 1, new Comma(AT, new Var(AT, 1), new Var(AT, 0))));
+    assertThat(results(slots, new RunState(), in)).as("results of a as $0 | b as $1 | $1, $0").containsExactly(b, a);
+    // A stop at the Var ends the run: the value's second result is never bound.
+    List<Object> emitted = new ArrayList<>();
+    boolean ranOut =
+        compile(two)
+            .run(
+                new RunState(),
+                in,
+                v -> {
+                  emitted.add(v);
+                  return false;
+                });
+    assertThat(ranOut).as("run's answer after the sink stopped at $0").isFalse();
+    assertThat(emitted).as("results of (a, b) as $0 | $0 before the stop").containsExactly(a);
+  }
+
+  /** {@code name} followed by the arguments a Many got, as a list. */
+  private static List<Object> called(String name, Object[] args) {
+    List<Object> call = new ArrayList<>();
+    call.add(name);
+    call.addAll(Arrays.asList(args));
+    return call;
+  }
+
+  @Test
+  void aManyGetsTheValuesOfItsAtomicArguments() {
+    // ADR-0034: each call reads a Many's arguments, in order, and hands the same values to first and to next.
+    List<List<Object>> seen = new ArrayList<>();
+    Many twice =
+        new Many() {
+          @Override
+          public long first(RunState state, Object in, Object[] args) {
+            seen.add(called("first", args));
+            return 0;
+          }
+
+          @Override
+          public long next(RunState state, Object in, Object[] args, long cursor) {
+            seen.add(called("next", args));
+            return cursor == 0 ? 1 : Many.END;
+          }
+
+          @Override
+          public Object value(RunState state, Object in, long cursor) {
+            return List.of(in, cursor);
+          }
+        };
+    Object in = new Object();
+    Object c = new Object();
+    assertThat(results(call("twice", twice, new Const(AT, c)), new RunState(), in)).as("results of twice(c)").containsExactly(List.of(in, 0L), List.of(in, 1L));
+    assertThat(seen).as("calls of twice(c)").containsExactly(List.of("first", c), List.of("next", c), List.of("next", c));
+
+    // A Var argument: each result of the Bind's value arrives in its own call.
+    seen.clear();
+    Object x = new Object();
+    Object y = new Object();
+    Bind bound = new Bind(AT, new Comma(AT, new Const(AT, x), new Const(AT, y)), 0, call("twice", twice, new Var(AT, 0)));
+    assertThat(results(bound, new RunState(), in)).as("results of (x, y) as $0 | twice($0)").hasSize(4);
+    assertThat(seen)
+        .as("calls of (x, y) as $0 | twice($0)")
+        .containsExactly(List.of("first", x), List.of("next", x), List.of("next", x), List.of("first", y), List.of("next", y), List.of("next", y));
+
+    // Three arguments keep their order, and an Identity among them reads the call's input.
+    seen.clear();
+    Bind mixed = new Bind(AT, new Const(AT, x), 0, call("twice", twice, new Const(AT, c), new Identity(AT), new Var(AT, 0)));
+    assertThat(results(mixed, new RunState(), in)).as("results of x as $0 | twice(c; .; $0)").hasSize(2);
+    assertThat(seen).as("calls of x as $0 | twice(c; .; $0)").containsExactly(List.of("first", c, in, x), List.of("next", c, in, x), List.of("next", c, in, x));
   }
 
   @Test
