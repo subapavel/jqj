@@ -3,7 +3,8 @@
 Behaviours where jqj differs from the reference jq (1.8.2) on purpose, each with its reason and the
 decision that made it. A difference not listed here is a bug. Every row is pinned by an oracle case or a named test
 that checks both columns. The row format is ADR-0020's; a row gains its `case` column in the
-ticket that writes its pinning case.
+ticket that writes its pinning case. A row's `case` cell names the case and its slug, as
+`` `<case id>` (`deviation <slug>`) ``; the differential runner refuses a slug no row names.
 
 ## Path expressions accept only navigation (ADR-0007, issue #6)
 

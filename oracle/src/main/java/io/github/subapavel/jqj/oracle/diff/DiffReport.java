@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -42,12 +43,22 @@ public final class DiffReport {
 
   /** Writes {@code rows} into the report: each replaces the line of its id, other lines stay; sorted by id. */
   public static void merge(Path report, List<Row> rows) {
+    Map<String, String> byId = new LinkedHashMap<>();
+    for (Row r : rows) byId.put(r.id(), r.line());
+    mergeLines(report, byId);
+  }
+
+  /**
+   * Writes report lines, keyed by their id (the first column), into a report of any oracle: each replaces the line of
+   * its id, other lines stay; sorted by id.
+   */
+  public static void mergeLines(Path report, Map<String, String> byId) {
     try {
       Map<String, String> lines = new TreeMap<>();
       if (Files.exists(report)) {
         for (String l : Files.readAllLines(report, UTF_8)) lines.put(l.split("\t", 2)[0], l);
       }
-      for (Row r : rows) lines.put(r.id(), r.line());
+      lines.putAll(byId);
       Files.createDirectories(report.getParent());
       StringBuilder b = new StringBuilder();
       for (String l : lines.values()) b.append(l).append('\n');

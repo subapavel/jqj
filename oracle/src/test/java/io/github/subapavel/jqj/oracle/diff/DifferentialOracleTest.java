@@ -42,7 +42,7 @@ class DifferentialOracleTest {
     Set<String> required = Corpus.required(requireFile);
     List<DiffCorpus.Entry> cases = DiffCorpus.load(Corpus.casesDir());
     DiffReport.requireKnown(DiffReport.Oracle.DIFFERENTIAL, required, cases.stream().map(e -> e.c().id()).toList());
-    DiffRunner runner = new DiffRunner(Main::run, scratch);
+    DiffRunner runner = new DiffRunner(Main::run, scratch, Corpus.deviations());
     return cases.stream()
         .filter(e -> required.contains(e.c().id()))
         .map(
