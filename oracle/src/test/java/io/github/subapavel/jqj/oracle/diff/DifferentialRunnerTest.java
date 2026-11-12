@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -234,13 +235,22 @@ class DifferentialRunnerTest {
 
   @Test
   void noWorkingDirectoryIsLeftBehind() throws IOException {
-    run("basics/file-argument", Main::run);
+    List<Path> parents = new ArrayList<>();
     run(
         "basics/file-argument",
         inv -> {
+          parents.add(inv.cwd().getParent());
+          return Main.run(inv);
+        });
+    run(
+        "basics/file-argument",
+        inv -> {
+          parents.add(inv.cwd().getParent());
           throw new IllegalStateException("boom");
         });
 
+    // The witness: both runs had their working directory in scratch, so an empty scratch means both were deleted.
+    assertThat(parents).containsExactly(scratch, scratch);
     try (Stream<Path> left = Files.list(scratch)) {
       assertThat(left).isEmpty();
     }
