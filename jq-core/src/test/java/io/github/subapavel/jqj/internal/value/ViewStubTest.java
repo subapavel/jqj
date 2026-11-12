@@ -31,9 +31,10 @@ import org.junit.jupiter.api.TestFactory;
  * starts with the Stub mark. The views come from {@code Workspace.read} (#32 conflict C4). #32 built the other
  * accessors, so their entries ended with their Stubs. #33 (S1.11) built the four {@code toJson()} and the UTF-8
  * classification, under which non-ASCII well-formed UTF-8 is tag 5; those six entries ended with their Stubs and
- * {@link #viewMembersBuiltBy33} checks them instead (#33 design C12). What is left ends with its ticket:
- * {@code doubleValue} and {@code decimalValue} with #36, and every member that must decode a tag-6 string (an escape,
- * DEL or bytes that are not well-formed UTF-8; #33 design C5) with #35.
+ * {@link #viewMembersBuiltBy33} checks them instead (#33 design C12). #36 built {@code NumberView.doubleValue()} and
+ * {@code decimalValue()}, so their two entries ended with their Stubs (#36 design C5, the same rule); NumberViewTest
+ * and StaleViewTest check them now. What is left ends with its ticket: every member that must decode a tag-6 string
+ * (an escape, DEL or bytes that are not well-formed UTF-8; #33 design C5) with #35.
  */
 class ViewStubTest {
   /** ADR-0024, GLOSSARY "Stub": the mark every Stub message starts with. */
@@ -54,8 +55,6 @@ class ViewStubTest {
   @TestFactory
   Stream<DynamicTest> viewMembersNotBuiltYetAreStubs() {
     Map<String, Function<JqArray, ThrowingCallable>> stubs = new LinkedHashMap<>();
-    stubs.put("NumberView.doubleValue()", root -> number(root)::doubleValue);
-    stubs.put("NumberView.decimalValue()", root -> number(root)::decimalValue);
     stubs.put("StringView.value() of an escape", root -> string(root, 4)::value);
     stubs.put("StringView.utf8() of an escape", root -> string(root, 4)::utf8);
     stubs.put("StringView.value() of DEL", root -> string(root, 6)::value);

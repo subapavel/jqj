@@ -5,6 +5,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import io.github.subapavel.jqj.internal.Stub;
 import io.github.subapavel.jqj.internal.value.ArrayView;
 import io.github.subapavel.jqj.internal.value.BuiltString;
+import io.github.subapavel.jqj.internal.value.CanonicalForm;
 import io.github.subapavel.jqj.internal.value.Document;
 import io.github.subapavel.jqj.internal.value.NumberView;
 import io.github.subapavel.jqj.internal.value.ObjectView;
@@ -22,14 +23,14 @@ import java.util.Arrays;
  * with its own stack, so depth costs no Java frames. One per Workspace; not thread-safe.
  *
  * <p>null, the booleans and tag-5 strings are their bytes. A number is copied when it is CANONICAL (ADR-0012) and is
- * a Stub otherwise (#36); a tag-6 string and a built string are Stubs (#35). An object prints each key at its first position with its
+ * written in its canonical form otherwise; a tag-6 string and a built string are Stubs (#35). An object prints each key at its first position with its
  * last value (ADR-0002). A Stub met in the middle of a value leaves what was drained before it written.
  *
  * <p>Pretty (#37) changes only the layout of containers: each entry of a non-empty container starts on a new line,
  * indented by two spaces a level, a key is followed by {@code ": "}, and the closing bracket is on its own line at the
  * container's indent. An empty container is {@code []} or {@code {}}, as in compact output.
  */
-public final class Printer {
+public final class Printer implements CanonicalForm.Out {
   /** Where the buffer drains: host code, which may read into the Workspace whose document is being printed. */
   public interface Target {
     void drain(byte[] buffer, int length);
@@ -164,10 +165,11 @@ public final class Printer {
     int span = Tape.span(entry);
     switch (Tape.tag(entry)) {
       case Tape.NUMBER -> {
-        if ((span & Tape.CANONICAL) == 0) {
-          throw Stub.unbuilt("printing a number in jq's canonical form");
+        if ((span & Tape.CANONICAL) != 0) {
+          put(bytes, Tape.off(entry), span & Tape.NUMBER_LENGTH);
+        } else {
+          CanonicalForm.write(bytes, Tape.off(entry), span & Tape.NUMBER_LENGTH, this);
         }
-        put(bytes, Tape.off(entry), span & Tape.NUMBER_LENGTH);
       }
       case Tape.STRING_REENCODE -> throw Stub.unbuilt("printing a string that must be re-encoded");
       // Tape.NULL, FALSE, TRUE and STRING: a scalar's span is its byte length (ADR-0002).
@@ -204,7 +206,8 @@ public final class Printer {
   }
 
   /** Appends {@code src[off, off + length)}, filling the buffer and draining it as often as it is full. */
-  private void put(byte[] src, int off, int length) {
+  @Override
+  public void put(byte[] src, int off, int length) {
     int room = CAPACITY - pos;
     while (length > room) {
       System.arraycopy(src, off, buffer, pos, room);
@@ -218,7 +221,8 @@ public final class Printer {
     pos += length;
   }
 
-  private void put(char c) {
+  @Override
+  public void put(char c) {
     if (pos == CAPACITY) {
       drainFull();
     }
