@@ -378,6 +378,31 @@ class CoreV1Test {
     };
   }
 
+  /** What jq folds at compile time: a literal, or an arithmetic or comparison operator over constants (jq-ref 1.8.2). */
+  private static boolean folds(Node n) {
+    Set<Op> folding = EnumSet.of(Op.ADD, Op.SUB, Op.MUL, Op.DIV, Op.MOD, Op.EQ, Op.NE, Op.LT, Op.LE, Op.GT, Op.GE, Op.REPEAT);
+    return n.op() == Op.LITERAL || (folding.contains(n.op()) && n.kids().stream().allMatch(CoreV1Test::folds));
+  }
+
+  private static int computedKeys(Node n, long seed) {
+    int c = 0;
+    if (n.op() == Op.OBJECT_COMPUTED) {
+      c++;
+      Node key = n.kids().getFirst();
+      if (folds(key)) assertThat(key.op() == Op.LITERAL && key.names().getFirst().startsWith("\"")).as("seed %d: constant key %s", seed, CoreV1.print(key)).isTrue();
+    }
+    for (Node k : n.kids()) c += computedKeys(k, seed);
+    return c;
+  }
+
+  /** jq-ref refuses a constant object key that is no string at compile time (rc 3): a constant key is a string literal. */
+  @Test
+  void computedKeysNeverFoldToANonString() {
+    int keys = 0;
+    for (CoreV1.Generated g : generated) keys += computedKeys(g.tree(), g.seed());
+    assertThat(keys).isGreaterThan(30);
+  }
+
   /** The places that can give several results: a comma, {@code range/2} and {@code .[]} (with or without {@code ?}). */
   private static int sites(Node n) {
     int s = n.op() == Op.COMMA || n.op() == Op.RANGE || (n.op() == Op.PATH && n.names().getFirst().contains("[]")) ? 1 : 0;
