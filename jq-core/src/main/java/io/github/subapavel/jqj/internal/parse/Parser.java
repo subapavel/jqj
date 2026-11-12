@@ -64,6 +64,9 @@ import java.util.function.Supplier;
  * errors are not built either: where one comes before jq's syntax error, as {@code Cannot use number (1) as object
  * key} does in {@code {(1): 2 3}} (#64), jqj's blocks are not a prefix (DEVIATIONS "Syntax-error text").
  *
+ * <p>A filter nested deeper than {@link #MAX_DEPTH} levels ends the parse with jq's {@code memory exhausted} block
+ * (DEVIATIONS "Parse depth"), so a recursion of the parse never overflows the stack.
+ *
  * <p>The recovery is written from the Bison manual's description of error recovery: the {@code error} token, the pop
  * to the innermost state that shifts it, the discard of the tokens it cannot take, and no new error message until
  * three tokens have been shifted. The details the manual leaves open (a token after one or two shifts is neither
@@ -90,6 +93,20 @@ public final class Parser {
 
   /** The keywords that may follow a term; any other keyword after a leading dot is jq's {@code '.' error}. */
   private static final Set<String> KEYWORDS_AFTER_A_TERM = Set.of("as", "then", "elif", "else", "end", "and", "or", "catch");
+
+  /**
+   * The most nesting levels open at once (#81, DEVIATIONS "Parse depth"). A level is one active query, expression,
+   * term, object value, pattern, {@code if}, definition body or error state ({@link #inErrorState}: parentheses,
+   * brackets, an index, an object or object pattern, a leading dot, the part after {@code then}, {@code catch} or
+   * {@code break}); every recursion of the parse passes through one. jq-ref's bound is its Bison stack instead (YYMAXDEPTH, 10 000 states, 9994
+   * parentheses), which recursive descent cannot reach inside a thread's stack, and the engine starts no thread
+   * (ADR-0017). 512 levels, 127 parentheses, fit a 512 KiB stack (ADR-0017's {@code stackBytes}) with about a third to
+   * spare, measured over the parse, the resolver and the compiler (#81).
+   */
+  static final int MAX_DEPTH = 512;
+
+  /** jq's message when its Bison stack is full (YYMAXDEPTH), which jqj gives past {@link #MAX_DEPTH}. */
+  private static final String MEMORY_EXHAUSTED = "memory exhausted";
 
   private final FilterText text;
 
@@ -120,6 +137,9 @@ public final class Parser {
 
   /** Whether the innermost error state of the parse so far recovers (a leading dot, an object) or ends the parse. */
   private boolean recovers;
+
+  /** The nesting levels open now, at most {@link #MAX_DEPTH}. */
+  private int depth;
 
   private Parser(String filter) {
     Lexer lexer = new Lexer(filter);
@@ -226,25 +246,36 @@ public final class Parser {
       expect(Token.Kind.RPAREN);
     }
     expect(Token.Kind.COLON);
-    Ast body = query();
+    nest();
+    Ast body;
+    try {
+      body = query();
+    } finally {
+      depth--;
+    }
     Token semicolon = expect(Token.Kind.SEMICOLON);
     return new Ast.FuncDef(new Source(def.start(), semicolon.end()), name, List.copyOf(params), body);
   }
 
   /** {@code unit (',' unit)* ('|' query)?}. */
   private Ast query() {
-    Ast left = unit();
-    while (token.kind() == Token.Kind.COMMA) {
+    nest();
+    try {
+      Ast left = unit();
+      while (token.kind() == Token.Kind.COMMA) {
+        advance();
+        Ast right = unit();
+        left = new Ast.Comma(span(left, right), left, right);
+      }
+      if (token.kind() != Token.Kind.PIPE) {
+        return left;
+      }
       advance();
-      Ast right = unit();
-      left = new Ast.Comma(span(left, right), left, right);
+      Ast right = query();
+      return new Ast.Pipe(span(left, right), left, right);
+    } finally {
+      depth--;
     }
-    if (token.kind() != Token.Kind.PIPE) {
-      return left;
-    }
-    advance();
-    Ast right = query();
-    return new Ast.Pipe(span(left, right), left, right);
   }
 
   /** A definition, a label or a binding over the rest of the query, or an expression. */
@@ -280,21 +311,26 @@ public final class Parser {
    * own level when it is right-associative, and a second operator of a non-associative level is a syntax error.
    */
   private Ast expr(int min) {
-    Ast left = term();
-    for (;;) {
-      BinOp op = binOp();
-      if (op == null || op.level < min) {
-        return left;
-      }
-      advance();
-      Ast right = expr(op.assoc == BinOp.Assoc.RIGHT ? op.level : op.level + 1);
-      left = new Ast.Binary(span(left, right), op, left, right);
-      if (op.assoc == BinOp.Assoc.NONE) {
-        BinOp next = binOp();
-        if (next != null && next.level == op.level) {
-          throw syntaxError();
+    nest();
+    try {
+      Ast left = term();
+      for (;;) {
+        BinOp op = binOp();
+        if (op == null || op.level < min) {
+          return left;
+        }
+        advance();
+        Ast right = expr(op.assoc == BinOp.Assoc.RIGHT ? op.level : op.level + 1);
+        left = new Ast.Binary(span(left, right), op, left, right);
+        if (op.assoc == BinOp.Assoc.NONE) {
+          BinOp next = binOp();
+          if (next != null && next.level == op.level) {
+            throw syntaxError();
+          }
         }
       }
+    } finally {
+      depth--;
     }
   }
 
@@ -305,23 +341,28 @@ public final class Parser {
 
   /** {@code '-' term}, {@code try} with an optional {@code catch}, each taking a term, or a postfix term. */
   private Ast term() {
-    if (token.kind() == Token.Kind.MINUS) {
-      Token minus = advance();
-      Ast operand = term();
-      return new Ast.Neg(new Source(minus.start(), operand.source().end()), operand);
-    }
-    if (isKeyword("try")) {
-      Token start = advance();
-      Ast body = term();
-      if (!isKeyword("catch")) {
-        return new Ast.Try(new Source(start.start(), body.source().end()), body, null);
+    nest();
+    try {
+      if (token.kind() == Token.Kind.MINUS) {
+        Token minus = advance();
+        Ast operand = term();
+        return new Ast.Neg(new Source(minus.start(), operand.source().end()), operand);
       }
-      advance();
-      // jq's "try" Exp "catch" error, not built: an error in the handler ends the parse.
-      Ast handler = inErrorState(false, this::term);
-      return new Ast.Try(new Source(start.start(), handler.source().end()), body, handler);
+      if (isKeyword("try")) {
+        Token start = advance();
+        Ast body = term();
+        if (!isKeyword("catch")) {
+          return new Ast.Try(new Source(start.start(), body.source().end()), body, null);
+        }
+        advance();
+        // jq's "try" Exp "catch" error, not built: an error in the handler ends the parse.
+        Ast handler = inErrorState(false, this::term);
+        return new Ast.Try(new Source(start.start(), handler.source().end()), body, handler);
+      }
+      return postfix(primary());
+    } finally {
+      depth--;
     }
-    return postfix(primary());
   }
 
   private Ast primary() {
@@ -440,27 +481,32 @@ public final class Parser {
 
   /** After {@code if} or {@code elif}: {@code cond then branch}, then {@code elif ...}, {@code else ... end} or {@code end}. */
   private Ast.If ifTail(Token start) {
-    Ast cond = query();
-    expectKeyword("then");
-    // jq's "if" Query "then" error, with its own message: not built.
-    return inErrorState(
-        false,
-        () -> {
-          Ast then = query();
-          Ast otherwise = null;
-          int end;
-          if (isKeyword("elif")) {
-            otherwise = ifTail(advance());
-            end = otherwise.source().end();
-          } else {
-            if (isKeyword("else")) {
-              advance();
-              otherwise = query();
+    nest();
+    try {
+      Ast cond = query();
+      expectKeyword("then");
+      // jq's "if" Query "then" error, with its own message: not built.
+      return inErrorState(
+          false,
+          () -> {
+            Ast then = query();
+            Ast otherwise = null;
+            int end;
+            if (isKeyword("elif")) {
+              otherwise = ifTail(advance());
+              end = otherwise.source().end();
+            } else {
+              if (isKeyword("else")) {
+                advance();
+                otherwise = query();
+              }
+              end = expectKeyword("end").end();
             }
-            end = expectKeyword("end").end();
-          }
-          return new Ast.If(new Source(start.start(), end), cond, then, otherwise);
-        });
+            return new Ast.If(new Source(start.start(), end), cond, then, otherwise);
+          });
+    } finally {
+      depth--;
+    }
   }
 
   /** The suffixes after a term, each nesting the term so far as its target. */
@@ -672,13 +718,18 @@ public final class Parser {
 
   /** An object value, jq's DictExpr: expressions joined by {@code |}, which nests right; no comma or prefix form. */
   private Ast dictExpr() {
-    Ast left = expr(0);
-    if (token.kind() != Token.Kind.PIPE) {
-      return left;
+    nest();
+    try {
+      Ast left = expr(0);
+      if (token.kind() != Token.Kind.PIPE) {
+        return left;
+      }
+      advance();
+      Ast right = dictExpr();
+      return new Ast.Pipe(span(left, right), left, right);
+    } finally {
+      depth--;
     }
-    advance();
-    Ast right = dictExpr();
-    return new Ast.Pipe(span(left, right), left, right);
   }
 
   /** {@code pattern (?// pattern)*}. */
@@ -694,39 +745,44 @@ public final class Parser {
 
   /** {@code $name}, {@code [pattern, ...]} or {@code {entry, ...}}. */
   private Ast.Pattern pattern() {
-    Token open = token;
-    switch (token.kind()) {
-      case BINDING -> {
-        return new Ast.VarPattern(source(open), variable(advance()));
-      }
-      case LBRACKET -> {
-        advance();
-        List<Ast.Pattern> elements = new ArrayList<>();
-        elements.add(pattern());
-        while (token.kind() == Token.Kind.COMMA) {
-          advance();
-          elements.add(pattern());
+    nest();
+    try {
+      Token open = token;
+      switch (token.kind()) {
+        case BINDING -> {
+          return new Ast.VarPattern(source(open), variable(advance()));
         }
-        Token close = expect(Token.Kind.RBRACKET);
-        return new Ast.ArrayPattern(new Source(open.start(), close.end()), List.copyOf(elements));
-      }
-      case LBRACE -> {
-        advance();
-        // jq's error ':' Pattern of an object pattern: not built.
-        return inErrorState(
-            false,
-            () -> {
-              List<Ast.ObjPat> entries = new ArrayList<>();
-              entries.add(objPat());
-              while (token.kind() == Token.Kind.COMMA) {
-                advance();
+        case LBRACKET -> {
+          advance();
+          List<Ast.Pattern> elements = new ArrayList<>();
+          elements.add(pattern());
+          while (token.kind() == Token.Kind.COMMA) {
+            advance();
+            elements.add(pattern());
+          }
+          Token close = expect(Token.Kind.RBRACKET);
+          return new Ast.ArrayPattern(new Source(open.start(), close.end()), List.copyOf(elements));
+        }
+        case LBRACE -> {
+          advance();
+          // jq's error ':' Pattern of an object pattern: not built.
+          return inErrorState(
+              false,
+              () -> {
+                List<Ast.ObjPat> entries = new ArrayList<>();
                 entries.add(objPat());
-              }
-              Token close = expect(Token.Kind.RBRACE);
-              return new Ast.ObjectPattern(new Source(open.start(), close.end()), List.copyOf(entries));
-            });
+                while (token.kind() == Token.Kind.COMMA) {
+                  advance();
+                  entries.add(objPat());
+                }
+                Token close = expect(Token.Kind.RBRACE);
+                return new Ast.ObjectPattern(new Source(open.start(), close.end()), List.copyOf(entries));
+              });
+        }
+        default -> throw syntaxError();
       }
-      default -> throw syntaxError();
+    } finally {
+      depth--;
     }
   }
 
@@ -861,14 +917,31 @@ public final class Parser {
     return recovers ? new Unwind(token.end(), drop) : errors();
   }
 
-  /** {@code body}'s result, parsed in an error state that recovers or ends the parse; the outer state is restored after. */
+  /**
+   * Opens one more nesting level, which its caller closes in a {@code finally}. Past {@link #MAX_DEPTH} the parse ends
+   * there, as jq's does when its Bison stack is full: jq's {@code memory exhausted} block at the current token, after
+   * the blocks so far (jq-ref 1.8.2, observed: a bad escape run or a recovery before 9995 parentheses keeps its blocks).
+   */
+  private void nest() {
+    if (++depth > MAX_DEPTH) {
+      fail(MEMORY_EXHAUSTED, token.start(), token.end());
+      throw errors();
+    }
+  }
+
+  /**
+   * {@code body}'s result, parsed in an error state that recovers or ends the parse, one nesting level deeper; the outer
+   * state and level are restored after.
+   */
   private <T> T inErrorState(boolean recovering, Supplier<T> body) {
+    nest();
     boolean outer = recovers;
     recovers = recovering;
     try {
       return body.get();
     } finally {
       recovers = outer;
+      depth--;
     }
   }
 

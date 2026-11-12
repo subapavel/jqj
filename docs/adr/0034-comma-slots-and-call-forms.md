@@ -1,6 +1,6 @@
 # Comma, slots and atomic arguments in the IR; call forms as a sealed CallForm
 
-Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; designer draft); completes ADR-0005 and ADR-0009; amends ADR-0008 (`run` takes the slots)
+Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; designer draft); completes ADR-0005 and ADR-0009; amends ADR-0008 (`run` takes the slots); amended for #64 (`FnN`, `Collect`), see the end
 
 #63 is the first ticket to lower constructs that #62's parser builds: comma, indexing, slicing and iteration. They need a sequencing node, a way to hold a computed key while its target runs, and the call forms ADR-0009 names. This ADR fixes those IR and protocol shapes; later tickets extend them with their first user.
 
@@ -22,3 +22,9 @@ Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; desig
 - **A slice view (a third array permit) or a shared backing array**: the first puts ranges into every accessor, and the second needs ADR-0004's twice-size detach. A copy costs one tick per element.
 - **`.a?` as `Try(.a)`**: ADR-0008 and ADR-0009 make it the quiet variant.
 - **All of ADR-0009's call-form facts now**: nothing uses them before spec 2b or 3, and their code would sit untested under the PIT floors.
+
+## Amendment (2026-11-12, ticket #64)
+
+- `CallForm` also permits **`FnN(RunState, Object in, Object[] args)`**, ADR-0009's form, with #64's object construction as its first user. The args array is new for each call and the operation may keep it (a shape site keeps it as its values array).
+- **`Collect(source, body, collector)`** runs `body` and hands each result to the collector; `[e]` lowers to it. It charges no tick of its own: every result after the first has already paid one (Comma's right branch, or a Many per element).
+- **Object construction** lowers key-outer, as `t[e]` does: each key binds outside its own value, each pair outside the next; constant keys and Identity or Const values are passed as arguments without a Bind.
