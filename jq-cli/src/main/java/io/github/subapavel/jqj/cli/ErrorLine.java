@@ -40,7 +40,7 @@ final class ErrorLine {
    */
   private static int completing(byte[] input) {
     int last = input.length - 1;
-    while (isSpace(input[last])) {
+    while (Input.isSpace(input[last])) {
       last--;
     }
     byte b = input[last];
@@ -90,9 +90,5 @@ final class ErrorLine {
       return 3;
     }
     return lead < 0xF5 ? 4 : 0;
-  }
-
-  private static boolean isSpace(byte b) {
-    return b == ' ' || b == '\t' || b == '\r' || b == '\n';
   }
 }
