@@ -83,3 +83,4 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#34) Grilling decisions bind even when they look speculative (BuiltString `owner`, grilling 1.9): never drop them as a deviation.
 - (#38) A JVM child inherits JAVA_TOOL_OPTIONS here ("Picked up …" on stderr): remove it from ProcessBuilder.environment() in a process test. A surefire `test` execution bound to integration-test runs after package without failsafe.
 - (#38) `-Dtest=X` with `-am` needs `-Dsurefire.failIfNoSpecifiedTests=false` and skips upstream module tests.
+- (#37) A PIT boundary mutant that only adds a zero-length write is equivalent; say so with the line, don't chase it.

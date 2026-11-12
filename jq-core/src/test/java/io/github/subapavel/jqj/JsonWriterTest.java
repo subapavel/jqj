@@ -130,17 +130,18 @@ class JsonWriterTest {
   }
 
   @Test
-  void prettyIsAStub() {
-    // #33 design: pretty() stays a Stub at sink until #39, on both overloads.
+  void prettySinkPrintsIndentTwo() {
+    // #33 design kept pretty() a Stub at sink until #37, which built it (#33 C12: the entry ends with its Stub).
+    // pretty.rec pretty/nested-empty, jq-ref 1.8.2: {"a":[],"b":{},"c":[[]]} without -c prints the text below.
+    String document = "{\"a\":[],\"b\":{},\"c\":[[]]}";
+    String recorded = "{\n  \"a\": [],\n  \"b\": {},\n  \"c\": [\n    []\n  ]\n}\n";
     Workspace workspace = newWorkspace();
-    assertThatExceptionOfType(JqCompileException.class)
-        .as("sink(Workspace, OutputStream, pretty())")
-        .isThrownBy(() -> JsonWriter.sink(workspace, new RecordingTarget(), OutputOptions.pretty()))
-        .withMessageStartingWith(MARK);
-    assertThatExceptionOfType(JqCompileException.class)
-        .as("sink(Workspace, WritableByteChannel, pretty())")
-        .isThrownBy(() -> JsonWriter.sink(workspace, Channels.newChannel(new RecordingTarget()), OutputOptions.pretty()))
-        .withMessageStartingWith(MARK);
+    RecordingTarget prettyStream = new RecordingTarget();
+    RecordingTarget prettyBehindChannel = new RecordingTarget();
+    JsonWriter.sink(workspace, prettyStream, OutputOptions.pretty()).emit(read(workspace, document).root());
+    JsonWriter.sink(workspace, Channels.newChannel(prettyBehindChannel), OutputOptions.pretty()).emit(read(workspace, document).root());
+    assertThat(prettyStream.text()).as("pretty over an OutputStream").isEqualTo(recorded);
+    assertThat(prettyBehindChannel.text()).as("pretty over a channel").isEqualTo(recorded);
     // Witness: compact() on the same overloads gives sinks that write.
     RecordingTarget stream = new RecordingTarget();
     RecordingTarget behindChannel = new RecordingTarget();
