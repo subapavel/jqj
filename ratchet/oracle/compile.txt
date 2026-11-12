@@ -25,6 +25,13 @@ cli/unknown-after-file	6c93ce178002	conservative
 cli/unknown-in-cluster	628a0e13a173	conservative
 cli/unknown-long	a2d1d871c8cf	conservative
 cli/unknown-short	b482df3c607e	conservative
+depth/array-9994	90ee9a5b076c	conservative
+depth/array-9995	d9336a51a72d	conservative
+depth/object-3331	6799ad7afdb6	conservative
+depth/object-3332	686e61f557bf	conservative
+depth/paren-9994	52a3391c9355	conservative
+depth/paren-9995	1e98075107c7	conservative
+depth/pipe-10000	b372af5aeaa0	conservative
 dot/array	68310399790a	conservative
 dot/crlf-around	34a7d1f56b09	conservative
 dot/duplicate-keys	875e6ab23081	conservative
