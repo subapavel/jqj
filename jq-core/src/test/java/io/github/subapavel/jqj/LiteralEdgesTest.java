@@ -55,6 +55,33 @@ class LiteralEdgesTest {
   }
 
   @Test
+  void theSurrogateRangesAtTheirBounds() {
+    // jq-ref -n -c -f on '"\\ud7ff", "\\udc00", "\\ud800\\udc00", "\\udbff\\udfff" | explode' -> [55295], [65533],
+    // [65536], [1114111]: below the high surrogates a unit stands alone, a lone low one becomes U+FFFD, and a pair at
+    // either end of the ranges is one code point.
+    String[][] cases = {{"\\ud7ff", "55295"}, {"\\udc00", "65533"}, {"\\ud800\\udc00", "65536"}, {"\\udbff\\udfff", "1114111"}};
+    for (String[] c : cases) {
+      Results results = new Results();
+      ENGINE.compile("\"" + c[0] + "\"").run(JqNull.NULL, NONE, results, ENGINE.newWorkspace());
+      assertThat(results.values).as("results of \"%s\"", c[0]).singleElement().isInstanceOf(JqString.class);
+      assertThat(((JqString) results.values.getFirst()).value().codePoints().toArray())
+          .as("code points of \"%s\"", c[0])
+          .containsExactly(Integer.parseInt(c[1]));
+    }
+    // jq-ref -n -f on "\\udbff" and on "\\uZZZZ": rc 3, these blocks.
+    assertThat(onlyBlock("\"\\udbff\""))
+        .as("block of the last high surrogate alone")
+        .isEqualTo(
+            "jq: error: Invalid \\uXXXX\\uXXXX surrogate pair escape at line 1, column 8 (while parsing '\"\\udbff\"') at"
+                + " <top-level>, line 1, column 2:\n    \"\\udbff\"\n     ^^^^^^");
+    assertThat(onlyBlock("\"\\uZZZZ\""))
+        .as("block of four letters that are no hex digits")
+        .isEqualTo(
+            "jq: error: Invalid characters in \\uXXXX escape at line 1, column 8 (while parsing '\"\\uZZZZ\"') at"
+                + " <top-level>, line 1, column 2:\n    \"\\uZZZZ\"\n     ^^^^^^");
+  }
+
+  @Test
   void aShortUnicodeEscapeEndsAtTheFirstByteThatIsNoLetterOrDigit() {
     // jq-ref -n '"\\u_"': rc 3; the run is \\u alone, the underscore plain text.
     assertThat(onlyBlock("\"\\u_\""))

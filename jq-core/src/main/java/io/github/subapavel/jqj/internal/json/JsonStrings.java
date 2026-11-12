@@ -205,7 +205,8 @@ public final class JsonStrings {
 
   /**
    * {@code found_string}'s checks over {@code b[from, to)}, a string's text between its quotes, when every byte of it is
-   * in an escape sequence, a backslash and its letter, as in the filter lexer's escape run (GLOSSARY "Escape run"): jq's
+   * in an escape sequence, a backslash and its letter (or the U+FFFD of a bad byte), as in the filter lexer's escape run
+   * with its bad UTF-8 replaced (GLOSSARY "Escape run"): jq's
    * message for the first bad sequence, or null when all are well formed. A {@code \\u} needs four bytes before
    * {@code to}, all hex digits, and a high surrogate a {@code \\u} low surrogate right after it.
    */
@@ -229,9 +230,10 @@ public final class JsonStrings {
           in += 4;
           if (unit >= 0xD800 && unit <= 0xDBFF) {
             // jq tells a missing, malformed or wrong second unit apart in no word: one message for all three. A
-            // malformed one is -1, below every low surrogate. b[in] is the next sequence's backslash, as every byte is
-            // in one, so jq's check of it can never fail here.
-            if (in + 6 > to || b[in + 1] != 'u' || !isLowSurrogate(checkedHex4(b, in + 2))) {
+            // malformed one is -1, below every low surrogate. jq also checks that a \\u follows; here b[in] is the next
+            // sequence's backslash, as every byte is in one, and a sequence that is no \\u has a backslash or a byte
+            // of U+FFFD at in + 2, no hex digit, so it is a malformed unit too.
+            if (in + 6 > to || !isLowSurrogate(checkedHex4(b, in + 2))) {
               return "Invalid \\uXXXX\\uXXXX surrogate pair escape";
             }
             in += 6;
