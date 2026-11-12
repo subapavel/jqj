@@ -248,7 +248,7 @@ jq.test#6ea9752dafc9	2a	S2a.22	jq.test:455	S2a.11,S2a.13,S2a.22	flatten/1
 jq.test#6ea9e6019c01	4	-	jq.test:1863	-	gmtime
 jq.test#6ec985fb3201	4	-	jq.test:1876	-	mktime
 jq.test#6eceb6e9b8ef	3	-	jq.test:1205	-	getpath path/1 setpath
-jq.test#6f6d2a098114	2a	S2a.11	jq.test:168	S2a.11	."str" literal
+jq.test#6f6d2a098114	2a	S2a.11	jq.test:168	S2a.11	literal
 jq.test#6fd512b57f2a	3	-	jq.test:490	-	path/1 setpath
 jq.test#6fffd0faaa3d	2a	S2a.13	jq.test:164	S2a.11,S2a.13	.[]
 jq.test#7092644c5681	3	-	jq.test:1374	-	delpaths getpath path/1 setpath
