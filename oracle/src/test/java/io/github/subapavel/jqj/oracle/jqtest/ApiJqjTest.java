@@ -57,11 +57,12 @@ class ApiJqjTest {
     ApiJqj jqj = new ApiJqj();
 
     // #33 built compile("."), and #34 compile(".a"), so this line now compiles .[0], a construct that stays a Stub
-    // until spec 2 (#33 design C12, #34 design C4). read and reread of "1" still end in a Stub after #34: copying a
-    // number reads doubleValue(), which is #36's.
+    // until spec 2 (#33 design C12, #34 design C4). #36 built doubleValue(), so read and reread of "1" no longer end
+    // in a Stub; they now read the malformed document "[1,", whose JqSyntaxException carries the Stub mark until
+    // spec 5 (ADR-0024's malformed-input Stub; the Stub ending approved for #36 under #33's C12 rule).
     assertThatThrownBy(() -> jqj.compile(".[0]")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
-    assertThatThrownBy(() -> jqj.read("1")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
-    assertThatThrownBy(() -> jqj.reread("1")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
+    assertThatThrownBy(() -> jqj.read("[1,")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
+    assertThatThrownBy(() -> jqj.reread("[1,")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
   }
 
   @Test

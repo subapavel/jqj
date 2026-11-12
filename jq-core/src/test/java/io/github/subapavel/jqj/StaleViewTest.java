@@ -14,6 +14,7 @@ import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -257,6 +258,44 @@ class StaleViewTest {
       assertStale(() -> o.get("k"), "JqObject.get(String) over a tag-6 key " + how);
       assertStale(() -> root.forEach((k, v) -> keys.add(k)), "JqObject.forEach over tag-6 keys " + how);
       assertThat(keys).as("forEach on a stale object calls nothing, %s", how).containsExactly("s", "o");
+    }
+  }
+
+  @Test
+  void doubleValueOfAStaleViewIsStale() {
+    // #36 design table U (ADR-0026): doubleValue() checks its document before it reads a byte, after close() and
+    // after a later read. FOUR_KINDS's .n prints 1.5 on jq-ref (above), a double that is exact.
+    Workspace workspace = newWorkspace();
+    for (String supersededBy : new String[] {null, "[0]"}) {
+      String how = supersededBy == null ? "after close" : "after reading " + supersededBy;
+      JsonDoc doc = read(workspace, FOUR_KINDS);
+      JqNumber n = kind(JqNumber.class, kind(JqObject.class, doc.root(), ".").get("n"), ".n");
+      // Witness: before the document goes stale the double is 1.5.
+      assertThat(n.doubleValue()).as("JqNumber.doubleValue() before it is stale").isEqualTo(1.5);
+      if (supersededBy == null) {
+        doc.close();
+      } else {
+        read(workspace, supersededBy);
+      }
+      assertStale(n::doubleValue, "JqNumber.doubleValue() " + how);
+    }
+  }
+
+  @Test
+  void decimalValueOfAStaleViewIsStale() {
+    // As doubleValueOfAStaleViewIsStale, for decimalValue(): before the document goes stale it is 1.5, scale 1.
+    Workspace workspace = newWorkspace();
+    for (String supersededBy : new String[] {null, "[0]"}) {
+      String how = supersededBy == null ? "after close" : "after reading " + supersededBy;
+      JsonDoc doc = read(workspace, FOUR_KINDS);
+      JqNumber n = kind(JqNumber.class, kind(JqObject.class, doc.root(), ".").get("n"), ".n");
+      assertThat(n.decimalValue()).as("JqNumber.decimalValue() before it is stale").isEqualTo(new BigDecimal("1.5"));
+      if (supersededBy == null) {
+        doc.close();
+      } else {
+        read(workspace, supersededBy);
+      }
+      assertStale(n::decimalValue, "JqNumber.decimalValue() " + how);
     }
   }
 

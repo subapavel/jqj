@@ -31,10 +31,11 @@ import org.junit.jupiter.api.TestFactory;
  * starts with the Stub mark. The views come from {@code Workspace.read} (#32 conflict C4). #32 built the other
  * accessors, so their entries ended with their Stubs. #33 (S1.11) built the four {@code toJson()} and the UTF-8
  * classification, under which non-ASCII well-formed UTF-8 is tag 5; those six entries ended with their Stubs and
- * {@link #viewMembersBuiltBy33} checks them instead (#33 design C12). #35 decodes tag 6 (an escape, DEL or bytes that
- * are not well-formed UTF-8; #33 design C5), so every entry that met a tag-6 string or key ended with its Stub and
- * {@link #viewMembersBuiltBy35} checks them instead (#35 design K3). What is left ends with its ticket: {@code
- * doubleValue} and {@code decimalValue} with #36.
+ * {@link #viewMembersBuiltBy33} checks them instead (#33 design C12). #36 built {@code NumberView.doubleValue()} and
+ * {@code decimalValue()}, so their two entries ended with their Stubs (#36 design C5, the same rule); NumberViewTest
+ * and StaleViewTest check them now. #35 decodes tag 6 (an escape, DEL or bytes that are not well-formed UTF-8; #33
+ * design C5), so every entry that met a tag-6 string or key ended with its Stub and {@link #viewMembersBuiltBy35}
+ * checks them instead (#35 design K3). No view member is a Stub any more, so the Stub factory has no entry left.
  */
 class ViewStubTest {
   /** ADR-0024, GLOSSARY "Stub": the mark every Stub message starts with. */
@@ -55,8 +56,6 @@ class ViewStubTest {
   @TestFactory
   Stream<DynamicTest> viewMembersNotBuiltYetAreStubs() {
     Map<String, Function<JqArray, ThrowingCallable>> stubs = new LinkedHashMap<>();
-    stubs.put("NumberView.doubleValue()", root -> number(root)::doubleValue);
-    stubs.put("NumberView.decimalValue()", root -> number(root)::decimalValue);
 
     return stubs.entrySet().stream()
         .map(
