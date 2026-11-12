@@ -9,6 +9,8 @@
 #        2 pit            PIT on the whole class-C modules of quality/floors.tsv and on oracle (crossModule)
 #        3 jmh            benchmarks.jar -prof gc -rf json (JMH_JAR overrides bench/jmh/target/benchmarks.jar)
 #        4 regen          java scripts/ratchet.java regen --all (RATCHET_MACHINE labels the bench lines)
+#        5 census         java scripts/census.java gate <spec>: every jq-test case the census gives the spec is in
+#                         ratchet/oracle/jqtest.txt (#57)
 # Logs: .logs/spec<spec>-<step>.log. The timings it reads are .logs/<ticket>-steps.tsv of scripts/gate-ticket.sh.
 set -uo pipefail
 if [ $# -ne 1 ]; then
@@ -74,4 +76,6 @@ step pit 0 ./mvnw -B -pl "$classc,oracle" -am test org.pitest:pitest-maven:mutat
 step jmh 0 java -jar "${JMH_JAR:-bench/jmh/target/benchmarks.jar}" -prof gc -rf json -rff ".logs/spec$spec-jmh.json"
 export RATCHET_JMH=".logs/spec$spec-jmh.json"
 step regen 1 java scripts/ratchet.java regen --all
+# After regen: the pass list as this gate wrote it holds the spec's census cases (#57).
+step census 1 java scripts/census.java gate "$spec"
 echo "gate-spec: $spec passed"
