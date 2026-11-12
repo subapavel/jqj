@@ -102,7 +102,10 @@ class CommandLineTest {
         argumentSet("-c1 .a in.json", List.of("-c1", ".a", "in.json"), "-1"),
         argumentSet("-c- .a in.json", List.of("-c-", ".a", "in.json"), "--"),
         argumentSet("--- .a in.json", List.of("---", ".a", "in.json"), "---"),
-        argumentSet("--compact .a in.json", List.of("--compact", ".a", "in.json"), "--compact"));
+        argumentSet("--compact .a in.json", List.of("--compact", ".a", "in.json"), "--compact"),
+        // observed 2026-11-12: jq-ref -c followed by byte 0x7F, .a in.json -> rc 2, "jq: Unknown option -" and byte
+        // 0x7F, then the usage lines: the last ASCII character is named as it is.
+        argumentSet("-c<0x7F> .a in.json", List.of("-c\u007F", ".a", "in.json"), "-\u007F"));
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
@@ -153,11 +156,14 @@ class CommandLineTest {
   @Test
   void aNonAsciiCharacterInAClusterIsAStub() {
     // observed 2026-11-11: jq-ref -cé .a in.json -> rc 2, "jq: Unknown option -" and the first byte of é alone, which
-    // is no UTF-8 text: not built.
-    Outcome o = run(List.of("-cé", ".a", "in.json"), "{\"a\":1}\n");
-    assertThat(o.rc()).as("exit code").isEqualTo(2);
-    assertThat(o.out()).as("stdout").isEmpty();
-    assertThat(o.err()).as("stderr").startsWith(MARK).endsWith("\n");
+    // is no UTF-8 text: not built. Observed 2026-11-12: jq-ref -c followed by U+0080 (bytes C2 80), .a in.json -> rc 2,
+    // "jq: Unknown option -" and byte C2 alone; a lone byte 0x80 is named alone too. The first character above ASCII.
+    for (String cluster : List.of("-cé", "-c\u0080")) {
+      Outcome o = run(List.of(cluster, ".a", "in.json"), "{\"a\":1}\n");
+      assertThat(o.rc()).as("exit code of %s", cluster).isEqualTo(2);
+      assertThat(o.out()).as("stdout of %s", cluster).isEmpty();
+      assertThat(o.err()).as("stderr of %s", cluster).startsWith(MARK).endsWith("\n");
+    }
   }
 
   @Test
