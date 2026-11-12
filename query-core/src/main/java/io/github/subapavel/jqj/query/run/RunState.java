@@ -91,7 +91,7 @@ public final class RunState {
     writtenBudget = bytesWritten;
     written = 0;
     start = System.nanoTime();
-    fill(kept, Math.min(INTERVAL, steps - kept));
+    refill(kept);
   }
 
   /**
@@ -158,6 +158,11 @@ public final class RunState {
     if (Thread.currentThread().isInterrupted()) {
       throw Termination.cancelled();
     }
+    refill(steps);
+  }
+
+  /** In a run, at {@code steps} ticks counted: fuel up to the next refuel, 4096 ticks or the rest of the step budget. */
+  private void refill(long steps) {
     fill(steps, Math.min(INTERVAL, stepBudget - steps));
   }
 
