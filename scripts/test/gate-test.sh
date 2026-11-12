@@ -16,6 +16,9 @@ mkdir -p "$repo/scripts" "$repo/quality" "$repo/ratchet" "$repo/stubbin"
 g() { git -C "$repo" "$@"; }
 cp "$here/../gate-ticket.sh" "$here/../gate-spec.sh" "$here/../ratchet.java" "$repo/scripts/" 2>/dev/null
 printf 'module\tclass\tlines\tbranches\tmutation\nquery-core\tC\t90\t80\t80\njq-core\tC\t90\t80\t80\njq-cli\t-\t80\t-\t-\n' > "$repo/quality/floors.tsv"
+# a recording in the base commit that no later commit changes
+mkdir -p "$repo/oracle/src/test/resources/json"
+echo old > "$repo/oracle/src/test/resources/json/old.rec"
 
 stub='#!/usr/bin/env bash
 echo "$(basename "$0") $*" >> "$STUB_CALLS"
@@ -117,6 +120,7 @@ g add -A
 g commit -q -m rec
 check "ticket: a changed recording" "$(ticket 25 query-core HEAD~1)" 0
 has "the changed recording is verified" "oracle-record.sh --verify oracle/src/test/resources/diff/x.rec" "$STUB_CALLS"
+hasnt "an unchanged recording is not verified by the ticket gate" "old.rec" "$STUB_CALLS"
 check "ticket: no changed recording" "$(ticket 25 query-core HEAD)" 0
 hasnt "no changed recording, no record call" "oracle-record" "$STUB_CALLS"
 chmod -x "$repo/scripts/oracle-record.sh"
@@ -147,7 +151,7 @@ hasnt "no ticket-gate PIT report (F-27)" "slowest step 2" "$tmp/out"
 has "spec step 1 clean verify" "mvnw -B clean verify -Pbench" "$STUB_CALLS"
 has "spec step 2 PIT on whole class-C modules and oracle's crossModule run (ADR-0014)" "mvnw -B -pl query-core,jq-core,oracle -am test org.pitest:pitest-maven:mutationCoverage" "$STUB_CALLS"
 has "jq-cli's module-path and launcher tests kept out of PIT" "mutationCoverage -DexcludedTestClasses=io.github.subapavel.jqj.cli.LauncherTest,io.github.subapavel.jqj.cli.\*ModulePathTest" "$STUB_CALLS"
-has "spec verifies every recording (ADR-0020)" "oracle-record.sh --verify oracle/src/test/resources/diff/x.rec" "$STUB_CALLS"
+has "spec verifies every recording (ADR-0020)" "oracle-record.sh --verify oracle/src/test/resources/diff/x.rec oracle/src/test/resources/json/old.rec" "$STUB_CALLS"
 order=$(grep -o 'clean verify\|oracle-record\|mutationCoverage' "$STUB_CALLS" | tr '\n' ' ')
 check "spec record step after clean-verify, before PIT" "$order" "clean verify oracle-record mutationCoverage "
 has "spec step 3 JMH" "java -jar bench/jmh/target/benchmarks.jar -prof gc -rf json" "$STUB_CALLS"
