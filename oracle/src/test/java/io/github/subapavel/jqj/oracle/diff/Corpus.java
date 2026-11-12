@@ -29,6 +29,11 @@ final class Corpus {
     return casesDir().getParent().getParent().getParent().getParent();
   }
 
+  /** The deviation slugs of the repository's {@code DEVIATIONS.md}. */
+  static Set<String> deviations() {
+    return Deviations.slugs(root().resolve("DEVIATIONS.md"));
+  }
+
   /** The ratcheted ids and the differential ids the ticket names with {@code -Doracle.require=<file>}. */
   static Set<String> required() {
     return required(System.getProperty("oracle.require"));
