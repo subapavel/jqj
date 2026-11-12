@@ -286,8 +286,8 @@ final class Lexer {
 
   /**
    * Checks the escape run {@code [start, end)} as jq's lexer does: {@code jv_parse} of the run in quotes, as a string
-   * with its bad UTF-8 replaced. A bad run's error block is collected, with jq's message and the position of the
-   * closing quote in that string, then the string itself (ADR-0031).
+   * with its bad UTF-8 replaced. A bad run's error block is collected, with jq's message and the position of that
+   * string's last byte, its closing quote unless a cut sequence took it, then the string itself (ADR-0031).
    */
   private Token.Kind check(int start, int end) {
     byte[] quoted = new byte[end - start + 2];
@@ -295,7 +295,10 @@ final class Lexer {
     System.arraycopy(b, start, quoted, 1, end - start);
     quoted[quoted.length - 1] = '"';
     byte[] parsed = JsonStrings.replaceBad(quoted, 0, quoted.length);
-    String error = JsonStrings.escapeError(parsed, 1, parsed.length - 1);
+    // A lead byte of three or four that ends the run is cut by the closing quote, which goes into its U+FFFD; then
+    // jv_parse meets the end inside the string (jq-ref 1.8.2, 2026-11-12: "\€" gives "Unfinished string at EOF").
+    String error =
+        parsed[parsed.length - 1] != '"' ? "Unfinished string at EOF" : JsonStrings.escapeError(parsed, 1, parsed.length - 1);
     if (error == null) {
       return Token.Kind.ESCAPES;
     }
