@@ -1,6 +1,6 @@
 # The parser builds an AST; the resolver lowers it to IR
 
-Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #62; designer draft); amends ADR-0031 (when Stubs are raised); clarifies ADR-0005 (its rejected "jq-level node family")
+Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #62; designer draft); amends ADR-0031 (when Stubs are raised); clarifies ADR-0005 (its rejected "jq-level node family"); amended by ADR-0036 (parser-action errors, #64)
 
 ## Context
 

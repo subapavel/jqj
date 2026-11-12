@@ -76,6 +76,14 @@ The instance of a navigation step that `?` selects: where the step would raise i
 gives no result, while errors from its target or key still propagate (ADR-0034).
 _Avoid_: safe variant, optional operation.
 
+**Key list**:
+The keys of an object construction in source order, with a repeated key keeping its first place and its last value, as jq builds it (ADR-0034, #64).
+_Avoid_: key set (it has an order).
+
+**Constant key**:
+An object-construction key known at parse time: a literal, or a computed key jq folds to a constant; a non-string one is a parser-action error (ADR-0036).
+_Avoid_: static key, literal key (a folded key is not a literal).
+
 ## Values
 
 **Document**:
