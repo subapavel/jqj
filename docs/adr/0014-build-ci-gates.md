@@ -1,6 +1,6 @@
 # Build, CI and gates
 
-Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15); amended by ADR-0023 (issue #17: the fallbacks fire at any spec gate); amended by F-19 (spec 1 grilling: who measures the gate steps)
+Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15); amended by ADR-0023 (issue #17: the fallbacks fire at any spec gate); amended by F-19 (spec 1 grilling: who measures the gate steps); amended by F-27 (PIT leaves the ticket gate)
 
 - **Toolchain:**
   - Maven wrapper 3.3.4 (`only-script`) with Maven 3.9.x, `--release 25`, `-Xlint:all -Werror`, no
@@ -29,7 +29,8 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
      the floor. `failWhenNoMutations` is off, for tickets that change only records or interfaces.
      The target is under 3 minutes with three gates in parallel. If spec 1's last ticket, or any
      later spec gate, measures more, PIT leaves the ticket gate by a finding, with no new owner
-     round (ADR-0023, F-17).
+     round (ADR-0023, F-17). **Applied by F-27 (#40, #44): the ticket gate no longer runs PIT;
+     PIT runs only in the spec gate.**
   3. The LF check, the trailer check and the word check, each under about 2 s.
   4. `java scripts/ratchet.java check`.
 

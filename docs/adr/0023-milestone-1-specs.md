@@ -1,6 +1,6 @@
 # Milestone 1: the final gate and the specs in build order
 
-Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`); amended by F-19 (spec 1 grilling: the API slice and the last ticket's measurements)
+Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`); amended by F-19 (spec 1 grilling: the API slice and the last ticket's measurements); amended by F-27 (both fallbacks fired at spec 1)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #17 round 1 and the ADR
 review). Each rule says whether it is the owner's answer or the architect's choice.
@@ -71,7 +71,8 @@ splitting in two at its own grilling without reopening `docs/GATE.md`, are the o
   At each spec gate the verifier reports the slowest ticket-gate step 1 and step 2 of the spec's
   tickets from `.logs/`; one above its target applies the fallback ADR-0014 and ADR-0020 already
   name (the compile-mode oracle moves to the spec gate; for PIT, seeds are grouped first), by a
-  finding, with no new owner round.
+  finding, with no new owner round. Both fired at spec 1 (F-27): from then on the verifier reports
+  step 1 only.
 - **Command line** (check 6, architect): jq-ref 1.8.2's `--help` lists 30 option lines; all are in
   except `--stream-errors`, which ADR-0020's shtest drop list now names. `-b`, `--run-tests`,
   `--debug-dump-disasm`, `--debug-trace` and `--debug-trace=all` are accepted by jq-ref but not in
