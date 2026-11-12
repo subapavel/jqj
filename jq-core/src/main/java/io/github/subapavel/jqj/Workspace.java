@@ -33,6 +33,11 @@ public final class Workspace {
     return doc;
   }
 
+  /** The byte length of the decode scratch this Workspace's printer keeps after a result, at most 64 KiB (#35). */
+  int retainedScratch() {
+    return printer.retainedScratch();
+  }
+
   /** Charges {@code steps} steps at once (ADR-0008 as amended by ADR-0015: the reader and the writer, per KiB). */
   void tick(int steps) {
     this.steps += steps;
