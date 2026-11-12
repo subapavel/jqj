@@ -21,10 +21,10 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * The deadline at the public API (ADR-0030, ADR-0017, #59): refuel, every 4096 ticks, is the only place that reads the
- * clock ({@code System.nanoTime()}, not the host's). A deadline of 0 or 1 ns has passed by the time anything reads the
- * clock, so a run that reaches a refuel ends with {@code JqTermination(BUDGET, DEADLINE)} and a run that does not
- * completes. No test sleeps (CODING_STANDARDS): the clock cannot be faked here, so no case depends on how long a run
+ * The deadline at the public API (ADR-0030, ADR-0017, F-36, #59): the run's begin reads the clock once
+ * ({@code System.nanoTime()}, not the host's) as the deadline's start, and refuel, every 4096 ticks, is the only place
+ * that checks the deadline. A deadline of 0 or 1 ns has passed by the time refuel checks it, so a run that reaches a refuel
+ * ends with {@code JqTermination(BUDGET, DEADLINE)} and a run that does not completes. No test sleeps (CODING_STANDARDS): the clock cannot be faked here, so no case depends on how long a run
  * takes beyond the nanosecond.
  */
 class DeadlineTest {
@@ -47,12 +47,12 @@ class DeadlineTest {
         () -> engine.compile(".").run(mib, NONE, repeat(writer(workspace, target), 9), workspace), Budget.DEADLINE, "nine 1 MiB lines with a 1 ns deadline");
     assertThat(target.bytes().length).as("bytes written before the deadline ended the run").isLessThan(9 * LINE);
 
-    // Witness: with no deadline the same run completes and writes every line.
-    JqEngine none = unlimited();
-    Workspace free = none.newWorkspace();
+    // Witness: with an unlimited deadline the same run completes and writes every line.
+    JqEngine unlimitedEngine = unlimited();
+    Workspace free = unlimitedEngine.newWorkspace();
     RecordingTarget all = new RecordingTarget();
-    assertThat(none.compile(".").run(mib, NONE, repeat(writer(free, all), 9), free)).as("run's answer with no deadline").isTrue();
-    assertThat(all.bytes().length).as("bytes written with no deadline").isEqualTo(9 * LINE);
+    assertThat(unlimitedEngine.compile(".").run(mib, NONE, repeat(writer(free, all), 9), free)).as("run's answer with an unlimited deadline").isTrue();
+    assertThat(all.bytes().length).as("bytes written with an unlimited deadline").isEqualTo(9 * LINE);
 
     // Refuel checks the step budget before the deadline (ADR-0030): with 100 steps as well, the first refuel passes
     // both, and the run ends on its steps.
@@ -65,7 +65,7 @@ class DeadlineTest {
   }
 
   @Test
-  void deadlineIsReadOnlyAtRefuel() {
+  void deadlineIsCheckedOnlyAtRefuel() {
     for (Duration passed : List.of(Duration.ZERO, Duration.ofNanos(1))) {
       JqEngine engine = deadline(passed);
       JqFilter dot = engine.compile(".");
@@ -76,7 +76,7 @@ class DeadlineTest {
       assertThat(dot.run(JqNull.NULL, NONE, results, workspace)).as("deadline %s: run's answer without a tick", passed).isTrue();
       assertThat(results.values).as("deadline %s: results without a tick", passed).containsExactly(JqNull.NULL);
 
-      // 1 MiB read and printed on this Workspace: 2 050 ticks, under the refuel interval, so the clock is never read.
+      // 1 MiB read and printed on this Workspace: 2 050 ticks, under the refuel interval, so the deadline is never checked.
       JqValue mib = read(workspace, letters(MIB)).root();
       RecordingTarget target = new RecordingTarget();
       assertThat(dot.run(mib, NONE, writer(workspace, target), workspace)).as("deadline %s: run's answer for 2 050 ticks", passed).isTrue();

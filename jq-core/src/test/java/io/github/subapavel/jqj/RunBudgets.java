@@ -32,8 +32,8 @@ final class RunBudgets {
           Budget.BYTES_WRITTEN, "Bytes-written budget exceeded");
 
   /**
-   * {@link Limits#cli()}, which has no step, deadline, bytes-built or bytes-written budget, with the steps, deadline and
-   * bytes written given.
+   * {@link Limits#cli()}, whose steps, deadline, bytes built and bytes written are unlimited, with the steps, deadline
+   * and bytes written given.
    */
   static Limits limits(long steps, Duration deadline, long bytesWritten) {
     Limits cli = Limits.cli();
@@ -60,7 +60,7 @@ final class RunBudgets {
     return engine(limits(Limits.UNLIMITED, Limits.UNLIMITED_TIME, bytesWritten));
   }
 
-  /** An engine with none of the three budgets. */
+  /** An engine whose steps, deadline and bytes written are unlimited. */
   static JqEngine unlimited() {
     return engine(limits(Limits.UNLIMITED, Limits.UNLIMITED_TIME, Limits.UNLIMITED));
   }
