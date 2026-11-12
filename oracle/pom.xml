@@ -11,6 +11,12 @@
   <artifactId>oracle</artifactId>
   <name>oracle</name>
 
+  <!-- The compile-mode oracle's tests (JUnit tag compile-mode) run only under -Pcompile-oracle: after every merge and
+       in the spec gate, never in the ticket gate (F-27, F-29, ADR-0020 amendment for #60). -->
+  <properties>
+    <oracle.excludedGroups>compile-mode</oracle.excludedGroups>
+  </properties>
+
   <!-- Tests only: the oracle runs the code of every module (ADR-0014). -->
   <dependencies>
     <dependency>
@@ -44,6 +50,7 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <excludedGroups>${oracle.excludedGroups}</excludedGroups>
           <systemPropertyVariables>
             <oracle.reports>${project.build.directory}/oracle-reports</oracle.reports>
           </systemPropertyVariables>
@@ -69,8 +76,11 @@
         <artifactId>pitest-maven</artifactId>
         <configuration>
           <crossModule>true</crossModule>
-          <!-- The Survey runs the cases nobody requires and fails only on CRASH (ADR-0020). -->
+          <!-- The Survey runs the cases nobody requires and fails only on CRASH (ADR-0020). The compile-mode oracle
+               leaves PIT with the ticket gate (F-27, ADR-0020 amendment for #60). -->
           <excludedTestClasses>
+            <param>io.github.subapavel.jqj.oracle.compile.CompileModeOracleTest</param>
+            <param>io.github.subapavel.jqj.oracle.compile.CompileModeSurveyTest</param>
             <param>io.github.subapavel.jqj.oracle.diff.DifferentialSurveyTest</param>
             <param>io.github.subapavel.jqj.oracle.json.JsonSurveyTest</param>
             <param>io.github.subapavel.jqj.oracle.jqtest.JqTestSurveyTest</param>
@@ -83,4 +93,14 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!-- ./mvnw -B -Pbench,compile-oracle verify: scripts/after-merge.sh and the spec gate's clean verify. -->
+    <profile>
+      <id>compile-oracle</id>
+      <properties>
+        <oracle.excludedGroups></oracle.excludedGroups>
+      </properties>
+    </profile>
+  </profiles>
 </project>
