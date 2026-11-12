@@ -34,3 +34,7 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#61) Class C reds can hit the 80-turn cap: commit and push early, hand back partial with the remaining list.
 - (#62) Bash `$(…)` strips trailing LFs (use `printf -v`); the Write tool drops trailing spaces, so write `\x20` in case files.
 - (#62) When another writer pushes to your shared ticket branch, your worktree's index stays on the old tree; do the next fix in a fresh detached worktree, never commit from the stale one.
+- (#63) A Stub witness for a differential case needs its own recorded case; `basics/recurse-of-array` (`..`) is the current one. Give scratch files a ticket prefix (shared scratchpad).
+- (#63) jq 1.8.2 `jv_dump_string_trunc`: a string dump keeps 25 bytes and adds `..."`; any other dump keeps 26 bytes and adds `...`.
+- (#64) A Workspace read invalidates earlier views: give each input its own reading Workspace. jq-ref prints `<skipped: too deep>` past level 10 000; build deep values by chaining runs.
+- (#63, #64) Class-C red tests take more than 80 turns: expect one resume.
