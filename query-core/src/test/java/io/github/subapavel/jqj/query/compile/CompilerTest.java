@@ -11,6 +11,7 @@ import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.run.FilterException;
+import io.github.subapavel.jqj.query.run.Fn0;
 import io.github.subapavel.jqj.query.run.RunState;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,10 +99,12 @@ class CompilerTest {
         AT,
         new Operation(
             name,
-            (state, in) -> {
-              assertThat(in).as("the input %s receives", name).isSameAs(from);
-              return to;
-            }));
+            (Fn0)
+                (state, in) -> {
+                  assertThat(in).as("the input %s receives", name).isSameAs(from);
+                  return to;
+                }),
+        List.of());
   }
 
   private static List<Object> results(Executable executable, Object in) {
@@ -200,9 +203,11 @@ class CompilerTest {
             AT,
             new Operation(
                 "fails",
-                (state, v) -> {
-                  throw thrown;
-                }));
+                (Fn0)
+                    (state, v) -> {
+                      throw thrown;
+                    }),
+            List.of());
     assertThat(thrown.value()).as("the error value").isSameAs(errorValue);
     assertThat(thrown.getStackTrace()).as("the stack trace of a FilterException").isEmpty();
 
@@ -211,9 +216,11 @@ class CompilerTest {
             AT,
             new Operation(
                 "never",
-                (state, v) -> {
-                  throw new AssertionError("the right side ran after the left side failed");
-                }));
+                (Fn0)
+                    (state, v) -> {
+                      throw new AssertionError("the right side ran after the left side failed");
+                    }),
+            List.of());
     Object out = new Object();
     for (Pipe pipe : List.of(new Pipe(AT, fails, never), new Pipe(AT, step("f", in, out), new Pipe(AT, new Identity(AT), fails)))) {
       List<Object> emitted = new ArrayList<>();
@@ -264,8 +271,8 @@ class CompilerTest {
         .isSameAs(in);
 
     // The same for two equal Intrinsics sharing one Operation.
-    Operation op = new Operation("same", (state, v) -> v);
-    assertThat(results(compile(new Pipe(AT, new Intrinsic(AT, op), new Intrinsic(AT, op))), in))
+    Operation op = new Operation("same", (Fn0) (state, v) -> v);
+    assertThat(results(compile(new Pipe(AT, new Intrinsic(AT, op, List.of()), new Intrinsic(AT, op, List.of()))), in))
         .as("results of same | same")
         .singleElement()
         .isSameAs(in);
