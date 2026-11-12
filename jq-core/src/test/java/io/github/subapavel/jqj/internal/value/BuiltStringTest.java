@@ -58,12 +58,12 @@ class BuiltStringTest {
 
   @Test
   void sliceAccessorsDescribeTheUtf8Bytes() {
-    // #35 design 1.5: the Printer reads a built string through bytes(), offset() and byteLength(), the UTF-8 slice of
-    // BuiltString.of's text: C3 A9 for é, E2 82 AC for €.
+    // #35 design 1.5: the Printer reads a built string through bytes() and byteLength(), the UTF-8 slice of
+    // BuiltString.of's text from index 0: C3 A9 for é, E2 82 AC for €.
     BuiltString s = BuiltString.of("é€");
     assertThat(s.byteLength()).as("byteLength() of é€").isEqualTo(5);
-    assertThat(HexFormat.ofDelimiter(" ").formatHex(Arrays.copyOfRange(s.bytes(), s.offset(), s.offset() + s.byteLength())))
-        .as("bytes()[offset(), offset() + byteLength()) of é€")
+    assertThat(HexFormat.ofDelimiter(" ").formatHex(Arrays.copyOfRange(s.bytes(), 0, s.byteLength())))
+        .as("bytes()[0, byteLength()) of é€")
         .isEqualTo("c3 a9 e2 82 ac");
   }
 }

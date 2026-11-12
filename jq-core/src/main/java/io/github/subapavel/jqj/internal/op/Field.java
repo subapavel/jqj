@@ -1,12 +1,13 @@
 package io.github.subapavel.jqj.internal.op;
 
 import io.github.subapavel.jqj.internal.value.BuiltString;
-import io.github.subapavel.jqj.internal.value.ObjectView;
 import io.github.subapavel.jqj.query.run.FilterException;
 import io.github.subapavel.jqj.query.run.Fn0;
 import io.github.subapavel.jqj.value.JqArray;
+import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
+import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 
@@ -32,27 +33,24 @@ public final class Field implements Fn0 {
     this.shown = "\"" + (name.length() <= WHOLE ? name : name.substring(0, SHOWN) + "...") + "\"";
   }
 
+  /** One case per kind of the sealed {@link JqValue} (ADR-0016), so the switch needs no default. */
   @Override
   public Object apply(Object in) {
-    if (in instanceof ObjectView object) {
-      JqValue value = object.get(name);
-      return value == null ? JqNull.NULL : value;
-    }
-    if (in == JqNull.NULL) {
-      return in;
-    }
-    throw new FilterException(BuiltString.of("Cannot index " + kind(in) + " with string (" + shown + ")"));
+    return switch ((JqValue) in) {
+      case JqObject object -> {
+        JqValue value = object.get(name);
+        yield value == null ? JqNull.NULL : value;
+      }
+      case JqNull nul -> nul;
+      case JqArray _ -> throw cannotIndex("array");
+      case JqString _ -> throw cannotIndex("string");
+      case JqNumber _ -> throw cannotIndex("number");
+      case JqBool _ -> throw cannotIndex("boolean");
+    };
   }
 
-  /** jq's word for the kind of {@code in}, which is neither an object nor null: those are answered above. */
-  private static String kind(Object in) {
-    if (in instanceof JqArray) {
-      return "array";
-    }
-    if (in instanceof JqString) {
-      return "string";
-    }
-    // The six kinds are sealed (ADR-0016): after object, null, array and string, a value that is no number is a boolean.
-    return in instanceof JqNumber ? "number" : "boolean";
+  /** jq's error for {@code .name} on a value of the kind jq calls {@code kind}. */
+  private FilterException cannotIndex(String kind) {
+    return new FilterException(BuiltString.of("Cannot index " + kind + " with string (" + shown + ")"));
   }
 }
