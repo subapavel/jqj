@@ -33,12 +33,12 @@ import java.util.Set;
  * The command line (ADR-0013). Not exported API: the oracle reaches {@link #run} on the class path, and the launcher
  * {@code target/jqj} starts {@link #main} on the module path of {@code target/lib}.
  *
- * <p>Built so far (#33, #34, #38): the filter ({@code .} when there is none) and at most one file, read instead of
- * stdin; {@code -c} and {@code -M}, alone, combined or as {@code --compact-output} and {@code --monochrome-output},
+ * <p>Built so far (#33, #34, #37, #38): the filter ({@code .} when there is none) and at most one file, read instead
+ * of stdin; {@code -c} and {@code -M}, alone, combined or as {@code --compact-output} and {@code --monochrome-output},
  * before or after either; {@code --}, after which every argument is the filter or a file. A missing file and an
  * option jq does not know end with jq's text and exit code 2; any other jq option is a Stub with exit code 2. A filter
- * error ends the run with jq's line {@code jq: error (at <name>:N): <text>} and exit code 5. Pretty output is a Stub
- * until #37.
+ * error ends the run with jq's line {@code jq: error (at <name>:N): <text>} and exit code 5. Without {@code -c} the
+ * output is pretty, jq's default indent 2 (#37).
  */
 public final class Main {
 
