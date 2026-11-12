@@ -27,3 +27,8 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#33) AssertJ 3.27.7 deprecates `hasCauseReference` (-Werror rejects it); a required-case file lives at oracle/src/test/resources/require/<ticket>.txt.
 - (#34) Every row of an expected-value table needs its own recording or cited jq-ref run; a whitespace-skip set needs the closing byte at a block cut followed by each whitespace byte.
 - (#34) Case ids are `<family>/<name>` (ADR-0024's `bench.G1.1k` is `bench/G1.1k`); long inputs go inline as escaped `stdin` lines.
+- (#61) jq-ref's syntax-error carets cover exactly the unexpected token: an oracle for lexer splits.
+- (#61) `new BigDecimal(lexeme)` accepts `.5`, `1.` and `1.e2`; it matched jq-ref on 1000 seeded literals.
+- (#61) The test-author writes `require/<ticket>.txt` listing the ticket's oracle cases.
+- (#61) Do not use `git commit -s` when the message's trailer block already has `Signed-off-by`.
+- (#61) Class C reds can hit the 80-turn cap: commit and push early, hand back partial with the remaining list.
