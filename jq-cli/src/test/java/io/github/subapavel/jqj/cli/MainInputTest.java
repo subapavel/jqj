@@ -61,17 +61,22 @@ class MainInputTest {
   }
 
   @Test
-  void aMissingFileAndASecondFileAreStubsWithExitTwo() throws IOException {
-    // The design's table: a missing file or a second file is exit code 2 and a Stub message (jq-ref 1.8.2, observed
-    // 2026-11-11: jq-ref -c . missing.json -> rc 2, "jq: error: Could not open file missing.json: No such file or
-    // directory"; a second file is read as more input, #38's).
+  void aMissingFileGivesJqsTextAndExitsTwo() {
+    // jq-ref 1.8.2, recorded in diff/cli.rec (cli/missing-file): jq-ref -c .a missing.json -> rc 2, stdout empty,
+    //   jq: error: Could not open file missing.json: No such file or directory
+    assertThat(run(List.of("-c", ".", "missing.json"), "[9]"))
+        .isEqualTo(new Outcome(2, "", "jq: error: Could not open file missing.json: No such file or directory\n"));
+  }
+
+  @Test
+  void aSecondFileIsAStubWithExitTwo() throws IOException {
+    // A second file is still a Stub (several files are spec 5's); jq-ref 1.8.2, observed 2026-11-11, reads it as more
+    // input: jq-ref -c .a in.json in.json -> 1 and 1, rc 0.
     Files.write(cwd.resolve("in.json"), "[1]".getBytes(UTF_8));
-    for (List<String> args : List.of(List.of("-c", ".", "missing.json"), List.of("-c", ".", "in.json", "in.json"))) {
-      Outcome o = run(args, "[9]");
-      assertThat(o.rc()).as("exit code of %s", args).isEqualTo(2);
-      assertThat(o.out()).as("stdout of %s", args).isEmpty();
-      assertThat(o.err()).as("stderr of %s", args).startsWith(MARK).endsWith("\n");
-    }
+    Outcome o = run(List.of("-c", ".", "in.json", "in.json"), "[9]");
+    assertThat(o.rc()).as("exit code").isEqualTo(2);
+    assertThat(o.out()).as("stdout").isEmpty();
+    assertThat(o.err()).as("stderr").startsWith(MARK).endsWith("\n");
   }
 
   @Test
