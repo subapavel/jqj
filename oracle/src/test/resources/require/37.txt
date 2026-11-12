@@ -1,0 +1,26 @@
+# The required cases of #37 "S1.15 Pretty output" (ADR-0020): give this file to the ticket gate as
+# ORACLE_REQUIRE=<absolute path>, which becomes -Doracle.require=<file>. One id per line; # and blank lines skipped.
+
+# differential: basics/field-of-array is .a without -c, a filter error after the pretty sink is made.
+basics/field-of-array
+
+# differential: the family diff/pretty.cases.
+pretty/array
+pretty/deep-arrays
+pretty/deep-mixed
+pretty/duplicate-keys
+pretty/empty-array
+pretty/empty-object
+pretty/empty-stdin
+pretty/false
+pretty/field
+pretty/nested-empty
+pretty/nested-empty-mixed
+pretty/no-filter
+pretty/null
+pretty/number
+pretty/object
+pretty/object-array-object
+pretty/string
+pretty/true
+pretty/whitespace-stdin
