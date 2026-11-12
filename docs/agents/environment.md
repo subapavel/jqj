@@ -10,7 +10,7 @@ Read this before your first build or commit in a worktree.
   `./mvnw -q -B -Pbench,compile-oracle -Dmaven.test.failure.ignore=true dependency:go-offline verify javadoc:help`
   and then `./mvnw -q -B -Pbench clean` (#54). Run the same two lines when `./mvnw -o` reports a plugin
   that "has not been downloaded". Javadoc offline: `./mvnw -o -q -B -pl jq-core -am compile javadoc:javadoc`
-  (without `-am` the sibling `query-core` SNAPSHOT is not in the local repository).
+  (`javadoc:javadoc -pl jq-core` alone needs `query-core` installed in the local repository; it is not).
 - **Processes**: stop a process by its pid (`kill <pid>`). `pkill -f` matches the agent's own
   command line and ends the session.
 - **Property tests**: seeded loops in JUnit, one parameterised case per seed (no jqwik: from 1.10.1 it tells AI agents not to use it).
