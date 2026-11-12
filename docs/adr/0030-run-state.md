@@ -22,7 +22,7 @@ before any loop exists. This ADR fixes where that state lives and when it counts
   `inputs`) count too. The deadline counts from `begin`, so a host's pause between read and run is
   not charged. `end` leaves every budget unlimited until the next run.
 - A tick is `if (--fuel < 0) refuel()`. Refuel, every 4096 ticks (ADR-0008, ADR-0017), checks in
-  this order: the step budget, the deadline (`System.nanoTime()`, the only clock read), the thread
+  this order: the step budget, the deadline (`System.nanoTime()`, the only clock; refuel and `begin` are its only readers), the thread
   interrupt (`CANCELLED`, ADR-0017). A run under 4096 ticks reads the clock once, at `begin`, and never checks the deadline (F-36).
 - `Termination(BUDGET, budget)` and `Termination(CANCELLED)` are `query-core` types, translated
   once in `JqFilter.run` into `JqTermination` with exit code 5. Since jq has no budgets, the
