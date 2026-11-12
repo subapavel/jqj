@@ -23,17 +23,24 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * The in-process entry (ADR-0020, ADR-0024). #33 built {@code -c .}, so its entry ended with its Stub (#33 design C12)
  * and {@link #compactDotPrintsTheDocumentAndExitsZero} checks it. #34 built {@code .a} and jq's error line, which
- * {@link #filterErrorPrintsJqsLineAndExitsFive} and {@link #fileArgumentNamesTheFileInTheErrorLine} check. Every
- * other command line is still a Stub: no argument is {@code .} pretty-printed and {@code .a} without {@code -c} is
- * pretty output (#37). #38 built jq's text for an unknown option, which {@link #unknownOptionPrintsJqsUsageAndExitsTwo}
- * checks.
+ * {@link #filterErrorPrintsJqsLineAndExitsFive} and {@link #fileArgumentNamesTheFileInTheErrorLine} check. #37 built
+ * pretty output, so no argument ({@code .}) and {@code .a} without {@code -c} left the Stub set (#33 design C12) for
+ * {@link #prettyCommandLinesPrintJqsRecordedOutputAndExitZero}. #38 built jq's text for an unknown option, which
+ * {@link #unknownOptionPrintsJqsUsageAndExitsTwo} checks.
  */
 class MainTest {
 
-  static Stream<Arguments> commandLines() {
+  /** jq-ref 1.8.2, recorded in diff/pretty.rec under the case named in each set: rc 0, this stdout, stderr empty. */
+  static Stream<Arguments> prettyCommandLines() {
     return Stream.of(
-        Arguments.argumentSet("no argument", List.of()),
-        Arguments.argumentSet(".a", List.of(".a")));
+        // pretty/no-filter
+        Arguments.argumentSet(
+            "no argument", List.of(), "{\"a\":[1,{\"b\":null}]}\n", "{\n  \"a\": [\n    1,\n    {\n      \"b\": null\n    }\n  ]\n}\n"),
+        // pretty/field
+        Arguments.argumentSet(
+            ".a", List.of(".a"), "{\"a\":{\"b\":[1,{}],\"c\":\"d\"},\"z\":0}\n", "{\n  \"b\": [\n    1,\n    {}\n  ],\n  \"c\": \"d\"\n}\n"),
+        // pretty/empty-stdin (the carry from #33): the sink is made before the input is found empty.
+        Arguments.argumentSet(". on empty stdin", List.of("."), "", ""));
   }
 
   @Test
@@ -125,22 +132,23 @@ class MainTest {
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
-  @MethodSource("commandLines")
-  void everyCommandLineEndsWithAStubAndANonZeroExit(List<String> args) {
+  @MethodSource("prettyCommandLines")
+  void prettyCommandLinesPrintJqsRecordedOutputAndExitZero(List<String> args, String stdin, String recordedStdout) {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     ByteArrayOutputStream err = new ByteArrayOutputStream();
-    Invocation invocation =
-        new Invocation(args, Map.of(), Path.of("."), new ByteArrayInputStream("{\"a\":1}\n".getBytes(UTF_8)), out, err);
+    Invocation invocation = new Invocation(args, Map.of(), Path.of("."), new ByteArrayInputStream(stdin.getBytes(UTF_8)), out, err);
 
     int rc = Main.run(invocation);
 
-    assertThat(rc).isNotZero();
-    assertThat(out.toByteArray()).isEmpty();
-    assertThat(err.toString(UTF_8)).startsWith("jqj stub: ");
+    assertThat(rc).as("exit code").isZero();
+    assertThat(out.toString(UTF_8)).as("stdout").isEqualTo(recordedStdout);
+    assertThat(err.toString(UTF_8)).as("stderr").isEmpty();
   }
 
   @Test
-  void aFailingStderrIsReportedNotSwallowed() {
+  void aFailingStderrIsReportedNotSwallowed(@TempDir Path cwd) {
+    // A missing file still writes to stderr (#38, diff/cli.rec cli/missing-file); the `.` on empty stdin used before #37
+    // writes nothing now.
     OutputStream broken =
         new OutputStream() {
           @Override
@@ -149,7 +157,8 @@ class MainTest {
           }
         };
     Invocation invocation =
-        new Invocation(List.of("."), Map.of(), Path.of("."), new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream(), broken);
+        new Invocation(
+            List.of(".", "missing.json"), Map.of(), cwd, new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream(), broken);
 
     assertThatThrownBy(() -> Main.run(invocation)).isInstanceOf(UncheckedIOException.class).hasMessageContaining("stderr closed");
   }

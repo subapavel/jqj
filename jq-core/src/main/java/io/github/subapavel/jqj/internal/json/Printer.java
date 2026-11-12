@@ -18,13 +18,17 @@ import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
 /**
- * The compact writer (ADR-0015, ADR-0027): prints a value as jq's {@code -c} does into a 64 KiB buffer, which it
- * drains into a {@link Target} whenever it is full and once at the end. It walks a container with its own stack, so
- * depth costs no Java frames. One per Workspace; not thread-safe.
+ * The writer (ADR-0015, ADR-0027): prints a value as jq's {@code -c} does, or pretty as jq does by default, into a
+ * 64 KiB buffer, which it drains into a {@link Target} whenever it is full and once at the end. It walks a container
+ * with its own stack, so depth costs no Java frames. One per Workspace; not thread-safe.
  *
  * <p>null, the booleans and tag-5 strings are their bytes. A number is copied when it is CANONICAL (ADR-0012) and is
  * written in its canonical form otherwise; a tag-6 string and a built string are Stubs (#35). An object prints each key at its first position with its
  * last value (ADR-0002). A Stub met in the middle of a value leaves what was drained before it written.
+ *
+ * <p>Pretty (#37) changes only the layout of containers: each entry of a non-empty container starts on a new line,
+ * indented by two spaces a level, a key is followed by {@code ": "}, and the closing bracket is on its own line at the
+ * container's indent. An empty container is {@code []} or {@code {}}, as in compact output.
  */
 public final class Printer implements CanonicalForm.Out {
   /** Where the buffer drains: host code, which may read into the Workspace whose document is being printed. */
@@ -37,7 +41,16 @@ public final class Printer implements CanonicalForm.Out {
   private static final byte[] TRUE = {'t', 'r', 'u', 'e'};
   private static final byte[] FALSE = {'f', 'a', 'l', 's', 'e'};
 
+  /** jq's default indent: two spaces a level. */
+  private static final int INDENT = 2;
+
+  /** The spaces an indent is copied from, a chunk at a time. */
+  private static final byte[] SPACES = " ".repeat(256).getBytes(UTF_8);
+
   private final byte[] buffer = new byte[CAPACITY];
+
+  /** Whether the value being printed is laid out as jq's default pretty output; false for compact. */
+  private boolean pretty;
 
   /** Two slots per open container: its tape index, then the index of its next entry to print. */
   private int[] stack = new int[32];
@@ -48,8 +61,9 @@ public final class Printer implements CanonicalForm.Out {
   /** The document being printed, checked again after a drain in the middle of a value. */
   private Document doc;
 
-  /** Prints {@code v} and one LF, then drains everything into {@code target} (ADR-0027). */
-  public void line(JqValue v, Target target) {
+  /** Prints {@code v}, pretty or compact, and one LF, then drains everything into {@code target} (ADR-0027). */
+  public void line(JqValue v, boolean pretty, Target target) {
+    this.pretty = pretty;
     this.target = target;
     // A value that ended in a Stub or a target's exception may have left bytes behind.
     pos = 0;
@@ -101,7 +115,8 @@ public final class Printer implements CanonicalForm.Out {
       } else {
         scalar(bytes, entry);
       }
-      // The value at `at` ended: print the next entry of the innermost open container, or close it.
+      // The value at `at` ended: print the next entry of the innermost open container, or close it. The entries of
+      // the innermost container are sp / 2 levels deep.
       while (sp > 0) {
         int container = stack[sp - 2];
         int next = stack[sp - 1];
@@ -111,11 +126,12 @@ public final class Printer implements CanonicalForm.Out {
             if (next > container + 1) {
               put(',');
             }
+            newline(sp >>> 1);
             stack[sp - 1] = Tape.next(tape, next);
             at = next;
             continue walk;
           }
-          put(']');
+          close(container, end, sp, ']');
         } else {
           while (next < end && !ObjectView.isFirst(tape, bytes, container, next)) {
             next = Tape.next(tape, next + 1);
@@ -125,14 +141,18 @@ public final class Printer implements CanonicalForm.Out {
             if (next > container + 1) {
               put(',');
             }
+            newline(sp >>> 1);
             long key = tape[next];
             put(bytes, Tape.off(key), Tape.span(key));
             put(':');
+            if (pretty) {
+              put(' ');
+            }
             stack[sp - 1] = Tape.next(tape, next + 1);
             at = ObjectView.lastValueOf(tape, bytes, next, end);
             continue walk;
           }
-          put('}');
+          close(container, end, sp, '}');
         }
         sp -= 2;
       }
@@ -154,6 +174,30 @@ public final class Printer implements CanonicalForm.Out {
       case Tape.STRING_REENCODE -> throw Stub.unbuilt("printing a string that must be re-encoded");
       // Tape.NULL, FALSE, TRUE and STRING: a scalar's span is its byte length (ADR-0002).
       default -> put(bytes, Tape.off(entry), span);
+    }
+  }
+
+  /**
+   * Closes the container at tape index {@code container}, whose entries end at {@code end} and are {@code sp / 2}
+   * levels deep. Pretty, a non-empty container's bracket goes on a new line at the container's own indent; an empty
+   * one, and every container in compact output, closes right after its opening bracket or last entry. An object with
+   * entries always prints its first key, so {@code end} tells an empty object for both kinds.
+   */
+  private void close(int container, int end, int sp, char bracket) {
+    if (end > container + 1) {
+      newline((sp >>> 1) - 1);
+    }
+    put(bracket);
+  }
+
+  /** Pretty only: an LF and {@code levels} indents. Compact output has neither. */
+  private void newline(int levels) {
+    if (!pretty) {
+      return;
+    }
+    put('\n');
+    for (int n = levels * INDENT; n > 0; n -= SPACES.length) {
+      put(SPACES, 0, Math.min(n, SPACES.length));
     }
   }
 
