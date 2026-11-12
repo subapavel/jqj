@@ -17,7 +17,7 @@ import org.junit.jupiter.params.provider.ValueSource;
  * and 10⁵ ones, built through JqEngine since a command line over 128 KiB meets E2BIG, on the test thread and on a
  * 512 KiB thread (ADR-0017's {@code stackBytes}). How the implementer keeps the depth down (a balanced spine or
  * iterative walks) is free; the results and the ticks are not: every one in order, and one step per leaf but the first
- * (F-32, ADR-0034). jq-ref 1.8.2 prints the 10 922 ones of comma/chain-10921 and rejects longer chains with its own
+ * (F-32, ADR-0034). jq-ref 1.8.2 prints the 10 922 ones of depth/comma-10921 and rejects longer chains with its own
  * bytecode limit (DEVIATIONS "Long comma chains").
  */
 class CommaChainTest {
