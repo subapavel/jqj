@@ -1,5 +1,7 @@
 # Spec 2 "Core language" — grilling record
 
+Published as spec 2a: #56.
+
 Input for `/to-spec`. Owner answers, round by round. Drafts: designer (round 1), architect (later
 rounds); every round evaluated by the `grilling-adviser` first.
 
