@@ -170,3 +170,13 @@ tapeReused; skipAll's 58/39/31 % does not validate).
   already rejects it.
 - **Slurp as N documents; `-R` lines or `--stream` events on a tape; duplicate detection in the
   reader (ADR-0002); document flags; whole-container copy in pretty mode.**
+
+## Amendment (#35 "S1.13 Strings", F-26)
+
+- Decoding repeats jq's two steps. `found_string`'s pass writes each escape sequence's code point
+  with `jvp_utf8_encode` (a lone low surrogate as its three bytes); `jv_string_sized` then replaces
+  bad sequences over the whole result, raw bytes and escape output together.
+- A sequence cut by the end of the string takes every remaining byte, continuation or not
+  (`length = end - in`): `"\xe0\xff"` gives one U+FFFD (`i_string_truncated-utf-8`). This replaces
+  "a missing continuation takes the bytes before it" above.
+- Tag-6 text is decoded at each access and never stored; the tape stays read-only.
