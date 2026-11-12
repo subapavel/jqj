@@ -9,6 +9,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -56,17 +57,63 @@ class DiffReportTest {
     Path named = dir.resolve("require.txt");
     Files.writeString(named, "b/two\n", UTF_8);
 
-    assertThat(DiffReport.required(ratchet, named.toString())).containsExactlyInAnyOrder("a/one", "b/two");
+    assertThat(DiffReport.required(ratchet, named.toString(), DiffReport.Oracle.DIFFERENTIAL))
+        .containsExactlyInAnyOrder("a/one", "b/two");
   }
 
   @Test
   void withoutARatchetFileOrANamedListNoCaseIsRequired() {
-    assertThat(DiffReport.required(dir.resolve("absent.txt"), null)).isEmpty();
+    assertThat(DiffReport.required(dir.resolve("absent.txt"), null, DiffReport.Oracle.DIFFERENTIAL)).isEmpty();
   }
 
   @Test
   void aNamedRequireFileThatDoesNotExistFailsInsteadOfRequiringNothing() {
-    assertThatThrownBy(() -> DiffReport.required(dir.resolve("absent.txt"), dir.resolve("typo.txt").toString()))
+    assertThatThrownBy(
+            () ->
+                DiffReport.required(
+                    dir.resolve("absent.txt"), dir.resolve("typo.txt").toString(), DiffReport.Oracle.DIFFERENTIAL))
         .isInstanceOf(UncheckedIOException.class);
+  }
+
+  @Test
+  void anOracleTakesEveryIdOfItsRatchetAndOnlyItsOwnIdsOfTheSharedRequireFile() throws IOException {
+    Path ratchet = dir.resolve("json.txt");
+    Files.writeString(ratchet, "json/y_r\ty_\t111111111111\n", UTF_8);
+    Path named = dir.resolve("require.txt");
+    Files.writeString(named, "# json, jqtest and differential ids together\njson/y_x\njq.test#0123456789ab\ndot/null\n", UTF_8);
+
+    assertThat(DiffReport.required(ratchet, named.toString(), DiffReport.Oracle.JSON))
+        .containsExactlyInAnyOrder("json/y_r", "json/y_x");
+    assertThat(DiffReport.required(dir.resolve("absent.txt"), named.toString(), DiffReport.Oracle.JQTEST))
+        .containsExactly("jq.test#0123456789ab");
+    assertThat(DiffReport.required(dir.resolve("absent.txt"), named.toString(), DiffReport.Oracle.DIFFERENTIAL))
+        .containsExactly("dot/null");
+  }
+
+  @Test
+  void anIdBelongsToTheOracleItsShapeNamesAndAnyOtherIdToTheDifferentialOracle() {
+    assertThat(DiffReport.Oracle.of("jq.test#1ce903e38afb")).isEqualTo(DiffReport.Oracle.JQTEST);
+    assertThat(DiffReport.Oracle.of("manonig.test#0123456789ab~2")).isEqualTo(DiffReport.Oracle.JQTEST);
+    assertThat(DiffReport.Oracle.of("json/y_object")).isEqualTo(DiffReport.Oracle.JSON);
+    assertThat(DiffReport.Oracle.of("dot/null")).isEqualTo(DiffReport.Oracle.DIFFERENTIAL);
+    assertThat(DiffReport.Oracle.of("gen/values-v1/0001")).isEqualTo(DiffReport.Oracle.DIFFERENTIAL);
+    assertThat(DiffReport.Oracle.of("jsonx/y_object")).isEqualTo(DiffReport.Oracle.DIFFERENTIAL);
+    assertThat(DiffReport.Oracle.of("jq.test:58")).isEqualTo(DiffReport.Oracle.DIFFERENTIAL);
+    assertThat(DiffReport.Oracle.of("jq.tests#1ce903e38afb")).isEqualTo(DiffReport.Oracle.DIFFERENTIAL);
+  }
+
+  @Test
+  void requiredIdsThatAllNameACaseOfTheCorpusPass() {
+    DiffReport.requireKnown(DiffReport.Oracle.JSON, Set.of("json/y_x"), List.of("json/y_a", "json/y_x"));
+  }
+
+  @Test
+  void aRequiredIdThatNamesNoCaseFailsWithEveryUnknownIdSortedInTheMessage() {
+    assertThatThrownBy(
+            () ->
+                DiffReport.requireKnown(
+                    DiffReport.Oracle.JSON, Set.of("json/y_z", "json/y_x", "json/y_b"), List.of("json/y_a", "json/y_x")))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("json oracle: required ids that name no case of its corpus: [json/y_b, json/y_z]");
   }
 }
