@@ -18,12 +18,13 @@ done
 
 # --- each module's effective list ---
 # jq-cli: the module-path tests and the launcher test need surefire executions PIT does not run (jq-cli/pom.xml, #38).
-# oracle: the Survey tests fail only on CRASH and stay out of PIT (ADR-0020).
+# oracle: the Survey tests fail only on CRASH and stay out of PIT (ADR-0020); so does the compile-mode oracle, which
+# never runs in the ticket gate (F-27, ADR-0020 amendment for #60).
 expected() {
   case $1 in
     query-core | jq-core) echo "" ;;
     jq-cli) echo "io.github.subapavel.jqj.cli.*ModulePathTest,io.github.subapavel.jqj.cli.LauncherTest" ;;
-    oracle) echo "io.github.subapavel.jqj.oracle.diff.DifferentialSurveyTest,io.github.subapavel.jqj.oracle.jqtest.JqTestSurveyTest,io.github.subapavel.jqj.oracle.json.JsonSurveyTest" ;;
+    oracle) echo "io.github.subapavel.jqj.oracle.compile.CompileModeOracleTest,io.github.subapavel.jqj.oracle.compile.CompileModeSurveyTest,io.github.subapavel.jqj.oracle.diff.DifferentialSurveyTest,io.github.subapavel.jqj.oracle.jqtest.JqTestSurveyTest,io.github.subapavel.jqj.oracle.json.JsonSurveyTest" ;;
   esac
 }
 modules="query-core jq-core jq-cli oracle"
