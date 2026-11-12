@@ -109,6 +109,45 @@ check "floor-mutation passes" "$(run floor-mutation query-core)" 0
 pit 70 30
 check "floor-mutation fails under floor" "$(run floor-mutation query-core)" 1
 
+# --- mutation: the module's own report combined with oracle's crossModule report (ADR-0014, #45) ---
+# mut <status> [<field>=<value>]: one mutant of class p.A; a field argument changes one of its identifying fields
+mut() { local s=$1 c=p.A me=run d='()V' l=7 mu=org.M i=3; shift
+  for a in "$@"; do case $a in class=*) c=${a#*=} ;; method=*) me=${a#*=} ;; desc=*) d=${a#*=} ;; line=*) l=${a#*=} ;; mutator=*) mu=${a#*=} ;; index=*) i=${a#*=} ;; esac; done
+  printf "<mutation detected='x' status='%s' numberOfTestsRun='1'><sourceFile>A.java</sourceFile><mutatedClass>%s</mutatedClass><mutatedMethod>%s</mutatedMethod><methodDescription>%s</methodDescription><lineNumber>%s</lineNumber><mutator>%s</mutator><indexes><index>%s</index></indexes><blocks><block>1</block></blocks><killingTest/><description>d</description></mutation>\n" "$s" "$c" "$me" "$d" "$l" "$mu" "$i"; }
+xml() { { echo '<?xml version="1.0" encoding="UTF-8"?>'; echo '<mutations partial="false">'; cat; echo '</mutations>'; } > "$root/$1/target/pit-reports/mutations.xml"; }
+fresh
+mkdir -p "$root/query-core/target/pit-reports" "$root/oracle/target/pit-reports"
+{ mut SURVIVED; mut NO_COVERAGE line=8; mut KILLED line=9; } | xml query-core
+check "own report only: as before" "$(run floor-mutation query-core)" 1
+has "own report only counts its own kills" 'query-core: 33 % (2 surviving of 3)'
+{ mut KILLED; mut NO_COVERAGE line=8; mut SURVIVED line=9; mut KILLED class=p.Other; } | xml oracle
+run floor-mutation query-core > /dev/null
+has "a mutant killed by either report is killed, counted once" 'query-core: 66 % (1 surviving of 3)'
+for f in class=p.B method=other 'desc=(I)V' line=6 mutator=org.N index=4; do
+  { mut SURVIVED; } | xml query-core
+  { mut KILLED "$f"; } | xml oracle
+  run floor-mutation query-core > /dev/null
+  has "an oracle kill with another $f is another mutant" 'query-core: 0 % (1 surviving of 1)'
+done
+{ mut NO_COVERAGE; } | xml query-core
+{ mut NO_COVERAGE; } | xml oracle
+run floor-mutation query-core > /dev/null
+has "NO_COVERAGE in both reports stays not killed" 'query-core: 0 % (1 surviving of 1)'
+{ for l in $(seq 1 10); do mut SURVIVED line=$l; done; for l in $(seq 11 100); do mut KILLED line=$l; done; } | xml query-core
+{ for l in $(seq 1 5); do mut KILLED line=$l; done; } | xml oracle
+printf 'module\tsurviving mutants\tgenerated mutants\nquery-core\t5\t100\n' > "$root/ratchet/mutation.tsv"
+check "check reads the combined score" "$(run check)" 0
+printf 'module\tsurviving mutants\tgenerated mutants\nquery-core\t10\t100\n' > "$root/ratchet/mutation.tsv"
+mkdir -p "$root/oracle/target/site/jacoco-aggregate" "$root/jq-cli/target/site/jacoco"
+printf 'GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED\noracle/query-core,p,A,0,0,10,90,5,95\n' > "$root/oracle/target/site/jacoco-aggregate/jacoco.csv"
+printf 'GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED\nj,p,A,0,0,0,0,10,90\n' > "$root/jq-cli/target/site/jacoco/jacoco.csv"
+printf '[{"benchmark":"x.G1","mode":"avgt","primaryMetric":{"score":50.0,"scoreUnit":"ms/op"}}]' > "$root/jmh.json"
+check "regen --all with both reports" "$(run regen --all)" 0
+check "regen --all writes the combined count" "$(printf 'module\tsurviving mutants\tgenerated mutants\nquery-core\t5\t100\n' | cmp - "$root/ratchet/mutation.tsv"; echo $?)" 0
+rm "$root/query-core/target/pit-reports/mutations.xml"
+check "oracle's report alone is no report of the module" "$(run floor-mutation query-core)" 0
+has "module without its own report is NOT_RUN" 'NOT_RUN mutation query-core'
+
 # --- bench: empty tolerance skipped ---
 fresh
 printf 'scenario\tmachine\tscore\tunit\ttolerance%%\nG1\tm1\t100\tms/op\t\n' > "$root/ratchet/bench.tsv"
