@@ -403,6 +403,25 @@ class CoreV1Test {
     assertThat(keys).isGreaterThan(30);
   }
 
+  private static int literalDivisions(Node n, long seed) {
+    int c = 0;
+    if ((n.op() == Op.DIV || n.op() == Op.MOD) && n.kids().get(0).op() == Op.LITERAL && n.kids().get(1).op() == Op.LITERAL) {
+      c++;
+      Set<String> zero = n.op() == Op.DIV ? Set.of("0", "-0") : Set.of("0", "-0", "0.5");
+      assertThat(zero).as("seed %d: %s", seed, CoreV1.print(n)).doesNotContain(n.kids().get(1).names().getFirst());
+    }
+    for (Node k : n.kids()) c += literalDivisions(k, seed);
+    return c;
+  }
+
+  /** No literal is divided (or taken modulo) by a literal zero; {@code %} truncates 0.5 to zero. */
+  @Test
+  void noLiteralDivisionByZero() {
+    int divisions = 0;
+    for (CoreV1.Generated g : generated) divisions += literalDivisions(g.tree(), g.seed());
+    assertThat(divisions).isGreaterThan(10);
+  }
+
   /** The places that can give several results: a comma, {@code range/2} and {@code .[]} (with or without {@code ?}). */
   private static int sites(Node n) {
     int s = n.op() == Op.COMMA || n.op() == Op.RANGE || (n.op() == Op.PATH && n.names().getFirst().contains("[]")) ? 1 : 0;
