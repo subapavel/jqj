@@ -4,7 +4,8 @@
 #
 #   scripts/gate-spec.sh <spec>
 #
-# Steps: 1 clean-verify   ./mvnw -B clean verify -Pbench
+# Steps: 1 clean-verify   ./mvnw -B clean verify -Pbench,compile-oracle (the compile-mode oracle runs here and after
+#                         every merge, never in the ticket gate: F-27, ADR-0020 amendment for #60)
 #          record         scripts/oracle-record.sh --verify on every tracked oracle .rec file
 #        2 pit            PIT on the whole class-C modules of quality/floors.tsv, on oracle and on jq-cli (crossModule)
 #        3 jmh            benchmarks.jar -prof gc -rf json (JMH_JAR overrides bench/jmh/target/benchmarks.jar)
@@ -59,7 +60,7 @@ step() { # <name> <show> <command…>
 
 classc=$(awk -F'\t' 'NR > 1 && $2 == "C" { printf "%s%s", sep, $1; sep = "," }' quality/floors.tsv)
 
-step clean-verify 0 ./mvnw -B clean verify -Pbench
+step clean-verify 0 ./mvnw -B clean verify -Pbench,compile-oracle
 # Every recording, not only the changed ones of the ticket gate (ADR-0020, ADR-0014).
 recordings=()
 while IFS= read -r path; do recordings+=("$path"); done < <(git ls-files -- 'oracle/src/test/resources/**/*.rec')
