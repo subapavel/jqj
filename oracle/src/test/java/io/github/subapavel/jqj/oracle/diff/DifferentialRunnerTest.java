@@ -192,10 +192,12 @@ class DifferentialRunnerTest {
 
   @Test
   void aStubWithoutARecordingIsFailNotStale() {
-    // basics/field-of-array is .a without -c: #34 builds .a, but pretty output stays a Stub until #39.
-    DiffCorpus.Entry e = basics("basics/field-of-array");
+    // A test-local case with no recording: --arg is still a Stub of the command line (#38). basics/field-of-array
+    // served here until #37 built the pretty output it needs.
+    DiffCase stub =
+        new DiffCase("test/arg-stub", List.of("--arg", "x", "1", "."), "{\"a\":1}\n".getBytes(UTF_8), Map.of(), Map.of(), null, "000000000000");
 
-    Verdict v = new DiffRunner(Main::run, scratch).run(e.c(), null);
+    Verdict v = new DiffRunner(Main::run, scratch).run(stub, null);
 
     assertThat(v.kind()).isEqualTo(Verdict.Kind.FAIL);
     assertThat(v.diff()).contains("no recording");
