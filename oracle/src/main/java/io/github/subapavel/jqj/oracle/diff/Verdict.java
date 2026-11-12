@@ -8,6 +8,9 @@ package io.github.subapavel.jqj.oracle.diff;
  */
 public record Verdict(Kind kind, String detail, String diff) {
 
+  /** The mark every Stub message carries (ADR-0024); both runners score a run that ends with it FAIL. */
+  public static final String STUB = "jqj stub: ";
+
   public enum Kind {
     PASS,
     FAIL,

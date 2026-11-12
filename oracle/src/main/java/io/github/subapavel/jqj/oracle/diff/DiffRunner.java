@@ -25,7 +25,6 @@ import java.util.function.ToIntFunction;
  */
 public final class DiffRunner {
 
-  private static final String STUB = "jqj stub: ";
   private static final String SYNTAX_ERROR = "\njq: error: syntax error";
   /** Bytes shown of a differing stream, starting a little before the first difference. */
   private static final int WINDOW = 200;
@@ -56,7 +55,7 @@ public final class DiffRunner {
         rc = entry.applyAsInt(invocation);
       } catch (RuntimeException e) {
         String line = CaseFormat.escape(e.toString().getBytes(UTF_8));
-        if (String.valueOf(e.getMessage()).contains(STUB)) {
+        if (String.valueOf(e.getMessage()).contains(Verdict.STUB)) {
           return new Verdict(Verdict.Kind.FAIL, "jqj ended with a Stub: " + line, c.id() + ": FAIL, jqj ended with a Stub: " + e);
         }
         return new Verdict(Verdict.Kind.CRASH, line, c.id() + ": CRASH, the entry threw " + e);
@@ -67,7 +66,7 @@ public final class DiffRunner {
   }
 
   private static Verdict judge(DiffCase c, Recording recording, Outcome jqj) {
-    if (new String(jqj.stderr(), UTF_8).contains(STUB)) {
+    if (new String(jqj.stderr(), UTF_8).contains(Verdict.STUB)) {
       String headline = "FAIL, jqj ended with a Stub";
       String diff = recording == null ? c.id() + ": " + headline + "; the case has no recording\n" : diff(c.id(), headline, recording.outcome(), jqj, true);
       return new Verdict(Verdict.Kind.FAIL, "jqj ended with a Stub", diff);
