@@ -109,3 +109,8 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#79) `git var GIT_AUTHOR_IDENT` gives the `Signed-off-by` identity; it differs from `git config user.name` here.
 - (#77) `check-trailers.sh <base>..HEAD` counts your merge commit too: give the merge message the full trailer block.
 - (#77) A writer target that reads a main document re-primes mid-drain, and the drain's tick comes after the write; a count that stops at a drain's start misses it.
+- (#61) The ratchet counts class-C coverage from oracle's aggregate: a branch no test reaches (e.g. a feature moved to a later ticket) still drops jq-core's ratchet; add a witness or delete the branch.
+- (#61) A tool call's text turns `\uXXXX` into the character: write jq-ref filters with escapes to a file via `printf '\134u…'`, then `jq-ref -n -f`.
+- (#61) jq-ref 1.8.2: an escape run ending in a 3- or 4-byte lead byte swallows the closing quote ("Unfinished string at EOF"); a 2-byte lead keeps it.
+- (#61) Adding a JqNumber or JqString permit breaks SealedPermitsTest and SealedPermitsModulePathTest.
+- (#61) Class-C implementers can hit the 200-turn cap: commit and push early.
