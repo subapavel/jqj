@@ -16,6 +16,9 @@ mkdir -p "$repo/scripts" "$repo/quality" "$repo/ratchet" "$repo/stubbin"
 g() { git -C "$repo" "$@"; }
 cp "$here/../gate-ticket.sh" "$here/../gate-spec.sh" "$here/../ratchet.java" "$repo/scripts/" 2>/dev/null
 printf 'module\tclass\tlines\tbranches\tmutation\nquery-core\tC\t90\t80\t80\njq-core\tC\t90\t80\t80\njq-cli\t-\t80\t-\t-\n' > "$repo/quality/floors.tsv"
+# a recording in the base commit that no later commit changes
+mkdir -p "$repo/oracle/src/test/resources/json"
+echo old > "$repo/oracle/src/test/resources/json/old.rec"
 
 stub='#!/usr/bin/env bash
 echo "$(basename "$0") $*" >> "$STUB_CALLS"
@@ -110,6 +113,21 @@ check "ticket: step 4 ratchet fails" "$(ticket 25 query-core base)" 1
 has "ratchet failure shown" "jq.test#a" "$tmp/out"
 rm "$repo/ratchet/oracle/jqtest.txt" "$repo/ratchet/oracle-listed.tmp"
 
+# step 3 record: the recordings changed since ref are verified (ADR-0020)
+mkdir -p "$repo/oracle/src/test/resources/diff"
+echo r > "$repo/oracle/src/test/resources/diff/x.rec"
+g add -A
+g commit -q -m rec
+check "ticket: a changed recording" "$(ticket 25 query-core HEAD~1)" 0
+has "the changed recording is verified" "oracle-record.sh --verify oracle/src/test/resources/diff/x.rec" "$STUB_CALLS"
+hasnt "an unchanged recording is not verified by the ticket gate" "old.rec" "$STUB_CALLS"
+check "ticket: no changed recording" "$(ticket 25 query-core HEAD)" 0
+hasnt "no changed recording, no record call" "oracle-record" "$STUB_CALLS"
+chmod -x "$repo/scripts/oracle-record.sh"
+check "ticket: a recorder without its exec bit fails the gate" "$(ticket 25 query-core HEAD~1)" 126
+has "the record step is named" "step record failed" "$tmp/out"
+chmod +x "$repo/scripts/oracle-record.sh"
+
 # --- spec gate ---
 spec() { : > "$STUB_CALLS"; (cd "$repo" && scripts/gate-spec.sh "$@" > "$tmp/out" 2>&1; echo $?); }
 check "spec: usage" "$(spec)" 2
@@ -127,9 +145,16 @@ for m in query-core jq-core; do echo "<mutations><mutation status='KILLED'/></mu
 check "spec: green" "$(spec 22)" 0
 has "slowest step 1" "slowest step 1 (verify): 32 70.0 s" "$tmp/out"
 has "step 1 over its target" "over target 60 s" "$tmp/out"
+has "step 1 over its target goes to the owner (F-27)" "over target 60 s: report it to the owner in the spec PR (F-27)" "$tmp/out"
+hasnt "no fallback named for step 1 (F-27)" "fallback" "$tmp/out"
 hasnt "no ticket-gate PIT report (F-27)" "slowest step 2" "$tmp/out"
 has "spec step 1 clean verify" "mvnw -B clean verify -Pbench" "$STUB_CALLS"
-has "spec step 2 PIT on whole class-C modules" "-pl query-core,jq-core -am" "$STUB_CALLS"
+has "spec step 2 PIT on whole class-C modules and oracle's crossModule run (ADR-0014)" "mvnw -B -pl query-core,jq-core,oracle -am test org.pitest:pitest-maven:mutationCoverage" "$STUB_CALLS"
+# The property replaces every module's POM list (observed, #45), so oracle's three Survey exclusions are repeated.
+has "jq-cli's tests and oracle's Surveys kept out of PIT" "mutationCoverage -DexcludedTestClasses=io.github.subapavel.jqj.cli.LauncherTest,io.github.subapavel.jqj.cli.\*ModulePathTest,io.github.subapavel.jqj.oracle.diff.DifferentialSurveyTest,io.github.subapavel.jqj.oracle.json.JsonSurveyTest,io.github.subapavel.jqj.oracle.jqtest.JqTestSurveyTest$" "$STUB_CALLS"
+has "spec verifies every recording (ADR-0020)" "oracle-record.sh --verify oracle/src/test/resources/diff/x.rec oracle/src/test/resources/json/old.rec" "$STUB_CALLS"
+order=$(grep -o 'clean verify\|oracle-record\|mutationCoverage' "$STUB_CALLS" | tr '\n' ' ')
+check "spec record step after clean-verify, before PIT" "$order" "clean verify oracle-record mutationCoverage "
 has "spec step 3 JMH" "java -jar bench/jmh/target/benchmarks.jar -prof gc -rf json" "$STUB_CALLS"
 has "spec step 4 regen --all" "regen: ok" "$tmp/out"
 has "spec logs" "regen" "$(ls "$repo/.logs" | tr '\n' ' ' > "$tmp/ls"; echo "$tmp/ls")"
@@ -141,6 +166,10 @@ hasnt "no 'over target' within the target" "over target" "$tmp/out"
 export STUB_FAIL=clean:5
 check "spec: step 1 fails, its exit code" "$(spec 22)" 5
 hasnt "spec stops after step 1" "pitest" "$STUB_CALLS"
+hasnt "no record step after a failed step 1" "oracle-record" "$STUB_CALLS"
+export STUB_FAIL=oracle-record:3
+check "spec: a recording differs, its exit code" "$(spec 22)" 3
+hasnt "spec stops after the record step" "pitest" "$STUB_CALLS"
 export STUB_FAIL=jmh:6
 check "spec: JMH fails, its exit code" "$(spec 22)" 6
 hasnt "regen not reached after JMH" "regen" "$tmp/out"
