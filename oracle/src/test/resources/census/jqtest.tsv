@@ -70,11 +70,11 @@ jq.test#0ea918c178a9	2a	S2a.17	jq.test:502	S2a.11,S2a.13,S2a.14,S2a.17	$var as
 jq.test#0f008cc28586	2a	S2a.15	jq.test:609	S2a.15	+
 jq.test#0f1529012418	3	-	jq.test:1139	-	path/1
 jq.test#0f416521a4a8	3	-	jq.test:2475	-	path/1 setpath
-jq.test#107d86d637fe	2a	S2a.25	jq.test:2116	S2a.11,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 not/0 range/2
+jq.test#107d86d637fe	2a	S2a.22	jq.test:2116	S2a.11,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 not/0
 jq.test#108504723642	2a	S2a.17	jq.test:1416	S2a.11,S2a.13,S2a.14,S2a.16	, ==
 jq.test#10f201e721c6	2a	S2a.18	jq.test:2046	S2a.11,S2a.15,S2a.18	catch try
-jq.test#10f41465d752	2a	S2a.25	jq.test:2439	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
-jq.test#11af6b75d24b	2a	S2a.25	jq.test:1815	S2a.19,S2a.21,S2a.22,S2a.23	length max range/2
+jq.test#10f41465d752	2a	S2a.22	jq.test:2439	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
+jq.test#11af6b75d24b	2a	S2a.25	jq.test:1815	S2a.19,S2a.21,S2a.22,S2a.23	length max
 jq.test#1301d0aec040	2a	S2a.22	jq.test:1771	S2a.13,S2a.14,S2a.21,S2a.22	empty/0 type
 jq.test#140eaa8e554d	2a	S2a.22	jq.test:2139	S2a.18,S2a.21,S2a.22	empty/0
 jq.test#1497d50b78b3	3	-	jq.test:1221	-	path/1 setpath
@@ -86,7 +86,7 @@ jq.test#18b6c5766d47	4	-	jq.test:1553	-	_strindices
 jq.test#1962894a9c05	2a	S2a.17	jq.test:2281	S2a.11,S2a.17	$var as
 jq.test#1980b608822d	3	-	jq.test:1177	-	delpaths path/1
 jq.test#19b1989bc21d	7	-	jq.test:1929	-	import
-jq.test#1ae9d9b70e85	2a	S2a.25	jq.test:1819	S2a.19,S2a.21,S2a.22,S2a.23	length max range/2
+jq.test#1ae9d9b70e85	2a	S2a.25	jq.test:1819	S2a.19,S2a.21,S2a.22,S2a.23	length max
 jq.test#1b130bbbf1b1	3	-	jq.test:1298	-	path/1 setpath
 jq.test#1c026178e393	3	-	jq.test:2135	-	delpaths getpath path/1 setpath
 jq.test#1ccfb7b0fb48	2a	S2a.22	jq.test:1070	S2a.18,S2a.21,S2a.22	empty/0 not/0
@@ -107,7 +107,7 @@ jq.test#2313e647075a	4	-	jq.test:1593	-	_strindices
 jq.test#243a20cfde6c	3	-	jq.test:1115	-	path/1
 jq.test#244e65970b99	2a	S2a.17	jq.test:512	S2a.11,S2a.15,S2a.17	$var as
 jq.test#25249de2d778	2a	S2a.22	jq.test:693	S2a.11,S2a.13,S2a.14,S2a.15,S2a.22	isnan nan
-jq.test#255383f9e74e	2a	S2a.25	jq.test:2467	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21,S2a.22	nan range/2
+jq.test#255383f9e74e	2a	S2a.22	jq.test:2467	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21,S2a.22	nan
 jq.test#2629edc3cfc2	2a	S2a.18	jq.test:1997	S2a.15,S2a.18	catch try
 jq.test#271ab1ee8ff7	2a	S2a.15	jq.test:1759	S2a.11,S2a.13,S2a.14,S2a.15	*
 jq.test#29315044ab93	2a	S2a.22	jq.test:2022	S2a.11,S2a.13,S2a.21,S2a.22	tostring type
@@ -128,7 +128,7 @@ jq.test#303a576fcc9e	2a	S2a.22	jq.test:393	S2a.11,S2a.13,S2a.18,S2a.21,S2a.22	em
 jq.test#30896d652d49	1	-	jq.test:148	-	-
 jq.test#316a5b5ad7d2	4	-	jq.test:2411	-	implode
 jq.test#322bb3c12b84	4	-	jq.test:2516	-	startswith
-jq.test#32a55d66aa4c	2a	S2a.25	jq.test:2616	S2a.11,S2a.14,S2a.16,S2a.17,S2a.18,S2a.19,S2a.21	range/1 range/2 reduce
+jq.test#32a55d66aa4c	2a	S2a.22	jq.test:2616	S2a.11,S2a.14,S2a.16,S2a.17,S2a.18,S2a.19,S2a.21	range/1 range/2 reduce
 jq.test#3308201d24b0	3	-	jq.test:1201	-	getpath path/1 setpath
 jq.test#33233245fd79	2a	S2a.15	jq.test:118	S2a.13,S2a.14	, {}
 jq.test#335f4d67b78d	2a	S2a.23	jq.test:1693	S2a.11,S2a.13,S2a.14,S2a.21,S2a.23	_max_by_impl _min_by_impl max min
@@ -138,7 +138,7 @@ jq.test#349dd9fd1478	2a	S2a.19	jq.test:899	S2a.11,S2a.13,S2a.15,S2a.17,S2a.19	re
 jq.test#350f3cad33e6	2a	S2a.11	jq.test:816	S2a.11	literal
 jq.test#358e55e61ac0	4	-	jq.test:1536	-	endswith
 jq.test#36a6f0f3fc0e	7	-	jq.test:1912	-	data-import import
-jq.test#3721017d6dac	2a	S2a.25	jq.test:2143	S2a.11,S2a.18,S2a.19,S2a.21	first/1 isempty/1 range/1 range/2
+jq.test#3721017d6dac	2a	S2a.22	jq.test:2143	S2a.11,S2a.18,S2a.19,S2a.21	first/1 isempty/1 range/1 range/2
 jq.test#37c4900d2b51	3	-	jq.test:1188	-	delpaths path/1
 jq.test#383b87ee256e	2a	S2a.22	jq.test:689	S2a.11,S2a.13,S2a.14,S2a.15,S2a.22	infinite
 jq.test#399756af877a	2a	S2a.19	jq.test:919	S2a.11,S2a.13,S2a.15,S2a.17,S2a.19	reduce
@@ -149,7 +149,7 @@ jq.test#3a83ba93aa9e	3	-	jq.test:1192	-	delpaths path/1
 jq.test#3a94f773efd4	2a	S2a.17	jq.test:996	S2a.13,S2a.14,S2a.17	$var ?// as
 jq.test#3aa8485565e3	7	-	jq.test:2341	-	debug
 jq.test#3b386de4324b	3	-	jq.test:1278	-	delpaths getpath path/1 setpath
-jq.test#3b4bc53ebf35	2a	S2a.25	jq.test:2451	S2a.11,S2a.13,S2a.14,S2a.15,S2a.19,S2a.21	range/1 range/2
+jq.test#3b4bc53ebf35	2a	S2a.22	jq.test:2451	S2a.11,S2a.13,S2a.14,S2a.15,S2a.19,S2a.21	range/1 range/2
 jq.test#3b9948d25fe1	2a	S2a.17	jq.test:2308	S2a.11,S2a.13,S2a.14,S2a.17	$var as
 jq.test#3bc6cd4faf5c	4	-	jq.test:1661	-	contains
 jq.test#3c0d9891d22c	2b	-	jq.test:311	-	recursion:while/2
@@ -182,7 +182,7 @@ jq.test#4b72f080b94b	2a	S2a.20	jq.test:808	S2a.11,S2a.13,S2a.14,S2a.20	def
 jq.test#4d4e9fd7bad4	2a	S2a.17	jq.test:929	S2a.13,S2a.14,S2a.17	$var as
 jq.test#4dbbd1dfe7cb	2b	-	jq.test:2005	-	recursion:while/2
 jq.test#4dc145ab0b77	2a	S2a.15	jq.test:1241	S2a.11,S2a.13,S2a.14,S2a.15	%
-jq.test#4dcdca700612	2a	S2a.25	jq.test:2125	S2a.11,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 not/0 range/2
+jq.test#4dcdca700612	2a	S2a.22	jq.test:2125	S2a.11,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 not/0
 jq.test#4dd9b0b64b47	2a	S2a.15	jq.test:1637	S2a.11,S2a.15	*
 jq.test#4ded3494605c	3	-	jq.test:1245	-	delpaths getpath path/1 setpath
 jq.test#4e2e5721686e	3	-	jq.test:1123	-	path/1
@@ -190,7 +190,7 @@ jq.test#4ebcd8370580	2a	S2a.15	jq.test:812	S2a.11,S2a.13,S2a.14,S2a.15	+
 jq.test#4f12e903b1b1	2a	S2a.22	jq.test:1066	S2a.11,S2a.13,S2a.18,S2a.21,S2a.22	empty/0
 jq.test#4fc10dca2848	2a	S2a.20	jq.test:803	S2a.11,S2a.20	def
 jq.test#504b626851af	2a	S2a.21	jq.test:200	S2a.13,S2a.18,S2a.21	map/1
-jq.test#50a8dd7ee578	2a	S2a.25	jq.test:405	S2a.11,S2a.13,S2a.14,S2a.15,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 range/2
+jq.test#50a8dd7ee578	2a	S2a.22	jq.test:405	S2a.11,S2a.13,S2a.14,S2a.15,S2a.18,S2a.19,S2a.21,S2a.22	empty/0
 jq.test#51200beb445c	3	-	jq.test:1153	-	delpaths getpath setpath
 jq.test#51dd8fe1848d	2a	S2a.22	jq.test:2034	S2a.11,S2a.18,S2a.21,S2a.22	tostring type
 jq.test#529480120c42	2b	-	jq.test:295	-	recursion:while/2
@@ -201,7 +201,7 @@ jq.test#552a4482e91f	2a	S2a.15	jq.test:122	S2a.11,S2a.13,S2a.14,S2a.15	+
 jq.test#55645f3ca01c	3	-	jq.test:1286	-	path/1 setpath
 jq.test#575b2c608904	2a	S2a.21	jq.test:2147	S2a.11,S2a.13,S2a.18,S2a.21	first/1 isempty/1
 jq.test#580ed5a815e2	2a	S2a.22	jq.test:1737	S2a.22	keys
-jq.test#58b2cad1b484	2a	S2a.25	jq.test:2285	S2a.11,S2a.13,S2a.14,S2a.16,S2a.17,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 range/2
+jq.test#58b2cad1b484	2a	S2a.22	jq.test:2285	S2a.11,S2a.13,S2a.14,S2a.16,S2a.17,S2a.18,S2a.19,S2a.21,S2a.22	empty/0
 jq.test#594b4c8163d6	2a	S2a.17	jq.test:668	S2a.11,S2a.13,S2a.16	, >
 jq.test#5ab6f3a609d1	4	-	jq.test:1540	-	endswith startswith
 jq.test#5b0fa111b6e5	4	-	jq.test:745	-	utf8bytelength
@@ -231,7 +231,7 @@ jq.test#6295421f748d	7	-	jq.test:1963	-	include
 jq.test#630c96e6c06d	2a	S2a.18	jq.test:2058	S2a.11,S2a.15,S2a.18	catch try
 jq.test#64215a29d656	2a	S2a.18	jq.test:1330	S2a.11,S2a.13,S2a.14,S2a.18	if
 jq.test#653d32bd42bd	2a	S2a.17	jq.test:516	S2a.11,S2a.15,S2a.17	$var as
-jq.test#659d070cbd30	2a	S2a.25	jq.test:2455	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
+jq.test#659d070cbd30	2a	S2a.22	jq.test:2455	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
 jq.test#663c20f1ca0d	2a	S2a.17	jq.test:938	S2a.13,S2a.14,S2a.17	$var ?// as
 jq.test#666c81527b86	2a	S2a.21	jq.test:39	S2a.11,S2a.13,S2a.14,S2a.15,S2a.21	abs/0
 jq.test#66cca3848f03	7	-	jq.test:1993	-	import
@@ -263,7 +263,7 @@ jq.test#735c284a68e3	2a	S2a.22	jq.test:1717	S2a.21,S2a.22	has
 jq.test#73699322fe3c	2a	S2a.21	jq.test:2372	S2a.13,S2a.18,S2a.21	first/1
 jq.test#7492462a71d5	2a	S2a.18	jq.test:1358	S2a.11,S2a.14,S2a.15,S2a.18	if
 jq.test#74b630f18468	2a	S2a.18	jq.test:1338	S2a.11,S2a.14,S2a.18	if
-jq.test#7587b2c9ce99	2a	S2a.25	jq.test:337	S2a.11,S2a.14,S2a.17,S2a.19,S2a.21	foreach range/1 range/2
+jq.test#7587b2c9ce99	2a	S2a.22	jq.test:337	S2a.11,S2a.14,S2a.17,S2a.19,S2a.21	foreach range/1 range/2
 jq.test#75aaceae95bd	4	-	jq.test:1653	-	contains
 jq.test#76320f9665f3	2a	S2a.25	jq.test:2629	S2a.11,S2a.13,S2a.14,S2a.17,S2a.18,S2a.19,S2a.21,S2a.23	range/2 reduce sort
 jq.test#763a005cfeb5	4	-	jq.test:1665	-	contains
@@ -297,7 +297,7 @@ jq.test#840354677292	2a	S2a.15	jq.test:653	S2a.11,S2a.15	+ -
 jq.test#844e1c574b9c	2a	S2a.11	jq.test:62	S2a.11	literal
 jq.test#84704754bd02	3	-	jq.test:1705	-	path/1 setpath
 jq.test#860e0c25e574	2a	S2a.22	jq.test:1074	S2a.18,S2a.21,S2a.22	empty/0 not/0
-jq.test#861d11a2f907	2a	S2a.25	jq.test:2607	S2a.11,S2a.14,S2a.15,S2a.17,S2a.19,S2a.21,S2a.22	length range/2 reduce
+jq.test#861d11a2f907	2a	S2a.22	jq.test:2607	S2a.11,S2a.14,S2a.15,S2a.17,S2a.19,S2a.21,S2a.22	length
 jq.test#862879335ac2	2a	S2a.22	jq.test:2395	S2a.11,S2a.13,S2a.18,S2a.21,S2a.22	empty/0 keys not/0 tostring
 jq.test#8654b6b9ddde	2a	S2a.22	jq.test:389	S2a.11,S2a.15,S2a.18,S2a.21,S2a.22	empty/0
 jq.test#86c119064e14	2a	S2a.18	jq.test:1322	S2a.11,S2a.13,S2a.14,S2a.18	if
@@ -309,10 +309,10 @@ jq.test#89289c499a59	2a	S2a.17	jq.test:1038	S2a.11,S2a.13,S2a.14,S2a.17	$var ?//
 jq.test#8976a17b3bf5	3	-	jq.test:1173	-	delpaths
 jq.test#899b7211f67f	2a	S2a.17	jq.test:933	S2a.13,S2a.14,S2a.17	$var as
 jq.test#89a1f7b1b067	2a	S2a.20	jq.test:315	S2a.11,S2a.13,S2a.14,S2a.16,S2a.17,S2a.18	$var break error if label
-jq.test#8af883b218d3	2a	S2a.25	jq.test:766	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21,S2a.22	empty/0 range/2
+jq.test#8af883b218d3	2a	S2a.22	jq.test:766	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21,S2a.22	empty/0
 jq.test#8b680f7e7a21	2a	S2a.19	jq.test:2289	S2a.11,S2a.13,S2a.15,S2a.17,S2a.19	reduce
 jq.test#8bb20417311b	4	-	jq.test:1859	-	gmtime
-jq.test#8c17c4284507	2a	S2a.25	jq.test:2611	S2a.11,S2a.14,S2a.15,S2a.17,S2a.18,S2a.19,S2a.21	range/1 range/2 reduce
+jq.test#8c17c4284507	2a	S2a.22	jq.test:2611	S2a.11,S2a.14,S2a.15,S2a.17,S2a.18,S2a.19,S2a.21	range/1 range/2 reduce
 jq.test#8c1b45840358	7	-	jq.test:1973	-	modulemeta
 jq.test#8c61a2023b75	3	-	jq.test:1110	-	path/1
 jq.test#8d6d7017ef7f	4	-	jq.test:440	-	_strindices
@@ -329,7 +329,7 @@ jq.test#9208750748b1	4	-	jq.test:1823	-	explode implode
 jq.test#92d684574562	2a	S2a.17	jq.test:1403	S2a.11,S2a.13,S2a.14,S2a.16	!= , ==
 jq.test#93cbc6d60640	2a	S2a.19	jq.test:903	S2a.11,S2a.13,S2a.14,S2a.15,S2a.17,S2a.19	reduce
 jq.test#94322b09655e	4	-	jq.test:1601	-	_strindices
-jq.test#943f84e6aa1f	2a	S2a.25	jq.test:435	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
+jq.test#943f84e6aa1f	2a	S2a.22	jq.test:435	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
 jq.test#94e0e3e13e5d	3	-	jq.test:221	-	path/1 setpath
 jq.test#95d9b6f95880	2a	S2a.18	jq.test:1473	S2a.11,S2a.15,S2a.18	catch try
 jq.test#9610a98460b6	2a	S2a.18	jq.test:2363	S2a.11,S2a.18	catch error try
@@ -353,8 +353,8 @@ jq.test#9c3b0d2c8b49	4	-	jq.test:1613	-	split
 jq.test#9ceb5974c0d1	3	-	jq.test:2585	-	getpath
 jq.test#9cebd1c7524a	2a	S2a.22	jq.test:2224	S2a.11,S2a.15,S2a.16,S2a.18,S2a.22	have_decnum tojson
 jq.test#9d97fc39646e	3	-	jq.test:1159	-	delpaths
-jq.test#9d9b0ca693b8	2a	S2a.25	jq.test:2443	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
-jq.test#9dfa2ccc089a	2a	S2a.25	jq.test:2447	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
+jq.test#9d9b0ca693b8	2a	S2a.22	jq.test:2443	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
+jq.test#9dfa2ccc089a	2a	S2a.22	jq.test:2447	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
 jq.test#9e8b64fea4ea	4	-	jq.test:1585	-	_strindices
 jq.test#9f0c7883b67d	2a	S2a.15	jq.test:1633	S2a.11,S2a.13,S2a.14,S2a.15	* -
 jq.test#9f860637b48a	2a	S2a.20	jq.test:860	S2a.11,S2a.13,S2a.14,S2a.15,S2a.20	def
@@ -370,7 +370,7 @@ jq.test#a33f53dfa710	2a	S2a.20	jq.test:868	S2a.11,S2a.13,S2a.14,S2a.15,S2a.20	de
 jq.test#a34fd049efdb	3	-	jq.test:1163	-	delpaths getpath setpath
 jq.test#a3fde6bda96a	2a	S2a.18	jq.test:1366	S2a.11,S2a.14,S2a.18	if
 jq.test#a456ff5ede3b	2a	S2a.15	jq.test:172	S2a.11,S2a.13,S2a.15	+ -
-jq.test#a45caa2bc474	2a	S2a.25	jq.test:333	S2a.11,S2a.13,S2a.14,S2a.15,S2a.16,S2a.17,S2a.18,S2a.19	break error foreach if label
+jq.test#a45caa2bc474	2a	S2a.22	jq.test:333	S2a.11,S2a.13,S2a.14,S2a.15,S2a.16,S2a.17,S2a.18,S2a.19	break error foreach if label
 jq.test#a4dbacce6356	2a	S2a.13	jq.test:237	S2a.13	.[]
 jq.test#a5016de4a315	4	-	jq.test:2523	-	endswith
 jq.test#a52bae7a4db7	2a	S2a.22	jq.test:377	S2a.11,S2a.13,S2a.14,S2a.18,S2a.21,S2a.22	empty/0
@@ -398,7 +398,7 @@ jq.test#ac80f8845bd0	2a	S2a.17	jq.test:975	S2a.11,S2a.13,S2a.14,S2a.17	$var ?// 
 jq.test#ac88d93274ab	2a	S2a.14	jq.test:35	S2a.14	[]
 jq.test#adac7e14b47b	3	-	jq.test:2533	-	setpath
 jq.test#ae2fd9702847	3	-	jq.test:1302	-	path/1 setpath
-jq.test#ae752864b192	2a	S2a.25	jq.test:2435	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
+jq.test#ae752864b192	2a	S2a.22	jq.test:2435	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
 jq.test#ae83512e6e2e	3	-	jq.test:2483	-	path/1 setpath
 jq.test#aee6072b5463	3	-	jq.test:1131	-	path/1
 jq.test#af2408bd1c91	7	-	jq.test:1957	-	include
@@ -460,7 +460,7 @@ jq.test#c5b2b68490e2	2a	S2a.22	jq.test:2029	S2a.11,S2a.13,S2a.21,S2a.22	tostring
 jq.test#c62972f95f18	2a	S2a.22	jq.test:1799	S2a.11,S2a.22	flatten/1
 jq.test#c671e8d80b16	4	-	jq.test:1589	-	_strindices
 jq.test#c688305fcc52	2a	S2a.12	jq.test:132	S2a.12	parser
-jq.test#c69181ea6de7	2a	S2a.25	jq.test:420	S2a.11,S2a.13,S2a.14,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 range/2
+jq.test#c69181ea6de7	2a	S2a.22	jq.test:420	S2a.11,S2a.13,S2a.14,S2a.18,S2a.19,S2a.21,S2a.22	empty/0
 jq.test#c6cd2d19b616	4	-	jq.test:1597	-	_strindices
 jq.test#c6fc5c3c10b6	2a	S2a.19	jq.test:2538	S2a.11,S2a.13,S2a.15,S2a.17,S2a.19	foreach
 jq.test#c89c2a42d75b	2a	S2a.15	jq.test:1645	S2a.11,S2a.13,S2a.14,S2a.15	/
@@ -483,7 +483,7 @@ jq.test#cf4e72468cc4	2a	S2a.15	jq.test:1625	S2a.11,S2a.13,S2a.14,S2a.15	*
 jq.test#cf811d2736eb	2a	S2a.15	jq.test:585	S2a.11,S2a.15	-
 jq.test#cfa8c3136dec	2a	S2a.18	jq.test:1362	S2a.11,S2a.14,S2a.18	if
 jq.test#cfe589586e7c	4	-	jq.test:1885	-	strflocaltime
-jq.test#d08d36100c63	2a	S2a.25	jq.test:2463	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21,S2a.22	nan range/2
+jq.test#d08d36100c63	2a	S2a.22	jq.test:2463	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21,S2a.22	nan
 jq.test#d0a100bb7aad	2a	S2a.17	jq.test:1017	S2a.13,S2a.14,S2a.17	$var ?// as
 jq.test#d0c8f503ef76	2a	S2a.22	jq.test:2359	S2a.11,S2a.13,S2a.16,S2a.18,S2a.22	empty/0
 jq.test#d1c985cb7475	3	-	jq.test:2581	-	getpath
@@ -526,7 +526,7 @@ jq.test#e25e7a33370c	2a	S2a.22	jq.test:2196	S2a.11,S2a.13,S2a.16,S2a.18,S2a.22	h
 jq.test#e2ac5a8fb6e7	4	-	jq.test:1442	-	contains
 jq.test#e2f1f86661bd	4	-	jq.test:1430	-	contains
 jq.test#e30d7814d724	2a	S2a.15	jq.test:195	S2a.11,S2a.13,S2a.14	.[] ? []
-jq.test#e381aeee8436	2a	S2a.25	jq.test:401	S2a.13,S2a.14,S2a.18,S2a.19,S2a.21,S2a.22	last/1 range/2
+jq.test#e381aeee8436	2a	S2a.22	jq.test:401	S2a.13,S2a.14,S2a.18,S2a.19,S2a.21,S2a.22	last/1
 jq.test#e3be7cd91456	2b	-	jq.test:425	-	recursion:while/2
 jq.test#e3ce03da0501	2a	S2a.20	jq.test:873	S2a.11,S2a.13,S2a.14,S2a.15,S2a.17,S2a.20	def
 jq.test#e3d73b9ff1ab	1	-	jq.test:58	-	-
@@ -555,16 +555,16 @@ jq.test#eb50ea279de5	4	-	jq.test:1895	-	mktime strftime strptime
 jq.test#eb745e3d9017	2a	S2a.17	jq.test:982	S2a.11,S2a.13,S2a.14,S2a.17	$var ?// as
 jq.test#ec0b49b8c80f	2a	S2a.20	jq.test:884	S2a.11,S2a.13,S2a.14,S2a.15,S2a.17,S2a.20	def
 jq.test#ecef954c5506	2a	S2a.15	jq.test:577	S2a.11,S2a.15	+
-jq.test#ed5781737df3	2a	S2a.25	jq.test:2471	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21,S2a.22	nan range/2
+jq.test#ed5781737df3	2a	S2a.22	jq.test:2471	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21,S2a.22	nan
 jq.test#ed851f492d93	4	-	jq.test:2157	-	builtins/0
-jq.test#ee76e70ce7ea	2a	S2a.25	jq.test:2121	S2a.11,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 not/0 range/2
+jq.test#ee76e70ce7ea	2a	S2a.22	jq.test:2121	S2a.11,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 not/0
 jq.test#eeb224a1461b	2a	S2a.15	jq.test:1452	S2a.13,S2a.14	, .[] ? []
 jq.test#ef465e22264e	4	-	jq.test:2407	-	implode
 jq.test#f01bdc18549d	2a	S2a.15	jq.test:1751	S2a.11,S2a.13,S2a.14,S2a.15	*
 jq.test#f0c627224d02	4	-	jq.test:1868	-	strftime
 jq.test#f0cd6f6d9bf7	2a	S2a.22	jq.test:2350	S2a.11,S2a.13,S2a.16,S2a.18,S2a.22	empty/0
 jq.test#f1232c5aebcd	4	-	jq.test:2403	-	explode implode
-jq.test#f2338643de5b	2a	S2a.25	jq.test:397	S2a.13,S2a.14,S2a.18,S2a.19,S2a.21,S2a.22	last/1 range/2
+jq.test#f2338643de5b	2a	S2a.22	jq.test:397	S2a.13,S2a.14,S2a.18,S2a.19,S2a.21,S2a.22	last/1
 jq.test#f3285012fefb	2a	S2a.25	jq.test:2633	S2a.11,S2a.13,S2a.14,S2a.17,S2a.18,S2a.19,S2a.21,S2a.23	range/2 reduce unique
 jq.test#f4d1e4254696	3	-	jq.test:1258	-	delpaths getpath path/1 setpath
 jq.test#f4d4973fa3cf	2a	S2a.18	jq.test:1481	S2a.13,S2a.15,S2a.18	catch try
@@ -572,7 +572,7 @@ jq.test#f5d06d36099d	2a	S2a.17	jq.test:559	S2a.13,S2a.14,S2a.17	$var as
 jq.test#f6d3a26efb46	3	-	jq.test:2386	-	delpaths getpath path/1 setpath
 jq.test#f772b22b4565	4	-	jq.test:1609	-	_strindices
 jq.test#f77d8f170214	5	-	jq.test:2337	-	input
-jq.test#f9556af5283e	2a	S2a.25	jq.test:2097	S2a.11,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 not/0 range/2
+jq.test#f9556af5283e	2a	S2a.22	jq.test:2097	S2a.11,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 not/0
 jq.test#f9a2df08b3db	2a	S2a.18	jq.test:1314	S2a.11,S2a.13,S2a.14,S2a.18	if
 jq.test#f9db0e72c836	4	-	jq.test:1657	-	contains
 jq.test#fa7636e30059	4	-	jq.test:1434	-	contains
@@ -604,13 +604,13 @@ man.test#0ba9f00a93da	1	-	man.test:1	-	-
 man.test#0c484123fbfc	2a	S2a.15	man.test:182	S2a.11,S2a.15	/
 man.test#0cb4429f73f3	2b	-	man.test:422	-	recursion:while/2
 man.test#0cfa14d26395	2a	S2a.22	man.test:401	S2a.22	flatten/0
-man.test#11af6b75d24b	2a	S2a.25	man.test:694	S2a.19,S2a.21,S2a.22,S2a.23	length max range/2
+man.test#11af6b75d24b	2a	S2a.25	man.test:694	S2a.19,S2a.21,S2a.22,S2a.23	length max
 man.test#140eaa8e554d	2a	S2a.22	man.test:879	S2a.18,S2a.21,S2a.22	empty/0
 man.test#147de19cf21b	2a	S2a.22	man.test:714	S2a.13,S2a.14,S2a.22	tostring
 man.test#14c467f8a3e1	2a	S2a.22	man.test:385	S2a.18,S2a.21,S2a.22	empty/0
 man.test#14c48adde9d4	1	-	man.test:29	-	-
 man.test#14d4ec443165	4	-	man.test:207	-	utf8bytelength
-man.test#1742562a859e	2a	S2a.25	man.test:899	S2a.11,S2a.13,S2a.14,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 last/1 range/2
+man.test#1742562a859e	2a	S2a.22	man.test:899	S2a.11,S2a.13,S2a.14,S2a.18,S2a.19,S2a.21,S2a.22	empty/0 last/1
 man.test#1887b48acb67	4	-	man.test:734	-	@base64
 man.test#1a7e22c2ff17	4	-	man.test:698	-	bsearch
 man.test#1b800438af4d	3	-	man.test:973	-	delpaths getpath path/1 setpath
@@ -732,7 +732,7 @@ man.test#977bbe6eaa1e	3	-	man.test:345	-	path/1
 man.test#99f352c7bbf8	2a	S2a.13	man.test:45	S2a.13	?
 man.test#9ab267182966	2a	S2a.22	man.test:797	S2a.11,S2a.16,S2a.22	empty/0
 man.test#9b657b7c6cc5	4	-	man.test:570	-	contains
-man.test#9bcd89b58e83	2a	S2a.25	man.test:510	S2a.19,S2a.21,S2a.22	length range/2
+man.test#9bcd89b58e83	2a	S2a.22	man.test:510	S2a.19,S2a.21,S2a.22	length
 man.test#9e8b64fea4ea	4	-	man.test:542	-	_strindices
 man.test#9fa76fabe793	2a	S2a.22	man.test:219	S2a.11,S2a.21,S2a.22	has
 man.test#a06fb6bf059c	3	-	man.test:919	-	delpaths getpath path/1 setpath
@@ -759,7 +759,7 @@ man.test#b82d6ca58814	2a	S2a.13	man.test:77	S2a.11,S2a.13	.[]
 man.test#b99f9c43f5d6	2a	S2a.22	man.test:223	S2a.11,S2a.21,S2a.22	has
 man.test#ba48959c51f9	4	-	man.test:530	-	contains
 man.test#ba4b6c93fb6a	4	-	man.test:730	-	@sh
-man.test#bafd6a8a746e	2a	S2a.25	man.test:418	S2a.11,S2a.14,S2a.19,S2a.21	range/1 range/2
+man.test#bafd6a8a746e	2a	S2a.22	man.test:418	S2a.11,S2a.14,S2a.19,S2a.21	range/1 range/2
 man.test#bb17186bf224	2a	S2a.15	man.test:133	S2a.11,S2a.13,S2a.14,S2a.15	*
 man.test#c01c51fc4130	2a	S2a.13	man.test:85	S2a.13	.[]
 man.test#c287b44bb7cd	3	-	man.test:268	-	delpaths path/1
@@ -771,7 +771,7 @@ man.test#c6372ff4b586	7	-	man.test:686	-	$ENV
 man.test#c638babbd8f6	3	-	man.test:991	-	delpaths getpath path/1 setpath
 man.test#c665b0c9e3df	4	-	man.test:742	-	mktime strptime
 man.test#c6d4b944d23a	2a	S2a.22	man.test:320	S2a.13,S2a.21,S2a.22	empty/0 type
-man.test#c767d03f401e	2a	S2a.25	man.test:907	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	first/0 last/0 nth/1 range/1 range/2
+man.test#c767d03f401e	2a	S2a.22	man.test:907	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	first/0 last/0 nth/1 range/1 range/2
 man.test#c7f47a0eac75	2a	S2a.21	man.test:887	S2a.13,S2a.18,S2a.21	first/1 isempty/1
 man.test#c801ba41e4d2	2a	S2a.17	man.test:809	S2a.11,S2a.13,S2a.16	, //
 man.test#c891fd4dfff2	3	-	man.test:969	-	delpaths getpath path/1 setpath

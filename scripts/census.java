@@ -109,7 +109,8 @@ public class census {
           Map.entry("S2a.19", List.of("S2a.17")), // #69 <- #67
           Map.entry("S2a.20", List.of("S2a.17", "S2a.18")), // #70 <- #67, #68
           Map.entry("S2a.21", List.of("S2a.20")), // #71 <- #70
-          Map.entry("S2a.22", List.of("S2a.21")), // #72 <- #71
+          // #72 <- #71; #69 added 2026-11-12 from the census
+          Map.entry("S2a.22", List.of("S2a.19", "S2a.21")),
           Map.entry("S2a.23", List.of("S2a.16", "S2a.21")), // #73 <- #66, #71
           Map.entry("S2a.25", List.of("S2a.15", "S2a.16", "S2a.19", "S2a.22", "S2a.23", "S2a.02"))); // #75 <- #65, #66, #69, #72, #73, #58
 
