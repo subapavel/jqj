@@ -83,6 +83,8 @@ Up to three tickets are in flight at any time (`AGENTS.md`, Concurrency).
 3. One implementer fixes every finding in one pass; the verifier re-runs the full gate.
 4. `/pr` writes the PR body (summary, evidence, merge danger); the PR closes the spec.
 5. CI green on the PR → merge commit to `main` (history of tickets kept). Never squash, never force-push.
+   `scripts/merge-spec.sh <pr>` writes and checks the merge message (F-28) and prints the merge
+   command; `--execute` runs it. Never merge from the web UI: its default message fails `trailers`.
 6. `agent/HANDOFF.md` is rewritten in the same PR.
 
 ## 6. Checks, ratchet, CI
