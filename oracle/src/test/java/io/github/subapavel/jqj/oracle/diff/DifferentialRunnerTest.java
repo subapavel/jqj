@@ -4,6 +4,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.cli.Invocation;
 import io.github.subapavel.jqj.cli.Main;
 import java.io.IOException;
@@ -86,9 +87,32 @@ class DifferentialRunnerTest {
     assertThat(v.detail()).doesNotContain("\n").doesNotContain("\t");
   }
 
+  /**
+   * A recorded syntax-error case against a shell that ends in a Stub, and against the real command line. Until #62
+   * {@code Main::run} was that shell: on {@code basics/syntax-error-eof} ({@code .a |}) it gave rc 3, no stdout and
+   * the Stub on stderr (observed on 00e3e3d, #62's red), so rc and stdout agree with jq-ref and only the Stub rule fails
+   * it. #62 built the syntax error, so the stand-ins below give those bytes, on stderr and as an exception out of the
+   * entry, and the real command line now passes.
+   */
   @Test
-  void aRecordedSyntaxErrorCaseIsFailAgainstTheStubShell() {
-    assertThat(run("basics/syntax-error-eof", Main::run).kind()).isEqualTo(Verdict.Kind.FAIL);
+  void aRecordedSyntaxErrorCaseIsFailAgainstAStubShellAndPassesOnTheCommandLine() {
+    String stub = "jqj stub: the filter's END token at byte 4 is not built yet";
+    Verdict onStderr = run("basics/syntax-error-eof", jqj(3, "", stub + "\n"));
+    assertThat(onStderr.kind()).as("verdict of a shell whose stderr is the Stub").isEqualTo(Verdict.Kind.FAIL);
+    assertThat(onStderr.diff()).as("diff of a shell whose stderr is the Stub").contains("jqj ended with a Stub").contains("rc      same").contains("stdout  same");
+
+    Verdict thrown =
+        run(
+            "basics/syntax-error-eof",
+            inv -> {
+              throw new JqCompileException(stub, 1, 1);
+            });
+    assertThat(thrown.kind()).as("verdict of a shell that throws the Stub").isEqualTo(Verdict.Kind.FAIL);
+    assertThat(thrown.detail()).as("detail of a shell that throws the Stub").startsWith("jqj ended with a Stub");
+
+    Verdict real = run("basics/syntax-error-eof", Main::run);
+    assertThat(real.kind()).as("verdict of the command line since #62").isEqualTo(Verdict.Kind.PASS);
+    assertThat(real.detail()).as("detail of the command line since #62").isEqualTo("stderr not compared: syntax error");
   }
 
   @Test

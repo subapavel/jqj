@@ -12,3 +12,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
   imposed; check it against the spec and the licence list.
 - (#34) Probe a design's Stub token list with the token followed by a valid one (`..a`), not alone.
 - (#36) A design departure in an algorithm is a carry, not a finding, when a property test compares it with an independent oracle that follows the ADR's rule. A commit claiming architect approval: look for it on the issue.
+- (#62) A ticket body's count can be the spec story's total: take the ticket's share from the census output and the architect's census comment on the spec issue.
+- (#62) DiffRunner compares no stderr when an expected line is a syntax error; recovery-message text is checked only by unit tests and jqtest's last-block rule.
