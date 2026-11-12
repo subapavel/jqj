@@ -49,7 +49,7 @@ jq.test#0436edac7eaf	2a	S2a.22	jq.test:1448	S2a.11,S2a.13,S2a.14,S2a.16,S2a.18,S
 jq.test#045deceb014f	2a	S2a.22	jq.test:385	S2a.11,S2a.13,S2a.14,S2a.18,S2a.21,S2a.22	empty/0
 jq.test#052feb93dd6b	2a	S2a.11	jq.test:16	S2a.11	literal
 jq.test#059bb9caf598	4	-	jq.test:94	-	@uri
-jq.test#05d1a0b3f21a	2a	S2a.20	jq.test:1499	S2a.11,S2a.17,S2a.18	$__loc__ catch error error/1 try
+jq.test#05d1a0b3f21a	2a	S2a.20	jq.test:1499	S2a.11,S2a.17,S2a.18	$__loc__ catch error error/1 interpolation try
 jq.test#05d369c853a6	2a	S2a.11	jq.test:54	S2a.11	literal
 jq.test#060ceef1ac48	2a	S2a.22	jq.test:1086	S2a.13,S2a.14,S2a.18,S2a.21,S2a.22	empty/0 not/0
 jq.test#06cf852c3d39	2a	S2a.22	jq.test:1779	S2a.13,S2a.14,S2a.21,S2a.22	empty/0 type
@@ -197,7 +197,7 @@ jq.test#529480120c42	2b	-	jq.test:295	-	recursion:while/2
 jq.test#5391099daec9	2a	S2a.11	jq.test:12	S2a.11	literal
 jq.test#5482bd8f2a67	2a	S2a.18	jq.test:1641	S2a.11,S2a.15,S2a.18	catch try
 jq.test#54dc19661fcb	2a	S2a.22	jq.test:1078	S2a.18,S2a.21,S2a.22	empty/0 not/0
-jq.test#552a4482e91f	2a	S2a.15	jq.test:122	S2a.11,S2a.13,S2a.14,S2a.15	+
+jq.test#552a4482e91f	2a	S2a.17	jq.test:122	S2a.11,S2a.13,S2a.14,S2a.15,S2a.17	interpolation
 jq.test#55645f3ca01c	3	-	jq.test:1286	-	path/1 setpath
 jq.test#575b2c608904	2a	S2a.21	jq.test:2147	S2a.11,S2a.13,S2a.18,S2a.21	first/1 isempty/1
 jq.test#580ed5a815e2	2a	S2a.22	jq.test:1737	S2a.22	keys
@@ -332,7 +332,7 @@ jq.test#94322b09655e	4	-	jq.test:1601	-	_strindices
 jq.test#943f84e6aa1f	2a	S2a.22	jq.test:435	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21	range/1 range/2
 jq.test#94e0e3e13e5d	3	-	jq.test:221	-	path/1 setpath
 jq.test#95d9b6f95880	2a	S2a.18	jq.test:1473	S2a.11,S2a.15,S2a.18	catch try
-jq.test#9610a98460b6	2a	S2a.18	jq.test:2363	S2a.11,S2a.18	catch error try
+jq.test#9610a98460b6	2a	S2a.20	jq.test:2363	S2a.11,S2a.17,S2a.18	catch error interpolation try
 jq.test#9635c0615785	2a	S2a.17	jq.test:1031	S2a.11,S2a.13,S2a.14,S2a.17	$var ?// as
 jq.test#96d026d3e0df	2a	S2a.19	jq.test:924	S2a.17,S2a.19	reduce
 jq.test#96d4c5c8a419	2a	S2a.22	jq.test:1807	S2a.11,S2a.22	flatten/1
@@ -406,7 +406,7 @@ jq.test#af923958d2c5	3	-	jq.test:2459	-	path/1 setpath
 jq.test#afac10ecb1aa	3	-	jq.test:1214	-	getpath path/1 setpath
 jq.test#b032f073fd1b	2a	S2a.22	jq.test:450	S2a.11,S2a.13,S2a.14,S2a.21,S2a.22	tostring type
 jq.test#b08daaede7c4	2a	S2a.17	jq.test:949	S2a.13,S2a.14,S2a.17	$var ?// as
-jq.test#b0c20d5fdb5f	2a	S2a.22	jq.test:2354	S2a.11,S2a.13,S2a.14,S2a.16,S2a.18,S2a.22	empty/0
+jq.test#b0c20d5fdb5f	2a	S2a.22	jq.test:2354	S2a.11,S2a.13,S2a.14,S2a.16,S2a.17,S2a.18,S2a.22	empty/0
 jq.test#b1290d7b0ed2	2a	S2a.22	jq.test:1094	S2a.13,S2a.14,S2a.18,S2a.21,S2a.22	empty/0 not/0
 jq.test#b1b4da0a8506	2a	S2a.17	jq.test:674	S2a.11,S2a.13,S2a.16	, >
 jq.test#b1be0da4d125	3	-	jq.test:1290	-	path/1 setpath
@@ -485,7 +485,7 @@ jq.test#cfa8c3136dec	2a	S2a.18	jq.test:1362	S2a.11,S2a.14,S2a.18	if
 jq.test#cfe589586e7c	4	-	jq.test:1885	-	strflocaltime
 jq.test#d08d36100c63	2a	S2a.22	jq.test:2463	S2a.11,S2a.13,S2a.14,S2a.19,S2a.21,S2a.22	nan
 jq.test#d0a100bb7aad	2a	S2a.17	jq.test:1017	S2a.13,S2a.14,S2a.17	$var ?// as
-jq.test#d0c8f503ef76	2a	S2a.22	jq.test:2359	S2a.11,S2a.13,S2a.16,S2a.18,S2a.22	empty/0
+jq.test#d0c8f503ef76	2a	S2a.22	jq.test:2359	S2a.11,S2a.13,S2a.16,S2a.17,S2a.18,S2a.22	empty/0
 jq.test#d1c985cb7475	3	-	jq.test:2581	-	getpath
 jq.test#d2e23809436b	3	-	jq.test:474	-	delpaths path/1
 jq.test#d2f27494d27c	2a	S2a.15	jq.test:681	S2a.11,S2a.15	%
@@ -493,7 +493,7 @@ jq.test#d37ca909eb67	3	-	jq.test:2494	-	setpath
 jq.test#d390b87de5ff	4	-	jq.test:2558	-	fromjson
 jq.test#d4e968bdaff6	2b	-	jq.test:187	-	recursion:recurse/1
 jq.test#d6286052d26b	2a	S2a.22	jq.test:2093	S2a.11,S2a.13,S2a.14,S2a.21,S2a.22	tostring
-jq.test#d6a660e5da12	2a	S2a.15	jq.test:68	S2a.11,S2a.15	+
+jq.test#d6a660e5da12	2a	S2a.17	jq.test:68	S2a.11,S2a.15,S2a.17	interpolation
 jq.test#d7164ac49b54	2a	S2a.22	jq.test:2200	S2a.11,S2a.16,S2a.18,S2a.22	have_decnum tojson
 jq.test#d7820c8e1850	2a	S2a.15	jq.test:601	S2a.11,S2a.15	+
 jq.test#d883d412b2eb	7	-	jq.test:1951	-	include
@@ -530,7 +530,7 @@ jq.test#e381aeee8436	2a	S2a.22	jq.test:401	S2a.13,S2a.14,S2a.18,S2a.19,S2a.21,S2
 jq.test#e3be7cd91456	2b	-	jq.test:425	-	recursion:while/2
 jq.test#e3ce03da0501	2a	S2a.20	jq.test:873	S2a.11,S2a.13,S2a.14,S2a.15,S2a.17,S2a.20	def
 jq.test#e3d73b9ff1ab	1	-	jq.test:58	-	-
-jq.test#e3fec0b48f1b	2a	S2a.18	jq.test:2367	S2a.11,S2a.18	catch error try
+jq.test#e3fec0b48f1b	2a	S2a.20	jq.test:2367	S2a.11,S2a.17,S2a.18	catch error interpolation try
 jq.test#e4abcdcbe523	4	-	jq.test:102	-	@html
 jq.test#e5035e3d2b3d	4	-	jq.test:2161	-	builtins/0
 jq.test#e54c99c10120	2a	S2a.21	jq.test:410	S2a.11,S2a.13,S2a.18,S2a.21	first/1
@@ -562,7 +562,7 @@ jq.test#eeb224a1461b	2a	S2a.15	jq.test:1452	S2a.13,S2a.14	, .[] ? []
 jq.test#ef465e22264e	4	-	jq.test:2407	-	implode
 jq.test#f01bdc18549d	2a	S2a.15	jq.test:1751	S2a.11,S2a.13,S2a.14,S2a.15	*
 jq.test#f0c627224d02	4	-	jq.test:1868	-	strftime
-jq.test#f0cd6f6d9bf7	2a	S2a.22	jq.test:2350	S2a.11,S2a.13,S2a.16,S2a.18,S2a.22	empty/0
+jq.test#f0cd6f6d9bf7	2a	S2a.22	jq.test:2350	S2a.11,S2a.13,S2a.16,S2a.17,S2a.18,S2a.22	empty/0
 jq.test#f1232c5aebcd	4	-	jq.test:2403	-	explode implode
 jq.test#f2338643de5b	2a	S2a.22	jq.test:397	S2a.13,S2a.14,S2a.18,S2a.19,S2a.21,S2a.22	last/1
 jq.test#f3285012fefb	2a	S2a.25	jq.test:2633	S2a.11,S2a.13,S2a.14,S2a.17,S2a.18,S2a.19,S2a.21,S2a.23	range/2 reduce unique
@@ -592,7 +592,7 @@ man.test#0337f4ae59f6	2a	S2a.18	man.test:333	S2a.18	catch error try
 man.test#03d4ff4e5b5c	2a	S2a.21	man.test:883	S2a.13,S2a.18,S2a.21	first/1 isempty/1
 man.test#047cd779c42e	2a	S2a.22	man.test:304	S2a.21,S2a.22	has
 man.test#05628c2c0909	2a	S2a.13	man.test:69	S2a.11,S2a.13	.[]
-man.test#05d1a0b3f21a	2a	S2a.20	man.test:341	S2a.11,S2a.17,S2a.18	$__loc__ catch error error/1 try
+man.test#05d1a0b3f21a	2a	S2a.20	man.test:341	S2a.11,S2a.17,S2a.18	$__loc__ catch error error/1 interpolation try
 man.test#07057d1fc6fd	2a	S2a.22	man.test:329	S2a.11,S2a.13,S2a.14,S2a.22	empty/0
 man.test#07555d8468c8	2a	S2a.22	man.test:460	S2a.21,S2a.22	type
 man.test#07633362a502	2a	S2a.13	man.test:115	S2a.11,S2a.13	, .[]
@@ -738,8 +738,8 @@ man.test#9fa76fabe793	2a	S2a.22	man.test:219	S2a.11,S2a.21,S2a.22	has
 man.test#a06fb6bf059c	3	-	man.test:919	-	delpaths getpath path/1 setpath
 man.test#a2c2194e6937	2b	-	man.test:430	-	recursion:while/2
 man.test#a4c781accd63	2a	S2a.16	man.test:805	S2a.11,S2a.16	//
-man.test#a5504f7a733e	2a	S2a.15	man.test:710	S2a.11,S2a.15	+
-man.test#a6f9b7d20aa6	2a	S2a.18	man.test:337	S2a.11,S2a.18	catch error error/1 try
+man.test#a5504f7a733e	2a	S2a.17	man.test:710	S2a.11,S2a.15,S2a.17	interpolation
+man.test#a6f9b7d20aa6	2a	S2a.20	man.test:337	S2a.11,S2a.17,S2a.18	catch error error/1 interpolation try
 man.test#a84427ca81fe	4	-	man.test:616	-	endswith
 man.test#ac0f022d428e	2a	S2a.16	man.test:777	S2a.11,S2a.16	and
 man.test#ac3dee2c41fb	3	-	man.test:308	-	delpaths getpath path/1 setpath
@@ -777,7 +777,7 @@ man.test#c801ba41e4d2	2a	S2a.17	man.test:809	S2a.11,S2a.13,S2a.16	, //
 man.test#c891fd4dfff2	3	-	man.test:969	-	delpaths getpath path/1 setpath
 man.test#c94e6bedb2a6	2b	-	man.test:676	-	recursion:recurse/2
 man.test#cb57fa775e03	4	-	man.test:586	-	contains
-man.test#cb71a15b95ff	2a	S2a.20	man.test:867	S2a.11,S2a.13,S2a.14,S2a.16,S2a.17,S2a.18	$var ?// as error error/1 if
+man.test#cb71a15b95ff	2a	S2a.20	man.test:867	S2a.11,S2a.13,S2a.14,S2a.16,S2a.17,S2a.18	$var ?// as error error/1 if interpolation
 man.test#ce328809fb44	3	-	man.test:288	-	setpath
 man.test#cf1b0ae15f45	2a	S2a.18	man.test:823	S2a.13,S2a.14,S2a.18	try
 man.test#d03ae45d23f0	3	-	man.test:256	-	getpath path/1 setpath

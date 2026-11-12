@@ -4,7 +4,7 @@ import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.query.run.Sink;
 
 /** A node of the interpreter tree, in push form only (ADR-0008, ADR-0018). */
-public abstract sealed class Op permits IdentityOp, PipeOp, IntrinsicOp {
+public abstract sealed class Op permits IdentityOp, ConstOp, PipeOp, IntrinsicOp {
   Op() {}
 
   /**

@@ -34,7 +34,8 @@ class StubTest {
     JqEngine engine = JqEngine.builder().build();
 
     Map<String, ThrowingCallable> stubs = new LinkedHashMap<>();
-    stubs.put("JqEngine.compile(String) of an unbuilt construct (the literal 1)", () -> engine.compile("1"));
+    // #61 built the literal 1, so the unbuilt construct moved to .[0], a Stub until #63.
+    stubs.put("JqEngine.compile(String) of an unbuilt construct (the index .[0])", () -> engine.compile(".[0]"));
 
     Stream<DynamicTest> mark = Stream.of(dynamicTest("Stub.PREFIX is the mark", () -> assertThat(Stub.PREFIX).isEqualTo(MARK)));
     Stream<DynamicTest> members =
