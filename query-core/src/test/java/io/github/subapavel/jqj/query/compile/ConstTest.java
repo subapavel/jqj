@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.run.RunState;
@@ -21,6 +22,10 @@ class ConstTest {
   private static final Source AT = new Source(0, 1);
 
   /** The results of {@code executable} on {@code in} under {@code state}, the sink never stopping. */
+  private static Executable compile(Node root) {
+    return Compiler.compile(root, CompileMode.OPTIMISED);
+  }
+
   private static List<Object> results(Executable executable, RunState state, Object in) {
     List<Object> emitted = new ArrayList<>();
     boolean ranOut =
@@ -38,7 +43,7 @@ class ConstTest {
   @Test
   void constEmitsItsValueWhateverTheInput() {
     Object value = new Object();
-    Executable constant = Compiler.compile(new Const(AT, value));
+    Executable constant = compile(new Const(AT, value));
     for (Object in : List.of(new Object(), value, "another input")) {
       assertThat(results(constant, new RunState(), in)).as("results of the constant on %s", in).singleElement().isSameAs(value);
     }
@@ -47,6 +52,7 @@ class ConstTest {
     List<Object> emitted = new ArrayList<>();
     boolean ranOut =
         constant.run(
+            new RunState(),
             new Object(),
             v -> {
               emitted.add(v);
@@ -62,7 +68,7 @@ class ConstTest {
     RunState state = new RunState();
     state.begin(0, Long.MAX_VALUE, Long.MAX_VALUE);
     Object value = new Object();
-    assertThat(results(Compiler.compile(new Pipe(AT, new Const(AT, new Object()), new Const(AT, value))), state, new Object()))
+    assertThat(results(compile(new Pipe(AT, new Const(AT, new Object()), new Const(AT, value))), state, new Object()))
         .as("results of two constants piped under a step budget of 0")
         .singleElement()
         .isSameAs(value);
@@ -75,11 +81,11 @@ class ConstTest {
     // Two distinct constants, and a constant beside the identity, form a tree: it compiles and runs.
     Object in = new Object();
     Object second = new Object();
-    assertThat(results(Compiler.compile(new Pipe(AT, new Const(AT, new Object()), new Const(AT, second))), new RunState(), in))
+    assertThat(results(compile(new Pipe(AT, new Const(AT, new Object()), new Const(AT, second))), new RunState(), in))
         .as("results of c1 | c2")
         .singleElement()
         .isSameAs(second);
-    assertThat(results(Compiler.compile(new Pipe(AT, new Const(AT, second), new Identity(AT))), new RunState(), in))
+    assertThat(results(compile(new Pipe(AT, new Const(AT, second), new Identity(AT))), new RunState(), in))
         .as("results of c | .")
         .singleElement()
         .isSameAs(second);
@@ -88,6 +94,6 @@ class ConstTest {
     Const shared = new Const(AT, new Object());
     assertThatIllegalStateException()
         .as("compile of Pipe(c, c)")
-        .isThrownBy(() -> Compiler.compile(new Pipe(AT, shared, shared)));
+        .isThrownBy(() -> compile(new Pipe(AT, shared, shared)));
   }
 }

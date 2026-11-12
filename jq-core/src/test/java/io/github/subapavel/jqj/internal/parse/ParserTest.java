@@ -12,6 +12,7 @@ import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqValue;
 import java.lang.foreign.MemorySegment;
@@ -76,7 +77,7 @@ class ParserTest {
                 .root();
     for (Map.Entry<String, String> e : Map.of(".and", "1", ".if", "2", ".__loc__", "3", "._1", "4", ".def", "5").entrySet()) {
       Intrinsic field = (Intrinsic) Parser.parse(e.getKey());
-      JqValue result = (JqValue) field.op().fn().apply(all);
+      JqValue result = (JqValue) field.op().fn().apply(new RunState(), all);
       assertThat(result.toJson()).as("%s applied to the object", e.getKey()).isEqualTo(e.getValue());
     }
   }

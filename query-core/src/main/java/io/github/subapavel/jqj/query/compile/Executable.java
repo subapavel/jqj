@@ -19,12 +19,4 @@ public final class Executable {
   public boolean run(RunState state, Object in, Sink out) {
     return root.run(state, in, out);
   }
-
-  /**
-   * As {@link #run(RunState, Object, Sink)} in no run: under a run state never begun, so no budget is checked. The
-   * form before the run state, kept for its callers (expand-contract, ADR-0030).
-   */
-  public boolean run(Object in, Sink out) {
-    return run(new RunState(), in, out);
-  }
 }
