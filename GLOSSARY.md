@@ -36,6 +36,18 @@ A behaviour where jqj differs from the reference jq on purpose, listed in `DEVIA
 its reason.
 _Avoid_: incompatibility, known issue
 
+**Interpolation**:
+The `\(f)` in a string literal: `f` runs on the input, and each result, printed as `tostring`
+prints it, is spliced into the string.
+_Avoid_: template
+
+**Escape run**:
+The longest run of escape sequences in a filter's string literal; jq checks it as one JSON string.
+Not an **Escape** of a built value.
+
+**Error block**:
+One compile error as jq prints it: message, line, column, the source line and carets (ADR-0031).
+
 ## Values
 
 **Document**:
