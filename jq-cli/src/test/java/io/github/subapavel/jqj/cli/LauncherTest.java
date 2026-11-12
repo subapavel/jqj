@@ -39,13 +39,15 @@ class LauncherTest {
     Files.write(dir.resolve("in.json"), "{\"a\":1}\n".getBytes(UTF_8));
     File out = dir.resolve("out").toFile();
     File err = dir.resolve("err").toFile();
-    Process jqj =
+    ProcessBuilder launch =
         new ProcessBuilder(System.getProperty("jqj.launcher"), "-c", ".a", "in.json")
             .directory(dir.toFile())
             .redirectInput(Redirect.from(new File("/dev/null")))
             .redirectOutput(out)
-            .redirectError(err)
-            .start();
+            .redirectError(err);
+    // A JVM started with JAVA_TOOL_OPTIONS set prints "Picked up JAVA_TOOL_OPTIONS: ..." on stderr; a build host may set it.
+    launch.environment().remove("JAVA_TOOL_OPTIONS");
+    Process jqj = launch.start();
 
     assertThat(jqj.waitFor(60, TimeUnit.SECONDS)).as("the launcher ends within 60 s").isTrue();
     assertThat(Files.readString(err.toPath())).as("stderr").isEmpty();

@@ -162,12 +162,26 @@ class CommandLineTest {
 
   @Test
   void aDashWithoutALetterIsTheFilter() {
-    // observed 2026-11-11: jq-ref -_ .a in.json -> rc 3, "_/0 is not defined"; jq-ref - . -> rc 3, a syntax error;
-    // printf '{"a":1}\n' | jq-ref -c -1 -> -1. Each is the filter, which jqj does not compile yet: exit code 3, not 2.
-    for (List<String> args : List.of(List.of("-_", ".a", "in.json"), List.of("-", "."), List.of("-c", "-1"))) {
+    // observed 2026-11-11: jq-ref -_ .a in.json -> rc 3, "_/0 is not defined"; jq-ref - . and jq-ref -é .a in.json
+    // -> rc 3, a syntax error; printf '{"a":1}\n' | jq-ref -c -1 -> -1. Each is the filter, which jqj does not compile
+    // yet: exit code 3, not 2.
+    for (List<String> args :
+        List.of(List.of("-_", "in.json"), List.of("-", "."), List.of("-é", "in.json"), List.of("-c", "-1"))) {
       Outcome o = run(args, "{\"a\":1}\n");
       assertThat(o.rc()).as("exit code of %s", args).isEqualTo(3);
       assertThat(o.err()).as("stderr of %s", args).startsWith(MARK);
+    }
+  }
+
+  @Test
+  void aSecondFileIsAStub() {
+    // observed 2026-11-11: jq-ref -c .a in.json in.json -> 1 and 1, rc 0; several files are spec 5's. After --, a
+    // second file is a file too.
+    for (List<String> args : List.of(List.of("-c", ".a", "in.json", "in.json"), List.of("-c", ".a", "--", "in.json", "--"))) {
+      Outcome o = run(args, "{\"a\":1}\n");
+      assertThat(o.rc()).as("exit code of %s", args).isEqualTo(2);
+      assertThat(o.out()).as("stdout of %s", args).isEmpty();
+      assertThat(o.err()).as("stderr of %s", args).startsWith(MARK).endsWith("\n");
     }
   }
 
