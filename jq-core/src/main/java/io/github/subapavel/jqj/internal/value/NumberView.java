@@ -1,25 +1,26 @@
 package io.github.subapavel.jqj.internal.value;
 
-import io.github.subapavel.jqj.internal.Stub;
 import io.github.subapavel.jqj.internal.json.Printer;
 import io.github.subapavel.jqj.value.JqNumber;
 import java.math.BigDecimal;
 
 /**
  * A number of a document (ADR-0003, ADR-0012, ADR-0016): its document and tape index. Public only so the kind can
- * permit it. Its double and decimal values are #36's.
+ * permit it.
  */
 public record NumberView(Document doc, int index) implements JqNumber {
 
-  /** jq's compact text (ADR-0012): a CANONICAL token's bytes; any other token is a Stub until #36. */
+  /** jq's compact text (ADR-0012): a CANONICAL token's bytes, any other token's canonical form. */
   @Override
   public String toJson() {
     return Printer.json(doc, index);
   }
 
+  /** ADR-0012 "Values", ADR-0028: an Infinity literal gives an infinity. */
   @Override
   public double doubleValue() {
-    throw Stub.unbuilt("JqNumber.doubleValue");
+    long entry = doc.live()[index];
+    return CanonicalForm.toDouble(doc.bytes, Tape.off(entry), Tape.span(entry) & Tape.NUMBER_LENGTH);
   }
 
   @Override
@@ -49,8 +50,10 @@ public record NumberView(Document doc, int index) implements JqNumber {
     return negative ? value : -value;
   }
 
+  /** ADR-0028: the canonical form's value, its scale kept; an Infinity literal throws {@code ArithmeticException}. */
   @Override
   public BigDecimal decimalValue() {
-    throw Stub.unbuilt("JqNumber.decimalValue");
+    long entry = doc.live()[index];
+    return CanonicalForm.toDecimal(doc.bytes, Tape.off(entry), Tape.span(entry) & Tape.NUMBER_LENGTH);
   }
 }
