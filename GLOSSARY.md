@@ -36,6 +36,36 @@ A behaviour where jqj differs from the reference jq on purpose, listed in `DEVIA
 its reason.
 _Avoid_: incompatibility, known issue
 
+**Interpolation**:
+The `\(f)` in a string literal: `f` runs on the input, and each result, printed as `tostring`
+prints it, is spliced into the string.
+_Avoid_: template
+
+**Escape run**:
+The longest run of escape sequences in a filter's string literal; jq checks it as one JSON string.
+Not an **Escape** of a built value.
+
+**Error block**:
+One compile error as jq prints it: message, line, column, the source line and carets (ADR-0031).
+
+**AST**:
+The parser's output: one record per construct of jq's grammar with its source span, sugar kept;
+only the resolver reads it (ADR-0032).
+_Avoid_: parse tree, syntax tree
+
+**Resolver**:
+The pass from AST to IR: binds names, loads the prelude, rewrites sugar; a construct it does not
+lower yet is a Stub.
+_Avoid_: lowering pass
+
+**Syntax error**:
+A compile error at the first token jq's grammar rejects, `syntax error, unexpected <token name>`,
+in jqj's own text (ADR-0020).
+
+**Recovery message**:
+A compile error jq adds after a syntax error at a known place, such as "May need parentheses around
+object key expression"; its text matches jq.
+
 ## Values
 
 **Document**:

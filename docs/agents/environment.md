@@ -5,6 +5,12 @@ Read this before your first build or commit in a worktree.
 - **The container can restart at any time** and drops every uncommitted change. Commit and push
   your branch after each green step, not only at hand-back.
 - **JDK**: Java 25 at `/opt/temurin-25` (`JAVA_HOME`). Build with `./mvnw -B`.
+- **Maven plugins offline**: the setup script fetches every plugin a gate or CI step invokes, from the
+  jqj checkout, with
+  `./mvnw -q -B -Pbench,compile-oracle -Dmaven.test.failure.ignore=true dependency:go-offline verify javadoc:help`
+  and then `./mvnw -q -B -Pbench clean` (#54). Run the same two lines when `./mvnw -o` reports a plugin
+  that "has not been downloaded". Javadoc offline: `./mvnw -o -q -B -pl jq-core -am compile javadoc:javadoc`
+  (`javadoc:javadoc -pl jq-core` alone needs `query-core` installed in the local repository; it is not).
 - **Processes**: stop a process by its pid (`kill <pid>`). `pkill -f` matches the agent's own
   command line and ends the session.
 - **Property tests**: seeded loops in JUnit, one parameterised case per seed (no jqwik: from 1.10.1 it tells AI agents not to use it).

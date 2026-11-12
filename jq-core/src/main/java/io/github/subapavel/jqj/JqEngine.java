@@ -2,20 +2,23 @@ package io.github.subapavel.jqj;
 
 import io.github.subapavel.jqj.host.Host;
 import io.github.subapavel.jqj.internal.parse.Parser;
+import io.github.subapavel.jqj.query.compile.CompileMode;
 import io.github.subapavel.jqj.query.compile.Compiler;
 import java.util.Objects;
 
 /**
- * Compiles filters (ADR-0016). Immutable and thread-safe; it keeps no filter. It carries its limits and
- * host; nothing reads them before spec 2.
+ * Compiles filters (ADR-0016). Immutable and thread-safe; it keeps no filter. It carries its limits, which every run
+ * of its filters takes as its budgets (ADR-0030), its host, which nothing reads before spec 2, and its compile mode.
  */
 public final class JqEngine {
   private final Limits limits;
   private final Host host;
+  private final CompileMode compileMode;
 
-  private JqEngine(Limits limits, Host host) {
+  private JqEngine(Limits limits, Host host, CompileMode compileMode) {
     this.limits = limits;
     this.host = host;
+    this.compileMode = compileMode;
   }
 
   /** A builder with {@link Limits#embedded()} and {@link Host#sandboxed()}. */
@@ -23,9 +26,14 @@ public final class JqEngine {
     return new Builder();
   }
 
-  /** Compiles {@code text}; only {@code .} is built, any other text is a Stub. */
+  /**
+   * Compiles {@code text}. Built so far: {@code .}, fields, {@code |}, parentheses, literals and bare {@code @text}; any
+   * other construct is a Stub.
+   *
+   * @throws JqCompileException with one error block per bad escape run (ADR-0031), or a Stub's
+   */
   public JqFilter compile(String text) {
-    return new JqFilter(Compiler.compile(Parser.parse(text)));
+    return new JqFilter(Compiler.compile(Parser.parse(text), compileMode), limits);
   }
 
   /** A new Workspace, for one running evaluation at a time. */
@@ -33,10 +41,16 @@ public final class JqEngine {
     return new Workspace();
   }
 
+  /** The compile mode of this engine's filters; engine-internal, for the compile-mode oracle (ADR-0018, #60). */
+  CompileMode compileMode() {
+    return compileMode;
+  }
+
   /** Builds a {@link JqEngine}. */
   public static final class Builder {
     private Limits limits = Limits.embedded();
     private Host host = Host.sandboxed();
+    private CompileMode compileMode = CompileMode.OPTIMISED;
 
     private Builder() {}
 
@@ -52,8 +66,19 @@ public final class JqEngine {
       return this;
     }
 
+    /**
+     * Sets the compile mode, {@link CompileMode#OPTIMISED} by default. Engine-internal: the compile-mode oracle reaches
+     * it by reflection (ADR-0018, #60).
+     *
+     * @throws NullPointerException if {@code compileMode} is null
+     */
+    Builder compileMode(CompileMode compileMode) {
+      this.compileMode = Objects.requireNonNull(compileMode, "compileMode");
+      return this;
+    }
+
     public JqEngine build() {
-      return new JqEngine(limits, host);
+      return new JqEngine(limits, host, compileMode);
     }
   }
 }

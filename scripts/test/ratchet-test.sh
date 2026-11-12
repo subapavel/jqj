@@ -73,6 +73,29 @@ report compile-copy-only "x${T}FAIL${T}${T}d1\n"
 check "compile mode lines checked per mode" "$(run check)" 1
 has "failing mode named" 'copy-only'
 
+# --- the compile-mode oracle (ADR-0020 amendment for #60): the ticket gate never produces its report (F-27) ---
+fresh
+printf 'x\td1\tconservative\n' > "$root/ratchet/oracle/compile.txt"
+check "check without a compile report passes" "$(run check)" 0
+has "check says the compile oracle did not run" 'NOT_RUN compile: no report'
+printf 'a#1\tinterp\n' > "$root/ratchet/oracle/jqtest.txt"
+check "another oracle without its report still fails" "$(run check)" 1
+has "its listed id is missing" 'jqtest: a#1 interp is missing from the report'
+fresh
+printf 'x\td1\tconservative\n' > "$root/ratchet/oracle/compile.txt"
+report compile-conservative "x${T}PASS${T}${T}d1\ny${T}FAIL${T}disagree: stdout differs at byte 0${T}d2\n"
+check "regen refuses a Disagreement (F-29)" "$(run regen --oracles)" 1
+has "the Disagreement named" 'compile: y conservative disagrees'
+check "refused regen leaves compile.txt" "$(printf 'x\td1\tconservative\n' | cmp - "$root/ratchet/oracle/compile.txt"; echo $?)" 0
+report compile-conservative "z${T}PASS${T}${T}d3\n"
+check "regen fails a listed id missing from an existing compile report" "$(run regen --oracles)" 1
+has "the missing id named" 'compile: x conservative is missing from the report'
+fresh
+# w is a row without a detail column: not a Disagreement, and not a pass
+report compile-conservative "w${T}FAIL\nx${T}PASS${T}${T}d1\ny${T}FAIL${T}left out: the conservative run ended with BUDGET STEPS${T}d2\njq.test#abc${T}FAIL${T}stub: the optimised run reached a Stub: s${T}abc\n"
+check "regen writes compile.txt" "$(run regen --oracles)" 0
+check "compile.txt holds the conservative line of every passing case" "$(printf 'x\td1\tconservative\n' | cmp - "$root/ratchet/oracle/compile.txt"; echo $?)" 0
+
 # --- coverage and floors ---
 fresh
 printf 'module\tlines %%\tbranches %%\nquery-core\t92\t85\n' > "$root/ratchet/coverage.tsv"

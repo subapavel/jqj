@@ -6,11 +6,13 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.JqEngine;
+import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqValue;
 import java.lang.foreign.MemorySegment;
@@ -36,12 +38,14 @@ class ParserTest {
   }
 
   /**
-   * The tree as text: an Identity is {@code .[s,e)}, an Intrinsic its Operation's name and {@code [s,e)}, a Pipe
-   * {@code (left | right)}. A Pipe's own Source is left out: the design does not fix it.
+   * The tree as text: an Identity is {@code .[s,e)}, a Const its value's JSON text and {@code [s,e)} (#61), an
+   * Intrinsic its Operation's name and {@code [s,e)}, a Pipe {@code (left | right)}. A Pipe's own Source is left out:
+   * the design does not fix it.
    */
   private static String shape(Node node) {
     return switch (node) {
       case Identity i -> "." + chars(i.source());
+      case Const c -> ((JqValue) c.value()).toJson() + chars(c.source());
       case Intrinsic f -> f.op().name() + chars(f.source());
       case Pipe p -> "(" + shape(p.left()) + " | " + shape(p.right()) + ")";
     };
@@ -73,7 +77,7 @@ class ParserTest {
                 .root();
     for (Map.Entry<String, String> e : Map.of(".and", "1", ".if", "2", ".__loc__", "3", "._1", "4", ".def", "5").entrySet()) {
       Intrinsic field = (Intrinsic) Parser.parse(e.getKey());
-      JqValue result = (JqValue) field.op().fn().apply(all);
+      JqValue result = (JqValue) field.op().fn().apply(new RunState(), all);
       assertThat(result.toJson()).as("%s applied to the object", e.getKey()).isEqualTo(e.getValue());
     }
   }
@@ -110,10 +114,12 @@ class ParserTest {
 
   @Test
   void unbuiltTokensAreStubs() {
-    // Each is jq syntax #34 does not build (jq-ref 1.8.2, observed 2026-11-11 on {"a":...}: .a? .[0] ."a" .. .1
-    // $__loc__ ".a, .b" ".a #c" ".a |= .b" run; and, .é are syntax errors, rc 3), so each ends in the Stub. A token
-    // comes after a built prefix where that matters: .a #c with # read as a comment would parse as .a.
-    for (String text : List.of(".a?", ".[0]", ".\"a\"", "..", ".1", "$__loc__", "and", ".a and .b", ".a, .b", ",", ".a #c", "#c", ".a |= .b", ".é", ".a.é")) {
+    // Each is jq syntax #34 does not build (jq-ref 1.8.2, observed 2026-11-11 on {"a":...}: .a? .[0] .. $__loc__
+    // ".a, .b" ".a |= .b" run; and, .é are syntax errors, rc 3), so each ends in the Stub. A token comes after a built
+    // prefix where that matters. #61 built ."a", .1 and the comment of .a #c, so they moved to .["a"], .[] and .a[0],
+    // which stay Stubs until #63 (jq-ref 1.8.2, observed 2026-11-12 on {"a":[5]}: [5], [5] and 5, rc 0 each). #c alone
+    // is no program (observed the same day: "Top-level program not given", rc 3), a Stub too.
+    for (String text : List.of(".a?", ".[0]", ".[\"a\"]", "..", ".[]", "$__loc__", "and", ".a and .b", ".a, .b", ",", ".a[0]", "#c", ".a |= .b", ".é", ".a.é")) {
       assertThatExceptionOfType(JqCompileException.class)
           .as("parse of %s", text)
           .isThrownBy(() -> Parser.parse(text))

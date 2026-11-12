@@ -21,8 +21,12 @@ Follow the command rules in `AGENTS.md` (Command rules); hand back only after ev
 - One run per check unless asked by exact command to repeat.
 - A skipped test, a ratchet drop, a coverage or mutation number below the floor, or a blocked
   platform thread reported by a detector is a failure even with exit 0; quote the line.
-- Ratchet regeneration (only when asked, only on an integration branch): run the regeneration
-  command, commit `ratchet/` alone (`git commit -F`, trailers of `docs/WORKFLOW.md` §11) with message `chore(ratchet): regenerate after #<ticket>`,
+- Ticket gate: when `oracle/src/test/resources/require/<ticket>.txt` exists, run
+  `scripts/gate-ticket.sh` with `ORACLE_REQUIRE=$PWD/oracle/src/test/resources/require/<ticket>.txt`
+  and report the line that shows the required file was read (F-38).
+- Ratchet regeneration (only when asked, only on an integration branch): run
+  `scripts/after-merge.sh <ticket>` (a full verify with the compile-mode oracle, then
+  `regen --oracles`; a fresh worktree has no reports until that verify runs), commit `ratchet/` alone (`git commit -F`, trailers of `docs/WORKFLOW.md` §11) with message `chore(ratchet): regenerate after #<ticket>`,
   push with `scripts/push-retry.sh <repo-dir> <refspec>`, report the diff summary (what rose, what fell).
 
 Report, at most 40 lines plus one block per failure:
