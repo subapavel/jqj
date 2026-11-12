@@ -25,15 +25,35 @@ import org.junit.jupiter.api.io.TempDir;
  * and {@link #compactDotPrintsTheDocumentAndExitsZero} checks it. #34 built {@code .a} and jq's error line, which
  * {@link #filterErrorPrintsJqsLineAndExitsFive} and {@link #fileArgumentNamesTheFileInTheErrorLine} check. Every
  * other command line is still a Stub: no argument is {@code .} pretty-printed and {@code .a} without {@code -c} is
- * pretty output (#39); other options are #38's.
+ * pretty output (#37). #38 built jq's text for an unknown option, which {@link #unknownOptionPrintsJqsUsageAndExitsTwo}
+ * checks.
  */
 class MainTest {
 
   static Stream<Arguments> commandLines() {
     return Stream.of(
         Arguments.argumentSet("no argument", List.of()),
-        Arguments.argumentSet(".a", List.of(".a")),
-        Arguments.argumentSet("unknown option", List.of("--badopt")));
+        Arguments.argumentSet(".a", List.of(".a")));
+  }
+
+  @Test
+  void unknownOptionPrintsJqsUsageAndExitsTwo() {
+    // jq-ref 1.8.2, recorded in diff/cli.rec (cli/unknown-long, for --nosuch) and observed 2026-11-12:
+    //   printf '{"a":1}\n' | jq-ref --badopt -> rc 2, stdout empty, stderr these three lines.
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    ByteArrayOutputStream err = new ByteArrayOutputStream();
+    Invocation invocation =
+        new Invocation(List.of("--badopt"), Map.of(), Path.of("."), new ByteArrayInputStream("{\"a\":1}\n".getBytes(UTF_8)), out, err);
+
+    int rc = Main.run(invocation);
+
+    assertThat(rc).as("exit code").isEqualTo(2);
+    assertThat(out.toByteArray()).as("stdout").isEmpty();
+    assertThat(err.toString(UTF_8))
+        .as("stderr")
+        .isEqualTo(
+            "jq: Unknown option --badopt\nUse jq --help for help with command-line options,\n"
+                + "or see the jq manpage, or online docs at https://jqlang.org\n");
   }
 
   @Test
