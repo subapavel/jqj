@@ -1,6 +1,6 @@
 # Modules and their boundaries
 
-Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); amended by ADR-0018 (issue #12) and ADR-0020 (issue #15)
+Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); amended by ADR-0018 (issue #12) and ADR-0020 (issue #15); amended by ADR-0030 (run state, #59)
 
 The tree is flat: a root `pom.xml` (parent and aggregator, `0.1.0-SNAPSHOT`, not published) and the
 modules `query-core/`, `jq-core/`, `jq-cli/`, `oracle/` (tests only) and `bench/jmh/` (built only
