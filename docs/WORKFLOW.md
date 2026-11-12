@@ -69,8 +69,8 @@ The architect runs `.claude/skills/run-spec/SKILL.md`. In short, per ticket on t
 5. class C only: `/code-review` on the ticket diff (both axes, xhigh) — FAIL goes back to the
    same implementer; a second FAIL means the ticket was wrong: the designer rewrites it;
 6. merger merges the ticket branch into the integration branch; the architect posts the evidence
-   comment and closes the ticket. The verifier then regenerates the oracle pass lists
-   (`regen --oracles`, ADR-0020); coverage, mutation and bench move only in the spec gate (§6);
+   comment and closes the ticket. The verifier then runs `scripts/after-merge.sh <ticket>`
+   (verify with the compile-mode oracle, then `regen --oracles`; ADR-0020); coverage, mutation and bench move only in the spec gate (§6);
 7. the frontier is recomputed and freed writer slots are refilled at once.
 
 Up to three tickets are in flight at any time (`AGENTS.md`, Concurrency).
