@@ -123,6 +123,20 @@
           </execution>
         </executions>
       </plugin>
+      <!-- Mutation of query-core and jq-core comes from every test in the reactor (ADR-0014): this crossModule run
+           mutates them under jq-cli's tests, and ratchet.java combines its report as it does oracle's (#47). -->
+      <plugin>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
+        <configuration>
+          <crossModule>true</crossModule>
+          <!-- They run only in the surefire executions above, which PIT does not run. -->
+          <excludedTestClasses>
+            <param>io.github.subapavel.jqj.cli.LauncherTest</param>
+            <param>io.github.subapavel.jqj.cli.*ModulePathTest</param>
+          </excludedTestClasses>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 </project>

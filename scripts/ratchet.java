@@ -315,8 +315,12 @@ public class ratchet {
   static final Pattern STATUS = Pattern.compile("status='([A-Z_]+)'");
   /** The fields that identify a mutant across PIT reports of the same classes. */
   static final List<String> MUTANT_ID = List.of("mutatedClass", "mutatedMethod", "methodDescription", "lineNumber", "mutator", "indexes");
-  /** Oracle's crossModule run: every oracle test against the classes of the modules it depends on (ADR-0014). */
-  static final String CROSS_MODULE_PIT = "oracle/target/pit-reports/mutations.xml";
+  /**
+   * The crossModule runs: every test of oracle, and of jq-cli, against the classes of the modules it depends on
+   * (ADR-0014, #47).
+   */
+  static final List<String> CROSS_MODULE_PIT =
+      List.of("oracle/target/pit-reports/mutations.xml", "jq-cli/target/pit-reports/mutations.xml");
 
   record Mutant(String id, boolean killed) {}
 
@@ -340,18 +344,20 @@ public class ratchet {
 
   /**
    * {survivors, generated} of a module, or null without its own PIT report. The mutants are those of its own report; one
-   * counts as killed if its own report or oracle's crossModule report kills it (ADR-0014).
+   * counts as killed if its own report or any crossModule report kills it (ADR-0014).
    */
   static int[] pit(String module) throws IOException {
     Path f = root.resolve(module + "/target/pit-reports/mutations.xml");
     if (!Files.exists(f)) return null;
-    Set<String> killedByOracle = new HashSet<>();
-    Path cross = root.resolve(CROSS_MODULE_PIT);
-    if (Files.exists(cross)) for (Mutant c : mutants(cross)) if (c.killed()) killedByOracle.add(c.id());
+    Set<String> killedCrossModule = new HashSet<>();
+    for (String report : CROSS_MODULE_PIT) {
+      Path cross = root.resolve(report);
+      if (Files.exists(cross)) for (Mutant c : mutants(cross)) if (c.killed()) killedCrossModule.add(c.id());
+    }
     int generated = 0, killed = 0;
     for (Mutant own : mutants(f)) {
       generated++;
-      if (own.killed() || killedByOracle.contains(own.id())) killed++;
+      if (own.killed() || killedCrossModule.contains(own.id())) killed++;
     }
     return new int[] {generated - killed, generated};
   }
