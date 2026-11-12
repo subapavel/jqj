@@ -57,7 +57,7 @@ stderr
 end
 
 case depth/comma-10922
-def 3163f80ec927
+def d240938bbe12
 rc 3
 stdout
 stderr jq: error: function compiled to 65536 bytes which is too long\njq: 1 compile error\n

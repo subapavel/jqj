@@ -331,5 +331,7 @@ comma/nulls
 comma/pipe-order
 comma/error-in-second
 comma/error-in-first
-comma/chain-10921
-comma/chain-10922
+
+# #81's comma chains (diff/depth.cases): 10 921 commas matched; 10 922 the deviation long-comma-chains.
+depth/comma-10921
+depth/comma-10922
