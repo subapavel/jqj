@@ -34,11 +34,28 @@ class CompileTest {
     //   SP, TAB, CR and LF only. Neither #33 nor #34 builds them, so each ends in the Stub. The .a entry ended with
     //   its Stub in #34 (design C4) and moved to .[0], which stays a Stub until spec 2. #61 built the literal 1, so its
     //   entry moved to 1, 2 (observed 2026-11-12: 1 2, rc 0), whose comma stays a Stub until #63.
-    for (String text : List.of("1, 2", ".[0]", "..", "", "   ", "\f.", "\u000b.")) {
+    // #62 built the syntax errors and the not-given message (ADR-0032), so '', '   ', FF and VT left the Stub list and
+    // are asserted as jq's errors below (diff/syntax.rec program-empty, program-only-spaces, form-feed-before-dot and
+    // vertical-tab-before-dot); none was dropped.
+    for (String text : List.of("1, 2", ".[0]", "..")) {
       assertThatExceptionOfType(JqCompileException.class)
           .as("compile of %s", quoted(text))
           .isThrownBy(() -> engine.compile(text))
           .withMessageStartingWith(MARK);
+    }
+    for (String text : List.of("", "   ")) {
+      assertThatExceptionOfType(JqCompileException.class)
+          .as("compile of %s", quoted(text))
+          .isThrownBy(() -> engine.compile(text))
+          .withMessage("jq: error: Top-level program not given (try \".\")\njq: 1 compile error");
+    }
+    for (String text : List.of("\f.", "\u000b.")) {
+      JqCompileException e =
+          assertThatExceptionOfType(JqCompileException.class).as("compile of %s", quoted(text)).isThrownBy(() -> engine.compile(text)).actual();
+      assertThat(e.blocks()).as("blocks of %s", quoted(text)).hasSize(1);
+      assertThat(e.blocks().getFirst()).as("block of %s", quoted(text)).startsWith("jq: error: syntax error, unexpected INVALID_CHARACTER");
+      assertThat(e.line()).as("line of %s", quoted(text)).isEqualTo(1);
+      assertThat(e.column()).as("column of %s", quoted(text)).isEqualTo(1);
     }
 
     // Witness: the built construct compiles and runs, so the Stubs above are not a Stub for every text.
