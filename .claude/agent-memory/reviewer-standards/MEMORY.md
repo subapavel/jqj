@@ -25,3 +25,6 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#34) Check each expected-value row against the `.rec`, not the comment; an oracle def is sha256(case..end lines + LF)[:12].
 - (#36) Read a verify worktree's PIT `mutations.xml` only after the gate has finished; mid-run it can be empty.
 - (#35) An empty @TestFactory map passes vacuously: a FAIL (CODING_STANDARDS Tests §1). jq's GitHub source is unreachable via gh here; translation checks rest on jq-ref recordings.
+- (#61) A merge of the integration tip can bring in an ADR amendment newer than the approved design: read the ADR status lines on the tip, not the design comment.
+- (#61) An op that calls the static `Printer.json` charges no ticks: check every new op that walks a value for `apply(RunState, …)`.
+- (#61) A tick test whose budget sits far below the charge only proves something is charged; pin the rate with a pair (N completes, N−1 ends).
