@@ -126,6 +126,18 @@ class LiteralEdgesTest {
   }
 
   @Test
+  void textKeepsAStringAndWritesAnyOtherValue() {
+    // jq-ref -n -c '("a" | @text), (1.0 | @text)' -> "a" and "1.0": a string is its own text, a number its JSON
+    // text, the literal's canonical form.
+    Results results = new Results();
+    ENGINE.compile("\"a\" | @text").run(JqNull.NULL, NONE, results, ENGINE.newWorkspace());
+    ENGINE.compile("1.0 | @text").run(JqNull.NULL, NONE, results, ENGINE.newWorkspace());
+    assertThat(results.values).as("results").hasSize(2).allMatch(v -> v instanceof JqString);
+    assertThat(((JqString) results.values.getFirst()).value()).as("text of \"a\"").isEqualTo("a");
+    assertThat(((JqString) results.values.get(1)).value()).as("text of 1.0").isEqualTo("1.0");
+  }
+
+  @Test
   void aNumberLiteralThatNoLongHoldsHasNoLongValue() {
     // JqNumber.longValue throws ArithmeticException unless fitsLong (ADR-0012); jq-ref -n '1.5 | type' -> "number".
     for (String text : new String[] {"1.5", "100000000000000000001"}) {

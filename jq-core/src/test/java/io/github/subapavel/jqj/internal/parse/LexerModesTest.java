@@ -56,6 +56,8 @@ class LexerModesTest {
     List<String> tokens = kinded("(".repeat(20) + "1" + ")".repeat(20));
     assertThat(tokens).hasSize(41);
     assertThat(tokens.subList(21, 41)).as("the closers").containsOnly("RPAREN )");
+    // jq-ref -n -c '[{}]' -> [{}]: each closer is its own kind.
+    assertThat(kinded("[{}]")).containsExactly("LBRACKET [", "LBRACE {", "RBRACE }", "RBRACKET ]");
   }
 
   @Test
