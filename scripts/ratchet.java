@@ -6,6 +6,9 @@
 //   java scripts/ratchet.java regen --all            spec gate: every report required, no drop allowed
 //   java scripts/ratchet.java floor-mutation <m>...  PIT score of the modules against quality/floors.tsv
 //
+// The compile-mode oracle never runs in the ticket gate (F-27): check prints it NOT_RUN when it wrote no report, and
+// regen refuses any report row that is a Disagreement (F-29, ADR-0020 amendment for #60).
+//
 // Environment: RATCHET_ROOT (default: the current directory), RATCHET_JMH (JMH json result, default
 // bench/jmh/target/jmh-result.json), RATCHET_MACHINE (the machine label of bench.tsv lines).
 // Exit codes: 0 ok, 1 a failure or a refused drop, 2 usage. Format: ratchet/README.md.
@@ -103,8 +106,20 @@ public class ratchet {
 
   // ---------------------------------------------------------------- check
 
+  /**
+   * The oracles that run only after a merge and in the spec gate, never in the ticket gate (F-27): check reports them
+   * NOT_RUN when they wrote no report (ADR-0020 amendment for #60).
+   */
+  static final Set<String> OUTSIDE_TICKET_GATE = Set.of("compile");
+
+  /** The detail prefix of the compile-mode oracle's Disagreement, which regen refuses (F-29). */
+  static final String DISAGREE = "disagree:";
+
   static int check() throws IOException {
-    for (Oracle o : ORACLES) checkOracle(o);
+    for (Oracle o : ORACLES) {
+      if (OUTSIDE_TICKET_GATE.contains(o.name()) && reportFiles(o).isEmpty()) System.out.println("NOT_RUN " + o.name() + ": no report");
+      else checkOracle(o);
+    }
     List<Floor> floors = floors();
     Map<String, int[]> cov = coverageOf(floors);
     checkCoverage(floors, cov);
@@ -115,21 +130,29 @@ public class ratchet {
 
   // --- oracles
 
+  /** The report files {@code <oracle>-<suffix>.tsv} of an oracle, sorted. */
+  static List<Path> reportFiles(Oracle o) throws IOException {
+    Path dir = root.resolve("oracle/target/oracle-reports");
+    if (!Files.isDirectory(dir)) return List.of();
+    try (var files = Files.list(dir)) {
+      return files.filter(f -> isReportOf(o, f.getFileName().toString())).sorted().toList();
+    }
+  }
+
+  static boolean isReportOf(Oracle o, String fileName) {
+    return fileName.startsWith(o.name() + "-") && fileName.endsWith(".tsv");
+  }
+
   static Map<String, Row> reports(Oracle o) throws IOException {
     Map<String, Row> rows = new LinkedHashMap<>();
-    Path dir = root.resolve("oracle/target/oracle-reports");
-    if (!Files.isDirectory(dir)) return rows;
-    try (var files = Files.list(dir)) {
-      for (Path f : (Iterable<Path>) files.sorted()::iterator) {
-        String n = f.getFileName().toString();
-        if (!n.startsWith(o.name() + "-") || !n.endsWith(".tsv")) continue;
-        String suffix = n.substring(o.name().length() + 1, n.length() - 4);
-        for (String line : lines(f)) {
-          if (line.isEmpty()) continue;
-          String[] c = line.split("\t", -1);
-          if (c.length < 2) continue;
-          rows.put(o.hasSuffix() ? c[0] + "\t" + suffix : c[0], new Row(c[1], c));
-        }
+    for (Path f : reportFiles(o)) {
+      String n = f.getFileName().toString();
+      String suffix = n.substring(o.name().length() + 1, n.length() - 4);
+      for (String line : lines(f)) {
+        if (line.isEmpty()) continue;
+        String[] c = line.split("\t", -1);
+        if (c.length < 2) continue;
+        rows.put(o.hasSuffix() ? c[0] + "\t" + suffix : c[0], new Row(c[1], c));
       }
     }
     return rows;
@@ -480,6 +503,11 @@ public class ratchet {
       TreeSet<String> body = new TreeSet<>(survivors);
       int before = body.size();
       for (var e : rep.entrySet()) {
+        String[] cells = e.getValue().cells();
+        if (cells.length > 2 && cells[2].startsWith(DISAGREE)) {
+          fail(o.name() + ": " + e.getKey().replace('\t', ' ') + " disagrees between the optimised and that compile (" + cells[2] + ")");
+          continue;
+        }
         if (!e.getValue().verdict().equals("PASS")) continue;
         body.add(entryOf(o, e.getKey(), e.getValue()));
       }
