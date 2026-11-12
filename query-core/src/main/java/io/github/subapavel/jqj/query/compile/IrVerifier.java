@@ -21,9 +21,14 @@ final class IrVerifier {
     if (!seen.add(node)) {
       throw new IllegalStateException("the node at chars " + node.source() + " is used twice: the IR must be a tree");
     }
+    // One arm per kind: javac compiles a case of two patterns to a second dispatch for a node that matches neither,
+    // a path no node can take.
     switch (node) {
-      case Identity _, Intrinsic _ -> {
-        // Neither has an operand node.
+      case Identity _ -> {
+        // No operand node.
+      }
+      case Intrinsic _ -> {
+        // No operand node.
       }
       case Pipe p -> {
         visit(p.left(), seen);

@@ -78,7 +78,9 @@ class CompilerTest {
   }
 
   // #34 design, sections 1 to 3: Pipe(Source, left, right), Intrinsic(Source, Operation) and Operation(name, Fn0);
-  // PipeOp.run(in, out) = left.run(in, v -> right.run(v, out)); IntrinsicOp.run = out.emit(fn.apply(in)).
+  // PipeOp.run(state, in, out) = left.run(state, in, v -> right.run(state, v, out)); IntrinsicOp.run =
+  // out.emit(fn.apply(state, in)), which is fn.apply(in) for these one-argument functions (ADR-0030). Executable.run(in,
+  // out) runs under a run state never begun.
 
   private static final Source AT = new Source(0, 1);
 
