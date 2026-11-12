@@ -1,8 +1,8 @@
 scenario	machine	score	unit	tolerance%
-G1.100k	claude-cloud-4vcpu	229.754607	us/op	
-G1.10m	claude-cloud-4vcpu	26093.884569	us/op	
-G1.1k	claude-cloud-4vcpu	2.485515	us/op	
-G6.compact.10m	claude-cloud-4vcpu	52196.606445	us/op	
-G6.pretty.10m	claude-cloud-4vcpu	67391.390988	us/op	
-G7.engine.1k	claude-cloud-4vcpu	21.376461	ms/op	
-G7.process.1k	claude-cloud-4vcpu	129.139844	ms/op	
+G1.100k	claude-cloud-4vcpu	240.996262	us/op	
+G1.10m	claude-cloud-4vcpu	27868.501376	us/op	
+G1.1k	claude-cloud-4vcpu	2.65446	us/op	
+G6.compact.10m	claude-cloud-4vcpu	56541.426526	us/op	
+G6.pretty.10m	claude-cloud-4vcpu	65583.134319	us/op	
+G7.engine.1k	claude-cloud-4vcpu	20.847057	ms/op	
+G7.process.1k	claude-cloud-4vcpu	140.42352	ms/op	
