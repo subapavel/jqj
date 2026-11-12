@@ -18,7 +18,10 @@ import java.util.Set;
  *
  * <p>The parameters, approved on #58 (architect, 2026-11-12, from the designer's draft), after the dry run's first
  * tuning step (W_ANY 25 to 15 %, try, try-catch and {@code ?} 2 to 3, empty 2 to 1, select 3 to 2, and the
- * productions above 60 % rc 5 halved: array and object pattern, reduce, {@code N - N}, {@code N / N}, {@code or}):
+ * productions above 60 % rc 5 halved: array and object pattern, reduce, {@code N - N}, {@code N / N}, {@code or}),
+ * and the owner's delegated decision on #58 (2026-11-12): label 2 to 6 with the {@code K, R} body, the break scope
+ * opened in the try handler, the {@code //} left side and the arguments of select, first, limit and map, and no seed
+ * with {@code ?//} and also {@code first}, {@code limit} or {@code break}:
  *
  * <table>
  *   <caption>core-v1</caption>
@@ -32,7 +35,8 @@ import java.util.Set;
  *       depth 1, 2, 3, 4 is a leaf with 15, 35, 60, 100 %</td></tr>
  *   <tr><td>V inner</td><td>pipe 12, comma 6, {@code as $v} 6, array pattern 1, object pattern 1, {@code ?//} 1, if 3,
  *       if-elif 1, if without else 1, try 3, try-catch 3, {@code (E)?} 3, {@code //} 3, reduce 1, foreach 1, foreach
- *       with extract 1, label 2, select 2, first 2, {@code limit(n; E)} with n in 0..3 2, local {@code def f: ..;},
+ *       with extract 1, label 6 (its body {@code K, R} while a place that gives several results is left and K, R fit
+ *       in depth 4; that comma takes the place), select 2, first 2, {@code limit(n; E)} with n in 0..3 2, local {@code def f: ..;},
  *       {@code def f(g): ..;} and {@code def f($x): ..;} 1 each, {@code error(E)} 1, a call of a def or parameter of
  *       arity 1 or 2 in scope 6; a typed production of N 8, S 6, B 6, A 6, O 6</td></tr>
  *   <tr><td>typed inner</td><td>N: {@code + - * / %} 3 1 2 1 1, {@code X | length} (X one of S A O) 3, {@code
@@ -61,8 +65,11 @@ import java.util.Set;
  *       array 15, object 15 (a container only inside one at depth 1 or 2), numbers and strings from the filter's
  *       pools; strict JSON, compact, a trailing LF on 70 %, at most {@value #DOCUMENT_CAP} bytes (redrawn above)</td></tr>
  *   <tr><td>excluded</td><td>by construction: a {@code break} is drawn only from the breakable labels, a set a label
- *       adds to and a try body or handler, a {@code ?} operand, a whole {@code ?//} binding, the left side of
- *       {@code //}, every call argument and every def body empty; a closed name list (no {@code ..}, recurse,
+ *       adds to and a try body, a {@code ?} operand, a whole {@code ?//} binding, a def body, the arguments of a user
+ *       def or a closure parameter and the argument of {@code error} empty (a try handler, the left side of {@code //}
+ *       and the arguments of select, first, limit and map keep it); a seed that holds a {@code ?//} holds no
+ *       {@code first}, {@code limit} or {@code break}, and the other way round (on jq-ref,
+ *       {@code [1] | [limit(1; . as [$a] ?// $a | $a)]} gives {@code [1,[1]]}); a closed name list (no {@code ..}, recurse,
  *       {@code range/3}, while, until, repeat, walk, flatten, tostream, sort, unique, min, max, {@code $__loc__},
  *       input, inputs, debug, env, {@code $ENV}, now, halt, {@code @format}, assignment); a def's name only after its
  *       body; only bound names, exact arities, computed keys only as {@code (S)}, and a key jq folds to a constant
@@ -505,7 +512,10 @@ public final class CoreV1 {
       return new Scope(vars, with(breakable, l), fns);
     }
 
-    /** The scope of a try body or handler, a {@code ?} operand, a {@code ?//} binding, a {@code //} left side, a call argument and a def body. */
+    /**
+     * The scope of a try body, a {@code ?} operand, a {@code ?//} binding, a def body, an argument of a user def or a
+     * closure parameter, and the argument of {@code error}: no break.
+     */
     Scope closed() {
       return new Scope(vars, List.of(), fns);
     }
@@ -537,11 +547,16 @@ public final class CoreV1 {
     }
   }
 
-  /** One seed's draws: the PRNG and the places left that can give several results. */
+  /**
+   * One seed's draws: the PRNG, the places left that can give several results, and whether the seed holds a {@code ?//}
+   * ({@code alt}) or a {@code first}, {@code limit} or {@code break} ({@code cut}); a seed never holds both.
+   */
   private static final class Draw {
 
     private final SplitMix64 r;
     private int sites = SITES;
+    private boolean alt;
+    private boolean cut;
 
     Draw(SplitMix64 r) {
       this.r = r;
@@ -551,10 +566,14 @@ public final class CoreV1 {
     Node withDef() {
       Node body = gen(Type.V, 1, Scope.TOP.fn("f", 0).var("$p"));
       int left = sites;
+      boolean altInBody = alt;
+      boolean cutInBody = cut;
       Scope after = Scope.TOP.fn("g", 2);
       Node rest;
       do {
         sites = left;
+        alt = altInBody;
+        cut = cutInBody;
         rest = gen(Type.V, 1, after);
       } while (!calls(rest, "g"));
       return new Node(Op.DEF2, List.of("g", "f", "$p"), List.of(body, rest));
@@ -576,7 +595,7 @@ public final class CoreV1 {
 
     private Node leaf(Type t, Scope s) {
       int v = s.vars().isEmpty() ? 0 : 1;
-      int b = s.breakable().isEmpty() ? 0 : 1;
+      int b = s.breakable().isEmpty() || alt ? 0 : 1;
       return switch (t) {
         case V -> {
           int i = pick(8, 12, 6 * v, 4, 1, 2, 1, 1, 1, 1, 12 * b, s.arity0().isEmpty() ? 0 : 4);
@@ -643,7 +662,9 @@ public final class CoreV1 {
           int def = fresh.isEmpty() ? 0 : 1;
           int def1 = fresh.size() < 2 ? 0 : 1;
           int call = s.callable().isEmpty() ? 0 : 6;
-          int i = pick(12, 6 * site, 6, 1, 1, 1, 3, 1, 1, 3, 3, 3, 3, 1, 1, 1, 2, 2, 2, 2, def, def1, def, 1, call, 8, 6, 6, 6, 6);
+          int altw = cut ? 0 : 1;
+          int cutw = alt ? 0 : 2;
+          int i = pick(12, 6 * site, 6, 1, 1, altw, 3, 1, 1, 3, 3, 3, 3, 1, 1, 1, 6, 2, cutw, cutw, def, def1, def, 1, call, 8, 6, 6, 6, 6);
           yield switch (i) {
             case 0 -> node(Op.PIPE, gen(Type.V, d, s), gen(Type.V, d, s));
             case 1 -> {
@@ -660,14 +681,17 @@ public final class CoreV1 {
               yield new Node(Op.AS_ARRAY, vars, List.of(source, gen(Type.V, d, bind(s, vars))));
             }
             case 4 -> destructure(Op.AS_OBJECT, d, s);
-            case 5 -> destructure(Op.ALT_DESTRUCT, d, s.closed());
+            case 5 -> {
+              alt = true;
+              yield destructure(Op.ALT_DESTRUCT, d, s.closed());
+            }
             case 6 -> node(Op.IF, gen(Type.B, d, s), gen(Type.V, d, s), gen(Type.V, d, s));
             case 7 -> node(Op.IF_ELIF, gen(Type.B, d, s), gen(Type.V, d, s), gen(Type.B, d, s), gen(Type.V, d, s), gen(Type.V, d, s));
             case 8 -> node(Op.IF_NO_ELSE, gen(Type.B, d, s), gen(Type.V, d, s));
             case 9 -> node(Op.TRY, gen(Type.V, d, s.closed()));
-            case 10 -> node(Op.TRY_CATCH, gen(Type.V, d, s.closed()), gen(Type.V, d, s.closed()));
+            case 10 -> node(Op.TRY_CATCH, gen(Type.V, d, s.closed()), gen(Type.V, d, s));
             case 11 -> node(Op.OPTIONAL, gen(Type.V, d, s.closed()));
-            case 12 -> node(Op.ALTERNATIVE, gen(Type.V, d, s.closed()), gen(Type.V, d, s));
+            case 12 -> node(Op.ALTERNATIVE, gen(Type.V, d, s), gen(Type.V, d, s));
             case 13, 14, 15 -> {
               Op op = i == 13 ? Op.REDUCE : i == 14 ? Op.FOREACH : Op.FOREACH3;
               String v = one(VARS);
@@ -677,11 +701,22 @@ public final class CoreV1 {
             }
             case 16 -> {
               String l = one(LABELS);
-              yield new Node(Op.LABEL, List.of(l), List.of(gen(Type.V, d, s.label(l))));
+              Scope in = s.label(l);
+              // With a multi-result place left, the body is K, R: a break in K cuts R off, so it shows in the output.
+              if (site == 0 || d == 4) yield new Node(Op.LABEL, List.of(l), List.of(gen(Type.V, d, in)));
+              sites--;
+              Node body = node(Op.COMMA, gen(Type.V, d + 1, in), gen(Type.V, d + 1, in));
+              yield new Node(Op.LABEL, List.of(l), List.of(body));
             }
-            case 17 -> node(Op.SELECT, gen(Type.B, d, s.closed()));
-            case 18 -> node(Op.FIRST, gen(Type.V, d, s.closed()));
-            case 19 -> new Node(Op.LIMIT, List.of(Integer.toString(r.below(4))), List.of(gen(Type.V, d, s.closed())));
+            case 17 -> node(Op.SELECT, gen(Type.B, d, s));
+            case 18 -> {
+              cut = true;
+              yield node(Op.FIRST, gen(Type.V, d, s));
+            }
+            case 19 -> {
+              cut = true;
+              yield new Node(Op.LIMIT, List.of(Integer.toString(r.below(4))), List.of(gen(Type.V, d, s)));
+            }
             case 20 -> {
               String name = one(fresh);
               yield new Node(Op.DEF0, List.of(name), List.of(gen(Type.V, d, s.closed()), gen(Type.V, d, s.fn(name, 0))));
@@ -744,7 +779,7 @@ public final class CoreV1 {
           case 0 -> node(Op.COLLECT, gen(Type.V, d, s));
           case 1 -> node(Op.ADD, gen(Type.A, d, s), gen(Type.A, d, s));
           case 2 -> node(Op.SUB, gen(Type.A, d, s), gen(Type.A, d, s));
-          default -> node(Op.MAP, gen(Type.A, d, s), gen(Type.V, d, s.closed()));
+          default -> node(Op.MAP, gen(Type.A, d, s), gen(Type.V, d, s));
         };
         case O -> switch (pick(5, 2, 1, 1)) {
           case 0 -> {
@@ -827,6 +862,7 @@ public final class CoreV1 {
 
     /** {@code break $l} for a breakable label. */
     private Node brk(Scope s) {
+      cut = true;
       return new Node(Op.BREAK, List.of(one(s.breakable())), List.of());
     }
 
