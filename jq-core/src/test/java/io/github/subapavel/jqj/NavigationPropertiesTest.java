@@ -17,7 +17,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  * #63's three properties, one case per seed (docs/agents/environment.md: seeded loops, no jqwik), over arrays and strings
  * drawn as values-v1 draws them (ADR-0025: scalars and nested containers, strings of ASCII, 2-, 3- and 4-byte characters,
  * written raw or as escapes). The oracle of each is the host's accessor or Java's code points, never the operation under
- * test: {@code .[]} yields {@code JqArray.get(i)} for each i in order; an in-range {@code .[a:b]} is the run a..b-1 of
+ * test: {@code .[]} emits {@code JqArray.get(i)} for each i in order; an in-range {@code .[a:b]} is the run a..b-1 of
  * {@code .[]}; a string's {@code .[a:b]} counts code points (jq-ref 1.8.2: slice/string-* on "é𝄞é𝄞é", man.test
  * {@code .[2:4]} on "abcdefghi" gives "cd"). Bounds are non-negative literals, so no filter needs {@code -} (#65).
  */
@@ -92,7 +92,7 @@ class NavigationPropertiesTest {
 
   @ParameterizedTest(name = "seed {0}")
   @MethodSource("seeds")
-  void iterateYieldsEachIndexInOrder(long seed) {
+  void iterateEmitsEachIndexInOrder(long seed) {
     SplittableRandom r = new SplittableRandom(seed);
     String json = array(r, 3);
     Workspace workspace = JqEngine.builder().build().newWorkspace();
