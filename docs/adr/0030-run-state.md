@@ -20,7 +20,9 @@ before any loop exists. This ADR fixes where that state lives and when it counts
   running one is an `IllegalStateException`) and keeps the primed read's ticks, so the reader's
   tick per KiB counts against the run that consumes the document. Reads during a run (`input`,
   `inputs`) count too. The deadline counts from `begin`, so a host's pause between read and run is
-  not charged. `end` leaves every budget unlimited until the next run.
+  not charged. `end` leaves every budget unlimited until the next run. Writer ticks outside a run
+  (a print between runs, charged through `tickWritten`) are not kept by the next `begin`; a prime
+  starts the kept count afresh (#77).
 - A tick is `if (--fuel < 0) refuel()`. Refuel, every 4096 ticks (ADR-0008, ADR-0017), checks in
   this order: the step budget, the deadline (`System.nanoTime()`, the only clock; refuel and `begin` are its only readers), the thread
   interrupt (`CANCELLED`, ADR-0017). A run under 4096 ticks reads the clock once, at `begin`, and never checks the deadline (F-36).
