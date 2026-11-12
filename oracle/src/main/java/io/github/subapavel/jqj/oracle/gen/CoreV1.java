@@ -497,10 +497,37 @@ public final class CoreV1 {
   private record Fn(String name, int arity) {}
 
   /**
+   * The sub-filter places #58's decision names. A closed place drops the labels from outside it, because a catching
+   * construct, a def or {@code error} would lie between such a label and a break. An opened place keeps them, as
+   * every place not named here does. A seed with a {@code ?//} draws no break at all ({@code alt}), so the
+   * binding's closed scope is a second guard.
+   */
+  enum Place {
+    TRY_BODY(false),
+    OPTIONAL_OPERAND(false),
+    ALT_DESTRUCT_BINDING(false),
+    DEF_BODY(false),
+    CALL_ARGUMENT(false),
+    ERROR_ARGUMENT(false),
+    TRY_HANDLER(true),
+    ALTERNATIVE_LEFT(true),
+    SELECT_ARGUMENT(true),
+    FIRST_ARGUMENT(true),
+    LIMIT_ARGUMENT(true),
+    MAP_ARGUMENT(true);
+
+    private final boolean opened;
+
+    Place(boolean opened) {
+      this.opened = opened;
+    }
+  }
+
+  /**
    * What a node may use: the bound variables, the labels a {@code break} may name, and the defs and parameters with
    * their arities.
    */
-  private record Scope(List<String> vars, List<String> breakable, List<Fn> fns) {
+  record Scope(List<String> vars, List<String> breakable, List<Fn> fns) {
 
     static final Scope TOP = new Scope(List.of(), List.of(), List.of());
 
@@ -512,12 +539,9 @@ public final class CoreV1 {
       return new Scope(vars, with(breakable, l), fns);
     }
 
-    /**
-     * The scope of a try body, a {@code ?} operand, a {@code ?//} binding, a def body, an argument of a user def or a
-     * closure parameter, and the argument of {@code error}: no break.
-     */
-    Scope closed() {
-      return new Scope(vars, List.of(), fns);
+    /** The scope of place {@code p}: this one where {@code p} is opened, no breakable label where it is closed. */
+    Scope in(Place p) {
+      return p.opened ? this : new Scope(vars, List.of(), fns);
     }
 
     Scope fn(String name, int arity) {
@@ -683,15 +707,15 @@ public final class CoreV1 {
             case 4 -> destructure(Op.AS_OBJECT, d, s);
             case 5 -> {
               alt = true;
-              yield destructure(Op.ALT_DESTRUCT, d, s.closed());
+              yield destructure(Op.ALT_DESTRUCT, d, s.in(Place.ALT_DESTRUCT_BINDING));
             }
             case 6 -> node(Op.IF, gen(Type.B, d, s), gen(Type.V, d, s), gen(Type.V, d, s));
             case 7 -> node(Op.IF_ELIF, gen(Type.B, d, s), gen(Type.V, d, s), gen(Type.B, d, s), gen(Type.V, d, s), gen(Type.V, d, s));
             case 8 -> node(Op.IF_NO_ELSE, gen(Type.B, d, s), gen(Type.V, d, s));
-            case 9 -> node(Op.TRY, gen(Type.V, d, s.closed()));
-            case 10 -> node(Op.TRY_CATCH, gen(Type.V, d, s.closed()), gen(Type.V, d, s));
-            case 11 -> node(Op.OPTIONAL, gen(Type.V, d, s.closed()));
-            case 12 -> node(Op.ALTERNATIVE, gen(Type.V, d, s), gen(Type.V, d, s));
+            case 9 -> node(Op.TRY, gen(Type.V, d, s.in(Place.TRY_BODY)));
+            case 10 -> node(Op.TRY_CATCH, gen(Type.V, d, s.in(Place.TRY_BODY)), gen(Type.V, d, s.in(Place.TRY_HANDLER)));
+            case 11 -> node(Op.OPTIONAL, gen(Type.V, d, s.in(Place.OPTIONAL_OPERAND)));
+            case 12 -> node(Op.ALTERNATIVE, gen(Type.V, d, s.in(Place.ALTERNATIVE_LEFT)), gen(Type.V, d, s));
             case 13, 14, 15 -> {
               Op op = i == 13 ? Op.REDUCE : i == 14 ? Op.FOREACH : Op.FOREACH3;
               String v = one(VARS);
@@ -708,35 +732,35 @@ public final class CoreV1 {
               Node body = node(Op.COMMA, gen(Type.V, d + 1, in), gen(Type.V, d + 1, in));
               yield new Node(Op.LABEL, List.of(l), List.of(body));
             }
-            case 17 -> node(Op.SELECT, gen(Type.B, d, s));
+            case 17 -> node(Op.SELECT, gen(Type.B, d, s.in(Place.SELECT_ARGUMENT)));
             case 18 -> {
               cut = true;
-              yield node(Op.FIRST, gen(Type.V, d, s));
+              yield node(Op.FIRST, gen(Type.V, d, s.in(Place.FIRST_ARGUMENT)));
             }
             case 19 -> {
               cut = true;
-              yield new Node(Op.LIMIT, List.of(Integer.toString(r.below(4))), List.of(gen(Type.V, d, s)));
+              yield new Node(Op.LIMIT, List.of(Integer.toString(r.below(4))), List.of(gen(Type.V, d, s.in(Place.LIMIT_ARGUMENT))));
             }
             case 20 -> {
               String name = one(fresh);
-              yield new Node(Op.DEF0, List.of(name), List.of(gen(Type.V, d, s.closed()), gen(Type.V, d, s.fn(name, 0))));
+              yield new Node(Op.DEF0, List.of(name), List.of(gen(Type.V, d, s.in(Place.DEF_BODY)), gen(Type.V, d, s.fn(name, 0))));
             }
             case 21 -> {
               List<String> two = distinct(fresh, 2);
-              Node body = gen(Type.V, d, s.closed().fn(two.get(1), 0));
+              Node body = gen(Type.V, d, s.in(Place.DEF_BODY).fn(two.get(1), 0));
               yield new Node(Op.DEF1, two, List.of(body, gen(Type.V, d, s.fn(two.get(0), 1))));
             }
             case 22 -> {
               String name = one(fresh);
               String v = one(VARS);
-              Node body = gen(Type.V, d, s.closed().var(v));
+              Node body = gen(Type.V, d, s.in(Place.DEF_BODY).var(v));
               yield new Node(Op.DEF1V, List.of(name, v), List.of(body, gen(Type.V, d, s.fn(name, 1))));
             }
-            case 23 -> node(Op.ERROR_OF, gen(Type.V, d, s.closed()));
+            case 23 -> node(Op.ERROR_OF, gen(Type.V, d, s.in(Place.ERROR_ARGUMENT)));
             case 24 -> {
               Fn f = one(s.callable());
               List<Node> args = new ArrayList<>();
-              for (int k = 0; k < f.arity(); k++) args.add(gen(Type.V, d, s.closed()));
+              for (int k = 0; k < f.arity(); k++) args.add(gen(Type.V, d, s.in(Place.CALL_ARGUMENT)));
               yield new Node(Op.CALL, List.of(f.name()), args);
             }
             case 25 -> inner(Type.N, d, s);
@@ -779,7 +803,7 @@ public final class CoreV1 {
           case 0 -> node(Op.COLLECT, gen(Type.V, d, s));
           case 1 -> node(Op.ADD, gen(Type.A, d, s), gen(Type.A, d, s));
           case 2 -> node(Op.SUB, gen(Type.A, d, s), gen(Type.A, d, s));
-          default -> node(Op.MAP, gen(Type.A, d, s), gen(Type.V, d, s));
+          default -> node(Op.MAP, gen(Type.A, d, s), gen(Type.V, d, s.in(Place.MAP_ARGUMENT)));
         };
         case O -> switch (pick(5, 2, 1, 1)) {
           case 0 -> {
