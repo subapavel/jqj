@@ -551,6 +551,14 @@ public class ratchet {
           lines.put(key, line);
           report.add("bench " + b.scenario() + ": " + plain(b.score()) + " " + b.unit());
         }
+        // A toleranced line of this machine whose scenario the result lacks fails, as in check.
+        TreeSet<String> measured = new TreeSet<>();
+        for (Bench b : now) measured.add(b.scenario());
+        for (String[] o : oldBench.values()) {
+          if (o.length >= 5 && !o[4].isEmpty() && o[1].equals(machine()) && !measured.contains(o[0])) {
+            fail("bench " + o[0] + " is missing from the JMH result of " + o[1]);
+          }
+        }
         List<String> out = new ArrayList<>(List.of("scenario\tmachine\tscore\tunit\ttolerance%"));
         out.addAll(lines.values());
         writes.put("bench.tsv", out);

@@ -64,11 +64,15 @@ benchmark baseline moves only on a gain beyond its tolerance; lowering one takes
   own report counts as killed if either report kills it; the two reports' mutants are matched by
   `mutatedClass`, `mutatedMethod`, `methodDescription`, `lineNumber`, `mutator` and `indexes`.
   Killed is `KILLED`, `TIMED_OUT` or `MEMORY_ERROR`; everything else counts as surviving. Without
-  oracle's report the module's own report alone counts; a module without its own report prints
-  `NOT_RUN` (and fails `regen --all`).
+  oracle's report the module's own report alone counts. A module without its own report prints
+  `NOT_RUN` in `check` and `floor-mutation`, and is a `FAIL` of `regen --all`, which needs every
+  report; oracle's report alone does not stand in for it.
 - **Bench**: the JMH json result, one line per benchmark (`Class.method` without the class, each `_`
   of the method read as `.`, plus `/param=value`). A `bench.tsv` line with an empty `tolerance%` is
   skipped by `check` and overwritten by `regen --all`; otherwise the baseline moves only on a gain
   beyond the tolerance and a loss beyond it is refused. A score that is not a finite number (`NaN`,
-  bare or as JMH's string, or `+INF`/`-INF`) fails `check` and `regen --all`. `check` fails a
-  toleranced line whose scenario the machine's JMH result lacks.
+  bare or as JMH's string, or `+INF`/`-INF`) fails `check` only for a scenario with a toleranced
+  line of this machine (`check` skips the other lines), and fails `regen --all` for any scenario
+  of the result. Both `check` and `regen --all` fail a toleranced line of this machine whose
+  scenario the JMH result lacks; lines of other machines and lines with an empty `tolerance%` are
+  not checked for that.

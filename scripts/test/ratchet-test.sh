@@ -117,12 +117,13 @@ mut() { local s=$1 c=p.A me=run d='()V' l=7 mu=org.M i=3; shift
 xml() { { echo '<?xml version="1.0" encoding="UTF-8"?>'; echo '<mutations partial="false">'; cat; echo '</mutations>'; } > "$root/$1/target/pit-reports/mutations.xml"; }
 fresh
 mkdir -p "$root/query-core/target/pit-reports" "$root/oracle/target/pit-reports"
-{ mut SURVIVED; mut NO_COVERAGE line=8; mut KILLED line=9; } | xml query-core
+{ mut SURVIVED; mut NO_COVERAGE line=8; mut KILLED line=9; mut KILLED line=10; } | xml query-core
 check "own report only: as before" "$(run floor-mutation query-core)" 1
-has "own report only counts its own kills" 'query-core: 33 % (2 surviving of 3)'
-{ mut KILLED; mut NO_COVERAGE line=8; mut SURVIVED line=9; mut KILLED class=p.Other; } | xml oracle
+has "own report only counts its own kills" 'query-core: 50 % (2 surviving of 4)'
+# line 7 is killed by oracle only, line 9 by its own report only, line 10 by both
+{ mut KILLED; mut NO_COVERAGE line=8; mut SURVIVED line=9; mut KILLED line=10; mut KILLED class=p.Other; } | xml oracle
 run floor-mutation query-core > /dev/null
-has "a mutant killed by either report is killed, counted once" 'query-core: 66 % (1 surviving of 3)'
+has "a mutant killed by either report or by both is killed, counted once" 'query-core: 75 % (1 surviving of 4)'
 for f in class=p.B method=other 'desc=(I)V' line=6 mutator=org.N index=4; do
   { mut SURVIVED; } | xml query-core
   { mut KILLED "$f"; } | xml oracle
@@ -191,6 +192,15 @@ check "regen --all with every report" "$(run regen --all)" 0
 check "coverage rose" "$(printf 'module\tlines %%\tbranches %%\njq-cli\t90\t100\nquery-core\t95\t90\n' | cmp - "$root/ratchet/coverage.tsv"; echo $?)" 0
 check "mutation written" "$(printf 'module\tsurviving mutants\tgenerated mutants\nquery-core\t5\t100\n' | cmp - "$root/ratchet/mutation.tsv"; echo $?)" 0
 check "empty tolerance overwritten" "$(printf 'scenario\tmachine\tscore\tunit\ttolerance%%\nG1\tm1\t50\tms/op\t\n' | cmp - "$root/ratchet/bench.tsv"; echo $?)" 0
+# A toleranced scenario missing from this machine's JMH result fails regen --all; another machine's line, a line
+# with an empty tolerance and a line without the tolerance column do not.
+printf 'scenario\tmachine\tscore\tunit\ttolerance%%\nG1\tm1\t50\tms/op\t\nG3\tm2\t100\tms/op\t10\nG4\tm1\t100\tms/op\t\nG5\tm1\t100\tms/op\n' > "$root/ratchet/bench.tsv"
+check "regen --all keeps lines without a tolerance and other machines' lines" "$(run regen --all)" 0
+printf 'scenario\tmachine\tscore\tunit\ttolerance%%\nG1\tm1\t50\tms/op\t\nG2\tm1\t100\tms/op\t10\n' > "$root/ratchet/bench.tsv"
+check "regen --all refuses a toleranced scenario missing from the result" "$(run regen --all)" 1
+has "regen names the missing scenario" 'bench G2 is missing from the JMH result of m1'
+check "refused regen leaves bench.tsv" "$(printf 'scenario\tmachine\tscore\tunit\ttolerance%%\nG1\tm1\t50\tms/op\t\nG2\tm1\t100\tms/op\t10\n' | cmp - "$root/ratchet/bench.tsv"; echo $?)" 0
+printf 'scenario\tmachine\tscore\tunit\ttolerance%%\nG1\tm1\t50\tms/op\t\n' > "$root/ratchet/bench.tsv"
 printf 'GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED\noracle/query-core,p,A,0,0,10,90,9,91\n' > "$root/oracle/target/site/jacoco-aggregate/jacoco.csv"
 check "regen --all refuses a coverage drop" "$(run regen --all)" 1
 
