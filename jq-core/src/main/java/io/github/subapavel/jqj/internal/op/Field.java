@@ -47,12 +47,19 @@ public final class Field implements Fn0 {
         yield value == null ? JqNull.NULL : value;
       }
       case JqNull nul -> nul;
-      case JqBool _, JqNumber _, JqString _, JqArray _ -> {
-        if (quiet) {
-          yield CallForm.NONE;
-        }
-        throw NavigationErrors.cannotIndex(v, "string", shown);
-      }
+      // One pattern per case: javac checks a case of several patterns again, a branch that is never taken.
+      case JqBool _ -> cannotIndex(v);
+      case JqNumber _ -> cannotIndex(v);
+      case JqString _ -> cannotIndex(v);
+      case JqArray _ -> cannotIndex(v);
     };
+  }
+
+  /** jq's error for {@code v}, which has no keys, or no result for {@code .name?}. */
+  private Object cannotIndex(JqValue v) {
+    if (quiet) {
+      return CallForm.NONE;
+    }
+    throw NavigationErrors.cannotIndex(v, "string", shown);
   }
 }

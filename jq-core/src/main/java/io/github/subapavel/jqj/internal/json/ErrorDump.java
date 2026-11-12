@@ -55,8 +55,10 @@ public final class ErrorDump {
           case JqString _ -> '"';
           case JqArray _ -> ']';
           case ObjectView _ -> '}';
-          // Null and the booleans are never longer than five bytes, so only a number is cut here.
-          case JqNumber _, JqNull _, JqBool _ -> 0;
+          case JqNumber _ -> 0;
+          // Null and the booleans are never longer than five bytes, so they are never cut.
+          case JqNull _ -> 0;
+          case JqBool _ -> 0;
         };
     return of(Printer.head(v, WHOLE + 1), closing);
   }

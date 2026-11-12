@@ -30,16 +30,23 @@ public final class Iterate implements Many {
 
   @Override
   public long first(RunState state, Object in, Object[] args) {
+    // One pattern per case: javac checks a case of several patterns again, a branch that is never taken.
     JqValue v = (JqValue) in;
     return switch (v) {
       case Members members -> members.first();
-      case JqNull _, JqBool _, JqNumber _, JqString _ -> {
-        if (quiet) {
-          yield END;
-        }
-        throw NavigationErrors.cannotIterate(v);
-      }
+      case JqNull _ -> none(v);
+      case JqBool _ -> none(v);
+      case JqNumber _ -> none(v);
+      case JqString _ -> none(v);
     };
+  }
+
+  /** No cursor for {@code v}, which has no members: jq's error, or none for {@code .[]?}. */
+  private long none(JqValue v) {
+    if (quiet) {
+      return END;
+    }
+    throw NavigationErrors.cannotIterate(v);
   }
 
   /** {@link #first} gives a cursor only to {@link Members}, so only they come here. */

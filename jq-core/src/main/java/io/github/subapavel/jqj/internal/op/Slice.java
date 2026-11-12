@@ -78,13 +78,19 @@ public final class Slice implements Fn2 {
       case JqNull nul -> nul;
       case JqArray array -> sliced(of(state, array, from, to), quiet);
       case JqString s -> sliced(of(state, s, from, to), quiet);
-      case JqBool _, JqNumber _, ObjectView _ -> {
-        if (quiet) {
-          yield CallForm.NONE;
-        }
-        throw NavigationErrors.cannotIndex(t, "object", shown(from, to));
-      }
+      // One pattern per case: javac checks a case of several patterns again, a branch that is never taken.
+      case JqBool _ -> cannotSlice(t, from, to);
+      case JqNumber _ -> cannotSlice(t, from, to);
+      case ObjectView _ -> cannotSlice(t, from, to);
     };
+  }
+
+  /** jq's error for {@code t}, which has no slices, or no result for {@code .[a:b]?}. */
+  private Object cannotSlice(JqValue t, JqValue from, JqValue to) {
+    if (quiet) {
+      return CallForm.NONE;
+    }
+    throw NavigationErrors.cannotIndex(t, "object", shown(from, to));
   }
 
   /**
@@ -142,10 +148,15 @@ public final class Slice implements Fn2 {
 
   /** Whether {@code bound} is null or a number, which parse_slice takes; Java null, a missing key, is neither. */
   private static boolean isBound(JqValue bound) {
+    // One pattern per case: javac checks a case of several patterns again, a branch that is never taken.
     return switch (bound) {
       case null -> false;
-      case JqNull _, JqNumber _ -> true;
-      case JqBool _, JqString _, JqArray _, ObjectView _ -> false;
+      case JqNull _ -> true;
+      case JqNumber _ -> true;
+      case JqBool _ -> false;
+      case JqString _ -> false;
+      case JqArray _ -> false;
+      case ObjectView _ -> false;
     };
   }
 
