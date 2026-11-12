@@ -71,6 +71,17 @@ class ParserEdgesTest {
         message(TRY_FIELD, 1, 1, nested, "    ^^^^^^^"));
     // The end of the text right after a recovery ends the parse, with no new block.
     blocks("(. a", syntax("end of file", 1, 4, "(. a", "       ^"), message(TRY_FIELD, 1, 2, "(. a", "     ^^^"));
+    // The token the outer recovery drops is the string's quote, so the escape run after it is read, and its block
+    // comes last; the parse ends at the run.
+    String dropped = ".\"\\(. a \"\\x\")\"";
+    blocks(
+        dropped,
+        syntax("QQSTRING_START", 1, 9, dropped, "            ^"),
+        message(TRY_FIELD, 1, 5, dropped, "        ^^^^^"),
+        message(TRY_FIELD, 1, 1, dropped, "    ^^^^^^^^^"),
+        message("Invalid escape at line 1, column 4 (while parsing '\"\\x\"')", 1, 10, dropped, "             ^^"));
+    // The end of the text right after the inner recovery ends the parse before the outer one.
+    blocks(".\"\\(. a", syntax("end of file", 1, 7, ".\"\\(. a", "          ^"), message(TRY_FIELD, 1, 5, ".\"\\(. a", "        ^^^"));
     // A lexical block when its token is read, then the syntax error and the recovery after it.
     String lexical = "\"\\x\" + . 1";
     blocks(
@@ -95,16 +106,30 @@ class ParserEdgesTest {
     // After a whole pair the error goes to the brace's state, where jq's silent '{' error '}' takes the closing brace;
     // jqj does not build it, so the parse ends there.
     syntaxError("{a 1}", "LITERAL", 1, 4, 1);
+    // jq-ref gives 3 blocks here: its '{' error '}' closes the first object, then the second one recovers. jqj's one
+    // block is the first of them; dropping the brace instead would run the recovery on into the second object.
+    blocks("{1 2} | {3+4:5}", syntax("LITERAL", 1, 2, "{1 2} | {3+4:5}", "     ^"));
     // A recovered pair's value is the token after it; a dot's recovery inside drops its token for the object.
     blocks(
         "{a: . 1}",
         syntax("LITERAL", 1, 7, "{a: . 1}", "          ^"),
         message(TRY_FIELD, 1, 5, "{a: . 1}", "        ^^^"));
-    // One token shifted after a recovery: the next error is not reported, and its token is dropped.
+    // The colon right after the dot's recovery is the object's error at once, so it is dropped, not a key's colon.
+    blocks(
+        "{a: . b: 1}",
+        syntax("':'", 1, 8, "{a: . b: 1}", "           ^"),
+        message(TRY_FIELD, 1, 5, "{a: . b: 1}", "        ^^^^"));
+    // Two tokens shifted after a recovery: the next error is not reported, and its token is dropped.
     blocks(
         "{1+2:3 4}",
         syntax("LITERAL", 1, 2, "{1+2:3 4}", "     ^"),
         message(MAY_NEED_PARENTHESES, 1, 2, "{1+2:3 4}", "     ^^^"));
+    // There the token is kept, so a colon is the next recovery's.
+    blocks(
+        "{1+2:3 :4}",
+        syntax("LITERAL", 1, 2, "{1+2:3 :4}", "     ^"),
+        message(MAY_NEED_PARENTHESES, 1, 2, "{1+2:3 :4}", "     ^^^"),
+        message(MAY_NEED_PARENTHESES, 1, 2, "{1+2:3 :4}", "     ^^^^^^^"));
     // The outer recovery's block comes after the blocks of its value, an object with its own recovery.
     String nested = "{a: 1 2: 3 | {1+2:3}}";
     blocks(
@@ -116,9 +141,10 @@ class ParserEdgesTest {
   }
 
   @Test
-  void anUnderscoreEndsTheDigitsOfAUnicodeEscape() {
-    // The escape run takes letters and digits after the u, so the run is the u alone and the underscore is text.
+  void anUnderscoreOrASpaceEndsTheDigitsOfAUnicodeEscape() {
+    // The escape run takes letters and digits after the u, so an underscore or a space after it is text.
     blocks("\"\\u_\"", message("Invalid \\uXXXX escape at line 1, column 4 (while parsing '\"\\u\"')", 1, 2, "\"\\u_\"", "     ^^"));
+    blocks("\"\\u1 \"", message("Invalid \\uXXXX escape at line 1, column 5 (while parsing '\"\\u1\"')", 1, 2, "\"\\u1 \"", "     ^^^"));
   }
 
   @Test
