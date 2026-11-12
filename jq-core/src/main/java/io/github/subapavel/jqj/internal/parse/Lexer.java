@@ -1,3 +1,28 @@
+/*
+ * Translated from jq 1.8.2 (https://github.com/jqlang/jq): the token rules, the start conditions and try_exit in
+ * src/lexer.l.
+ *
+ * jq is copyright (C) 2012 Stephen Dolan
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 package io.github.subapavel.jqj.internal.parse;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -20,8 +45,8 @@ import java.util.Set;
  * interpolation's {@code \(}; a closer that matches the innermost closes it, any other closer is an INVALID_CHARACTER
  * and closes nothing. Inside a string literal the tokens are runs of plain bytes (TEXT), escape runs, an interpolation's start
  * and the closing quote. An escape run is checked as one JSON string, as jq does: wrapped in quotes, its bad UTF-8
- * replaced, then {@code found_string}'s checks (ADR-0031). A bad run becomes an error block, collected until the end
- * of the parse.
+ * replaced, then {@code found_string}'s checks (ADR-0031). A bad run becomes an error block, collected until the
+ * whole text is lexed and thrown before the parse (ADR-0032).
  */
 final class Lexer {
   /** jq's keywords; any other name is an IDENT, {@code __loc__} included. */
