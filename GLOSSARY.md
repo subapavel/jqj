@@ -401,6 +401,11 @@ constructs its filter reaches in the reference jq. Each spec gate requires the c
 gives it.
 _Avoid_: case budget, target count
 
+**Disagreement**:
+A compile-mode case whose optimised and conservative runs both end without a termination but
+differ in exit code, stdout or stderr. It stops the next merge (F-29, ADR-0020 amendment for #60).
+_Avoid_: mismatch
+
 **Differential oracle**:
 Running a case in jqj and in the reference jq binary and requiring the same exit code, stdout and
 stderr, byte for byte (syntax-error text excepted, ADR-0020).
