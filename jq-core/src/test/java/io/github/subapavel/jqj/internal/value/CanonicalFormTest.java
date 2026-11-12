@@ -162,7 +162,7 @@ class CanonicalFormTest {
   }
 
   @Test
-  void overflowIsAnInfinityLiteral() {
+  void pastTheUpperExponentLimitIsAnInfinityLiteral() {
     // An adjusted exponent above 999 999 999 makes an Infinity literal, printed +-1.7976931348623157e+308 with a
     // lowercase e; at 999 999 999 the value prints in exponent form (GLOSSARY "Infinity literal").
     assertCanonical(
@@ -257,6 +257,23 @@ class CanonicalFormTest {
             "1e-1000000000", "1E-1000000000",
             "1.5e-1100000000", "1.5E-1100000000",
             "-7e-1100000000", "-7E-1100000000"));
+  }
+
+  @Test
+  void roundingUpBelowEtinyGrowsTheLastDigitBelowNine() {
+    // Below 1E-1147483646 a literal is rounded HALF_UP to a multiple of it (GLOSSARY "Exponent limits"). These cases
+    // round up where the kept digits do not end in a carry through all of them, so the digit that grows is not the
+    // first one (beside belowEtinyRoundsHalfUp, whose round-ups grow the first digit or carry through all nines).
+    // jq-ref 1.8.2, observed 2026-11-12:
+    //   printf '[1295e-1147483648,12995e-1147483648,-1995e-1147483648,1249e-1147483648,1250e-1147483648]' | jq-ref -c .
+    //   -> [1.3E-1147483645,1.30E-1147483644,-2.0E-1147483645,1.2E-1147483645,1.3E-1147483645]
+    assertCanonical(
+        table(
+            "1295e-1147483648", "1.3E-1147483645",
+            "12995e-1147483648", "1.30E-1147483644",
+            "-1995e-1147483648", "-2.0E-1147483645",
+            "1249e-1147483648", "1.2E-1147483645",
+            "1250e-1147483648", "1.3E-1147483645"));
   }
 
   /** CODING_STANDARDS: one case per seed, the seed in the case name. */

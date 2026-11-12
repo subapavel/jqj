@@ -29,11 +29,11 @@ import io.github.subapavel.jqj.internal.value.Tape;
 import java.util.Arrays;
 
 /**
- * jq's decoding of a JSON string (ADR-0015 and its #35 amendment, F-26), in jq's two steps: the escape pass of
- * {@code found_string} ({@link #unescape}), then {@code jv_string_sized}'s replacement of each sequence that
- * {@code jvp_utf8_next} ({@link #step}) calls invalid by one U+FFFD, over the escape output and the raw bytes together
- * ({@link #decode}). The input is a string the reader accepted, so its escapes are well formed and every high surrogate
- * escape is followed by a low one.
+ * jq's decoding of a JSON string (ADR-0015 and its #35 amendment, F-26), in jq's two steps: the escape-sequence pass
+ * of {@code found_string} ({@link #unescape}), then {@code jv_string_sized}'s replacement of each sequence that
+ * {@code jvp_utf8_next} ({@link #step}) calls invalid by one U+FFFD, over the escape-sequence pass's output and the raw
+ * bytes together ({@link #decode}). The input is a string the reader accepted, so its escape sequences are well formed
+ * and every high surrogate escape sequence is followed by a low one.
  */
 public final class JsonStrings {
   /** U+FFFD REPLACEMENT CHARACTER in UTF-8. */
@@ -70,8 +70,8 @@ public final class JsonStrings {
           int codePoint = hex4(b, in);
           in += 4;
           if (codePoint >= 0xD800 && codePoint <= 0xDBFF) {
-            // The reader checked that a low surrogate escape follows. In these ranges jq's "- 0xD800" and "- 0xDC00" keep
-            // the low ten bits, and its "codepoint > 0x10FFFF" cannot hold.
+            // The reader checked that a low surrogate escape sequence follows. In these ranges jq's "- 0xD800" and
+            // "- 0xDC00" keep the low ten bits, and its "codepoint > 0x10FFFF" cannot hold.
             codePoint = 0x10000 + ((codePoint & 0x3FF) << 10 | (hex4(b, in + 2) & 0x3FF));
             in += 6;
           }
