@@ -229,6 +229,42 @@ class MalformedDocumentTest {
   }
 
   /**
+   * #35 K2 (ADR-0015 "Strings and BOM"): a high surrogate escape not followed by a low one is malformed, detected at
+   * the string's closing quote; in spec 1 the error is the malformed-input Stub (grilling item 7), so only the type and
+   * jq-ref's line and column are pinned. jq-ref 1.8.2, observed 2026-11-12 (backslash-u written \\u):
+   * {@code "\\ud800x"} -> "Invalid \\uXXXX\\uXXXX surrogate pair escape at line 1, column 9"; {@code "\\ud800"} ->
+   * column 8; {@code "\\ud800\\u0041"} -> column 14; {@code "\\ud800\\ud800\\udc00"} -> column 20; {@code
+   * ["\\ud800",1]} and {@code {"\\ud800":1}} -> column 9 (rc 5 each). The witness {@code "\\ud800\\udc00x"} prints
+   * {@code "𐀀x"} (code points [65536,120], rc 0).
+   */
+  static Stream<Arguments> unpairedHighSurrogates() {
+    return Stream.of(
+        argumentSet("\"\\\\ud800x\"", "\"\\ud800x\"", 9),
+        argumentSet("\"\\\\ud800\" at the closing quote", "\"\\ud800\"", 8),
+        argumentSet("\"\\\\ud800\\\\u0041\"", "\"\\ud800\\u0041\"", 14),
+        argumentSet("\"\\\\ud800\\\\ud800\\\\udc00\"", "\"\\ud800\\ud800\\udc00\"", 20),
+        argumentSet("[\"\\\\ud800\",1]", "[\"\\ud800\",1]", 9),
+        argumentSet("{\"\\\\ud800\":1}", "{\"\\ud800\":1}", 9));
+  }
+
+  @ParameterizedTest(name = "{argumentSetName}")
+  @MethodSource("unpairedHighSurrogates")
+  void unpairedHighSurrogateIsMalformedAtTheClosingQuote(String malformed, int column) {
+    Workspace workspace = newWorkspace();
+    assertThatThrownBy(() -> read(workspace, malformed))
+        .as("read(%s)", printable(malformed))
+        .isInstanceOfSatisfying(
+            JqSyntaxException.class,
+            e -> {
+              assertThat(e.line()).as("line of %s", printable(malformed)).isEqualTo(1);
+              assertThat(e.column()).as("column of %s", printable(malformed)).isEqualTo(column);
+            });
+    // Witness: the paired escape reads, so the reader does not reject every high surrogate.
+    JqString paired = kind(JqString.class, read(workspace, "\"\\ud800\\udc00x\"").root(), "\"\\ud800\\udc00x\"");
+    assertThat(paired.value()).as("value() of the witness").isEqualTo("𐀀x");
+  }
+
+  /**
    * The document is a slice of a larger array, so line and column count from the slice's first byte, never from
    * the array's (ADR-0015: a writable byte[] heap segment is read in place at its address). jq-ref 1.8.2 on the
    * slice's bytes alone, observed 2026-11-11 with {@code printf -- '<doc>' | jq-ref -c .}:
