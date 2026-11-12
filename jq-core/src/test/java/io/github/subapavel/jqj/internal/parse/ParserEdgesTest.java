@@ -62,9 +62,12 @@ class ParserEdgesTest {
     blocks("break 1", syntax("LITERAL", 1, 7, "break 1", carets(7, 1)));
     blocks(". as {1+2: $x} | 1", syntax("LITERAL", 1, 7, ". as {1+2: $x} | 1", carets(7, 1)));
     blocks("(1 2) | 3 | 4 5", syntax("LITERAL", 1, 4, "(1 2) | 3 | 4 5", carets(4, 1)));
-    // The known gap #64 closes: jq's first block is the parser action's "Cannot use number (1) as object key" at
-    // column 3, then this one.
-    blocks("{(1): 2 3}", syntax("LITERAL", 1, 9, "{(1): 2 3}", carets(9, 1)));
+    // #64 closed the gap (ADR-0036): jq's first block is the parser action's "Cannot use number (1) as object key" at
+    // column 3, then the syntax block (diff/syntax.rec syntax/object-key-error-then-syntax-error).
+    blocks(
+        "{(1): 2 3}",
+        message("Cannot use number (1) as object key", 1, 3, "{(1): 2 3}", carets(3, 1)),
+        syntax("LITERAL", 1, 9, "{(1): 2 3}", carets(9, 1)));
   }
 
   @Test

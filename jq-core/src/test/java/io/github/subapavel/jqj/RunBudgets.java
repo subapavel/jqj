@@ -24,11 +24,15 @@ final class RunBudgets {
   /** No variable is declared by {@code .}, so every run binds none. */
   static final Bindings NONE = Bindings.builder().build();
 
-  /** ADR-0030 and the design approval of #59: jq has no budgets, so the messages are jqj's own. */
+  /**
+   * ADR-0030 and the design approval of #59: jq has no budgets, so the messages are jqj's own. Bytes built: ADR-0035
+   * and the design approval of #64.
+   */
   private static final Map<Budget, String> MESSAGES =
       Map.of(
           Budget.STEPS, "Step budget exceeded",
           Budget.DEADLINE, "Deadline exceeded",
+          Budget.BYTES_BUILT, "Bytes-built budget exceeded",
           Budget.BYTES_WRITTEN, "Bytes-written budget exceeded");
 
   /**
@@ -58,6 +62,14 @@ final class RunBudgets {
   /** An engine whose only budget is {@code bytesWritten}. */
   static JqEngine bytesWritten(long bytesWritten) {
     return engine(limits(Limits.UNLIMITED, Limits.UNLIMITED_TIME, bytesWritten));
+  }
+
+  /** An engine whose only budget is {@code bytesBuilt} (ADR-0035). */
+  static JqEngine bytesBuilt(long bytesBuilt) {
+    Limits cli = Limits.cli();
+    return engine(
+        new Limits(
+            Limits.UNLIMITED, Limits.UNLIMITED_TIME, cli.nestingDepth(), cli.recursionDepth(), bytesBuilt, Limits.UNLIMITED, cli.regexMatchTime(), cli.stackBytes()));
   }
 
   /** An engine whose steps, deadline and bytes written are unlimited. */
