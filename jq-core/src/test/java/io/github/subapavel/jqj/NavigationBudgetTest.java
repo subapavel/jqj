@@ -23,10 +23,11 @@ import org.junit.jupiter.api.Test;
 /**
  * The tick sites #63 adds, at the public API (ADR-0008, F-32, ADR-0034, the #63 approval's decision 3): a comma charges
  * one step on entering its right branch; a Many loop ({@code .[]}) one step per element, before its emit; a tape walk
- * charges the entries it steps, once per walk: a field's key scan and {@code .[n]}. A run may take exactly its budget of
- * ticks and the next one ends it with {@code JqTermination(BUDGET, STEPS)} (ADR-0030). Each document here is under 1 KiB,
- * so its read is one tick (ADR-0015, StepBudgetTest); a run on a value no read made has no read tick. The sinks neither
- * write nor tick.
+ * charges the entries it steps, once per walk: a field's key scan, {@code .[n]}, a view's length and a view's slice; a
+ * built array's slice charges the elements it copies, a string's slice one step per started KiB. A run may take exactly
+ * its budget of ticks and the next one ends it with {@code JqTermination(BUDGET, STEPS)} (ADR-0030): each site has an
+ * adjacent pair, N steps complete and N - 1 end. A document under 1 KiB reads in one tick, one tick per started KiB
+ * above (ADR-0015, StepBudgetTest); a run on a value no read made has no read tick. The sinks neither write nor tick.
  */
 class NavigationBudgetTest {
 
@@ -145,18 +146,89 @@ class NavigationBudgetTest {
     JqValue cutRoot = read(cut, twenty).root();
     assertBudget(() -> under.compile(".[20]").run(cutRoot, NONE, new Results(), cut), Budget.STEPS, ".[20] over 20 elements with 20 steps");
 
-    // .[19] steps 19 entries to its element (20 if the element itself counts): 1 + 18 steps end it, 1 + 20 complete it.
-    JqEngine short18 = steps(19);
-    Workspace few = short18.newWorkspace();
-    JqValue fewRoot = read(few, twenty).root();
-    assertBudget(() -> short18.compile(".[19]").run(fewRoot, NONE, new Results(), few), Budget.STEPS, ".[19] over 20 elements with 19 steps");
-    JqEngine enough = steps(21);
-    Workspace last = enough.newWorkspace();
-    JqValue lastRoot = read(last, twenty).root();
-    Results one = new Results();
-    assertThat(enough.compile(".[19]").run(lastRoot, NONE, one, last)).as("run's answer for .[19] with 21 steps").isTrue();
-    assertThat(one.values).as("results of .[19]").hasSize(1);
-    assertThat(one.values.getFirst().toJson()).as("the result of .[19]").isEqualTo("1");
+    // .[19] steps over the 19 elements before its own: 1 read tick and 19 walk ticks (ArrayView.get, one tick per element
+    // stepped over).
+    assertExactSteps(".[19]", twenty, 20, "1");
+  }
+
+  /**
+   * The adjacent pair at the public API: {@code filter} on the document {@code json} completes with {@code steps} steps,
+   * giving {@code texts}, and ends with {@code JqTermination(BUDGET, STEPS)} with {@code steps - 1}.
+   */
+  private static void assertExactSteps(String filter, String json, long steps, String... texts) {
+    JqEngine exact = steps(steps);
+    Workspace whole = exact.newWorkspace();
+    JqValue root = read(whole, json).root();
+    Results all = new Results();
+    assertThat(exact.compile(filter).run(root, NONE, all, whole)).as("run's answer for %s with %s steps", filter, steps).isTrue();
+    assertThat(all.values.stream().map(JqValue::toJson).toList()).as("results of %s with %s steps", filter, steps).containsExactly(texts);
+    JqEngine under = steps(steps - 1);
+    Workspace cut = under.newWorkspace();
+    JqValue cutRoot = read(cut, json).root();
+    assertBudget(() -> under.compile(filter).run(cutRoot, NONE, new Results(), cut), Budget.STEPS, filter + " with " + (steps - 1) + " steps");
+  }
+
+  /** {@code [0,1,…,19]}, under 1 KiB. */
+  private static final String COUNTING = counting();
+
+  private static String counting() {
+    StringJoiner array = new StringJoiner(",", "[", "]");
+    for (int i = 0; i < 20; i++) array.add(Integer.toString(i));
+    return array.toString();
+  }
+
+  @Test
+  void aNegativeIndexChargesTheLengthOfAView() {
+    // A negative index counts from the end, so a view's length is walked first: one tick per element (ArrayView.length),
+    // then the walk to the element. The key comes from the document (a negative literal in the filter is a Stub):
+    // [-1,1,…,19] read 1, .[0] steps 0, the length 20, the walk to index 19 steps 19: 40. jq-ref 1.8.2, observed
+    // 2026-11-12: jq-ref -nc '[-1, range(1;20)] | .[.[0]]' gives 19.
+    String array = COUNTING.replaceFirst("\\[0,", "[-1,");
+    assertExactSteps(".[.[0]]", array, 40, "19");
+  }
+
+  @Test
+  void aSliceOfAViewChargesTheLengthAndTheElementsUpToItsEnd() {
+    // Slice.of walks the length (20), then ArrayView.slice charges its end, the walk to the start and the copy (5):
+    // read 1 + 20 + 5 = 26. jq-ref 1.8.2, observed 2026-11-12: [range(20)] | .[2:5] gives [2,3,4].
+    assertExactSteps(".[2:5]", COUNTING, 26, "[2,3,4]");
+  }
+
+  @Test
+  void aSliceOfABuiltArrayChargesOneStepPerElementCopied() {
+    // .[1:] on the view: 20 + 20; then .[1:] on the 19 elements it built: no walk for the length, and 18 copied
+    // (BuiltArray.slice): read 1 + 40 + 18 = 59. jq-ref 1.8.2, observed 2026-11-12: [range(20)] | .[1:] | .[1:] gives
+    // [2,…,19].
+    StringJoiner rest = new StringJoiner(",", "[", "]");
+    for (int i = 2; i < 20; i++) rest.add(Integer.toString(i));
+    assertExactSteps(".[1:] | .[1:]", COUNTING, 59, rest.toString());
+  }
+
+  @Test
+  void aSliceOfAStringChargesOneStepPerStartedKiB() {
+    // Slice.string counts the code points in one pass over the bytes: one tick per started KiB of them, the writer's
+    // rate. The document's read is one tick per started KiB too (ADR-0015): "a"×1024 is a 1026-byte document, 2 read
+    // ticks, and 1 slice tick; "a"×1025 and "é"×513 (1026 bytes) take 2 slice ticks, so bytes count, not code points;
+    // "abc" takes 1. jq-ref 1.8.2, observed 2026-11-12: "a" * 1024 | .[1:3] and "a" * 1025 | .[1:3] give "aa",
+    // "é" * 513 | .[1:3] gives "éé".
+    assertExactSteps(".[1:3]", "\"" + "a".repeat(1024) + "\"", 3, "\"aa\"");
+    assertExactSteps(".[1:3]", "\"" + "a".repeat(1025) + "\"", 4, "\"aa\"");
+    assertExactSteps(".[1:3]", "\"" + "é".repeat(513) + "\"", 4, "\"éé\"");
+    assertExactSteps(".[1:3]", "\"abc\"", 2, "\"bc\"");
+  }
+
+  @Test
+  void iterateOverAnObjectChargesOneStepPerValue() {
+    // .[] over an object: one tick per value before its emit, as over an array; the key walk itself is not charged
+    // (the code on 5ac7ae2; the implementer is to state the object walk's rate). With a repeated key the object has 20
+    // keys and 21 entries, and charges 20. jq-ref 1.8.2, observed 2026-11-12: [.[]] over {"k0":0,…,"k19":19,"k0":20}
+    // gives [20,1,…,19].
+    String[] values = new String[20];
+    for (int i = 0; i < 20; i++) values[i] = Integer.toString(i);
+    assertExactSteps(".[]", TWENTY_KEYS, 21, values);
+    String repeated = TWENTY_KEYS.substring(0, TWENTY_KEYS.length() - 1) + ",\"k0\":20}";
+    values[0] = "20";
+    assertExactSteps(".[]", repeated, 21, values);
   }
 
   @Test
