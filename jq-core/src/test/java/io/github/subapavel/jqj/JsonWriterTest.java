@@ -1,5 +1,6 @@
 package io.github.subapavel.jqj;
 
+import static io.github.subapavel.jqj.TestDocuments.assertStale;
 import static io.github.subapavel.jqj.TestDocuments.kind;
 import static io.github.subapavel.jqj.TestDocuments.newWorkspace;
 import static io.github.subapavel.jqj.TestDocuments.read;
@@ -8,14 +9,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqObject;
+import io.github.subapavel.jqj.value.JqValue;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.foreign.MemorySegment;
 import java.nio.channels.Channels;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -58,7 +62,7 @@ class JsonWriterTest {
   }
 
   @Test
-  void canonicalNumbersCopyOthersAreStubs() {
+  void canonicalNumbersCopyOthersPrintInCanonicalForm() {
     // ADR-0012 "CANONICAL": a strict token without an exponent is copied, except [-]0. with 6 or more leading zeros
     // in the fraction, or 7 or more when it is all zeros. jq-ref 1.8.2, observed 2026-11-11, each alone with -c .:
     // every token below prints unchanged.
@@ -68,21 +72,61 @@ class JsonWriterTest {
       assertThat(number.toJson()).as("JqNumber.toJson() of %s", token).isEqualTo(token);
     }
     assertThat(compact("[-0,100000000000000000000,-1.5]")).as("numbers in an array").isEqualTo("[-0,100000000000000000000,-1.5]\n");
-    // jq-ref prints these in another text, the canonical form that is #36's: 1e2 -> 1E+2, 1E+2 -> 1E+2,
-    // 0.0000001 -> 1E-7, -0.0000001 -> -1E-7, 0.0000000 -> 0E-7, -0.0000000 -> -0E-7. Until then each is a Stub.
-    for (String token : List.of("1e2", "1E+2", "0.0000001", "-0.0000001", "0.0000000", "-0.0000000")) {
-      Workspace workspace = newWorkspace();
-      JqSink sink = JsonWriter.sink(workspace, new RecordingTarget(), OutputOptions.compact());
-      JqNumber number = kind(JqNumber.class, read(workspace, token).root(), token);
-      assertThatExceptionOfType(JqCompileException.class)
-          .as("the writer's output of %s", token)
-          .isThrownBy(() -> sink.emit(number))
-          .withMessageStartingWith(MARK);
-      assertThatExceptionOfType(JqCompileException.class)
-          .as("JqNumber.toJson() of %s", token)
-          .isThrownBy(number::toJson)
-          .withMessageStartingWith(MARK);
+    // Any other literal prints in jq's canonical form (#36, the Stub ending of #33's C12 rule: these tokens were
+    // Stubs until #36). jq-ref 1.8.2, observed 2026-11-12, each alone with printf -- '<token>' | jq-ref -c .:
+    //   1e2 -> 1E+2, 1E+2 -> 1E+2, 0.0000001 -> 1E-7, -0.0000001 -> -1E-7, 0.0000000 -> 0E-7, -0.0000000 -> -0E-7
+    String[][] printed = {{"1e2", "1E+2"}, {"1E+2", "1E+2"}, {"0.0000001", "1E-7"}, {"-0.0000001", "-1E-7"}, {"0.0000000", "0E-7"}, {"-0.0000000", "-0E-7"}};
+    for (String[] row : printed) {
+      assertThat(compact(row[0])).as("the writer's output of %s", row[0]).isEqualTo(row[1] + "\n");
+      JqNumber number = kind(JqNumber.class, read(newWorkspace(), row[0]).root(), row[0]);
+      assertThat(number.toJson()).as("JqNumber.toJson() of %s", row[0]).isEqualTo(row[1]);
     }
+    // number.rec, case ticket-object: {"a":1e2,"b":1.10,"c":-0,"d":0.0000001} -> {"a":1E+2,"b":1.10,"c":-0,"d":1E-7}
+    assertThat(compact("{\"a\":1e2,\"b\":1.10,\"c\":-0,\"d\":0.0000001}"))
+        .as("copied and canonical numbers in one object")
+        .isEqualTo("{\"a\":1E+2,\"b\":1.10,\"c\":-0,\"d\":1E-7}\n");
+  }
+
+  /** 100 000 digits, "1234567890" ten thousand times, so a piece printed twice, dropped or moved shows. */
+  private static final String DIGITS = "1234567890".repeat(10_000);
+
+  @Test
+  void numberLongerThanTheBufferPrintsInPieces() {
+    // A token that is not CANONICAL and whose canonical form is longer than the 64 KiB print buffer. jq-ref 1.8.2,
+    // observed 2026-11-12: the 100 002-byte token DIGITS followed by e1 under -c . prints "1.", the other 99 999
+    // digits, "E+100000" and an LF: 100 010 bytes, byte-identical (cmp) to that text.
+    String token = DIGITS + "e1";
+    String expected = "1." + DIGITS.substring(1) + "E+100000\n";
+    Workspace workspace = newWorkspace();
+
+    RecordingTarget whole = new RecordingTarget();
+    assertThat(JsonWriter.sink(workspace, whole, OutputOptions.compact()).emit(read(workspace, token).root()))
+        .as("emit's answer for the 100 002-byte token")
+        .isTrue();
+    assertThat(whole.text()).as("output of the 100 002-byte token").isEqualTo(expected);
+    assertThat(whole.writes).as("write calls for a 100 010-byte result").isGreaterThan(1);
+    assertThat(kind(JqNumber.class, read(workspace, token).root(), "the token").toJson())
+        .as("JqNumber.toJson() of the 100 002-byte token")
+        .isEqualTo(expected.substring(0, expected.length() - 1));
+
+    // ADR-0027: the target reads another document into the same Workspace during its first write, in the middle
+    // of the number, so the rest of it must not print.
+    List<JsonDoc> readInside = new ArrayList<>();
+    RecordingTarget reading =
+        new RecordingTarget(
+            n -> {
+              if (n == 1) readInside.add(read(workspace, "[7]"));
+            });
+    JqSink sink = JsonWriter.sink(workspace, reading, OutputOptions.compact());
+    JqValue root = read(workspace, token).root();
+    assertStale(() -> sink.emit(root),"emit of the 100 002-byte token after its target read [7]");
+    assertThat(reading.writes).as("write calls after the read inside the first one").isEqualTo(1);
+    assertThat(reading.text()).as("bytes written before the token went stale").isNotEmpty();
+    assertThat(expected).as("the bytes written are a prefix of the result").startsWith(reading.text());
+    // Witness: the document read inside the write is the current one and reads.
+    assertThat(readInside).as("documents read inside the write").hasSize(1);
+    JqArray seven = kind(JqArray.class, readInside.get(0).root(), "[7]");
+    assertThat(kind(JqNumber.class, seven.get(0), "[7][0]").longValue()).as("[7][0]").isEqualTo(7L);
   }
 
   @Test
