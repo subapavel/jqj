@@ -1,7 +1,6 @@
 package io.github.subapavel.jqj.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 import io.github.subapavel.jqj.JqException;
 import io.github.subapavel.jqj.value.JqValue;
@@ -22,7 +21,7 @@ import org.junit.jupiter.api.Test;
  * The kinds permit views in jq-core's non-exported {@code internal.value} (ADR-0016). This runs with
  * jq-core as the named module a host puts on its module path; it needs the module-path test execution
  * of this module's build. Each PermittedSubclasses attribute, read from the class file, must equal what
- * the JVM reports, and every permitted class must load.
+ * the JVM reports, and every permitted class must load into jq-core's module.
  */
 class SealedPermitsModulePathTest {
   private static final String CORE = "io.github.subapavel.jqj";
@@ -55,7 +54,7 @@ class SealedPermitsModulePathTest {
               "io.github.subapavel.jqj.JqTermination"));
 
   @Test
-  void permitsLoadOnTheModulePath() throws IOException {
+  void permitsLoadOnTheModulePath() throws IOException, ClassNotFoundException {
     Module core = JqValue.class.getModule();
     assertThat(core.getName()).as("jq-core runs as a named module, on the module path").isEqualTo(CORE);
     assertThat(core.isExported("io.github.subapavel.jqj.value")).as("value package exported").isTrue();
@@ -70,7 +69,7 @@ class SealedPermitsModulePathTest {
     PERMITS.values().forEach(names::addAll);
     ClassLoader loader = JqValue.class.getClassLoader();
     for (String name : names) {
-      assertThatCode(() -> Class.forName(name, true, loader)).as("loading %s", name).doesNotThrowAnyException();
+      assertThat(Class.forName(name, true, loader).getModule().getName()).as("module of %s, loaded", name).isEqualTo(CORE);
     }
   }
 
