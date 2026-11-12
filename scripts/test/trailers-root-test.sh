@@ -45,4 +45,10 @@ out=$("$a/scripts/check-trailers.sh" HEAD 2>&1); rc=$?
 check "bare ref rc" "$rc" 2
 printf '%s\n' "$out" | grep -q "usage"
 check "bare ref prints usage" "$?" 0
+
+# invoked from another repository, the waiver is read from the script's own repository (F-28)
+git -C "$a" commit -q --allow-empty -m "docs: no trailers"
+git -C "$a" rev-parse HEAD > "$a/scripts/trailers-waiver.txt"
+out=$(cd "$b" && "$a/scripts/check-trailers.sh" "$base..HEAD" 2>&1); rc=$?
+check "other cwd reads the script's waiver" "$rc" 0
 exit $fails
