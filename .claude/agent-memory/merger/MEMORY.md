@@ -11,3 +11,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#26) The first `regen --oracles` for a new oracle creates an empty untracked pass list; commit it.
 - (#33) A fresh merge worktree has no oracle reports: run `./mvnw -B verify` before `regen --oracles`.
 - (#37) `java scripts/ratchet.java` takes the current directory as the repo root: run regen and check from inside the merge worktree. A worktree with `.logs/` needs `git worktree remove --force`.
+- (#36) git config's identity is Claude: a merge commit's Signed-off-by must come from GIT_AUTHOR_NAME/GIT_AUTHOR_EMAIL; check it before pushing.
+- (#36) A pass list can grow beyond the verifier's DifferentialOracleTest count: regen adds survey passes (e.g. new `gen/values-v1` seeds) that were neither ratcheted nor required.

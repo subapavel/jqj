@@ -11,3 +11,4 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - An implementer's "decision" can swap a component the spec names for a reason the spec never
   imposed; check it against the spec and the licence list.
 - (#34) Probe a design's Stub token list with the token followed by a valid one (`..a`), not alone.
+- (#36) A design departure in an algorithm is a carry, not a finding, when a property test compares it with an independent oracle that follows the ADR's rule. A commit claiming architect approval: look for it on the issue.
