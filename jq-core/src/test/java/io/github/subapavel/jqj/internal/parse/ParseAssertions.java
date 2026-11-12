@@ -5,7 +5,20 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.JqCompileException;
+import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Comma;
+import io.github.subapavel.jqj.query.ir.Const;
+import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
+import io.github.subapavel.jqj.query.ir.Pipe;
+import io.github.subapavel.jqj.query.ir.Source;
+import io.github.subapavel.jqj.query.ir.Var;
+import io.github.subapavel.jqj.value.JqValue;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
 
 /**
  * The parse and the resolution as two steps (ADR-0032): {@code Parser.parse} builds the AST and throws every lexical,
@@ -53,6 +66,56 @@ final class ParseAssertions {
   /** {@code text} has no top-level filter: jq's not-given text, from the parse or the resolution (ADR-0032). */
   static void notGiven(String text) {
     assertThatExceptionOfType(JqCompileException.class).as("compile of %s", show(text)).isThrownBy(() -> ir(text)).withMessage(NOT_GIVEN);
+  }
+
+  /**
+   * The tree as text (ResolverTest, ParserTest): an Identity is {@code .[s,e)}, a Const its value's JSON text and {@code
+   * [s,e)}, an Intrinsic its Operation's name, its arguments in parentheses when it has any, and {@code [s,e)}; a Pipe
+   * {@code (left | right)}, a Comma {@code (left, right)}, a Bind {@code (value as $i | body)} and a Var {@code $i},
+   * where i counts the Binds in the order they are met, so the text names which Bind a Var reads and not the slot's
+   * number. An argument is printed without its Source; a Pipe, Comma or Bind's own Source is left out (no design fixes
+   * it). A Var with no enclosing Bind of its slot is {@code $?}.
+   */
+  static String shape(Node node) {
+    return shape(node, Map.of(), new int[1]);
+  }
+
+  /** {@code scope} maps each slot a Bind around {@code node} holds to its name; {@code met} counts the Binds met. */
+  private static String shape(Node node, Map<Integer, String> scope, int[] met) {
+    return switch (node) {
+      case Identity i -> "." + chars(i.source());
+      case Const c -> ((JqValue) c.value()).toJson() + chars(c.source());
+      case Intrinsic f -> f.op().name() + arguments(f.args(), scope, met) + chars(f.source());
+      case Pipe p -> "(" + shape(p.left(), scope, met) + " | " + shape(p.right(), scope, met) + ")";
+      case Comma c -> "(" + shape(c.left(), scope, met) + ", " + shape(c.right(), scope, met) + ")";
+      case Bind b -> {
+        String name = "$" + met[0]++;
+        String value = shape(b.value(), scope, met);
+        Map<Integer, String> inner = new HashMap<>(scope);
+        inner.put(b.slot(), name);
+        yield "(" + value + " as " + name + " | " + shape(b.body(), inner, met) + ")";
+      }
+      case Var v -> scope.getOrDefault(v.slot(), "$?");
+    };
+  }
+
+  private static String arguments(List<Node> args, Map<Integer, String> scope, int[] met) {
+    if (args.isEmpty()) return "";
+    StringJoiner joined = new StringJoiner("; ", "(", ")");
+    for (Node a : args) {
+      joined.add(
+          switch (a) {
+            case Identity _ -> ".";
+            case Const c -> ((JqValue) c.value()).toJson();
+            case Var v -> scope.getOrDefault(v.slot(), "$?");
+            default -> "<not atomic: " + shape(a, scope, met) + ">";
+          });
+    }
+    return joined.toString();
+  }
+
+  static String chars(Source s) {
+    return "[" + s.start() + "," + s.end() + ")";
   }
 
   /** The text with its control characters spelled out, for a readable description. */
