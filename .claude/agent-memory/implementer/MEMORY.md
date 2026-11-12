@@ -98,3 +98,6 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#59 test-author) An isolated worktree refuses `git config core.hooksPath`: run `bash scripts/check-trailers.sh --message <file>` before `git commit -F`. A query-core test compile failure skips jq-core: to see jq-core's red, use a scratch copy.
 - (#59) `-Xlint:all -Werror` rejects a public class in an exported package without an explicit constructor ("exposing a default constructor").
 - (#59) Guard-mutant sweep: commit first, then per mutant replace with `${c/"$old"/"$new"}`, run `./mvnw -B -o -pl jq-core -am test -Dmaven.test.failure.ignore=true`, grep `<<< FAILURE!`, restore with `git checkout -- <file>` (~10 s each).
+- (#59) JaCoCo counts a line as missed when its call throws (the probe sits after the invoke): a `throw X.over(...)` line needs a test that reaches it.
+- (#59) A javac `case A _, B _` leaves an unreachable second dispatch, so the line stays partly covered; give each kind its own arm.
+- (#59) Refuel's refill cap is only witnessed by an interrupt/deadline test across two refuels; a step cut alone stays exact without it.
