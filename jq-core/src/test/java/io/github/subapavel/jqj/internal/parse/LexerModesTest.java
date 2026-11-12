@@ -48,6 +48,10 @@ class LexerModesTest {
     assertThat(kinded("1 # a\\\rx\n+ 1\n")).containsExactly("NUMBER 1", "PLUS +", "NUMBER 1");
     // jq-ref -n on "1 # a\b<LF>+ 1" -> 2: a backslash before any other byte continues nothing either.
     assertThat(kinded("1 # a\\b\n+ 1")).containsExactly("NUMBER 1", "PLUS +", "NUMBER 1");
+    // jq-ref -n -f on "1 # a\\<LF>+ 1<LF>" -> 2: an escaped backslash continues nothing. On "1 # a\<CR>\<LF>+ 1<LF>"
+    // -> 1: the backslash before the CR takes no byte along, so the second one continues the comment over the LF.
+    assertThat(kinded("1 # a\\\\\n+ 1\n")).containsExactly("NUMBER 1", "PLUS +", "NUMBER 1");
+    assertThat(kinded("1 # a\\\r\\\n+ 1\n")).containsExactly("NUMBER 1");
   }
 
   @Test
@@ -66,6 +70,10 @@ class LexerModesTest {
     assertThat(kinded(". ?/1")).containsExactly("DOT .", "QUESTION ?", "SLASH /", "NUMBER 1");
     // jq-ref -n 'a::1' -> "unexpected ':', expecting end of file" at column 2, one caret: :: before no name ends it.
     assertThat(kinded("a::1")).containsExactly("IDENT a", "COLON :", "COLON :", "NUMBER 1");
+    // jq-ref -n -c -f on '"\\u00e9a" | explode' -> [233,97]: a \\u takes four letters or digits, no fifth.
+    assertThat(kinded("\"\\u00e9a\"")).containsExactly("STRING_START \"", "ESCAPES \\u00e9", "TEXT a", "STRING_END \"");
+    // jq-ref -n '1e-2' -> 0.01: an exponent's sign may be a minus.
+    assertThat(kinded("1e-2")).containsExactly("NUMBER 1e-2");
   }
 
   /** Each token before END as its kind, a space and its bytes as text; END must sit at the end of the text. */
