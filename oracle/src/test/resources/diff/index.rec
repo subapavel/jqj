@@ -405,3 +405,87 @@ rc 5
 stdout
 stderr jq: error (at <stdin>:1): Cannot index string with string ("b")\n
 end
+
+case index/dump-array-key-29
+def e818ec9cd6fa
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with array ([10,11,12,13,14,15,16,17,1,2])\n
+end
+
+case index/dump-array-key-30
+def ed387e92fd19
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with array ([10,11,12,13,14,15,16,17,...])\n
+end
+
+case index/dump-array-key-long
+def e3f299e7027a
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with array ([10,11,12,13,14,15,16,17,...])\n
+end
+
+case index/dump-array-key-nested
+def 250f0dec3a7d
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with array ([[10,11],[12,13],[14,15],...])\n
+end
+
+case index/dump-array-key-e-acute-at-23
+def 698f11be89a3
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with array (["aaaaaaaaaaaaaaaaaaaaaé...])\n
+end
+
+case index/dump-array-key-e-acute-at-24
+def c509630bdf3e
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with array (["aaaaaaaaaaaaaaaaaaaaaa...])\n
+end
+
+case index/dump-array-key-escape-at-24
+def a832329a5866
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with array (["aaaaaaaaaaaaaaaaaaaaaa\\...])\n
+end
+
+case index/dump-built-array-key
+def 258eb64aff8c
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with array ([10,11,12,13,14,15,16,17,...])\n
+end
+
+case index/dump-object-key-29
+def 51dcf86cfd9c
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with object ({"a":1,"b":2,"c":3,"d":45678})\n
+end
+
+case index/dump-object-key-30
+def bb77464ff382
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with object ({"a":1,"b":2,"c":3,"d":45...})\n
+end
+
+case index/dump-object-key-long
+def 287033b49100
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with object ({"a":1,"b":2,"c":3,"d":4,...})\n
+end
+
+case index/dump-object-key-on-number
+def 6eb879f99e69
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index number with object ({"a":1,"b":2,"c":3,"d":4,...})\n
+end

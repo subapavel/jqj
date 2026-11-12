@@ -74,7 +74,7 @@ class CommaBindTest {
     return new Intrinsic(AT, new Operation(name, form), List.of(args));
   }
 
-  /** An operation with no result: jq's {@code empty} in this toy format. */
+  /** An operation with no result, {@code CallForm.NONE} in this toy format. */
   private static Intrinsic none() {
     return call("none", (Fn0) (state, in) -> CallForm.NONE);
   }

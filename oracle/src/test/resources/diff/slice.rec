@@ -1420,3 +1420,143 @@ rc 5
 stdout
 stderr jq: error (at <stdin>:1): Cannot index string with string ("a")\n
 end
+
+case slice/built-index
+def 8585d523603d
+rc 0
+stdout 1\n
+stderr
+end
+
+case slice/built-index-negative
+def 7e08213deba7
+rc 0
+stdout 3\n
+stderr
+end
+
+case slice/built-index-past-end
+def 89f19fdba474
+rc 0
+stdout null\n
+stderr
+end
+
+case slice/built-slice
+def d9e1c9b67690
+rc 0
+stdout [2]\n
+stderr
+end
+
+case slice/built-slice-negative
+def bb942080757b
+rc 0
+stdout [2,3]\n
+stderr
+end
+
+case slice/built-iterate
+def 85223b0cb4a7
+rc 0
+stdout [1]\n{"a":2}\n"x"\n
+stderr
+end
+
+case slice/built-iterate-postfix
+def 1c0ad9c8e697
+rc 0
+stdout [1]\n{"a":2}\n"x"\n
+stderr
+end
+
+case slice/built-iterate-empty
+def 9bc704396b9c
+rc 0
+stdout
+stderr
+end
+
+case slice/built-element-slice
+def 67cfdee13c5a
+rc 0
+stdout "bc"\n
+stderr
+end
+
+case slice/built-pretty
+def 8e7b0474eb82
+rc 0
+stdout [\n  [\n    1,\n    2\n  ],\n  {\n    "a": []\n  },\n  "x"\n]\n
+stderr
+end
+
+case slice/built-pretty-empty
+def ab4ab05f867c
+rc 0
+stdout []\n
+stderr
+end
+
+case slice/built-field-error
+def bad83800a069
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index array with string ("a")\n
+end
+
+case slice/bad-start-on-array
+def b6e0f2b04b9b
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Array/string slice indices must be integers\n
+end
+
+case slice/bad-end-on-array
+def 62f12e79e0ab
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Array/string slice indices must be integers\n
+end
+
+case slice/quiet-bad-start-on-array
+def a2145e29ddb9
+rc 0
+stdout
+stderr
+end
+
+case slice/quiet-bad-end-on-array
+def 664e29f320c3
+rc 0
+stdout
+stderr
+end
+
+case slice/quiet-bad-start-on-string
+def 5bf704a2e906
+rc 0
+stdout
+stderr
+end
+
+case slice/quiet-bad-then-more
+def 2a832ffcb159
+rc 0
+stdout 1\n
+stderr
+end
+
+case slice/quiet-bad-bound-from-input
+def 30adf99d1fc8
+rc 0
+stdout
+stderr
+end
+
+case slice/quiet-key-bad-start-on-array
+def 9e76e510260e
+rc 0
+stdout
+stderr
+end
