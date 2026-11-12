@@ -14,12 +14,6 @@ import io.github.subapavel.jqj.value.JqValue;
  * one tick per started KiB of the text, the writer's rate (ADR-0008, ADR-0015, ADR-0030).
  */
 public final class TextFormat implements Fn0 {
-  /** The text outside a run: an idle run state checks no budget. */
-  @Override
-  public Object apply(Object in) {
-    return apply(new RunState(), in);
-  }
-
   @Override
   public Object apply(RunState state, Object in) {
     if (in instanceof JqString) {
