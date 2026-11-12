@@ -14,11 +14,13 @@ import java.util.Map;
  *
  * <p>Keys: {@code arg} and {@code filter} are the command-line arguments in the order they appear (a case may put
  * options before or after the filter); {@code stdin} once; {@code file <name> <bytes>} and {@code env K=V}, each
- * repeatable; {@code deviation <slug>} once marks a case that pins a {@code DEVIATIONS.md} row (ADR-0020). Without
- * {@code stdin} the input is empty.
+ * repeatable; {@code deviation <slug>} once marks a case that pins a {@code DEVIATIONS.md} row (ADR-0020), and only
+ * such a case may carry jqj's column of that row: {@code jqj-rc}, {@code jqj-stdout} and {@code jqj-stderr}, each at
+ * most once. Without {@code stdin} the input is empty.
  *
  * @param files file name to content, written into the working directory of each run
  * @param deviation the slug of the deviation the case pins, or null
+ * @param jqj jqj's column: every part null unless the case gives its {@code jqj-*} key
  */
 public record DiffCase(
     String id,
@@ -27,7 +29,28 @@ public record DiffCase(
     Map<String, byte[]> files,
     Map<String, String> env,
     String deviation,
+    JqjColumn jqj,
     String def) {
+
+  /**
+   * jqj's column of a deviation case: what jqj gives where it differs from jq-ref on purpose. Each part is null when
+   * the case has no key for it.
+   *
+   * @param rc {@code jqj-rc}
+   * @param stdout {@code jqj-stdout}, unescaped
+   * @param stderr {@code jqj-stderr}, unescaped
+   */
+  public record JqjColumn(Integer rc, byte[] stdout, byte[] stderr) {
+
+    /** The column of a case without {@code jqj-*} keys. */
+    public static final JqjColumn NONE = new JqjColumn(null, null, null);
+
+    /** What jqj must give: each part of this column, and jq-ref's recorded part where this column has none. */
+    public Outcome over(Outcome recorded) {
+      return new Outcome(
+          rc == null ? recorded.rc() : rc, stdout == null ? recorded.stdout() : stdout, stderr == null ? recorded.stderr() : stderr);
+    }
+  }
 
   /** The cases of one {@code <family>.cases} file, in file order. */
   public static List<DiffCase> read(Path file) {
@@ -39,8 +62,10 @@ public record DiffCase(
   /**
    * The case of one block.
    *
-   * @throws IllegalArgumentException naming {@code where} and the line of an unknown key, a repeated {@code stdin}, a
-   *     {@code file} without a name, an {@code env} without {@code =} or a malformed escape
+   * @throws IllegalArgumentException naming {@code where} and the line of an unknown key, a repeated {@code stdin},
+   *     {@code deviation} or {@code jqj-*} key, a {@code file} without a name, an {@code env} without {@code =}, a
+   *     {@code jqj-rc} that is not an integer, a malformed escape, or the first {@code jqj-*} key of a case without
+   *     {@code deviation}
    */
   public static DiffCase of(String where, CaseFormat.Block block) {
     List<String> args = new ArrayList<>();
@@ -48,6 +73,10 @@ public record DiffCase(
     Map<String, byte[]> files = new LinkedHashMap<>();
     Map<String, String> env = new LinkedHashMap<>();
     String deviation = null;
+    Integer jqjRc = null;
+    byte[] jqjStdout = null;
+    byte[] jqjStderr = null;
+    CaseFormat.Line firstJqj = null;
     for (CaseFormat.Line line : block.lines()) {
       String at = where + ":" + line.number() + ": ";
       try {
@@ -73,6 +102,22 @@ public record DiffCase(
             if (line.value().isEmpty()) throw new IllegalArgumentException("'deviation' needs a slug");
             deviation = line.value();
           }
+          case "jqj-rc" -> {
+            if (jqjRc != null) throw new IllegalArgumentException("'jqj-rc' given twice");
+            try {
+              jqjRc = Integer.parseInt(line.value());
+            } catch (NumberFormatException e) {
+              throw new IllegalArgumentException("'jqj-rc' needs an integer, not '" + line.value() + "'", e);
+            }
+          }
+          case "jqj-stdout" -> {
+            if (jqjStdout != null) throw new IllegalArgumentException("'jqj-stdout' given twice");
+            jqjStdout = CaseFormat.unescape(line.value());
+          }
+          case "jqj-stderr" -> {
+            if (jqjStderr != null) throw new IllegalArgumentException("'jqj-stderr' given twice");
+            jqjStderr = CaseFormat.unescape(line.value());
+          }
           default ->
               throw new IllegalArgumentException(
                   "unknown key '" + line.key() + "': a case holds the command line only; its expected output is"
@@ -81,8 +126,15 @@ public record DiffCase(
       } catch (IllegalArgumentException e) {
         throw new IllegalArgumentException(at + "case " + block.id() + ": " + e.getMessage(), e);
       }
+      if (firstJqj == null && line.key().startsWith("jqj-")) firstJqj = line;
     }
-    return new DiffCase(block.id(), List.copyOf(args), stdin == null ? new byte[0] : stdin, files, env, deviation, block.def());
+    if (firstJqj != null && deviation == null) {
+      throw new IllegalArgumentException(
+          where + ":" + firstJqj.number() + ": case " + block.id() + ": '" + firstJqj.key() + "' needs 'deviation': only a"
+              + " deviation case carries jqj's column (ADR-0020)");
+    }
+    JqjColumn jqj = new JqjColumn(jqjRc, jqjStdout, jqjStderr);
+    return new DiffCase(block.id(), List.copyOf(args), stdin == null ? new byte[0] : stdin, files, env, deviation, jqj, block.def());
   }
 
   /** The environment of a run: exactly {@code HOME=<home> TZ=UTC LC_ALL=C} plus the case's {@code env} (ADR-0020). */
