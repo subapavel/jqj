@@ -119,3 +119,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#78) Removing an API: grep every module (`oracle/`, `jq-cli/`, `bench/` too) and run the full `./mvnw -B -Pbench verify`; `-pl jq-core -am` missed oracle's SkeletonTest and the gate failed.
 - (#80) A test-only ticket shows its red against temporary mutants of the line it pins; run the mutant loop as a scratch script (`bash <script>`), the worktree guard refuses `for` loops inline.
 - `scripts/push-retry.sh` takes `<repo-dir> <refspec>`, e.g. `. HEAD:refs/heads/t/<n>-<slug>`.
+- (#54) `dependency:go-offline` misses surefire's JUnit Platform provider; a `verify` run fills it. Offline `-pl X` needs `-am compile`. Prefix goals (`javadoc:`) read `maven-metadata-<mirror id>.xml`.
+- (#62) A ticket that ends a Stub can flip an oracle meta-test that uses `Main::run` as its stub shell: grep `oracle/src/test` for each id in `require/<n>.txt`.

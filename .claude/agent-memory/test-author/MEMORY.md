@@ -32,3 +32,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#61) The test-author writes `require/<ticket>.txt` listing the ticket's oracle cases.
 - (#61) Do not use `git commit -s` when the message's trailer block already has `Signed-off-by`.
 - (#61) Class C reds can hit the 80-turn cap: commit and push early, hand back partial with the remaining list.
+- (#62) Bash `$(…)` strips trailing LFs (use `printf -v`); the Write tool drops trailing spaces, so write `\x20` in case files.
+- (#62) When another writer pushes to your shared ticket branch, your worktree's index stays on the old tree; do the next fix in a fresh detached worktree, never commit from the stale one.
