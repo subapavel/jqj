@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.query.run.Termination.Budget;
 import java.util.Map;
+import java.util.function.LongSupplier;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.Test;
 
@@ -89,10 +90,62 @@ class RunStateTest {
     }
   }
 
+  /** A deadline in nanoseconds for the fake clock's runs. */
+  private static final long DEADLINE = 100;
+
+  /** A fake monotonic clock (F-37): it reads what the test set, in nanoseconds. */
+  private static final class FakeClock implements LongSupplier {
+    long now;
+
+    FakeClock(long now) {
+      this.now = now;
+    }
+
+    @Override
+    public long getAsLong() {
+      return now;
+    }
+  }
+
   /**
-   * The deadline is checked at refuel only, after 4096 ticks of the run (ADR-0030, F-36). A deadline of 1 ns has passed
-   * by the time refuel checks it; the clock cannot be faked here (F-37), so the run ticks until a refuel ends it, and
-   * the tick that ended it is a refuel's.
+   * The deadline counts from begin, not from the read (ADR-0030): a host's pause between a primed read and begin that
+   * is longer than the deadline is not charged, and the run ends as DEADLINE once the clock passes begin + deadline.
+   */
+  @Test
+  void deadlineCountsFromBegin() {
+    FakeClock clock = new FakeClock(1_000);
+    RunState state = new RunState(clock);
+    state.prime();
+    state.tick(10);
+    clock.now = 1_000 + 2 * DEADLINE;
+    long begun = clock.now;
+    state.begin(Long.MAX_VALUE, DEADLINE, Long.MAX_VALUE);
+    // The first refuel, at the run's 4097th tick after the read's 10, finds no time passed since begin.
+    state.tick(INTERVAL + 1);
+    assertThat(state.steps()).as("ticks after the first refuel of a run begun after a long pause").isEqualTo(10L + INTERVAL + 1);
+
+    clock.now = begun + DEADLINE + 1;
+    assertBudget(() -> state.tick(INTERVAL + 1), Budget.DEADLINE, "the next refuel 1 ns past begin + deadline");
+  }
+
+  /** The deadline is over only past it (ADR-0017): a refuel exactly at begin + deadline passes, 1 ns later it ends. */
+  @Test
+  void deadlineEndsOnlyPastIt() {
+    FakeClock clock = new FakeClock(5_000);
+    RunState state = new RunState(clock);
+    state.begin(Long.MAX_VALUE, DEADLINE, Long.MAX_VALUE);
+    clock.now = 5_000 + DEADLINE;
+    state.tick(INTERVAL + 1);
+    assertThat(state.steps()).as("ticks after a refuel exactly at the deadline").isEqualTo(INTERVAL + 1L);
+
+    clock.now = 5_000 + DEADLINE + 1;
+    assertBudget(() -> state.tick(INTERVAL + 1), Budget.DEADLINE, "the next refuel 1 ns past the deadline");
+  }
+
+  /**
+   * The deadline is checked at refuel only, after 4096 ticks of the run (ADR-0030, F-36), and a run state made without
+   * a clock reads the system's: a deadline of 1 ns has passed by the time refuel checks it, so the run ticks until a
+   * refuel ends it, and the tick that ended it is a refuel's.
    */
   @Test
   void deadlineEndsTheRunAtARefuel() {
@@ -146,6 +199,39 @@ class RunStateTest {
     idle.tick(11);
     idle.begin(10, Long.MAX_VALUE, Long.MAX_VALUE);
     assertThat(idle.steps()).as("ticks at a begin with no primed read").isZero();
+  }
+
+  /**
+   * The next run keeps the primed read's ticks only (ADR-0030, #77): the writer's ticks outside a run count in the
+   * steps, but not against the run; in a run they count against it like any tick.
+   */
+  @Test
+  void writerTicksOutsideARunAreNotKept() {
+    RunState state = new RunState();
+    state.prime();
+    state.tick(10);
+    state.tickWritten(7);
+    assertThat(state.steps()).as("ticks after a read of 10 and a print of 7 outside a run").isEqualTo(17L);
+    state.begin(10, Long.MAX_VALUE, Long.MAX_VALUE);
+    assertThat(state.steps()).as("ticks kept from the read, not the print").isEqualTo(10L);
+    assertBudget(state::tick, Budget.STEPS, "the first tick of a run that kept the read's 10 ticks with 10 steps");
+    state.end();
+
+    // In a run the writer's ticks count against it.
+    state.begin(5, Long.MAX_VALUE, Long.MAX_VALUE);
+    state.tickWritten(5);
+    assertThat(state.steps()).as("ticks of a print of 5 in a run").isEqualTo(5L);
+    assertBudget(() -> state.tickWritten(1), Budget.STEPS, "a print of one more tick in a run with 5 steps");
+    state.end();
+
+    // A main read starts the count again: a print before it is not taken off the read's ticks.
+    state.tickWritten(4);
+    state.prime();
+    state.tickWritten(5);
+    state.prime();
+    state.tick(3);
+    state.begin(10, Long.MAX_VALUE, Long.MAX_VALUE);
+    assertThat(state.steps()).as("ticks kept from the last read, the prints before it not taken off").isEqualTo(3L);
   }
 
   /** A read during a run is charged to that run (ADR-0030: reads during a run count too): it does not prime. */

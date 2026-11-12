@@ -1,22 +1,24 @@
 package io.github.subapavel.jqj.query.run;
 
 import io.github.subapavel.jqj.query.run.Termination.Budget;
+import java.util.function.LongSupplier;
 
 /**
  * The budgets of one evaluation (ADR-0030, ADR-0008): its fuel, the step budget, the deadline and the bytes-written
  * count, in a phase that is idle, primed or running. The engine's Workspace owns one and hands it to each run, so it
  * is never shared between two running evaluations; it is not thread-safe.
  *
- * <p>A main read primes it: the run that begins next keeps the read's ticks and every tick after them, so a large
- * document counts against the run that consumes it. A read during a run is charged to that run. {@link #end} leaves
- * every budget unlimited until the next {@link #begin}: outside a run nothing is checked.
+ * <p>A main read primes it: the run that begins next keeps the ticks counted since, less those the writer charged
+ * through {@link #tickWritten} outside a run, so a large document counts against the run that consumes it and a print
+ * between the read and the run does not. A read during a run is charged to that run. {@link #end} leaves every budget
+ * unlimited until the next {@link #begin}: outside a run nothing is checked.
  *
  * <p>A tick is {@code if (--fuel < 0) refuel()}. Refuel comes every 4096 ticks, or at the step budget when that is
  * nearer, and checks the step budget, then the deadline, then the thread's interrupt.
  *
  * <p>The deadline counts from {@link #begin}, not from the read, so a host's pause between the two is not charged:
- * {@code begin} reads {@link System#nanoTime()} once as the deadline's start. Refuel is the only place that compares
- * the clock with the deadline, so a run under 4096 ticks never checks it.
+ * {@code begin} reads the clock, {@link System#nanoTime()}, once as the deadline's start. Refuel is the only place that
+ * compares the clock with the deadline, so a run under 4096 ticks never checks it.
  */
 public final class RunState {
   /** The ticks between two refuels (ADR-0008, ADR-0017). */
@@ -34,6 +36,9 @@ public final class RunState {
   /** The ticks counted before the current fill: the ticks counted so far are {@code counted + filled - fuel}. */
   private long counted;
 
+  /** The writer's ticks outside a run since the last main read outside a run: counted, but no run keeps them. */
+  private long unkept;
+
   /** The fuel the current fill gave. */
   private long filled = UNLIMITED;
 
@@ -46,7 +51,7 @@ public final class RunState {
   /** The running run's deadline, in nanoseconds from {@link #start}. */
   private long deadline;
 
-  /** {@link System#nanoTime()} when the running run began. */
+  /** The clock when the running run began. */
   private long start;
 
   /** The running run's bytes-written budget; unlimited outside a run. */
@@ -55,8 +60,18 @@ public final class RunState {
   /** The bytes charged since the last begin. */
   private long written;
 
+  /** The monotonic clock in nanoseconds that the deadline reads: {@link System#nanoTime()} outside the tests. */
+  private final LongSupplier clock;
+
   /** An idle run state: no run, no tick, every budget unlimited. */
-  public RunState() {}
+  public RunState() {
+    this(System::nanoTime);
+  }
+
+  /** An idle run state whose deadline reads {@code clock}, a monotonic clock in nanoseconds: a test's fake (F-37). */
+  RunState(LongSupplier clock) {
+    this.clock = clock;
+  }
 
   /**
    * A main read (ADR-0030, ADR-0015): outside a run, the ticks count from here and the next run keeps them. A read
@@ -65,13 +80,15 @@ public final class RunState {
   public void prime() {
     if (!running) {
       primed = true;
+      unkept = 0;
       fill(0, UNLIMITED);
     }
   }
 
   /**
    * Begins a run with its budgets, each {@code Long.MAX_VALUE} when unlimited: the steps, the deadline in nanoseconds
-   * and the bytes written. A primed read's ticks count against it; without one it starts from no tick.
+   * and the bytes written. A primed read's ticks count against it, the writer's outside a run do not; without a primed
+   * read it starts from no tick.
    *
    * @throws IllegalStateException when a run is running on this state, which then stays as it was
    * @throws Termination over the step budget when the primed ticks already pass it; no run is then running
@@ -80,7 +97,7 @@ public final class RunState {
     if (running) {
       throw new IllegalStateException("a run is already running on this run state");
     }
-    long kept = primed ? steps() : 0;
+    long kept = primed ? steps() - unkept : 0;
     primed = false;
     if (kept > steps) {
       throw Termination.over(Budget.STEPS);
@@ -90,7 +107,7 @@ public final class RunState {
     deadline = deadlineNanos;
     writtenBudget = bytesWritten;
     written = 0;
-    start = System.nanoTime();
+    start = clock.getAsLong();
     refill(kept);
   }
 
@@ -128,6 +145,19 @@ public final class RunState {
   }
 
   /**
+   * Charges the writer's {@code n} ticks for a drain it wrote, one per KiB (ADR-0015): in a run as {@link #tick(int)};
+   * outside a run they count in {@link #steps()}, but the next run does not keep them (ADR-0030).
+   *
+   * @throws Termination when refuel finds a budget over or the thread interrupted
+   */
+  public void tickWritten(int n) {
+    if (!running) {
+      unkept += n;
+    }
+    tick(n);
+  }
+
+  /**
    * Charges one drain of {@code bytes} before it is written (ADR-0030): a drain that would pass the bytes-written budget
    * is not charged and must not be written, so the output never exceeds the budget.
    *
@@ -151,7 +181,7 @@ public final class RunState {
     if (steps > stepBudget) {
       throw Termination.over(Budget.STEPS);
     }
-    if (System.nanoTime() - start > deadline) {
+    if (clock.getAsLong() - start > deadline) {
       throw Termination.over(Budget.DEADLINE);
     }
     // isInterrupted leaves the flag set, as ADR-0017 asks of a cancelled run.

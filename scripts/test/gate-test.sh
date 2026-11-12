@@ -153,7 +153,7 @@ has "step 1 over its target" "over target 60 s" "$tmp/out"
 has "step 1 over its target goes to the owner (F-27)" "over target 60 s: report it to the owner in the spec PR (F-27)" "$tmp/out"
 hasnt "no fallback named for step 1 (F-27)" "fallback" "$tmp/out"
 hasnt "no ticket-gate PIT report (F-27)" "slowest step 2" "$tmp/out"
-has "spec step 1 clean verify" "mvnw -B clean verify -Pbench" "$STUB_CALLS"
+has "spec step 1 clean verify, with the compile-mode oracle (ADR-0020 amendment for #60)" "mvnw -B clean verify -Pbench,compile-oracle$" "$STUB_CALLS"
 has "spec step 2 PIT on whole class-C modules and oracle's crossModule run (ADR-0014)" "mvnw -B -pl query-core,jq-core,oracle -am test org.pitest:pitest-maven:mutationCoverage" "$STUB_CALLS"
 # The property would replace every module's POM list (observed, #45): each module keeps its own list in its POM (#47).
 has "spec step 2 ends with the PIT goal" "mutationCoverage$" "$STUB_CALLS"

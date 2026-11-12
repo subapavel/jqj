@@ -8,6 +8,7 @@ import static io.github.subapavel.jqj.RunBudgets.read;
 import static io.github.subapavel.jqj.RunBudgets.repeat;
 import static io.github.subapavel.jqj.RunBudgets.steps;
 import static io.github.subapavel.jqj.RunBudgets.writer;
+import static io.github.subapavel.jqj.TestDocuments.assertStale;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -179,6 +180,75 @@ class StepBudgetTest {
     Workspace cut = under.newWorkspace();
     assertBudget(
         () -> under.compile(".").run(mib, NONE, repeat(writer(cut, new RecordingTarget()), 5), cut), Budget.STEPS, "five 1 MiB lines with 5 124 steps");
+  }
+
+  /**
+   * The next run keeps the primed read's ticks only (ADR-0030, #77): a print outside a run between the read and the run
+   * is not charged to it. 1 MiB of letters is 1 048 578 bytes read, 1 025 ticks, and prints as 1 048 579 bytes, 1 025
+   * writer ticks; the sink of the run neither writes nor ticks.
+   */
+  @Test
+  void writerTicksOutsideARunAreNotChargedToTheNextRun() {
+    JqEngine engine = steps(1_100);
+    Workspace workspace = engine.newWorkspace();
+    JqValue mib = read(workspace, letters(MIB)).root();
+    RecordingTarget outside = new RecordingTarget();
+    assertThat(writer(workspace, outside).emit(mib)).as("emit's answer for 1 MiB printed outside a run").isTrue();
+    assertThat(outside.bytes().length).as("bytes printed outside a run").isEqualTo(MIB + 3);
+    Results results = new Results();
+    assertThat(engine.compile(".").run(mib, NONE, results, workspace)).as("run's answer after 1 MiB read and printed, with 1 100 steps").isTrue();
+    assertThat(results.values).as("results after 1 MiB read and printed").singleElement().isInstanceOf(JqString.class);
+    assertThat(((JqString) results.values.get(0)).value()).as("the result's text").hasSize(MIB);
+
+    // Witness: the read's 1 025 ticks still count, so 1 024 steps end the same sequence at the run's begin.
+    JqEngine under = steps(1_024);
+    Workspace cut = under.newWorkspace();
+    JqValue cutRoot = read(cut, letters(MIB)).root();
+    assertThat(writer(cut, new RecordingTarget()).emit(cutRoot)).as("emit's answer for 1 MiB printed outside a run on the cut").isTrue();
+    Results none = new Results();
+    assertBudget(() -> under.compile(".").run(cutRoot, NONE, none, cut), Budget.STEPS, "run after 1 MiB read and printed, with 1 024 steps");
+    assertThat(none.values).as("results of the run with 1 024 steps").isEmpty();
+  }
+
+  /**
+   * A target that reads a main document during a drain outside a run primes the run state anew (ADR-0030, #77): the
+   * next run keeps that read's one tick, not the 64 ticks of the drain that charges after its write. The document
+   * {@code ["a…a",1]} prints one full 64 KiB buffer before the comma, so the print then finds it stale
+   * (PrintBufferEdgeTest).
+   */
+  @Test
+  void writerTicksAfterAReadInItsTargetAreNotChargedToTheNextRun() {
+    JqEngine one = steps(1);
+    Workspace primed = printReadingInTarget(one);
+    Results results = new Results();
+    assertThat(one.compile(".").run(JqNull.NULL, NONE, results, primed)).as("run's answer after the target's read, with 1 step").isTrue();
+    assertThat(results.values).as("results after the target's read, with 1 step").containsExactly(JqNull.NULL);
+
+    // Witness: the target's read of 7 is a primed read, so its one tick counts against 0 steps.
+    JqEngine zero = steps(0);
+    Workspace cut = printReadingInTarget(zero);
+    assertBudget(() -> zero.compile(".").run(JqNull.NULL, NONE, new Results(), cut), Budget.STEPS, "run after the target's read, with 0 steps");
+  }
+
+  /**
+   * Reads {@code ["a…a",1]} (65 539 bytes, 65 ticks) on a new Workspace of {@code engine} and prints it outside a run
+   * into a target that reads 7 on its first write; returns the Workspace, primed by that read.
+   */
+  private static Workspace printReadingInTarget(JqEngine engine) {
+    byte[] fullBeforeComma = new byte[65_539];
+    fullBeforeComma[0] = '[';
+    System.arraycopy(letters(65_533), 0, fullBeforeComma, 1, 65_535);
+    System.arraycopy(bytes(",1]"), 0, fullBeforeComma, 65_536, 3);
+    Workspace workspace = engine.newWorkspace();
+    JqValue root = read(workspace, fullBeforeComma).root();
+    RecordingTarget reading =
+        new RecordingTarget(
+            n -> {
+              if (n == 1) read(workspace, bytes("7"));
+            });
+    assertStale(() -> writer(workspace, reading).emit(root), "emit after its target read 7");
+    assertThat(reading.bytes().length).as("bytes written before the document went stale").isEqualTo(65_536);
+    return workspace;
   }
 
   /**
