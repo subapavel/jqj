@@ -101,3 +101,11 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#59) JaCoCo counts a line as missed when its call throws (the probe sits after the invoke): a `throw X.over(...)` line needs a test that reaches it.
 - (#59) A javac `case A _, B _` leaves an unreachable second dispatch, so the line stays partly covered; give each kind its own arm.
 - (#59) Refuel's refill cap is only witnessed by an interrupt/deadline test across two refuels; a step cut alone stays exact without it.
+- (#60) `-P<id>` on the root command also activates a same-id profile in a module POM; clearing a property there switches surefire's `excludedGroups` off.
+- (#60) In try-with-resources a `catch` runs after close: read a view-backed value inside the block.
+- (#60) A record holding a `byte[]` compares it by identity: assert its parts.
+- (#60) Put a JUnit tag on the class when its `@AfterAll` writes a report; tagging only the factory writes an empty report in the untagged run.
+- (#79) Time budgets: a package-private `LongSupplier` constructor beside the public one (chained to `System::nanoTime`); keep one real-clock test so a mutant of the default clock still dies.
+- (#79) `git var GIT_AUTHOR_IDENT` gives the `Signed-off-by` identity; it differs from `git config user.name` here.
+- (#77) `check-trailers.sh <base>..HEAD` counts your merge commit too: give the merge message the full trailer block.
+- (#77) A writer target that reads a main document re-primes mid-drain, and the drain's tick comes after the write; a count that stops at a drain's start misses it.

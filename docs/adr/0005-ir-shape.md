@@ -1,6 +1,6 @@
 # IR: one sealed node family in query-core; formats reach it as Operation data
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 and completed by ADR-0009 (issue #7); amended by ADR-0022 (issue #8: `keepsArgs`, in-place operations)
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 and completed by ADR-0009 (issue #7); amended by ADR-0022 (issue #8: `keepsArgs`, in-place operations); clarified by ADR-0032 (the AST is not a second IR)
 
 The IR is one `sealed interface Node` in `query-core` with 21 record kinds, each carrying its
 source position. Both backends and every analysis switch over it exhaustively. A format such as jq

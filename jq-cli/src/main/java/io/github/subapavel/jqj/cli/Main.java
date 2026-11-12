@@ -28,6 +28,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 /**
  * The command line (ADR-0013). Not exported API: the oracle reaches {@link #run} on the class path, and the launcher
@@ -96,6 +97,16 @@ public final class Main {
    * @throws UncheckedIOException when stdin, stdout or stderr fails
    */
   public static int run(Invocation invocation) {
+    return run(invocation, UnaryOperator.identity());
+  }
+
+  /**
+   * As {@link #run(Invocation)}, with the engine built from what {@code engine} makes of the command line's builder
+   * (ADR-0020 amendment for #60): the compile-mode oracle sets its limits and compile mode there.
+   *
+   * @throws UncheckedIOException when stdin, stdout or stderr fails
+   */
+  public static int run(Invocation invocation, UnaryOperator<JqEngine.Builder> engine) {
     boolean compact = false;
     boolean optionsDone = false;
     String filter = null;
@@ -131,14 +142,14 @@ public final class Main {
       }
     }
 
-    JqEngine engine = JqEngine.builder().limits(Limits.cli()).host(Host.sandboxed()).build();
+    JqEngine built = engine.apply(JqEngine.builder().limits(Limits.cli()).host(Host.sandboxed())).build();
     JqFilter compiled;
     try {
-      compiled = engine.compile(filter == null ? "." : filter);
+      compiled = built.compile(filter == null ? "." : filter);
     } catch (JqCompileException e) {
       return report(invocation, COMPILE, e.getMessage());
     }
-    Workspace workspace = engine.newWorkspace();
+    Workspace workspace = built.newWorkspace();
     try {
       JqSink sink = JsonWriter.sink(workspace, invocation.out(), compact ? OutputOptions.compact() : OutputOptions.pretty());
       byte[] input;
