@@ -1,6 +1,6 @@
 # Oracles and ratchet: copied jq tests, recorded jq-ref expectations, required cases, per-merge pass lists
 
-Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch); amended by ADR-0023 (issue #17: deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); amended by F-19 (who measures the fallback targets); amended by ADR-0024 (the Stub verdict); amended by ADR-0025 (`values-v1`: forms, seeds, generated files, drops); amended by F-27 (PIT and the compile-mode oracle leave the ticket gate); amended by F-28 (the spec-gate PIT target); amended by F-29 (the compile-mode oracle after every merge)
+Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch); amended by ADR-0023 (issue #17: deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); amended by F-19 (who measures the fallback targets); amended by ADR-0024 (the Stub verdict); amended by ADR-0025 (`values-v1`: forms, seeds, generated files, drops); amended by F-27 (PIT and the compile-mode oracle leave the ticket gate); amended by F-28 (the spec-gate PIT target); amended by F-29 (the compile-mode oracle after every merge); amended by #60 (compile-mode oracle: switch by reflection, compile report, after-merge script)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1). Every runner lives in
 `oracle` on the class path, in `…jqj.oracle.{jqtest,diff,compile,backend,json,gen,record}`.
@@ -236,3 +236,34 @@ survivor. A class that cannot reach a floor needs a finding.
 Beside the spec gate, the verifier runs the compile-mode oracle on the integration branch after
 every merge, with `regen --oracles`; a disagreement stops the next merge until it is fixed. The
 ticket gate stays as F-27 left it.
+
+## Amendment (#60, compile-mode oracle)
+
+Accepted 2026-11-12, architect under `/run-spec` #56, on the designer's draft for #60.
+
+- **Reaching the switch:** the oracle reaches the engine-internal switch (ADR-0030) by reflection on
+  the package-private `JqEngine.Builder.compileMode(CompileMode)`, from one oracle test class and on
+  the class path only. A reflective failure is an `IllegalStateException`, never a silent second
+  optimised run. jq-cli's in-process entry gains `run(Invocation, UnaryOperator<JqEngine.Builder>)`
+  beside `run(Invocation)` (ADR-0013). No module-info and no exported signature changes. Renaming
+  the switch is a change to the oracle.
+- **What is compared:** every jqtest, differential and generated case runs in both modes. Both
+  runs use `Limits.embedded()` with no deadline and no regex match time, so a slower mode cannot
+  disagree by timing. Exit code, stdout and stderr are compared byte for byte. A `halt` or
+  `halt_error` is compared like any result. A run that ends as a budget, stack, cancel or
+  stale-view termination is left out: the case fails as `left out:` and is not ratcheted.
+- **Report and ratchet:** the report is `compile-<mode>.tsv`, and `compile.txt` holds the ids that
+  pass under `conservative`. `ratchet.java check` prints `NOT_RUN compile: no report` when no
+  compile report exists, because the ticket gate never produces one (F-27). `regen` refuses a
+  `disagree:` row; that is F-29's stop. The compile-mode tests carry the JUnit tag `compile-mode`
+  and run only under the Maven profile `compile-oracle`.
+- **After every merge:** `scripts/after-merge.sh <ticket>` runs `./mvnw -B -Pbench,compile-oracle
+  verify` and then `regen --oracles`. The spec gate's clean verify adds `-Pcompile-oracle`.
+- **Considered:**
+  - A qualified `exports … to` the oracle module. javac warns "module not found" (lint `module`),
+    which fails the build under `-Werror`. `exported-signatures.txt` would change. On the class
+    path the export has no effect.
+  - A system property switch: product code would read a test hook.
+  - A public builder method, against ADR-0018.
+  - A new verdict kind: `left out:` already keeps such a case out of the pass list.
+  - A Survey that fails on disagreement, against the glossary.
