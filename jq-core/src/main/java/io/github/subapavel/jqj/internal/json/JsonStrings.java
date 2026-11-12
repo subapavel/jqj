@@ -229,8 +229,9 @@ public final class JsonStrings {
           in += 4;
           if (unit >= 0xD800 && unit <= 0xDBFF) {
             // jq tells a missing, malformed or wrong second unit apart in no word: one message for all three. A
-            // malformed one is -1, below every low surrogate.
-            if (in + 6 > to || b[in] != '\\' || b[in + 1] != 'u' || !isLowSurrogate(checkedHex4(b, in + 2))) {
+            // malformed one is -1, below every low surrogate. b[in] is the next sequence's backslash, as every byte is
+            // in one, so jq's check of it can never fail here.
+            if (in + 6 > to || b[in + 1] != 'u' || !isLowSurrogate(checkedHex4(b, in + 2))) {
               return "Invalid \\uXXXX\\uXXXX surrogate pair escape";
             }
             in += 6;
