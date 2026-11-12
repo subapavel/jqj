@@ -1,6 +1,6 @@
 # Oracles and ratchet: copied jq tests, recorded jq-ref expectations, required cases, per-merge pass lists
 
-Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch); amended by ADR-0023 (issue #17: deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); amended by F-19 (who measures the fallback targets); amended by ADR-0024 (the Stub verdict); amended by ADR-0025 (`values-v1`: forms, seeds, generated files, drops); amended by F-27 (PIT and the compile-mode oracle leave the ticket gate)
+Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch); amended by ADR-0023 (issue #17: deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); amended by F-19 (who measures the fallback targets); amended by ADR-0024 (the Stub verdict); amended by ADR-0025 (`values-v1`: forms, seeds, generated files, drops); amended by F-27 (PIT and the compile-mode oracle leave the ticket gate); amended by F-28 (the spec-gate PIT target)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1). Every runner lives in
 `oracle` on the class path, in `…jqj.oracle.{jqtest,diff,compile,backend,json,gen,record}`.
@@ -147,7 +147,8 @@ errors`); such text is jqj's own. The jqtest runner reads the last block from a 
 - A surviving mutant covered by 5000 cases costs at least 28 s. If spec 1's last ticket (F-19), or any later
   spec gate (ADR-0023), measures the ticket gate's PIT step above 3 minutes, generated seeds are first grouped per unit or kept out of
   PIT; only if that is not enough does PIT leave the ticket gate by a finding (ADR-0014). **#40
-  measured 535 s even without seeds: PIT left the ticket gate (F-27).**
+  measured 535 s even without seeds: PIT left the ticket gate (F-27).** The spec gate's PIT has a
+  45-min target (F-28); above it, the seeds are grouped per unit or kept out of PIT, by a finding.
 - **The handed-over test list of ADR-0008 to ADR-0011** (issue #7) belongs to the tickets that build
   those parts, as unit tests or oracle cases. Examples: `emitFalseStopsProducer`,
   `tryFlagPerActivation`, one test per budget, `stackBackstopIsTermination`,

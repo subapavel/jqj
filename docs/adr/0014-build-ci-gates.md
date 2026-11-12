@@ -1,6 +1,6 @@
 # Build, CI and gates
 
-Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15); amended by ADR-0023 (issue #17: the fallbacks fire at any spec gate); amended by F-19 (spec 1 grilling: who measures the gate steps); amended by F-27 (PIT leaves the ticket gate)
+Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15); amended by ADR-0023 (issue #17: the fallbacks fire at any spec gate); amended by F-19 (spec 1 grilling: who measures the gate steps); amended by F-27 (PIT leaves the ticket gate); amended by F-28 (owner at PR #48: step-1 target, spec-gate PIT target, trailer waiver)
 
 - **Toolchain:**
   - Maven wrapper 3.3.4 (`only-script`) with Maven 3.9.x, `--release 25`, `-Xlint:all -Werror`, no
@@ -24,21 +24,25 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
 - **The ticket gate** is `scripts/gate-ticket.sh <ticket> <modules> [ref]`. Every step logs to
   `.logs/<ticket>-<check>.log`.
   1. `./mvnw -B -Pbench verify`. The oracle needs every module, so this is the whole reactor. The
-     target is under 60 s with three gates in parallel.
+     target is under 60 s with three gates in parallel. **F-28 (owner): under 120 s with three gates
+     in parallel; above that, first a step-1 profile, then no `-Pbench` unless the ticket names
+     `bench`, by a finding with no owner round.**
   2. PIT on only the classes the ticket changed (`-DtargetClasses` from `git diff <ref>`), against
      the floor. `failWhenNoMutations` is off, for tickets that change only records or interfaces.
      The target is under 3 minutes with three gates in parallel. If spec 1's last ticket, or any
      later spec gate, measures more, PIT leaves the ticket gate by a finding, with no new owner
      round (ADR-0023, F-17). **Applied by F-27 (#40, #44): the ticket gate no longer runs PIT;
      PIT runs only in the spec gate.**
-  3. The LF check, the trailer check and the word check, each under about 2 s.
+  3. The LF check, the trailer check and the word check, each under about 2 s. The trailer check
+     skips only the full SHAs in `scripts/trailers-waiver.txt`; a new line there is owner-only (F-28).
   4. `java scripts/ratchet.java check`.
 
   Spec 1's last ticket measures each step alone and with three gates in parallel, once cases pass,
   and records the numbers in `bench/RESULTS.md` (F-19).
 - **The spec gate** is `scripts/gate-spec.sh <spec>`:
   1. `clean verify -Pbench`;
-  2. PIT on whole class-C modules;
+  2. PIT on whole class-C modules (with oracle's crossModule run, #45). **Target (F-28): under 45 min
+     alone on `claude-cloud-4vcpu`; above that, ADR-0020's seed fallback by a finding.**
   3. JMH (`benchmarks.jar -prof gc -rf json`);
   4. `ratchet.java regen --all`.
 - **CI** (`ci.yml`) runs on pull requests and on pushes to `main` and `spec/**`. It cancels per
