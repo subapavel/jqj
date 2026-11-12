@@ -132,7 +132,7 @@ class NumberViewTest {
    */
   @ParameterizedTest(name = "seed {0}")
   @MethodSource("seeds")
-  void doubleFastPathsAreTheSlowPath(long seed) {
+  void doubleIsTheSeventeenDigitRule(long seed) {
     String token = doubleToken(new SplittableRandom(seed));
     assertDouble(token, number(token).doubleValue(), seventeenDigitRule(token), "seed " + seed + ", ADR-0012's rule");
   }
@@ -144,7 +144,7 @@ class NumberViewTest {
     return token.charAt(0) == '-' ? -magnitude : magnitude;
   }
 
-  /** A strict token for {@link #doubleFastPathsAreTheSlowPath}. */
+  /** A strict token for {@link #doubleIsTheSeventeenDigitRule}. */
   static String doubleToken(RandomGenerator random) {
     StringBuilder b = new StringBuilder();
     if (random.nextBoolean()) b.append('-');
