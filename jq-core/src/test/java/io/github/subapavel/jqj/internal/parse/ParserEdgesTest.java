@@ -4,14 +4,21 @@ import static io.github.subapavel.jqj.internal.parse.ParseAssertions.notGiven;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.parsesToAStub;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.show;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.syntaxError;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.JqCompileException;
+import io.github.subapavel.jqj.internal.parse.Token.Kind;
 import io.github.subapavel.jqj.query.ir.Source;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -24,6 +31,17 @@ class ParserEdgesTest {
   private static final String TRY_FIELD = "try .[\"field\"] instead of .field for unusually named fields";
   private static final String MAY_NEED_PARENTHESES = "May need parentheses around object key expression";
 
+  /**
+   * The kinds no syntax error names (jq's QQSTRING_TEXT, QQSTRING_INTERP_START and QQSTRING_END): the lexer gives one
+   * only right after a string's opening quote, text or interpolation end. jq's QQString takes it after such a token
+   * once shifted; once dropped, the recovery reports nothing. jq-ref attempts: {@code "\(. a)x"}, {@code "\(1 2)x\(3)y"}
+   * and {@code . as "a" | 1} name QQSTRING_INTERP_END, LITERAL and QQSTRING_START.
+   */
+  private static final Set<Kind> NEVER_UNEXPECTED = EnumSet.of(Kind.TEXT, Kind.ESCAPES, Kind.INVALID_ESCAPES, Kind.INTERP_START, Kind.STRING_END);
+
+  /** A syntax error at the token of {@code kind} at {@code column}, {@code length} bytes, named {@code name} by jq-ref. */
+  private record Unexpected(Kind kind, String text, String name, int column, int length) {}
+
   @Test
   void aMissingNameOrKeyIsASyntaxError() {
     syntaxError("import \"a\" as 1; .", "LITERAL", 1, 15, 1);
@@ -33,9 +51,20 @@ class ParserEdgesTest {
     syntaxError("$$$$__loc__", "$__loc__", 1, 4, 1);
     syntaxError("{(1) 2}", "LITERAL", 1, 6, 1);
     syntaxError("\"abc", "end of file", 1, 2, 1);
-    // jq adds "break requires a label to break to" from its "break" error production, which jqj does not build
-    // (ADR-0032), so jqj's blocks are the first of jq's two.
-    syntaxError("break 1", "LITERAL", 1, 7, 1);
+  }
+
+  @Test
+  void jqjsBlocksAreAPrefixOfJqsWhereItBuildsNoRecovery() {
+    // DEVIATIONS "Syntax-error text": jq-ref gives each a second block, from a recovery jqj does not build yet
+    // (ADR-0032): its "if", "try", "break" or object pattern message, or a later error after its silent '('.
+    blocks("if . then 1", syntax("end of file", 1, 11, "if . then 1", carets(11, 1)));
+    blocks("try 1 catch ]", syntax("INVALID_CHARACTER", 1, 13, "try 1 catch ]", carets(13, 1)));
+    blocks("break 1", syntax("LITERAL", 1, 7, "break 1", carets(7, 1)));
+    blocks(". as {1+2: $x} | 1", syntax("LITERAL", 1, 7, ". as {1+2: $x} | 1", carets(7, 1)));
+    blocks("(1 2) | 3 | 4 5", syntax("LITERAL", 1, 4, "(1 2) | 3 | 4 5", carets(4, 1)));
+    // The known gap #64 closes: jq's first block is the parser action's "Cannot use number (1) as object key" at
+    // column 3, then this one.
+    blocks("{(1): 2 3}", syntax("LITERAL", 1, 9, "{(1): 2 3}", carets(9, 1)));
   }
 
   @Test
@@ -89,6 +118,113 @@ class ParserEdgesTest {
         message("Invalid escape at line 1, column 4 (while parsing '\"\\x\"')", 1, 2, lexical, "     ^^"),
         syntax("LITERAL", 1, 10, lexical, "             ^"),
         message(TRY_FIELD, 1, 8, lexical, "           ^^^"));
+  }
+
+  @Test
+  void aLeadingDotRecoversBeforeEachKindNoTermTakes() {
+    // One case per kind of NO_TERM_AFTER: jq's '.' error takes it, so jq's message spans the dot and the token.
+    leadingDot(". ..", "..", 3, 2);
+    leadingDot(".?//1", "?//", 2, 3);
+    leadingDot(".(1)", "'('", 2, 1);
+    leadingDot(". {", "'{'", 3, 1);
+    leadingDot(". 1", "LITERAL", 3, 1);
+    leadingDot(". $x", "BINDING", 3, 2);
+    leadingDot(". $__loc__", "$__loc__", 3, 8);
+    leadingDot(". $", "'$'", 3, 1);
+    leadingDot(". ]", "INVALID_CHARACTER", 3, 1);
+  }
+
+  @Test
+  void aLeadingDotIsATermBeforeEachKeywordThatFollowsOne() {
+    // One case per word of KEYWORDS_AFTER_A_TERM, each rc 0 on jq-ref; any other keyword is '.' error's (". if" above).
+    for (String text :
+        List.of(
+            ". as $x | 1",
+            "if . then 1 else 2 end",
+            "if 1 then . elif 2 then 3 else 4 end",
+            "if 1 then . else 2 end",
+            "if 1 then 2 else . end",
+            ". and true",
+            ". or true",
+            "try . catch 1")) {
+      parsesToAStub(text);
+    }
+  }
+
+  @Test
+  void aSyntaxErrorNamesItsTokenAsJqDoes() {
+    // One case per kind, each jq-ref's only block; jq's name of a keyword is its word.
+    List<Unexpected> cases =
+        List.of(
+            new Unexpected(Kind.DOT, ". as . | 1", "'.'", 6, 1),
+            new Unexpected(Kind.FIELD, ". as .a | 1", "FIELD", 6, 2),
+            new Unexpected(Kind.REC, ". as .. | 1", "..", 6, 2),
+            new Unexpected(Kind.PIPE, "| 1", "'|'", 1, 1),
+            new Unexpected(Kind.COMMA, ", 1", "','", 1, 1),
+            new Unexpected(Kind.SEMICOLON, ";", "';'", 1, 1),
+            new Unexpected(Kind.COLON, ": 1", "':'", 1, 1),
+            new Unexpected(Kind.QUESTION, "?", "'?'", 1, 1),
+            new Unexpected(Kind.ALTERNATION, "?//", "?//", 1, 3),
+            new Unexpected(Kind.ASSIGN, "= 1", "'='", 1, 1),
+            new Unexpected(Kind.EQ, "== 1", "==", 1, 2),
+            new Unexpected(Kind.NEQ, "!= 1", "!=", 1, 2),
+            new Unexpected(Kind.LESS, "< 1", "'<'", 1, 1),
+            new Unexpected(Kind.LESSEQ, "<= 1", "<=", 1, 2),
+            new Unexpected(Kind.GREATER, "> 1", "'>'", 1, 1),
+            new Unexpected(Kind.GREATEREQ, ">= 1", ">=", 1, 2),
+            new Unexpected(Kind.PLUS, "+ 1", "'+'", 1, 1),
+            new Unexpected(Kind.MINUS, ". as - | 1", "'-'", 6, 1),
+            new Unexpected(Kind.STAR, "* 1", "'*'", 1, 1),
+            new Unexpected(Kind.SLASH, "/ 1", "'/'", 1, 1),
+            new Unexpected(Kind.PERCENT, "% 1", "'%'", 1, 1),
+            new Unexpected(Kind.DEFINEDOR, "// 1", "//", 1, 2),
+            new Unexpected(Kind.SETPIPE, "|= 1", "|=", 1, 2),
+            new Unexpected(Kind.SETPLUS, "+= 1", "+=", 1, 2),
+            new Unexpected(Kind.SETMINUS, "-= 1", "-=", 1, 2),
+            new Unexpected(Kind.SETMULT, "*= 1", "*=", 1, 2),
+            new Unexpected(Kind.SETDIV, "/= 1", "/=", 1, 2),
+            new Unexpected(Kind.SETMOD, "%= 1", "%=", 1, 2),
+            new Unexpected(Kind.SETDEFINEDOR, "//= 1", "//=", 1, 3),
+            new Unexpected(Kind.LPAREN, "1 (", "'('", 3, 1),
+            new Unexpected(Kind.RPAREN, "(1 +)", "')'", 5, 1),
+            new Unexpected(Kind.LBRACKET, "label [ | 1", "'['", 7, 1),
+            new Unexpected(Kind.RBRACKET, "[1 +]", "']'", 5, 1),
+            new Unexpected(Kind.LBRACE, "1 {", "'{'", 3, 1),
+            new Unexpected(Kind.RBRACE, "{a: }", "'}'", 5, 1),
+            new Unexpected(Kind.NUMBER, "1 2", "LITERAL", 3, 1),
+            new Unexpected(Kind.IDENT, "1 a", "IDENT", 3, 1),
+            new Unexpected(Kind.KEYWORD, "1 reduce", "reduce", 3, 6),
+            new Unexpected(Kind.BINDING, "1 $x", "BINDING", 3, 2),
+            new Unexpected(Kind.LOC, "1 $__loc__", "$__loc__", 3, 8),
+            new Unexpected(Kind.DOLLAR, "1 $", "'$'", 3, 1),
+            new Unexpected(Kind.FORMAT, "1 @base64", "FORMAT", 3, 7),
+            new Unexpected(Kind.STRING_START, "\"a\" \"b\"", "QQSTRING_START", 5, 1),
+            new Unexpected(Kind.INTERP_END, "\"\\(1 +)x\"", "QQSTRING_INTERP_END", 7, 1),
+            new Unexpected(Kind.INVALID_CHARACTER, "1 ]", "INVALID_CHARACTER", 3, 1),
+            new Unexpected(Kind.END, "1 + # c", "end of file", 7, 1));
+    Set<Kind> named = EnumSet.copyOf(NEVER_UNEXPECTED);
+    for (Unexpected c : cases) {
+      assertThat(kindAt(c.text(), c.column() - 1)).as("kind at column %d of %s", c.column(), show(c.text())).isEqualTo(c.kind());
+      blocks(c.text(), syntax(c.name(), 1, c.column(), c.text(), carets(c.column(), c.length())));
+      named.add(c.kind());
+    }
+    assertThat(named).as("kinds with a case or never unexpected").isEqualTo(EnumSet.allOf(Kind.class));
+  }
+
+  @Test
+  void builtinJqIsItsDefinitionsAlone() throws IOException {
+    String text;
+    try (InputStream in = ParserEdgesTest.class.getResourceAsStream("/jq/builtin.jq")) {
+      assertThat(in).as("the resource jq/builtin.jq").isNotNull();
+      text = new String(in.readAllBytes(), UTF_8);
+    }
+    // Each top-level definition of jq's file starts its line; the nested ones are indented.
+    List<String> names = Pattern.compile("^def ([A-Za-z_0-9]+)", Pattern.MULTILINE).matcher(text).results().map(m -> m.group(1)).toList();
+    Program program = Parser.parse(text);
+    assertThat(program.module()).as("module of builtin.jq").isNull();
+    assertThat(program.imports()).as("imports of builtin.jq").isEmpty();
+    assertThat(program.main()).as("top-level filter of builtin.jq").isNull();
+    assertThat(program.defs()).extracting(Ast.FuncDef::name).as("definitions of builtin.jq").hasSize(106).containsExactlyElementsOf(names);
   }
 
   @Test
@@ -204,6 +340,27 @@ class ParserEdgesTest {
     JqCompileException e =
         assertThatExceptionOfType(JqCompileException.class).as("parse of %s", show(text)).isThrownBy(() -> Parser.parse(text)).actual();
     assertThat(e.blocks()).as("blocks of %s", show(text)).containsExactly(expected);
+  }
+
+  /** A leading dot before {@code unexpected} at {@code column}: the syntax error, then jq's message from the dot on. */
+  private static void leadingDot(String text, String unexpected, int column, int length) {
+    blocks(text, syntax(unexpected, 1, column, text, carets(column, length)), message(TRY_FIELD, 1, 1, text, carets(1, column - 1 + length)));
+  }
+
+  /** The caret line under {@code length} bytes from {@code column} of a one-line text, after jq's indent. */
+  private static String carets(int column, int length) {
+    return "    " + " ".repeat(column - 1) + "^".repeat(length);
+  }
+
+  /** The kind of the token at byte {@code offset} of {@code text}, or the END where the lexer's last match is there. */
+  private static Kind kindAt(String text, int offset) {
+    Lexer lexer = new Lexer(text);
+    for (Token t = lexer.next(); t.kind() != Kind.END; t = lexer.next()) {
+      if (t.start() == offset) {
+        return t.kind();
+      }
+    }
+    return lexer.lastStart() == offset ? Kind.END : null;
   }
 
   /** jqj's syntax block: jq's with its expecting list cut. */
