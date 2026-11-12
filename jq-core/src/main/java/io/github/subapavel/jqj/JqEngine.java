@@ -26,7 +26,12 @@ public final class JqEngine {
     return new Builder();
   }
 
-  /** Compiles {@code text}; only {@code .} is built, any other text is a Stub. */
+  /**
+   * Compiles {@code text}. Built so far: {@code .}, fields, {@code |}, parentheses, literals and bare {@code @text}; any
+   * other construct is a Stub.
+   *
+   * @throws JqCompileException with one error block per bad escape run (ADR-0031), or a Stub's
+   */
   public JqFilter compile(String text) {
     return new JqFilter(Compiler.compile(Parser.parse(text), compileMode), limits);
   }
