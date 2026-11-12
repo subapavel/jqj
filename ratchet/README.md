@@ -59,9 +59,16 @@ benchmark baseline moves only on a gain beyond its tolerance; lowering one takes
 - **Coverage**: JaCoCo `jacoco.csv`; class-C modules from `oracle/target/site/jacoco-aggregate/` rows
   whose `GROUP` is the module, any other module from `<module>/target/site/jacoco/`. A module without
   a report prints `NOT_RUN`.
-- **Mutation**: `<module>/target/pit-reports/mutations.xml`. Killed is `KILLED`, `TIMED_OUT` or
-  `MEMORY_ERROR`; everything else counts as surviving.
+- **Mutation**: the mutants of `<module>/target/pit-reports/mutations.xml`, combined with oracle's
+  crossModule report `oracle/target/pit-reports/mutations.xml` (ADR-0014). A mutant of the module's
+  own report counts as killed if either report kills it; the two reports' mutants are matched by
+  `mutatedClass`, `mutatedMethod`, `methodDescription`, `lineNumber`, `mutator` and `indexes`.
+  Killed is `KILLED`, `TIMED_OUT` or `MEMORY_ERROR`; everything else counts as surviving. Without
+  oracle's report the module's own report alone counts; a module without its own report prints
+  `NOT_RUN` (and fails `regen --all`).
 - **Bench**: the JMH json result, one line per benchmark (`Class.method` without the class, each `_`
   of the method read as `.`, plus `/param=value`). A `bench.tsv` line with an empty `tolerance%` is
   skipped by `check` and overwritten by `regen --all`; otherwise the baseline moves only on a gain
-  beyond the tolerance and a loss beyond it is refused.
+  beyond the tolerance and a loss beyond it is refused. A score that is not a finite number (`NaN`,
+  bare or as JMH's string, or `+INF`/`-INF`) fails `check` and `regen --all`. `check` fails a
+  toleranced line whose scenario the machine's JMH result lacks.
