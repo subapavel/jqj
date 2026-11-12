@@ -1,9 +1,36 @@
+/*
+ * Translated from jq 1.8.2 (https://github.com/jqlang/jq): jv_dump_string_trunc in src/jv_print.c.
+ *
+ * jq is copyright (C) 2012 Stephen Dolan
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 package io.github.subapavel.jqj.internal.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import io.github.subapavel.jqj.internal.value.ObjectView;
 import io.github.subapavel.jqj.value.JqArray;
-import io.github.subapavel.jqj.value.JqObject;
+import io.github.subapavel.jqj.value.JqBool;
+import io.github.subapavel.jqj.value.JqNull;
+import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 
@@ -27,9 +54,9 @@ public final class ErrorDump {
         switch (v) {
           case JqString _ -> '"';
           case JqArray _ -> ']';
-          case JqObject _ -> '}';
-          // A number; null and the booleans are never longer than five bytes.
-          default -> 0;
+          case ObjectView _ -> '}';
+          // Null and the booleans are never longer than five bytes, so only a number is cut here.
+          case JqNumber _, JqNull _, JqBool _ -> 0;
         };
     return of(Printer.head(v, WHOLE + 1), closing);
   }

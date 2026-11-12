@@ -14,9 +14,12 @@ import java.util.function.BiConsumer;
  * a key keeps its first position and its last value (ADR-0002). That check compares each key with the earlier ones,
  * so {@link #size()} and {@link #forEach} take time quadratic in the number of keys. Keys compare by their decoded
  * bytes (#35): a tag-6 key is decoded at each compare, so {@code "\\u0061"} and {@code "a"} are one key. The writer
- * walks the keys with the same pair, {@link #isFirst} and {@link #lastValueOf}.
+ * walks the keys with the same pair, {@link #isFirst} and {@link #lastValueOf}. A filter's {@code .[]} makes the same
+ * two scans per member and charges one tick per key each compares, so an object of n distinct keys costs n * n + n - 1
+ * ticks with the loop's one per member (ADR-0008, ADR-0034): a linear walk needs a set of the keys seen, an array the
+ * filter does not ask for.
  */
-public record ObjectView(Document doc, int index) implements JqObject {
+public record ObjectView(Document doc, int index) implements JqObject, Members {
 
   /** jq's compact text (ADR-0015). */
   @Override
@@ -75,32 +78,43 @@ public record ObjectView(Document doc, int index) implements JqObject {
     return value == 0 ? null : doc.valueAt(doc.live(), value);
   }
 
-  /** The cursor of {@code .[]}'s first key, its tape index, or -1 for an empty object (ADR-0034). */
-  public int firstKey() {
+  /** The cursor of the first key, its tape index, or -1 for an empty object; the first key needs no scan. */
+  @Override
+  public int first() {
     long[] tape = doc.live();
     return index + 1 < Tape.end(tape, index) ? index + 1 : -1;
   }
 
   /**
-   * The cursor of the next key at its first position after the key at tape index {@code k}, or -1 after the last. It
-   * checks the document again: the sink that took the last value may have read another one onto this tape (ADR-0026).
+   * The cursor of the next key at its first position after the key at tape index {@code k}, or -1 after the last. Each
+   * later key is checked with {@link #isFirst}'s scan, and each scan charges one tick per key it compares (ADR-0008,
+   * ADR-0034).
    */
-  public int nextKey(int k) {
+  @Override
+  public int next(RunState state, int k) {
     long[] tape = doc.live();
     byte[] bytes = doc.bytes;
     int end = Tape.end(tape, index);
     for (int next = Tape.next(tape, k + 1); next < end; next = Tape.next(tape, next + 1)) {
-      if (isFirst(tape, bytes, index, next)) {
+      int scan = firstScan(tape, bytes, index, next);
+      state.tick(Math.abs(scan));
+      if (scan > 0) {
         return next;
       }
     }
     return -1;
   }
 
-  /** The last value of the key at the cursor {@code k} of {@link #firstKey()} or {@link #nextKey(int)}. */
-  public JqValue valueOfKey(int k) {
+  /**
+   * The last value of the key at tape index {@code k}, found by {@link #lastValueOf}'s scan, which charges one tick per
+   * later key it compares (ADR-0008, ADR-0034).
+   */
+  @Override
+  public JqValue member(RunState state, int k) {
     long[] tape = doc.live();
-    return doc.valueAt(tape, lastValueOf(tape, doc.bytes, k, Tape.end(tape, index)));
+    long scan = lastScan(tape, doc.bytes, k, Tape.end(tape, index));
+    state.tick((int) (scan >>> 32));
+    return doc.valueAt(tape, (int) scan);
   }
 
   /**
@@ -123,24 +137,41 @@ public record ObjectView(Document doc, int index) implements JqObject {
 
   /** Whether no key before the key at {@code k} of the object at {@code object} equals it. */
   public static boolean isFirst(long[] tape, byte[] bytes, int object, int k) {
+    return firstScan(tape, bytes, object, k) > 0;
+  }
+
+  /**
+   * {@link #isFirst}'s scan from the object's first key to the first one equal to the key at {@code k}: the number of
+   * keys it compares, negated when that key comes before {@code k}.
+   */
+  private static int firstScan(long[] tape, byte[] bytes, int object, int k) {
     int first = object + 1;
+    int compared = 1;
     while (!sameKey(tape, bytes, first, k)) {
       first = Tape.next(tape, first + 1);
+      compared++;
     }
-    return first == k;
+    return first == k ? compared : -compared;
   }
 
   /**
    * The value of the last key equal to the key at {@code k}; {@code end} is the object's {@link Tape#end}.
    */
   public static int lastValueOf(long[] tape, byte[] bytes, int k, int end) {
+    return (int) lastScan(tape, bytes, k, end);
+  }
+
+  /** {@link #lastValueOf}'s scan of every later key: the keys it compares in the high half, the value in the low half. */
+  private static long lastScan(long[] tape, byte[] bytes, int k, int end) {
     int value = k + 1;
+    int compared = 0;
     for (int later = Tape.next(tape, k + 1); later < end; later = Tape.next(tape, later + 1)) {
+      compared++;
       if (sameKey(tape, bytes, later, k)) {
         value = later + 1;
       }
     }
-    return value;
+    return (long) compared << 32 | value;
   }
 
   /**

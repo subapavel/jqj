@@ -11,7 +11,7 @@ import java.util.Arrays;
  * {@code elements}, each a view or a built value, never written once the array is made. Public only so the kind can
  * permit it. Equality is the object's, never jq's (ADR-0026).
  */
-public final class BuiltArray implements JqArray {
+public final class BuiltArray implements JqArray, Members {
   private final JqValue[] elements;
   private final int length;
 
@@ -52,5 +52,23 @@ public final class BuiltArray implements JqArray {
   public BuiltArray slice(RunState state, int from, int to) {
     state.tick(to - from);
     return new BuiltArray(Arrays.copyOfRange(elements, from, to));
+  }
+
+  /** The cursor of the first element, its index, or -1 for an empty array. */
+  @Override
+  public int first() {
+    return length > 0 ? 0 : -1;
+  }
+
+  /** The cursor after the element at {@code i}, or -1 after the last. */
+  @Override
+  public int next(RunState state, int i) {
+    return i + 1 < length ? i + 1 : -1;
+  }
+
+  /** The element at {@code i}. */
+  @Override
+  public JqValue member(RunState state, int i) {
+    return elements[i];
   }
 }
