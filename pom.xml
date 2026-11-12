@@ -387,7 +387,7 @@
         </plugins>
       </build>
     </profile>
-    <!-- ./mvnw -B -Ptrailers-Dtrailers.range=origin/main..HEAD validate -->
+    <!-- ./mvnw -B -Ptrailers -Dtrailers.range=origin/main..HEAD validate -->
     <profile>
       <id>trailers</id>
       <properties>
