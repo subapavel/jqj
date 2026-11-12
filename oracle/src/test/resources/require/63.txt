@@ -338,3 +338,13 @@ slice/quiet-bad-start-on-string
 slice/quiet-bad-then-more
 slice/quiet-bad-bound-from-input
 slice/quiet-key-bad-start-on-array
+
+# The standards review's arms (#63): null and an object or array key; a slice bound that is a boolean, an array or an
+# object.
+index/object-key-on-null
+index/slice-key-on-null
+index/array-key-on-null
+slice/bound-true-on-array
+slice/bound-array-on-array
+slice/bound-object-on-array
+slice/bound-true-on-string

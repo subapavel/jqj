@@ -437,3 +437,23 @@ filter .a[.k]
 stdin {"a":5,"k":{"a":1,"b":2,"c":3,"d":4,"e":5,"f":6}}\n
 end
 
+# P1: null and a key that is an object or an array.
+
+case index/object-key-on-null
+arg -c
+filter .a[.k]
+stdin {"a":null,"k":{}}\n
+end
+
+case index/slice-key-on-null
+arg -c
+filter .a[.k]
+stdin {"a":null,"k":{"start":1,"end":2}}\n
+end
+
+case index/array-key-on-null
+arg -c
+filter .a[.k]
+stdin {"a":null,"k":[1]}\n
+end
+

@@ -489,3 +489,24 @@ rc 5
 stdout
 stderr jq: error (at <stdin>:1): Cannot index number with object ({"a":1,"b":2,"c":3,"d":4,...})\n
 end
+
+case index/object-key-on-null
+def 29452233f39f
+rc 0
+stdout null\n
+stderr
+end
+
+case index/slice-key-on-null
+def 91e048f2d5a1
+rc 0
+stdout null\n
+stderr
+end
+
+case index/array-key-on-null
+def 73330bf49bfa
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index null with array ([1])\n
+end
