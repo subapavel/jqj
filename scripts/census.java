@@ -630,7 +630,8 @@ public class census {
       Tok tok = toks.get(k), prev = k > 0 ? toks.get(k - 1) : null, next = k + 1 < toks.size() ? toks.get(k + 1) : null;
       switch (tok.kind()) {
         case "num", "str" -> needs.add(t("S2a.11", "literal"));
-        case "interp" -> needs.add(t("S2a.11", "interpolation"));
+        // ADR-0005 lowers interpolation to nested Binds, which S2a.17 brings (F-35); bare @text stays S2a.11's.
+        case "interp" -> needs.add(t("S2a.17", "interpolation"));
         case "var" -> needs.add(t("S2a.17", "$var"));
         case "loc" -> needs.add(t("S2a.17", "$__loc__"));
         case "ident" -> {
