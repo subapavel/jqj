@@ -21,6 +21,8 @@ licence text ships in the jq-core jar under META-INF/.
   jq 1.8.2's token rules, start conditions and try_exit (src/lexer.l) (#61)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/parse/FilterText.java, translated
   from jq 1.8.2's locfile_locate (src/locfile.c) (#61)
+- jq-core/src/test/resources/jq/builtin.jq, copied byte for byte from jq 1.8.2's src/builtin.jq,
+  a test resource; its SHA-256 is in jq-core/src/test/resources/jq/SOURCES.sha256 (#62)
 
 jq's man.test and manonig.test are generated from the examples of the jq manual
 (https://jqlang.org), Creative Commons Attribution 3.0 Unported
