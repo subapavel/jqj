@@ -5,6 +5,7 @@ import static io.github.subapavel.jqj.TestDocuments.newWorkspace;
 import static io.github.subapavel.jqj.TestDocuments.read;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
@@ -251,10 +252,10 @@ class MalformedDocumentTest {
   @MethodSource("unpairedHighSurrogates")
   void unpairedHighSurrogateIsMalformedAtTheClosingQuote(String malformed, int column) {
     Workspace workspace = newWorkspace();
-    assertThatThrownBy(() -> read(workspace, malformed))
+    assertThatExceptionOfType(JqSyntaxException.class)
         .as("read(%s)", printable(malformed))
-        .isInstanceOfSatisfying(
-            JqSyntaxException.class,
+        .isThrownBy(() -> read(workspace, malformed))
+        .satisfies(
             e -> {
               assertThat(e.line()).as("line of %s", printable(malformed)).isEqualTo(1);
               assertThat(e.column()).as("column of %s", printable(malformed)).isEqualTo(column);

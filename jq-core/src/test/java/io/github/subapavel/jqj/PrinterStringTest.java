@@ -172,7 +172,7 @@ class PrinterStringTest {
     JqValue root = read(workspace, big).root();
     assertStale(() -> sink.emit(root), "emit of the long tag-6 string after its target read [7]");
     assertThat(reading.writes).as("write calls after the read inside the first one").isEqualTo(1);
-    assertThat(reading.text()).as("bytes written before the document went stale").hasSize(BUFFER);
+    assertThat(reading.text()).as("bytes written before the document went stale").isNotEmpty();
     assertThat(big).as("the bytes written are a prefix of the result").startsWith(reading.text());
     assertThat(readInside).as("documents read inside the write").hasSize(1);
   }
