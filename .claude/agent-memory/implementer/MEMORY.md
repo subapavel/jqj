@@ -96,3 +96,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#55) `git reset --hard` is refused in worktrees: `git checkout -B <b> origin/<b>`. A script test pushing to a local bare repo: `git -c push.negotiate=false push`.
 - (#58) jq-ref 1.8.2: `{(<constant>): v}` with a non-string constant (also folded binops like `{(1+1): 2}`) is rc 3; `1/0` with literals is rc 5. A new method between an existing javadoc and its method fails `-Xlint:dangling-doc-comments` under `-Werror`.
 - (#59 test-author) An isolated worktree refuses `git config core.hooksPath`: run `bash scripts/check-trailers.sh --message <file>` before `git commit -F`. A query-core test compile failure skips jq-core: to see jq-core's red, use a scratch copy.
+- (#59) `-Xlint:all -Werror` rejects a public class in an exported package without an explicit constructor ("exposing a default constructor").
+- (#59) Guard-mutant sweep: commit first, then per mutant replace with `${c/"$old"/"$new"}`, run `./mvnw -B -o -pl jq-core -am test -Dmaven.test.failure.ignore=true`, grep `<<< FAILURE!`, restore with `git checkout -- <file>` (~10 s each).
