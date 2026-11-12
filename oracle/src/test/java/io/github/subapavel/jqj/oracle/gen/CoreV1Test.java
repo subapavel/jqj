@@ -7,6 +7,8 @@ import io.github.subapavel.jqj.oracle.diff.CaseFormat;
 import io.github.subapavel.jqj.oracle.diff.DiffCase;
 import io.github.subapavel.jqj.oracle.gen.CoreV1.Node;
 import io.github.subapavel.jqj.oracle.gen.CoreV1.Op;
+import io.github.subapavel.jqj.oracle.gen.CoreV1.Place;
+import io.github.subapavel.jqj.oracle.gen.CoreV1.Scope;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -125,6 +127,29 @@ class CoreV1Test {
       }
     }
     assertThat(deepest).isEqualTo(4);
+  }
+
+  /** Each place keeps or drops the breakable labels by #58's decision, and every place is classified here. */
+  @Test
+  void eachPlaceOpensOrClosesBreak() {
+    Scope s = Scope.TOP.var("$x").label("$out");
+    Set<Place> closed = EnumSet.of(Place.TRY_BODY, Place.OPTIONAL_OPERAND, Place.ALT_DESTRUCT_BINDING, Place.DEF_BODY, Place.CALL_ARGUMENT, Place.ERROR_ARGUMENT);
+    Set<Place> opened = EnumSet.of(Place.TRY_HANDLER, Place.ALTERNATIVE_LEFT, Place.SELECT_ARGUMENT, Place.FIRST_ARGUMENT, Place.LIMIT_ARGUMENT, Place.MAP_ARGUMENT);
+
+    assertThat(EnumSet.complementOf(EnumSet.copyOf(closed))).isEqualTo(opened);
+    for (Place p : closed) {
+      assertThat(s.in(p).breakable()).as("%s", p).isEmpty();
+      assertThat(s.in(p).vars()).as("%s keeps the variables", p).containsExactly("$x");
+    }
+    for (Place p : opened) assertThat(s.in(p)).as("%s", p).isEqualTo(s);
+  }
+
+  @Test
+  void scopeAddsANameOnce() {
+    Scope s = Scope.TOP.var("$x").var("$y").var("$x").label("$out").label("$out");
+
+    assertThat(s.vars()).containsExactly("$x", "$y");
+    assertThat(s.breakable()).containsExactly("$out");
   }
 
   /**
