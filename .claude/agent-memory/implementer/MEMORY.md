@@ -116,3 +116,6 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#61) Class-C implementers can hit the 200-turn cap: commit and push early.
 - (#61) Two worktrees on one branch: when another writer moves the ref, your index still holds the old files and `git status` shows them staged. `git restore --source=HEAD --staged --worktree <files>` brings them to the tip.
 - (#61) `git merge -s` is the strategy flag, not signoff: finish a merge commit with `git commit -s -F <msg>`.
+- (#78) Removing an API: grep every module (`oracle/`, `jq-cli/`, `bench/` too) and run the full `./mvnw -B -Pbench verify`; `-pl jq-core -am` missed oracle's SkeletonTest and the gate failed.
+- (#80) A test-only ticket shows its red against temporary mutants of the line it pins; run the mutant loop as a scratch script (`bash <script>`), the worktree guard refuses `for` loops inline.
+- `scripts/push-retry.sh` takes `<repo-dir> <refspec>`, e.g. `. HEAD:refs/heads/t/<n>-<slug>`.
