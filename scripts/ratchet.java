@@ -18,10 +18,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -308,19 +310,48 @@ public class ratchet {
 
   // --- mutation
 
-  static final Pattern MUTATION = Pattern.compile("<mutation\\b[^>]*>");
+  /** A mutation element: its attributes and, unless it is self-closing, its body. */
+  static final Pattern MUTATION = Pattern.compile("<mutation\\b([^>]*?)(?:/>|>(.*?)</mutation>)", Pattern.DOTALL);
   static final Pattern STATUS = Pattern.compile("status='([A-Z_]+)'");
+  /** The fields that identify a mutant across PIT reports of the same classes. */
+  static final List<String> MUTANT_ID = List.of("mutatedClass", "mutatedMethod", "methodDescription", "lineNumber", "mutator", "indexes");
+  /** Oracle's crossModule run: every oracle test against the classes of the modules it depends on (ADR-0014). */
+  static final String CROSS_MODULE_PIT = "oracle/target/pit-reports/mutations.xml";
 
-  /** {survivors, generated} of a module's PIT report, or null without one. Killed means KILLED, TIMED_OUT or MEMORY_ERROR. */
+  record Mutant(String id, boolean killed) {}
+
+  /** The mutants of a PIT report. Killed means KILLED, TIMED_OUT or MEMORY_ERROR. */
+  static List<Mutant> mutants(Path f) throws IOException {
+    List<Mutant> out = new ArrayList<>();
+    Matcher m = MUTATION.matcher(Files.readString(f, StandardCharsets.UTF_8));
+    while (m.find()) {
+      Matcher s = STATUS.matcher(m.group(1));
+      boolean killed = s.find() && List.of("KILLED", "TIMED_OUT", "MEMORY_ERROR").contains(s.group(1));
+      String body = m.group(2) == null ? "" : m.group(2);
+      StringBuilder id = new StringBuilder();
+      for (String field : MUTANT_ID) {
+        int from = body.indexOf("<" + field + ">");
+        id.append(from < 0 ? "" : body.substring(from + field.length() + 2, body.indexOf("</" + field + ">", from))).append('\t');
+      }
+      out.add(new Mutant(id.toString(), killed));
+    }
+    return out;
+  }
+
+  /**
+   * {survivors, generated} of a module, or null without its own PIT report. The mutants are those of its own report; one
+   * counts as killed if its own report or oracle's crossModule report kills it (ADR-0014).
+   */
   static int[] pit(String module) throws IOException {
     Path f = root.resolve(module + "/target/pit-reports/mutations.xml");
     if (!Files.exists(f)) return null;
+    Set<String> killedByOracle = new HashSet<>();
+    Path cross = root.resolve(CROSS_MODULE_PIT);
+    if (Files.exists(cross)) for (Mutant c : mutants(cross)) if (c.killed()) killedByOracle.add(c.id());
     int generated = 0, killed = 0;
-    Matcher m = MUTATION.matcher(Files.readString(f, StandardCharsets.UTF_8));
-    while (m.find()) {
+    for (Mutant own : mutants(f)) {
       generated++;
-      Matcher s = STATUS.matcher(m.group());
-      if (s.find() && List.of("KILLED", "TIMED_OUT", "MEMORY_ERROR").contains(s.group(1))) killed++;
+      if (own.killed() || killedByOracle.contains(own.id())) killed++;
     }
     return new int[] {generated - killed, generated};
   }
