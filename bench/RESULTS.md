@@ -4,6 +4,93 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Ticket-gate steps 1 and 2 and PIT per 1000 seeds (ticket #40, F-19), 2026-11-12
+
+- Machine: `claude-cloud-4vcpu` (4 vCPU, 15 GiB, Linux 6.18.44-fc-v378), `java version
+  "25.0.5.0.3" 2026-10-25 LTS`, jq-ref `jq-1.8.2`. Date 2026-11-12, 02:31Z to 03:39Z. Nothing else of
+  this ticket's agent ran during a measurement; other worktrees' load was not checked, `uptime` before
+  the parallel start read 1.30 (1 min, the tail of the run before it).
+- Commit measured: `eee8bb3`, the tip of `spec/22-walking-skeleton`, every other ticket of spec 1
+  merged. Each run used a fresh detached worktree of it (no `target/`), removed afterwards.
+- Gate command, per run in a fresh worktree: `scripts/gate-ticket.sh <label> jq-core,oracle
+  3e9a9d3^1`, `3e9a9d3^1` = `7e7aac5`, the commit before #35's merge. Eight main source files changed
+  between it and the tip in jq-core and oracle (`JsonStrings`, `Printer`, `BuiltString`, `ObjectView`,
+  `StringView`, `JsonReader`, `Workspace`, `DiffReport`), so PIT mutates 642 mutants in jq-core and
+  661 in oracle. `jq-cli` is not in the module list (`Input.java` changed there).
+  Times are the wall-clock ms the gate writes to `.logs/<label>-steps.tsv`; copies in
+  `.logs/40-<label>-steps.tsv`, gate output in `.logs/40-<label>-gate.log`, step logs in
+  `.logs/40-<label>-wtlogs/`. Every step 1 and 2 exited 0.
+- Passing cases at the tip (`ratchet/oracle/*.txt`): **jqtest 10, differential 629 (of which
+  `gen/values-v1` 472, hand-written 157), json 125**. The `values-v1` file holds seeds [0, 2100); 472
+  pass, the rest are run only by the Survey, which PIT excludes. Required cases that `verify` ran:
+  `DifferentialOracleTest` 630 (629 + 1), `JsonOracleTest` 126, `JqTestOracleTest` 11 (each one case
+  more than the list); their elapsed time was 0.478 s, 0.345 s, 0.041 s.
+- There is no compile-mode oracle yet (no test class, no `compile.txt`): step 1 measures the
+  interpreter's oracles only.
+
+**Step 1 (`./mvnw -B -Pbench verify`) and step 2 (PIT), alone and three gates in parallel**
+
+| run | step 1 verify | target | step 2 PIT | target |
+| --- | --- | --- | --- | --- |
+| alone, run 1 (`m40a1`, 02:31Z) | 30.1 s | 60 s (three in parallel) | 741.8 s (12 min 22 s) | 3 min (three in parallel) |
+| alone, run 2 (`m40a2`, 02:44Z) | 27.4 s | 60 s | 728.0 s (12 min 8 s) | 3 min |
+| three in parallel, gate 1 (`m40b1`) | 70.3 s | 60 s | 1052.9 s (17 min 33 s) | 3 min |
+| three in parallel, gate 2 (`m40b2`) | 71.4 s | 60 s | 1077.1 s (17 min 57 s) | 3 min |
+| three in parallel, gate 3 (`m40b3`) | 70.2 s | 60 s | 1072.2 s (17 min 52 s) | 3 min |
+
+- The three gates started together at 02:57:36Z and the last ended at 03:16:49Z (whole gate
+  1129.0 s, 1152.6 s, 1146.9 s). Three distinct labels, three worktrees, one shared `~/.m2`.
+- **Step 1 is over its 60 s target with three in parallel (70.2 to 71.4 s), under it alone (27.4 to
+  30.1 s).** The oracle tests themselves are about 2.7 s of it (the three required-case classes above
+  plus the three Surveys, 0.2 s to 1.1 s each, in `m40a1`); the rest is the reactor build (alone: jq-core 7.5 s, jq-cli
+  5.5 s, oracle 7.2 s, bench/jmh 3.1 s, query-core 3.8 s). ADR-0014/ADR-0020's named fallback is the
+  compile-mode oracle moving to the spec gate; none exists in step 1 yet, so it would not shorten this
+  number. The architect decides.
+- **Step 2 is over its 3-minute target alone (728.0 and 741.8 s, 4.0 to 4.1 times the target) and
+  with three in parallel (1052.9 to 1077.1 s, about 5.9 to 6.0 times).** PIT per module, alone:
+  jq-core 205 s and 193 s, oracle 510 s and 511 s (`Completed in …`, `.logs/40-m40a*-wtlogs/m40a*-pit.log`);
+  in parallel jq-core 324 to 332 s, oracle 675 to 688 s. The oracle module's PIT mutates the same
+  jq-core classes against the oracle module's 232 test classes (661 mutants, 49 482 to 50 399 test
+  runs), after jq-core's own run (642 mutants, 44 050 to 44 194 test runs).
+
+**PIT cost per 1000 passing `values-v1` seeds**
+
+How: the same gate on the same commit, with the 472 `gen/values-v1/*` lines deleted from
+`ratchet/oracle/differential.txt` in the scratch worktree only (never committed, `ratchet/` untouched
+in the ticket), so PIT runs 157 differential cases instead of 629 and nothing else changes. The
+step-2 time with the seeds minus the step-2 time without them, divided by 472, scaled to 1000. The
+runs `m40c1`/`m40c2` stopped at step `lf` (the edit is an unstaged change); steps 1 and 2 had run.
+
+| run | step 2 PIT | jq-core module | oracle module |
+| --- | --- | --- | --- |
+| with 472 seeds, `m40a1` / `m40a2` | 741.8 s / 728.0 s | 205 s / 193 s | 510 s / 511 s |
+| without them, `m40c1` / `m40c2` | 532.0 s / 537.4 s | 202 s / 191 s | 304 s / 323 s |
+
+- Mean with 734.9 s, mean without 534.7 s: the 472 seeds add **200.2 s**, **0.424 s per seed, 424 s
+  per 1000 passing seeds (7 min 4 s)**. Range over the four pairs: 190.6 s to 209.8 s, 404 s to 444 s
+  per 1000. The scale is a straight line from 472 seeds to 1000; it was not measured at 1000 (only 472
+  pass). The extra cost is all in the oracle module (about 197 s; jq-core's module is the same with or
+  without them).
+- Against the target: 424 s per 1000 seeds alone is 2.4 times the whole 3-minute budget, and the
+  step without any seed is already 534.7 s alone (3.0 times it). So the seeds are not the only cause
+  here: ADR-0020's first fallback (group the seeds per unit, or keep them out of PIT) would at most
+  take 734.9 s down to 534.7 s on this ticket, which is still over 3 minutes. The next fallback in
+  ADR-0020 and ADR-0014 is PIT leaving the ticket gate, by a finding. The architect decides.
+- Not isolated: the per-seed cost with three gates in parallel.
+
+**Recording `values-v1` (F-19: about 9.1 s to record and about 11 s to verify per 1000 seeds)**
+
+`scripts/oracle-record.sh` in a fresh worktree of the tip, three runs each, wall clock including the
+script's `javac` of the recorder and the JVM start (`.logs/40-rec.tsv`, `.logs/40-rec-*.log`):
+
+| command | runs | against F-19 |
+| --- | --- | --- |
+| `--generate values-v1 0 1000` (1000 cases, 0 dropped) | 10.09 s, 9.97 s, 10.13 s | about 9.1 s per 1000 |
+| `--verify …/gen/values-v1.rec` of those 1000 | 10.19 s, 10.31 s, 10.65 s | about 11 s per 1000 |
+| `--verify …/gen/values-v1.rec` as committed (2100 seeds) | 18.61 s, 18.64 s, 18.43 s | about 11 s per 1000 (so 23 s) |
+
+Both are far under the 10-minute bound the ticket set for re-measuring.
+
 ## Bench recording G1, G6, G7: jqj against jq-ref (ticket #39), 2026-11-12
 
 - Machine: `claude-cloud-4vcpu` (4 vCPU Intel Xeon Processor @ 2.10GHz, Linux 6.18.44-fc-v378),
