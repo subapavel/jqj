@@ -13,8 +13,21 @@ import io.github.subapavel.jqj.query.ir.Pipe;
 public final class Compiler {
   private Compiler() {}
 
-  /** @throws IllegalStateException when the tree breaks a rule of the IR */
+  /**
+   * As {@link #compile(Node, CompileMode)} in the optimised compile.
+   *
+   * @throws IllegalStateException when the tree breaks a rule of the IR
+   */
   public static Executable compile(Node root) {
+    return compile(root, CompileMode.OPTIMISED);
+  }
+
+  /**
+   * Compiles {@code root} in {@code mode}. There is no analysis yet, so both modes build the same tree (ADR-0030).
+   *
+   * @throws IllegalStateException when the tree breaks a rule of the IR
+   */
+  public static Executable compile(Node root, CompileMode mode) {
     IrVerifier.verify(root);
     return new Executable(interpreter(root));
   }
