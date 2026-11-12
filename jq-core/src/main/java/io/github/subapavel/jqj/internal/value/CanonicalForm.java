@@ -84,12 +84,21 @@ public final class CanonicalForm {
       // An integer of at most 17 digits: a long, whose conversion rounds correctly.
       magnitude = t.coefficient();
     } else {
-      char[] digits = new char[nd];
-      for (int i = 0; i < nd; i++) {
+      // HALF_EVEN to 17 digits reads only D's first 18 digits and whether any digit after them is non-zero. So D is
+      // cut to those 18, followed by 1 for a non-zero rest and 0 otherwise: the same rounding, and a BigDecimal of at
+      // most 19 digits, where parsing all of a long D would take time quadratic in its length.
+      int kept = Math.min(nd, 18);
+      boolean rest = false;
+      for (int i = kept; i < nd && !rest; i++) {
+        rest = t.digit(i) != '0';
+      }
+      char[] digits = new char[kept + 1];
+      for (int i = 0; i < kept; i++) {
         digits[i] = (char) t.digit(i);
       }
-      // |e| is at most DOUBLE_RANGE plus the token's length here, so it fits an int.
-      BigDecimal value = new BigDecimal(digits, 0, nd).scaleByPowerOfTen((int) t.e);
+      digits[kept] = rest ? '1' : '0';
+      // The last digit kept stands for 10^(e + nd - kept); |e| is at most DOUBLE_RANGE plus the token's length here.
+      BigDecimal value = new BigDecimal(digits).scaleByPowerOfTen((int) (t.e + nd - kept - 1));
       magnitude = Double.parseDouble(value.round(SEVENTEEN_DIGITS).toString());
     }
     return t.negative ? -magnitude : magnitude;
