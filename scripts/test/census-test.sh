@@ -234,7 +234,7 @@ check "mutual recursion" "$(at "$out" x.test:147)" "2b -"
 check "a definition named like a native is the program's" "$(at "$out" x.test:151)" "2a S2a.20"
 check "needs .13 and .14: the earliest ticket blocked by both, .15" "$(at "$out" x.test:155)" "2a S2a.15"
 check "... and why names both" "$(awk -F'\t' '$4 == "x.test:155" { print $6 }' "$out")" ".[] []"
-check "needs .15 and .16: only the census sweep follows both" "$(at "$out" x.test:159)" "2a S2a.25"
+check "needs .15 and .16: S2a.17, blocked by both since 2026-11-12" "$(at "$out" x.test:159)" "2a S2a.17"
 check "needs .11 and .13: .13 follows .11, unchanged" "$(at "$out" x.test:163)" "2a S2a.13"
 check "every fixture case has a line" "$(grep -vc '^#' "$out")" 42
 has "why names the deciding builtin" "_match_impl" "$out"
