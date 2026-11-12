@@ -50,7 +50,10 @@ public final class Workspace {
     return state.steps();
   }
 
-  /** Charges {@code steps} steps at once (ADR-0008 as amended by ADR-0015: the reader and the writer, per KiB). */
+  /**
+   * Charges {@code steps} steps at once (ADR-0008 as amended by ADR-0015: the reader, per KiB). The writer charges its
+   * own through {@code RunState.tickWritten}, which the next run does not keep from outside a run (ADR-0030).
+   */
   void tick(int steps) {
     state.tick(steps);
   }
