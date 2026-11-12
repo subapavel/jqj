@@ -30,8 +30,8 @@ import java.util.Map;
  * postfix := primary (FIELD | '.' string)*      nests left, as Pipe(term, Intrinsic)
  * primary := '.' string | '.' | FIELD           a field Intrinsic, the identity, a field Intrinsic
  *          | NUMBER | string                    a Const of a LiteralNumber or a BuiltString
- *          | true | false | null                IDENTs with no '(' after them: a Const
- *          | '@text'                            with no string after it: the @text Intrinsic
+ *          | true | false | null                IDENTs: a Const ('(' after one is a call: a Stub)
+ *          | '@text'                            the @text Intrinsic (a string after it: a Stub)
  *          | '(' pipe ')'                       the inner node (no node for parentheses)
  * string  := '"' (TEXT | escape run)* '"'       no interpolation (#67)
  * </pre>
@@ -107,20 +107,15 @@ public final class Parser {
         if (value == null) {
           throw unbuilt();
         }
-        Token name = advance();
-        if (token.kind() == Token.Kind.LPAREN) {
-          // A call of a function by that name.
-          throw unbuilt();
-        }
-        yield new Const(source(name), value);
+        // A ( after it makes a call, which no rule after a term takes: the parse ends in the Stub at the (.
+        yield new Const(source(advance()), value);
       }
       case FORMAT -> {
-        Token format = advance();
-        if (!ascii(format.start(), format.end()).equals("@text") || token.kind() == Token.Kind.STRING_START) {
-          // Another format, or a format string.
+        if (!ascii(token.start(), token.end()).equals("@text")) {
           throw unbuilt();
         }
-        yield new Intrinsic(source(format), new Operation("@text", new TextFormat()));
+        // A string after it makes a format string, which no rule after a term takes: the Stub at the string's quote.
+        yield new Intrinsic(source(advance()), new Operation("@text", new TextFormat()));
       }
       case LPAREN -> {
         advance();

@@ -25,6 +25,9 @@ class LexerModesTest {
         .containsExactly("STRING_START \"", "INTERP_START \\(", "LPAREN (", "NUMBER 1", "RPAREN )", "INTERP_END )", "STRING_END \"");
     // jq-ref -n '"\(1]"': "unexpected INVALID_CHARACTER, expecting QQSTRING_INTERP_END" at column 5, one caret.
     assertThat(kinded("\"\\(1]\"").get(3)).as("] inside an interpolation").isEqualTo("INVALID_CHARACTER ]");
+    // jq-ref -n '"\n\(1)"' -> "\n1": an escape run ends before an interpolation's start.
+    assertThat(kinded("\"\\n\\(1)\""))
+        .containsExactly("STRING_START \"", "ESCAPES \\n", "INTERP_START \\(", "NUMBER 1", "INTERP_END )", "STRING_END \"");
   }
 
   @Test
@@ -43,6 +46,8 @@ class LexerModesTest {
     // backslash and a CR before no LF continue nothing, and the LF ends the comment.
     assertThat(kinded("1 # a\\\r\n+ 1\n")).containsExactly("NUMBER 1");
     assertThat(kinded("1 # a\\\rx\n+ 1\n")).containsExactly("NUMBER 1", "PLUS +", "NUMBER 1");
+    // jq-ref -n on "1 # a\b<LF>+ 1" -> 2: a backslash before any other byte continues nothing either.
+    assertThat(kinded("1 # a\\b\n+ 1")).containsExactly("NUMBER 1", "PLUS +", "NUMBER 1");
   }
 
   @Test
