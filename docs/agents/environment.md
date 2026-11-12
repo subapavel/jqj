@@ -15,6 +15,10 @@ Read this before your first build or commit in a worktree.
   sha from `git ls-remote origin <branch>`.
 - **Commits**: write the message to a file and `git commit -F <file>` with the trailer block of
   `docs/WORKFLOW.md` §11. The block already carries `Signed-off-by`, so `-s` would add a second.
+- **Commit-msg hook**: `git config core.hooksPath scripts/hooks` enables `scripts/hooks/commit-msg`.
+  It checks every commit message, merge commits included, with the rules of
+  `scripts/check-trailers.sh` and refuses the commit with that script's text. The path is relative,
+  so each worktree uses its own `scripts/hooks`.
 - **Logs**: in a worktree that will be removed, write the hand-back before `git worktree remove`;
   the logs go with the worktree.
 - **Reference jq**: the differential oracle runs the real jq binary at `/usr/local/bin/jq-ref`
