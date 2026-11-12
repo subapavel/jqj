@@ -25,8 +25,9 @@ jobs:
         run: echo "list=$(awk -F'\t' 'NR > 1 && $2 == "C" { printf "%s%s", sep, $1; sep = "," }' quality/floors.tsv)" >> "$GITHUB_OUTPUT"
       - name: PIT
         # oracle's crossModule report joins the class-C modules' own (ADR-0014); jq-cli's module-path and launcher
-        # tests stay out of PIT, as in scripts/gate-spec.sh.
-        run: ./mvnw -B -pl "${{ steps.modules.outputs.list }},oracle" -am test org.pitest:pitest-maven:mutationCoverage "-DexcludedTestClasses=io.github.subapavel.jqj.cli.LauncherTest,io.github.subapavel.jqj.cli.*ModulePathTest"
+        # tests stay out of PIT, as in scripts/gate-spec.sh. The property replaces oracle's POM list too, so oracle's
+        # Survey exclusions are repeated.
+        run: ./mvnw -B -pl "${{ steps.modules.outputs.list }},oracle" -am test org.pitest:pitest-maven:mutationCoverage "-DexcludedTestClasses=io.github.subapavel.jqj.cli.LauncherTest,io.github.subapavel.jqj.cli.*ModulePathTest,io.github.subapavel.jqj.oracle.diff.DifferentialSurveyTest,io.github.subapavel.jqj.oracle.json.JsonSurveyTest,io.github.subapavel.jqj.oracle.jqtest.JqTestSurveyTest"
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
