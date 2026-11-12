@@ -4,6 +4,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,16 @@ public record DiffCase(
 
     /** The column of a case without {@code jqj-*} keys. */
     public static final JqjColumn NONE = new JqjColumn(null, null, null);
+
+    /**
+     * Whether every part this column gives equals that part of jq-ref's recording, so the deviation is gone (ADR-0020).
+     * A column that gives no part matches.
+     */
+    public boolean matches(Outcome recorded) {
+      return (rc == null || rc == recorded.rc())
+          && (stdout == null || Arrays.equals(stdout, recorded.stdout()))
+          && (stderr == null || Arrays.equals(stderr, recorded.stderr()));
+    }
 
     /** What jqj must give: each part of this column, and jq-ref's recorded part where this column has none. */
     public Outcome over(Outcome recorded) {

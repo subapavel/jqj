@@ -272,6 +272,18 @@ class DifferentialRunnerTest {
     assertThat(stderr.detail()).isEqualTo("stderr differs at byte 0");
   }
 
+  /** ADR-0020: a recording equal to the case's jqj column fails as "deviation gone", whatever jqj gives. */
+  @Test
+  void aDeviationCaseWhoseRecordingEqualsItsJqjKeysFailsAsDeviationGone() {
+    DiffCase c = deviationCase("deviation nul\njqj-rc 0\njqj-stdout 123\\n\n");
+
+    Verdict v = runner(jqj(0, "123\n", "")).run(c, acceptedByJqRef(c));
+
+    assertThat(v.kind()).isEqualTo(Verdict.Kind.FAIL);
+    assertThat(v.detail()).isEqualTo("deviation gone");
+    assertThat(v.diff()).startsWith("t/deviation: FAIL, deviation gone: jq-ref's recording equals the jqj-* keys of deviation nul");
+  }
+
   @Test
   void aCaseWithoutDeviationIsComparedWithTheRecordingUnderJqRefsName() {
     Verdict v = run("basics/compact-object", jqj(1, "", ""));

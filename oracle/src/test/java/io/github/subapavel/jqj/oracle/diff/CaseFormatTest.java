@@ -68,6 +68,26 @@ class CaseFormatTest {
     assertThat(none.stderr()).isNull();
   }
 
+  /** ADR-0020: the deviation is gone when every part jqj's column gives equals that part of the recording. */
+  @Test
+  void jqjsColumnMatchesTheRecordingWhenEveryPartItGivesEqualsIt() {
+    Outcome recorded = new Outcome(0, bytes("123\n"), bytes("w\n"));
+
+    assertThat(column("jqj-rc 0\n").matches(recorded)).isTrue();
+    assertThat(column("jqj-rc 5\n").matches(recorded)).isFalse();
+    assertThat(column("jqj-stdout 123\\n\n").matches(recorded)).isTrue();
+    assertThat(column("jqj-stdout 123\\n\njqj-rc 5\n").matches(recorded)).isFalse();
+    assertThat(column("jqj-stdout\n").matches(recorded)).isFalse();
+    assertThat(column("jqj-stderr w\\n\n").matches(recorded)).isTrue();
+    assertThat(column("jqj-stderr w\\n\njqj-stdout\n").matches(recorded)).isFalse();
+    assertThat(column("jqj-stderr x\n").matches(recorded)).isFalse();
+    assertThat(column("").matches(recorded)).as("no jqj-* key: jqj's column is the recording").isTrue();
+  }
+
+  private static DiffCase.JqjColumn column(String jqjLines) {
+    return cases("case t/x\ndeviation nul\n" + jqjLines + "end\n").get(0).jqj();
+  }
+
   /** Each key of jqj's column replaces jq-ref's part of the recording; an absent key keeps jq-ref's. */
   @Test
   void jqjsColumnReplacesOnlyThePartsItGives() {
