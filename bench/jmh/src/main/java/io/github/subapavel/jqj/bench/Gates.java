@@ -111,7 +111,8 @@ public class Gates {
             .redirectError(Redirect.INHERIT)
             .start();
     int code = jqj.waitFor();
-    // Untested until #38 builds the launcher (story 51); G7.process runs end to end there.
+    // A failed process would be timed as a fast shot. GatesTest covers this check with stand-in launchers; the real
+    // launcher #38 built runs here in the spec gate's JMH step.
     if (code != 0) {
       throw new IllegalStateException(s.launcher + " exited with " + code);
     }

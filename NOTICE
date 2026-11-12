@@ -20,9 +20,9 @@ licence text ships in the jq-core jar under META-INF/.
 
 jq's man.test and manonig.test are generated from the examples of the jq manual
 (https://jqlang.org), Creative Commons Attribution 3.0 Unported
-(https://creativecommons.org/licenses/by/3.0/), by the jq authors. They are added as test
-resources only (ADR-0021), by the ticket that copies them, and keep both jq's MIT notice and this
-attribution.
+(https://creativecommons.org/licenses/by/3.0/), by the jq authors. They are copied as test
+resources only (ADR-0021), into oracle/src/test/resources/jq/tests/ with the other test files
+below, and keep both jq's MIT notice and this attribution.
 
 jq's test files (ADR-0020, ADR-0021), copied byte for byte from the jq 1.8.2 release tarball's
 tests/ directory into oracle/src/test/resources/jq/tests/, together with jq's COPYING and their

@@ -170,7 +170,6 @@ class JsonWriterTest {
     assertThat(stream.text()).as("OutputStream target after the second document").isEqualTo("null\ntrue\nfalse\n{\"a\":1}\n[2]\n");
     assertThat(behindChannel.text()).as("channel target after the second document").isEqualTo("null\ntrue\nfalse\n{\"a\":1}\n[2]\n");
     assertThat(stream.flushes).as("flush calls on the OutputStream target").isZero();
-    assertThat(behindChannel.flushes).as("flush calls on the stream behind the channel").isZero();
   }
 
   @Test

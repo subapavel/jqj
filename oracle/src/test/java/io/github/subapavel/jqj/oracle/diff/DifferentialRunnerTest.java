@@ -2,6 +2,7 @@ package io.github.subapavel.jqj.oracle.diff;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.subapavel.jqj.cli.Invocation;
 import io.github.subapavel.jqj.cli.Main;
@@ -9,6 +10,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +34,12 @@ class DifferentialRunnerTest {
 
   private Verdict run(String id, ToIntFunction<Invocation> entry) {
     DiffCorpus.Entry e = basics(id);
-    return new DiffRunner(entry, scratch).run(e.c(), e.recording());
+    return runner(entry).run(e.c(), e.recording());
+  }
+
+  /** The runner over {@code entry} with the deviations of the repository's {@code DEVIATIONS.md}. */
+  private DiffRunner runner(ToIntFunction<Invocation> entry) {
+    return new DiffRunner(entry, scratch, Corpus.deviations());
   }
 
   @Test
@@ -138,12 +145,11 @@ class DifferentialRunnerTest {
     DiffCase c = DiffCase.of("t.cases", CaseFormat.parse("t.cases", "t", text.getBytes(UTF_8)).get(0));
     Map<String, String> seenEnv = new HashMap<>();
 
-    new DiffRunner(
+    runner(
             inv -> {
               seenEnv.putAll(inv.env());
               return 0;
-            },
-            scratch)
+            })
         .run(c, null);
 
     assertThat(seenEnv).containsEntry("K", "v").containsEntry("TZ", "Asia/Tokyo").containsEntry("LC_ALL", "C").containsKey("HOME");
@@ -175,9 +181,10 @@ class DifferentialRunnerTest {
   @Test
   void aCaseChangedAfterItsRecordingIsStale() {
     DiffCorpus.Entry e = basics("basics/compact-object");
-    DiffCase edited = new DiffCase(e.c().id(), e.c().args(), "{\"b\":1}\n".getBytes(UTF_8), e.c().files(), e.c().env(), null, "000000000000");
+    DiffCase edited =
+        new DiffCase(e.c().id(), e.c().args(), "{\"b\":1}\n".getBytes(UTF_8), e.c().files(), e.c().env(), null, DiffCase.JqjColumn.NONE, "000000000000");
 
-    Verdict v = new DiffRunner(jqj(0, "{\"a\":1}\n", ""), scratch).run(edited, e.recording());
+    Verdict v = runner(jqj(0, "{\"a\":1}\n", "")).run(edited, e.recording());
 
     assertThat(v.kind()).isEqualTo(Verdict.Kind.STALE);
     assertThat(v.detail()).contains("000000000000").contains(e.recording().def());
@@ -187,7 +194,7 @@ class DifferentialRunnerTest {
   void aCaseWithoutARecordingIsStale() {
     DiffCorpus.Entry e = basics("basics/compact-object");
 
-    assertThat(new DiffRunner(jqj(0, "{\"a\":1}\n", ""), scratch).run(e.c(), null).kind()).isEqualTo(Verdict.Kind.STALE);
+    assertThat(runner(jqj(0, "{\"a\":1}\n", "")).run(e.c(), null).kind()).isEqualTo(Verdict.Kind.STALE);
   }
 
   @Test
@@ -195,9 +202,10 @@ class DifferentialRunnerTest {
     // A test-local case with no recording: --arg is still a Stub of the command line (#38). basics/field-of-array
     // served here until #37 built the pretty output it needs.
     DiffCase stub =
-        new DiffCase("test/arg-stub", List.of("--arg", "x", "1", "."), "{\"a\":1}\n".getBytes(UTF_8), Map.of(), Map.of(), null, "000000000000");
+        new DiffCase(
+            "test/arg-stub", List.of("--arg", "x", "1", "."), "{\"a\":1}\n".getBytes(UTF_8), Map.of(), Map.of(), null, DiffCase.JqjColumn.NONE, "000000000000");
 
-    Verdict v = new DiffRunner(Main::run, scratch).run(stub, null);
+    Verdict v = runner(Main::run).run(stub, null);
 
     assertThat(v.kind()).isEqualTo(Verdict.Kind.FAIL);
     assertThat(v.diff()).contains("no recording");
@@ -232,15 +240,93 @@ class DifferentialRunnerTest {
     assertThat(stub.kind()).isEqualTo(Verdict.Kind.FAIL);
   }
 
+  /** A test-local deviation case: {@code -c .} with the given {@code deviation} and {@code jqj-*} lines. */
+  private static DiffCase deviationCase(String lines) {
+    String text = "case t/deviation\narg -c\nfilter .\n" + lines + "end\n";
+    return DiffCase.of("t.cases", CaseFormat.parse("t.cases", "t", text.getBytes(UTF_8)).get(0));
+  }
+
+  /** A recording of {@code c} as jq-ref would give it on {@code 123\x00}: rc 0, {@code 123}, empty stderr. */
+  private static Recording acceptedByJqRef(DiffCase c) {
+    return new Recording(c.id(), c.def(), new Outcome(0, "123\n".getBytes(UTF_8), new byte[0]));
+  }
+
+  @Test
+  void aDeviationCaseIsComparedWithItsJqjKeysAndWithTheRecordingWhereAKeyIsAbsent() {
+    DiffCase c = deviationCase("deviation nul\njqj-rc 5\njqj-stdout\n");
+
+    Verdict jqjsColumn = runner(jqj(5, "", "")).run(c, acceptedByJqRef(c));
+    assertThat(jqjsColumn.kind()).isEqualTo(Verdict.Kind.PASS);
+
+    Verdict jqRefsColumn = runner(jqj(0, "123\n", "")).run(c, acceptedByJqRef(c));
+    assertThat(jqRefsColumn.kind()).isEqualTo(Verdict.Kind.FAIL);
+    assertThat(jqRefsColumn.detail()).isEqualTo("rc 0, expect 5; stdout differs at byte 0");
+    assertThat(jqRefsColumn.diff())
+        .contains("t/deviation: FAIL against deviation nul's jqj-* keys, the recording where one is absent\n")
+        .contains("rc      expect 5\n          jqj    0\n")
+        .contains("stdout  expect (empty)\n          jqj    123\\n\n");
+
+    // No jqj-stderr: the recorded stderr, empty, is what jqj must print.
+    Verdict stderr = runner(jqj(5, "", "jq: error\n")).run(c, acceptedByJqRef(c));
+    assertThat(stderr.kind()).isEqualTo(Verdict.Kind.FAIL);
+    assertThat(stderr.detail()).isEqualTo("stderr differs at byte 0");
+  }
+
+  /** ADR-0020: a recording equal to the case's jqj column fails as "deviation gone", whatever jqj gives. */
+  @Test
+  void aDeviationCaseWhoseRecordingEqualsItsJqjKeysFailsAsDeviationGone() {
+    DiffCase c = deviationCase("deviation nul\njqj-rc 0\njqj-stdout 123\\n\n");
+
+    Verdict v = runner(jqj(0, "123\n", "")).run(c, acceptedByJqRef(c));
+
+    assertThat(v.kind()).isEqualTo(Verdict.Kind.FAIL);
+    assertThat(v.detail()).isEqualTo("deviation gone");
+    assertThat(v.diff()).startsWith("t/deviation: FAIL, deviation gone: jq-ref's recording equals the jqj-* keys of deviation nul");
+  }
+
+  @Test
+  void aCaseWithoutDeviationIsComparedWithTheRecordingUnderJqRefsName() {
+    Verdict v = run("basics/compact-object", jqj(1, "", ""));
+
+    assertThat(v.detail()).startsWith("rc 1, jq-ref 0;");
+    assertThat(v.diff()).startsWith("basics/compact-object: FAIL\n").contains("rc      jq-ref 0\n");
+  }
+
+  @Test
+  void aDeviationSlugThatNamesNoRowOfDeviationsMdIsAnErrorBeforeJqjRuns() {
+    DiffCase c = deviationCase("deviation no-such-row\njqj-rc 5\n");
+    boolean[] ran = new boolean[1];
+    DiffRunner r =
+        runner(
+            inv -> {
+              ran[0] = true;
+              return 5;
+            });
+
+    assertThatThrownBy(() -> r.run(c, acceptedByJqRef(c)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("case t/deviation: deviation 'no-such-row' names no row of DEVIATIONS.md");
+    assertThat(ran[0]).isFalse();
+  }
+
   @Test
   void noWorkingDirectoryIsLeftBehind() throws IOException {
-    run("basics/file-argument", Main::run);
+    List<Path> parents = new ArrayList<>();
     run(
         "basics/file-argument",
         inv -> {
+          parents.add(inv.cwd().getParent());
+          return Main.run(inv);
+        });
+    run(
+        "basics/file-argument",
+        inv -> {
+          parents.add(inv.cwd().getParent());
           throw new IllegalStateException("boom");
         });
 
+    // The witness: both runs had their working directory in scratch, so an empty scratch means both were deleted.
+    assertThat(parents).containsExactly(scratch, scratch);
     try (Stream<Path> left = Files.list(scratch)) {
       assertThat(left).isEmpty();
     }

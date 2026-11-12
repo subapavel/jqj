@@ -198,7 +198,7 @@ public final class JsonReader {
     for (int c = peek(b, p, end); c != '"'; c = peek(b, p, end)) {
       if (c == '\\') {
         tag = Tape.STRING_REENCODE;
-        int next = escape(b, base, end, p + 1);
+        int next = escapeSequence(b, base, end, p + 1);
         if (isSurrogate(b, p, end, 0xD800) && !isSurrogate(b, next, end, 0xDC00)) {
           unpaired = true;
         }
@@ -293,8 +293,8 @@ public final class JsonReader {
     return (unit & 0xFC00) == low;
   }
 
-  /** Checks the escape whose letter is at p: one of {@code "\/bfnrt}, or {@code u} and four hex digits. */
-  private int escape(byte[] b, int base, int end, int p) {
+  /** Checks the escape sequence whose letter is at p: one of {@code "\/bfnrt}, or {@code u} and four hex digits. */
+  private int escapeSequence(byte[] b, int base, int end, int p) {
     return switch (peek(b, p, end)) {
       case '"', '\\', '/', 'b', 'f', 'n', 'r', 't' -> p + 1;
       case 'u' -> {

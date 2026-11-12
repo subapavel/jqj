@@ -24,39 +24,36 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
 /**
- * ADR-0024: the view members that were Stubs after #32, now each built and checked here or elsewhere. The views come
- * from {@code Workspace.read} (#32 conflict C4). #33 (S1.11) built the four {@code toJson()} and the UTF-8
- * classification, under which non-ASCII well-formed UTF-8 is tag 5; {@link #viewMembersBuiltBy33} checks those six
- * entries (#33 design C12). #36 built {@code NumberView.doubleValue()} and {@code decimalValue()} (#36 design C5, the
- * same rule); NumberViewTest and StaleViewTest check them. #35 decodes tag 6 (an escape, DEL or bytes that are not
- * well-formed UTF-8; #33 design C5), so every entry that met a tag-6 string or key ended with its Stub and {@link
- * #viewMembersBuiltBy35} checks it instead (#35 design K3). No view member is a Stub any more, so the factory of Stub
- * entries is gone.
+ * ADR-0024: the accessors of the views {@code Workspace.read} gives (#32 conflict C4). The four {@code toJson()} are
+ * the compact writer's text, and a non-ASCII string of well-formed UTF-8 is tag 5, so it reads ({@link
+ * #toJsonIsCompactTextAndNonAsciiIsTag5}). A tag-6 string or key (an escape sequence, DEL or bytes that are not
+ * well-formed UTF-8; ADR-0015) decodes ({@link #tag6AccessorsDecode}). {@code NumberView.doubleValue()} and {@code
+ * decimalValue()} are checked by NumberViewTest and StaleViewTest.
  */
-class ViewStubTest {
+class ViewAccessorsTest {
   /**
-   * One array, so that no object lookup meets a tag-6 key before its own entry: a number with a fraction, a
-   * plain string, an empty array and object, three tag-6 strings (an escape, non-ASCII, DEL), an object whose
-   * first key is the tag-6 spelling of its second key, and one whose second key is the tag-6 spelling of its first.
+   * One array, so that no object lookup meets a tag-6 key before its own entry: a number with a fraction, a plain
+   * string, an empty array and object, a tag-6 string with an escape sequence, a tag-5 non-ASCII string, a tag-6
+   * string of DEL, an object whose first key is the tag-6 spelling of its second key, and one whose second key is the
+   * tag-6 spelling of its first.
    */
   private static final String DOC =
       "[1.5,\"x\",[],{},\"a\\nb\",\"\u00e9\",\"\u007f\",{\"\\u0061\":1,\"a\":2},{\"a\":1,\"\\u0061\":2}]";
 
   /**
-   * The tag-6 entries #35 ended (design K3, under #33's C12 rule): the seven members that met a tag-6 string or key,
-   * and the forEach that had to call nothing before its Stub, now each decode. jq-ref 1.8.2, observed 2026-11-12:
+   * Every accessor that meets a tag-6 string or key decodes it. jq-ref 1.8.2, observed 2026-11-12:
    * {@code printf -- '<DOC>' | jq-ref -c '(.[4], .[6] | explode), (.[7], .[8] | ., keys, length, .a)'} -> {@code
    * [97,10,98]} {@code [127]}, then for each of the two objects {@code {"a":2}} {@code ["a"]} {@code 1} {@code 2}
    * (rc 0): both spellings of a are one key, at its first position with its last value.
    */
   @TestFactory
-  Stream<DynamicTest> viewMembersBuiltBy35() {
+  Stream<DynamicTest> tag6AccessorsDecode() {
     Map<String, Function<JqArray, Object>> built = new LinkedHashMap<>();
     Map<String, Object> expected = new LinkedHashMap<>();
-    built.put("StringView.value() of an escape", root -> string(root, 4).value());
-    expected.put("StringView.value() of an escape", "a\nb");
-    built.put("StringView.utf8() of an escape", root -> HexFormat.ofDelimiter(" ").formatHex(string(root, 4).utf8().toArray(JAVA_BYTE)));
-    expected.put("StringView.utf8() of an escape", "61 0a 62");
+    built.put("StringView.value() of an escape sequence", root -> string(root, 4).value());
+    expected.put("StringView.value() of an escape sequence", "a\nb");
+    built.put("StringView.utf8() of an escape sequence", root -> HexFormat.ofDelimiter(" ").formatHex(string(root, 4).utf8().toArray(JAVA_BYTE)));
+    expected.put("StringView.utf8() of an escape sequence", "61 0a 62");
     built.put("StringView.value() of DEL", root -> string(root, 6).value());
     expected.put("StringView.value() of DEL", "\u007f");
     built.put("StringView.utf8() of DEL", root -> HexFormat.ofDelimiter(" ").formatHex(string(root, 6).utf8().toArray(JAVA_BYTE)));
@@ -85,12 +82,12 @@ class ViewStubTest {
   }
 
   /**
-   * The six entries #33 ended (design C12): the four {@code toJson()} are the compact writer's text, and a non-ASCII
-   * string of well-formed UTF-8 is tag 5, so it reads. jq-ref 1.8.2, observed 2026-11-11:
+   * The four {@code toJson()} are the compact writer's text, and a non-ASCII string of well-formed UTF-8 is tag 5, so
+   * it reads. jq-ref 1.8.2, observed 2026-11-11:
    * {@code printf '[1.5,"x",[],{},"\xc3\xa9"]' | jq-ref -c .} -> {@code [1.5,"x",[],{},"é"]} (rc 0).
    */
   @TestFactory
-  Stream<DynamicTest> viewMembersBuiltBy33() {
+  Stream<DynamicTest> toJsonIsCompactTextAndNonAsciiIsTag5() {
     Map<String, Function<JqArray, Object>> built = new LinkedHashMap<>();
     Map<String, Object> expected = new LinkedHashMap<>();
     built.put("NumberView.toJson()", root -> number(root).toJson());
