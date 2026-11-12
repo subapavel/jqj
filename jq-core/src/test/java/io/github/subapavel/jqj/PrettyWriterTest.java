@@ -62,6 +62,9 @@ class PrettyWriterTest {
             "{\"a\":[{\"b\":1,\"c\":{\"d\":[2,\"e\"]}},3],\"f\":\"g\"}\n",
             "{\n  \"a\": [\n    {\n      \"b\": 1,\n      \"c\": {\n        \"d\": [\n          2,\n          \"e\"\n        ]\n      }\n    },\n    3\n  ],\n"
                 + "  \"f\": \"g\"\n}\n"),
+        // Recorded with no filter at all, which jq runs as '.'.
+        Arguments.argumentSet(
+            "pretty/no-filter", "{\"a\":[1,{\"b\":null}]}\n", "{\n  \"a\": [\n    1,\n    {\n      \"b\": null\n    }\n  ]\n}\n"),
         // ADR-0002: each key at its first position with its last value, as in compact output.
         Arguments.argumentSet(
             "pretty/duplicate-keys",

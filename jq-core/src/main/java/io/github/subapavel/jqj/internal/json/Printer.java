@@ -230,7 +230,7 @@ public final class Printer implements CanonicalForm.Out {
 
   /** A built string: well-formed UTF-8, printed as {@link #quoted}. */
   private void built(BuiltString s) {
-    quoted(s.bytes(), s.offset(), s.offset() + s.byteLength());
+    quoted(s.bytes(), 0, s.byteLength());
   }
 
   /**
@@ -251,7 +251,7 @@ public final class Printer implements CanonicalForm.Out {
           continue;
         }
         put(s, run, i - run);
-        escape(c);
+        escapeSequence(c);
         i++;
       } else {
         int length = JsonStrings.step(s, i, to);
@@ -269,8 +269,8 @@ public final class Printer implements CanonicalForm.Out {
     put('"');
   }
 
-  /** The escape of an ASCII byte that {@link #quoted} does not copy. */
-  private void escape(int c) {
+  /** The escape sequence of an ASCII byte that {@link #quoted} does not copy. */
+  private void escapeSequence(int c) {
     put('\\');
     switch (c) {
       case '"', '\\' -> put((char) c);
