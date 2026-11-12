@@ -81,7 +81,7 @@ The keys of an object construction in source order, with a repeated key keeping 
 _Avoid_: key set (it has an order).
 
 **Constant key**:
-An object-construction key known at parse time: a literal, or a computed key jq folds to a constant; a non-string one is a parser-action error (ADR-0036).
+An object-construction key known at parse time: a computed key jq folds to a constant (a number, string or container); a non-string one is a parser-action error (ADR-0036).
 _Avoid_: static key, literal key (a folded key is not a literal).
 
 ## Values
