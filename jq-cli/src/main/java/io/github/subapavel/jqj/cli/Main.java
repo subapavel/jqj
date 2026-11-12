@@ -26,7 +26,8 @@ import java.nio.file.Files;
  *
  * <p>Built so far (#33): {@code -c} anywhere, the filter as the first other argument ({@code .} when there is none),
  * then at most one file, read instead of stdin. A filter error ends the run with jq's line {@code jq: error (at
- * <name>:N): <text>} and exit code 5 (#34). Every other option is a Stub until #38, and pretty output until #39.
+ * <name>:N): <text>} and exit code 5 (#34). Without {@code -c} the output is pretty, jq's default indent 2 (#37).
+ * Every other option is a Stub until #38.
  */
 public final class Main {
 
