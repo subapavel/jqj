@@ -54,7 +54,7 @@ step trailers 0 scripts/check-trailers.sh "$ref..HEAD"
 step word 0 scripts/check-core-neutral.sh
 recordings=()
 while IFS= read -r path; do recordings+=("$path"); done < <(git diff --name-only --diff-filter=AM "$ref"...HEAD -- '*.rec')
-if [ ${#recordings[@]} -gt 0 ] && [ -x scripts/oracle-record.sh ]; then
+if [ ${#recordings[@]} -gt 0 ]; then
   step record 0 scripts/oracle-record.sh --verify "${recordings[@]}"
 fi
 
