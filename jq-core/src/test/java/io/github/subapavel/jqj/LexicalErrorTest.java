@@ -7,9 +7,10 @@ import org.junit.jupiter.api.Test;
 
 /**
  * {@code JqEngine.compile} on a bad escape run (ADR-0031, GLOSSARY "Escape run", "Error block"): every bad run is
- * collected, the exception carries one error block per run and the first block's line and column, in bytes. A Stub met
- * during the parse wins over the collected errors. The command line's text is checked by diff/literal.cases; this test
- * checks what the oracle cannot see: the exception's line, column and block list.
+ * collected, the exception carries one error block per run and the first block's line and column, in bytes. The errors
+ * are thrown before resolution, so no Stub hides one (ADR-0032, replacing ADR-0031's "a Stub met earlier wins"). The
+ * command line's text is checked by diff/literal.cases; this test checks what the oracle cannot see: the exception's
+ * line, column and block list.
  */
 class LexicalErrorTest {
   /** ADR-0024, GLOSSARY "Stub": the mark every Stub message starts with. */
@@ -63,19 +64,41 @@ class LexicalErrorTest {
   }
 
   @Test
-  void aStubMetDuringTheParseWinsOverTheCollectedErrors() {
-    // ADR-0031: lexical errors are thrown together at the end of the parse; a Stub met earlier wins. .[0] stays a Stub
-    // until #63 (jq-ref 1.8.2 gives the escape error for both texts, rc 3; jqj's Stub is the construct not built yet).
-    for (String text : new String[] {"\"\\v\" | .[0]", ".[0] | \"\\v\""}) {
-      assertThatExceptionOfType(JqCompileException.class)
-          .as("compile of %s", text)
-          .isThrownBy(() -> ENGINE.compile(text))
-          .withMessageStartingWith(MARK);
-    }
-    // Witness: without the Stub the same escape is an error block, not a Stub.
+  void noStubHidesALexicalError() {
+    // ADR-0032: the errors are thrown before resolution, so no Stub hides one; .[0] stays a Stub until #63. jq-ref
+    // 1.8.2, observed 2026-11-12: both texts -> rc 3, this one block, then "jq: 1 compile error".
+    JqCompileException before =
+        assertThatExceptionOfType(JqCompileException.class)
+            .as("compile of \"\\v\" | .[0]")
+            .isThrownBy(() -> ENGINE.compile("\"\\v\" | .[0]"))
+            .actual();
+    assertThat(before.blocks())
+        .as("blocks of \"\\v\" | .[0]")
+        .containsExactly(
+            "jq: error: Invalid escape at line 1, column 4 (while parsing '\"\\v\"') at <top-level>, line 1, column 2:\n"
+                + "    \"\\v\" | .[0]\n"
+                + "     ^^");
+    assertThat(before.line()).as("line of \"\\v\" | .[0]").isEqualTo(1);
+    assertThat(before.column()).as("column of \"\\v\" | .[0]").isEqualTo(2);
+
+    JqCompileException after =
+        assertThatExceptionOfType(JqCompileException.class)
+            .as("compile of .[0] | \"\\v\"")
+            .isThrownBy(() -> ENGINE.compile(".[0] | \"\\v\""))
+            .actual();
+    assertThat(after.blocks())
+        .as("blocks of .[0] | \"\\v\"")
+        .containsExactly(
+            "jq: error: Invalid escape at line 1, column 4 (while parsing '\"\\v\"') at <top-level>, line 1, column 9:\n"
+                + "    .[0] | \"\\v\"\n"
+                + "            ^^");
+    assertThat(after.line()).as("line of .[0] | \"\\v\"").isEqualTo(1);
+    assertThat(after.column()).as("column of .[0] | \"\\v\"").isEqualTo(9);
+
+    // Contrast: with no lexical error the unbuilt construct still ends in its Stub (jq-ref -c '.[0]' on null -> null).
     assertThatExceptionOfType(JqCompileException.class)
-        .as("compile of \"\\v\" | .")
-        .isThrownBy(() -> ENGINE.compile("\"\\v\" | ."))
-        .withMessageStartingWith("jq: error: Invalid escape at line 1, column 4");
+        .as("compile of .[0]")
+        .isThrownBy(() -> ENGINE.compile(".[0]"))
+        .withMessageStartingWith(MARK);
   }
 }

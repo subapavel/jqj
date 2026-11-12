@@ -301,6 +301,49 @@ class StepBudgetTest {
         "a 20-tick read inside a run with 10 steps");
   }
 
+  /**
+   * {@code @text} charges ticks for the text it builds (ADR-0008: a native loop whose length depends on the data ticks,
+   * the writer's included; #61). The document is {@code [1,1,…,1]} with 20 000 elements, 40 001 bytes: its read is 40
+   * ticks (ADR-0015, one per started KiB), which {@code .} shows by completing with 40 steps and ending with 39. With
+   * the same 40 steps, {@code @text} must end when it dumps those 40 001 bytes. The sinks neither write nor tick.
+   */
+  @Test
+  void textFormatChargesTicksForItsDump() {
+    byte[] ones = ones(20_000);
+    JqEngine forty = steps(40);
+
+    Workspace dotWorkspace = forty.newWorkspace();
+    JqValue dotRoot = read(dotWorkspace, ones).root();
+    Results dotted = new Results();
+    assertThat(forty.compile(".").run(dotRoot, NONE, dotted, dotWorkspace)).as("run's answer for . over 40 001 bytes with 40 steps").isTrue();
+    assertThat(dotted.values).as("results of . over 40 001 bytes").hasSize(1);
+    JqEngine thirtyNine = steps(39);
+    Workspace cut = thirtyNine.newWorkspace();
+    JqValue cutRoot = read(cut, ones).root();
+    assertBudget(() -> thirtyNine.compile(".").run(cutRoot, NONE, new Results(), cut), Budget.STEPS, ". over 40 001 bytes with 39 steps");
+
+    Workspace textWorkspace = forty.newWorkspace();
+    JqValue textRoot = read(textWorkspace, ones).root();
+    Results none = new Results();
+    assertBudget(() -> forty.compile("@text").run(textRoot, NONE, none, textWorkspace), Budget.STEPS, "@text over 40 001 bytes with 40 steps");
+    assertThat(none.values).as("results of @text with 40 steps").isEmpty();
+
+    // Witness: with steps to spare @text gives the array's compact text, here the document's own bytes (jq-ref 1.8.2,
+    // recorded: literal/format-text-array, [1,"b",null] -> "[1,\"b\",null]").
+    JqEngine spare = steps(1_000);
+    Workspace spareWorkspace = spare.newWorkspace();
+    JqValue spareRoot = read(spareWorkspace, ones).root();
+    Results text = new Results();
+    assertThat(spare.compile("@text").run(spareRoot, NONE, text, spareWorkspace)).as("run's answer for @text with 1 000 steps").isTrue();
+    assertThat(text.values).as("results of @text with 1 000 steps").singleElement().isInstanceOf(JqString.class);
+    assertThat(((JqString) text.values.get(0)).value()).as("the text of @text").isEqualTo(new String(ones, US_ASCII));
+  }
+
+  /** {@code [1,1,…,1]} with {@code n} elements: 2n + 1 bytes. */
+  private static byte[] ones(int n) {
+    return ("[" + "1,".repeat(n - 1) + "1]").getBytes(US_ASCII);
+  }
+
   private static byte[] bytes(String ascii) {
     return ascii.getBytes(US_ASCII);
   }
