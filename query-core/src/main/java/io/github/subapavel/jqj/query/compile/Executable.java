@@ -4,12 +4,19 @@ import io.github.subapavel.jqj.query.internal.interpret.Op;
 import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.query.run.Sink;
 
-/** A compiled tree (GLOSSARY "Executable"): immutable, and it keeps nothing from one run to the next. */
+/**
+ * A compiled tree (GLOSSARY "Executable"): immutable, and it keeps nothing from one run to the next. Each run gets its
+ * own slots (ADR-0034), so two runs on two threads share nothing.
+ */
 public final class Executable {
   private final Op root;
 
-  Executable(Op root) {
+  /** The number of slots a run needs. */
+  private final int slots;
+
+  Executable(Op root, int slots) {
     this.root = root;
+    this.slots = slots;
   }
 
   /**
@@ -17,6 +24,6 @@ public final class Executable {
    * true when they ran out, false when out stopped.
    */
   public boolean run(RunState state, Object in, Sink out) {
-    return root.run(state, in, out);
+    return root.run(state, new Object[slots], in, out);
   }
 }

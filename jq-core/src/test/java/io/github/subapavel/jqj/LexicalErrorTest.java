@@ -95,10 +95,11 @@ class LexicalErrorTest {
     assertThat(after.line()).as("line of .[0] | \"\\v\"").isEqualTo(1);
     assertThat(after.column()).as("column of .[0] | \"\\v\"").isEqualTo(9);
 
-    // Contrast: with no lexical error the unbuilt construct still ends in its Stub (jq-ref -c '.[0]' on null -> null).
+    // Contrast: with no lexical error an unbuilt construct still ends in its Stub. #63 built .[0], so the contrast moved
+    // to .., a Stub until spec 2b (jq-ref -c '..' on [1] -> [1] 1, CompileTest).
     assertThatExceptionOfType(JqCompileException.class)
-        .as("compile of .[0]")
-        .isThrownBy(() -> ENGINE.compile(".[0]"))
+        .as("compile of ..")
+        .isThrownBy(() -> ENGINE.compile(".."))
         .withMessageStartingWith(MARK);
   }
 }

@@ -73,7 +73,7 @@ class ParserEdgesTest {
         List.of(
             "import \"a\" as $x; .",
             "import \"a\" as x {a: 1}; .",
-            ".a.\"b\"?",
+            // .a."b"? left with its Stub: #63 lowers it (ResolverTest.navigationAndCommaLowerToTheirIr).
             ". as $x | 1",
             ". as {\"a\": $b} | 1",
             ". as {(1|tostring): $e} | 1",
