@@ -1,3 +1,27 @@
+/*
+ * Translated from jq 1.8.2 (https://github.com/jqlang/jq): jv_get in src/jv_aux.c.
+ *
+ * jq is copyright (C) 2012 Stephen Dolan
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 package io.github.subapavel.jqj.internal.op;
 
 import io.github.subapavel.jqj.internal.Stub;
@@ -9,6 +33,7 @@ import io.github.subapavel.jqj.query.run.CallForm;
 import io.github.subapavel.jqj.query.run.Fn1;
 import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqArray;
+import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqString;
@@ -40,34 +65,48 @@ public final class Index implements Fn1 {
   public Object apply(RunState state, Object in, Object key) {
     JqValue t = (JqValue) in;
     JqValue k = (JqValue) key;
-    if (t instanceof ObjectView object && k instanceof JqString name) {
-      JqValue value = object.get(state, name.value());
-      return value == null ? JqNull.NULL : value;
-    }
-    if (t instanceof JqArray array && k instanceof JqNumber n) {
-      return element(state, array, n.doubleValue());
-    }
-    if ((t instanceof JqArray || t instanceof JqString) && k instanceof ObjectView bounds) {
-      // parse_slice reads both keys; a missing one is jq's invalid, which is no number.
-      JqValue sliced = Slice.of(state, t, bounds.get(state, "start"), bounds.get(state, "end"));
-      if (sliced != null) {
-        return sliced;
-      }
-      if (quiet) {
-        return CallForm.NONE;
-      }
-      throw NavigationErrors.sliceIndices();
-    }
-    if (t instanceof JqArray && k instanceof JqArray) {
-      throw Stub.unbuilt("an array index of an array (jq's jv_array_indexes, #72)");
-    }
-    if (t instanceof JqNull && (k instanceof JqString || k instanceof JqNumber || k instanceof ObjectView)) {
-      return t;
+    // jv_get's pairs; Java null is a pair jq has no value for, its "Cannot index" error.
+    Object value =
+        switch (t) {
+          case ObjectView object ->
+              switch (k) {
+                case JqString name -> orNull(object.get(state, name.value()));
+                case JqNull _, JqBool _, JqNumber _, JqArray _, ObjectView _ -> null;
+              };
+          case JqArray array ->
+              switch (k) {
+                case JqNumber n -> element(state, array, n.doubleValue());
+                // parse_slice reads both keys; a missing one is jq's invalid, which is no number.
+                case ObjectView bounds ->
+                    Slice.sliced(Slice.of(state, array, bounds.get(state, "start"), bounds.get(state, "end")), quiet);
+                case JqArray _ -> throw Stub.unbuilt("an array index of an array (jq's jv_array_indexes, #72)");
+                case JqNull _, JqBool _, JqString _ -> null;
+              };
+          case JqString s ->
+              switch (k) {
+                case ObjectView bounds ->
+                    Slice.sliced(Slice.of(state, s, bounds.get(state, "start"), bounds.get(state, "end")), quiet);
+                case JqNull _, JqBool _, JqNumber _, JqString _, JqArray _ -> null;
+              };
+          case JqNull nul ->
+              switch (k) {
+                case JqString _, JqNumber _, ObjectView _ -> nul;
+                case JqNull _, JqBool _, JqArray _ -> null;
+              };
+          case JqBool _, JqNumber _ -> null;
+        };
+    if (value != null) {
+      return value;
     }
     if (quiet) {
       return CallForm.NONE;
     }
     throw NavigationErrors.cannotIndex(t, k);
+  }
+
+  /** {@code value}, or null for Java {@code null}, a missing key or an element past the end. */
+  private static JqValue orNull(JqValue value) {
+    return value == null ? JqNull.NULL : value;
   }
 
   /** The element at {@code i} of {@code array}, or null: a view charges the entries it steps (ADR-0034). */
@@ -83,11 +122,10 @@ public final class Index implements Fn1 {
         return JqNull.NULL;
       }
     }
-    JqValue value =
+    return orNull(
         switch (array) {
           case ArrayView view -> view.get(state, (int) at);
           case BuiltArray built -> at < built.length() ? built.get((int) at) : null;
-        };
-    return value == null ? JqNull.NULL : value;
+        });
   }
 }

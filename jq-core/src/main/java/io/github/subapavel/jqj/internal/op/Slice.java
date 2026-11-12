@@ -1,3 +1,27 @@
+/*
+ * Translated from jq 1.8.2 (https://github.com/jqlang/jq): parse_slice and the slice of jv_get in src/jv_aux.c.
+ *
+ * jq is copyright (C) 2012 Stephen Dolan
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 package io.github.subapavel.jqj.internal.op;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
@@ -7,11 +31,13 @@ import io.github.subapavel.jqj.internal.json.Printer;
 import io.github.subapavel.jqj.internal.value.ArrayView;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltString;
+import io.github.subapavel.jqj.internal.value.ObjectView;
 import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.run.CallForm;
 import io.github.subapavel.jqj.query.run.Fn2;
 import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqArray;
+import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqString;
@@ -46,23 +72,33 @@ public final class Slice implements Fn2 {
   @Override
   public Object apply(RunState state, Object in, Object a, Object b) {
     JqValue t = (JqValue) in;
-    if (t instanceof JqNull) {
-      return t;
-    }
-    if (t instanceof JqArray || t instanceof JqString) {
-      JqValue sliced = of(state, t, (JqValue) a, (JqValue) b);
-      if (sliced != null) {
-        return sliced;
+    JqValue from = (JqValue) a;
+    JqValue to = (JqValue) b;
+    return switch (t) {
+      case JqNull nul -> nul;
+      case JqArray array -> sliced(of(state, array, from, to), quiet);
+      case JqString s -> sliced(of(state, s, from, to), quiet);
+      case JqBool _, JqNumber _, ObjectView _ -> {
+        if (quiet) {
+          yield CallForm.NONE;
+        }
+        throw NavigationErrors.cannotIndex(t, "object", shown(from, to));
       }
-      if (quiet) {
-        return CallForm.NONE;
-      }
-      throw NavigationErrors.sliceIndices();
+    };
+  }
+
+  /**
+   * {@code slice}, or for Java null, a bound neither null nor a number, jq's error, which {@code quiet} drops (no
+   * result).
+   */
+  static Object sliced(JqValue slice, boolean quiet) {
+    if (slice != null) {
+      return slice;
     }
     if (quiet) {
       return CallForm.NONE;
     }
-    throw NavigationErrors.cannotIndex(t, "object", shown((JqValue) a, (JqValue) b));
+    throw NavigationErrors.sliceIndices();
   }
 
   /** What jq's error shows of the key {@code {"start": from, "end": to}}. */
@@ -77,17 +113,14 @@ public final class Slice implements Fn2 {
   }
 
   /**
-   * The slice {@code [from, to)} of {@code t}, an array or a string, or Java null when a bound is neither null nor a
-   * number; a Java null bound, a key {@link Index} found missing, is neither.
+   * The elements {@code [from, to)} of {@code array}, or Java null when a bound is neither null nor a number; a Java
+   * null bound, a key {@link Index} found missing, is neither.
    */
-  static JqValue of(RunState state, JqValue t, JqValue from, JqValue to) {
-    if (!(from instanceof JqNull || from instanceof JqNumber) || !(to instanceof JqNull || to instanceof JqNumber)) {
+  static JqValue of(RunState state, JqArray array, JqValue from, JqValue to) {
+    if (!isBound(from) || !isBound(to)) {
       return null;
     }
-    if (t instanceof JqString s) {
-      return string(state, s, from, to);
-    }
-    return switch ((JqArray) t) {
+    return switch (array) {
       case ArrayView view -> {
         long range = bounds(view.length(state), from, to);
         yield view.slice(state, (int) (range >>> 32), (int) range);
@@ -96,6 +129,23 @@ public final class Slice implements Fn2 {
         long range = bounds(built.length(), from, to);
         yield built.slice(state, (int) (range >>> 32), (int) range);
       }
+    };
+  }
+
+  /** The code points {@code [from, to)} of {@code s}, or Java null when a bound is neither null nor a number. */
+  static JqValue of(RunState state, JqString s, JqValue from, JqValue to) {
+    if (!isBound(from) || !isBound(to)) {
+      return null;
+    }
+    return string(state, s, from, to);
+  }
+
+  /** Whether {@code bound} is null or a number, which parse_slice takes; Java null, a missing key, is neither. */
+  private static boolean isBound(JqValue bound) {
+    return switch (bound) {
+      case null -> false;
+      case JqNull _, JqNumber _ -> true;
+      case JqBool _, JqString _, JqArray _, ObjectView _ -> false;
     };
   }
 

@@ -10,7 +10,7 @@ import io.github.subapavel.jqj.value.JqValue;
  * Equality is the record's, never jq's (ADR-0026). The host's accessors walk the tape for nothing; the walks a filter
  * makes take its run state and charge it the elements they step, once per walk (ADR-0008, ADR-0034).
  */
-public record ArrayView(Document doc, int index) implements JqArray {
+public record ArrayView(Document doc, int index) implements JqArray, Members {
 
   /** jq's compact text (ADR-0015). */
   @Override
@@ -87,24 +87,24 @@ public record ArrayView(Document doc, int index) implements JqArray {
     return new BuiltArray(elements);
   }
 
-  /** The cursor of {@code .[]}'s first element, its tape index, or -1 for an empty array (ADR-0034). */
+  /** The cursor of the first element, its tape index, or -1 for an empty array. */
+  @Override
   public int first() {
     long[] tape = doc.live();
     return index + 1 < Tape.end(tape, index) ? index + 1 : -1;
   }
 
-  /**
-   * The cursor after the element at tape index {@code at}, or -1 after the last. It checks the document again: the sink
-   * that took the element may have read another one onto this tape (ADR-0026).
-   */
-  public int next(int at) {
+  /** The cursor after the element at tape index {@code at}, or -1 after the last: one step, no scan. */
+  @Override
+  public int next(RunState state, int at) {
     long[] tape = doc.live();
     int next = Tape.next(tape, at);
     return next < Tape.end(tape, index) ? next : -1;
   }
 
-  /** The element at the cursor {@code at} of {@link #first()} or {@link #next(int)}. */
-  public JqValue at(int at) {
+  /** The element at tape index {@code at}. */
+  @Override
+  public JqValue member(RunState state, int at) {
     return doc.valueAt(doc.live(), at);
   }
 }

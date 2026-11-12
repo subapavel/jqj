@@ -7,7 +7,11 @@ import io.github.subapavel.jqj.query.run.CallForm;
 import io.github.subapavel.jqj.query.run.FilterException;
 import io.github.subapavel.jqj.query.run.Fn0;
 import io.github.subapavel.jqj.query.run.RunState;
+import io.github.subapavel.jqj.value.JqArray;
+import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
+import io.github.subapavel.jqj.value.JqNumber;
+import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 
 /**
@@ -36,17 +40,18 @@ public final class Field implements Fn0 {
 
   @Override
   public Object apply(RunState state, Object in) {
-    return switch ((JqValue) in) {
+    JqValue v = (JqValue) in;
+    return switch (v) {
       case ObjectView object -> {
         JqValue value = object.get(state, name);
         yield value == null ? JqNull.NULL : value;
       }
       case JqNull nul -> nul;
-      case JqValue other -> {
+      case JqBool _, JqNumber _, JqString _, JqArray _ -> {
         if (quiet) {
           yield CallForm.NONE;
         }
-        throw NavigationErrors.cannotIndex(other, "string", shown);
+        throw NavigationErrors.cannotIndex(v, "string", shown);
       }
     };
   }
