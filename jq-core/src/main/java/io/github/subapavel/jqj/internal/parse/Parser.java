@@ -19,6 +19,8 @@ import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqValue;
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,32 +38,43 @@ import java.util.Map;
  * string  := '"' (TEXT | escape run)* '"'       no interpolation (#67)
  * </pre>
  *
- * Any token sequence the grammar rejects is a Stub: the syntax errors come later. The lexical errors, one block per bad
- * escape run, are thrown together once the whole text has parsed, so a Stub met during the parse wins (ADR-0031).
+ * Any token sequence the grammar rejects is a Stub: the syntax errors come later. The whole text is lexed first, as the
+ * lexer's modes need no parser, and its lexical errors, one block per bad escape run, are thrown together before the
+ * parse, so no Stub hides one (ADR-0032).
  */
 public final class Parser {
   /** The IDENTs that are constants (jq's parser), unless a {@code (} makes them a call. */
   private static final Map<String, JqValue> CONSTANTS = Map.of("true", JqBool.TRUE, "false", JqBool.FALSE, "null", JqNull.NULL);
 
-  private final Lexer lexer;
-
   /** The filter's UTF-8 bytes, which the tokens index. */
   private final byte[] b;
 
+  /** The text's tokens, the last one its END. */
+  private final List<Token> tokens = new ArrayList<>();
+
+  /** The index of the current token. */
+  private int at;
+
   private Token token;
 
+  /** Lexes the whole of {@code text}, then throws its lexical errors when it has any. */
   private Parser(String text) {
-    this.lexer = new Lexer(text);
+    Lexer lexer = new Lexer(text);
     this.b = lexer.bytes();
-    this.token = lexer.next();
+    do {
+      tokens.add(lexer.next());
+    } while (tokens.getLast().kind() != Token.Kind.END);
+    lexer.throwErrors();
+    this.token = tokens.getFirst();
   }
 
   /** The IR of {@code text}. */
   public static Node parse(String text) {
     Parser parser = new Parser(text);
     Node node = parser.pipe();
-    parser.expect(Token.Kind.END);
-    parser.lexer.throwErrors();
+    if (parser.token.kind() != Token.Kind.END) {
+      throw parser.unbuilt();
+    }
     return node;
   }
 
@@ -179,10 +192,10 @@ public final class Parser {
     return new Source(first.source().start(), last.source().end());
   }
 
-  /** Takes the current token and reads the next one. */
+  /** Takes the current token, never the END, and moves to the next one. */
   private Token advance() {
     Token t = token;
-    token = lexer.next();
+    token = tokens.get(++at);
     return t;
   }
 

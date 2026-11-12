@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.RunBudgets.Results;
+import io.github.subapavel.jqj.internal.op.TextFormat;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
@@ -152,6 +153,8 @@ class LiteralEdgesTest {
     assertThat(results.values).as("results").hasSize(2).allMatch(v -> v instanceof JqString);
     assertThat(((JqString) results.values.getFirst()).value()).as("text of \"a\"").isEqualTo("a");
     assertThat(((JqString) results.values.get(1)).value()).as("text of 1.0").isEqualTo("1.0");
+    // The form with no run: the same text, its ticks charged to an idle run state.
+    assertThat(((JqString) new TextFormat().apply(JqNull.NULL)).value()).as("text of null outside a run").isEqualTo("null");
   }
 
   @Test
