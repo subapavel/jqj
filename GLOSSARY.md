@@ -251,6 +251,17 @@ _Avoid_: fatal error
 One count against the step budget: at a site the IR defines, or per element or KiB inside a native
 loop.
 
+**Run state**:
+The protocol state of one running evaluation in `query-core` (fuel, deadline, budget counts, and
+later labels and the break target), owned by its Workspace and passed first to every node and
+operation (ADR-0030).
+_Avoid_: run context, context
+
+**Refuel**:
+A tick's cold path when fuel runs out, every 4096 ticks: it charges the overdraft to the step
+budget, reads the clock against the deadline, checks the thread interrupt and grants the next
+ticks.
+
 **Stack units**:
 The Java stack a call is charged for. A call over the limit runs on the trampoline.
 
