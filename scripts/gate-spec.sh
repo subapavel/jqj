@@ -55,6 +55,7 @@ step() { # <name> <show> <command…>
   fi
 }
 
+pit_cli_exclusions="-DexcludedTestClasses=io.github.subapavel.jqj.cli.LauncherTest,io.github.subapavel.jqj.cli.*ModulePathTest"
 classc=$(awk -F'\t' 'NR > 1 && $2 == "C" { printf "%s%s", sep, $1; sep = "," }' quality/floors.tsv)
 
 step clean-verify 0 ./mvnw -B clean verify -Pbench
@@ -63,7 +64,9 @@ recordings=()
 while IFS= read -r path; do recordings+=("$path"); done < <(git ls-files -- 'oracle/src/test/resources/**/*.rec')
 step record 0 scripts/oracle-record.sh --verify "${recordings[@]}"
 # oracle's crossModule run mutates the class-C classes under every oracle test; ratchet.java combines it (ADR-0014).
-step pit 0 ./mvnw -B -pl "$classc,oracle" -am test org.pitest:pitest-maven:mutationCoverage
+# oracle pulls in jq-cli, whose module-path and launcher tests need surefire executions PIT does not run; they are
+# kept out of PIT here (a module whose POM sets excludedTestClasses, as oracle does, keeps its own list).
+step pit 0 ./mvnw -B -pl "$classc,oracle" -am test org.pitest:pitest-maven:mutationCoverage "$pit_cli_exclusions"
 step jmh 0 java -jar "${JMH_JAR:-bench/jmh/target/benchmarks.jar}" -prof gc -rf json -rff ".logs/spec$spec-jmh.json"
 export RATCHET_JMH=".logs/spec$spec-jmh.json"
 step regen 1 java scripts/ratchet.java regen --all
