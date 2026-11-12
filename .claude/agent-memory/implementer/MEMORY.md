@@ -114,3 +114,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#61) jq-ref 1.8.2: an escape run ending in a 3- or 4-byte lead byte swallows the closing quote ("Unfinished string at EOF"); a 2-byte lead keeps it.
 - (#61) Adding a JqNumber or JqString permit breaks SealedPermitsTest and SealedPermitsModulePathTest.
 - (#61) Class-C implementers can hit the 200-turn cap: commit and push early.
+- (#61) Two worktrees on one branch: when another writer moves the ref, your index still holds the old files and `git status` shows them staged. `git restore --source=HEAD --staged --worktree <files>` brings them to the tip.
+- (#61) `git merge -s` is the strategy flag, not signoff: finish a merge commit with `git commit -s -F <msg>`.
