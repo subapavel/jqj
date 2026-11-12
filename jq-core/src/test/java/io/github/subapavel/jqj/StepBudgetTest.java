@@ -339,6 +339,28 @@ class StepBudgetTest {
     assertThat(((JqString) text.values.get(0)).value()).as("the text of @text").isEqualTo(new String(ones, US_ASCII));
   }
 
+  /**
+   * {@code @text} charges one tick per started KiB of the text it builds (ADR-0008, ADR-0030; #80). The document's
+   * 40 001 bytes are not a multiple of 1 024: its read is 40 ticks and its text 40 more (ceil(40 001 / 1 024) = 40;
+   * a floor gives 39, a shift by 11 gives 20, a flat charge gives 1). So 80 steps complete and 79 end.
+   */
+  @Test
+  void textFormatChargesOneTickPerStartedKiB() {
+    byte[] ones = ones(20_000);
+    JqEngine exact = steps(80);
+    Workspace exactWorkspace = exact.newWorkspace();
+    JqValue exactRoot = read(exactWorkspace, ones).root();
+    Results text = new Results();
+    assertThat(exact.compile("@text").run(exactRoot, NONE, text, exactWorkspace)).as("run's answer for @text over 40 001 bytes with 80 steps").isTrue();
+    assertThat(text.values).as("results of @text with 80 steps").singleElement().isInstanceOf(JqString.class);
+    assertThat(((JqString) text.values.get(0)).value()).as("the text of @text with 80 steps").isEqualTo(new String(ones, US_ASCII));
+
+    JqEngine fewer = steps(79);
+    Workspace fewerWorkspace = fewer.newWorkspace();
+    JqValue fewerRoot = read(fewerWorkspace, ones).root();
+    assertBudget(() -> fewer.compile("@text").run(fewerRoot, NONE, new Results(), fewerWorkspace), Budget.STEPS, "@text over 40 001 bytes with 79 steps");
+  }
+
   /** {@code [1,1,…,1]} with {@code n} elements: 2n + 1 bytes. */
   private static byte[] ones(int n) {
     return ("[" + "1,".repeat(n - 1) + "1]").getBytes(US_ASCII);
