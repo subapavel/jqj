@@ -82,6 +82,23 @@ class LiteralEdgesTest {
   }
 
   @Test
+  void everyOneLetterEscapeAndALineFeedInARun() {
+    // jq-ref -n -c -f on '"\"\\\/\b\f\n\r\t" | explode' -> [34,92,47,8,12,10,13,9].
+    Results results = new Results();
+    ENGINE.compile("\"\\\"\\\\\\/\\b\\f\\n\\r\\t\"").run(JqNull.NULL, NONE, results, ENGINE.newWorkspace());
+    assertThat(((JqString) results.values.getFirst()).value().codePoints().toArray())
+        .as("code points of the eight one-letter escapes")
+        .containsExactly(34, 92, 47, 8, 12, 10, 13, 9);
+    // jq-ref -n -f on a backslash and an LF in quotes: rc 3, this block; the column counts from the LF in the run.
+    assertThat(onlyBlock("\"\\\n\""))
+        .as("block of a backslash before an LF")
+        .isEqualTo(
+            "jq: error: Invalid escape at line 2, column 1 (while parsing '\"\\\n\"') at <top-level>, line 1, column 2:\n"
+                + "    \"\\\n"
+                + "     ^");
+  }
+
+  @Test
   void aShortUnicodeEscapeEndsAtTheFirstByteThatIsNoLetterOrDigit() {
     // jq-ref -n '"\\u_"': rc 3; the run is \\u alone, the underscore plain text.
     assertThat(onlyBlock("\"\\u_\""))
@@ -108,9 +125,9 @@ class LiteralEdgesTest {
 
   @Test
   void callsOfConstantsAndFormatStringsAreStubs() {
-    // jq-ref -n 'true(1)' -> "true/1 is not defined", rc 3; '@text "a"' -> "a" and '@base64' -> "bnVsbA==", rc 0.
-    // A call, a format string and another format are not built in #61.
-    for (String text : new String[] {"true(1)", "@text \"a\"", "@base64"}) {
+    // jq-ref -n 'true(1)' -> "true/1 is not defined" and 'foo' -> "foo/0 is not defined", rc 3; '@text "a"' -> "a"
+    // and '@base64' -> "bnVsbA==", rc 0. A call, another name, a format string and another format are not built in #61.
+    for (String text : new String[] {"true(1)", "foo", "@text \"a\"", "@base64"}) {
       assertThatExceptionOfType(JqCompileException.class)
           .as("compile of %s", text)
           .isThrownBy(() -> ENGINE.compile(text))
@@ -167,6 +184,12 @@ class LiteralEdgesTest {
               .actual();
       assertThat(((JqString) e.value()).value()).as("error text of .\"%s\"", c[0]).isEqualTo(c[1]);
     }
+    // jq-ref -n -c '{"a":{"b":1}} | .a."b"' -> 1: a string key after a term.
+    Workspace workspace = ENGINE.newWorkspace();
+    JqValue ab = read(workspace, "{\"a\":{\"b\":1}}").root();
+    Results results = new Results();
+    ENGINE.compile(".a.\"b\"").run(ab, NONE, results, workspace);
+    assertThat(results.values).as("results of .a.\"b\"").singleElement().matches(v -> v.toJson().equals("1"));
   }
 
   /** The one result of {@code text} on null, a number. */

@@ -85,7 +85,11 @@ public final class JsonStrings {
     return o;
   }
 
-  /** The value of the four hex digits at {@code b[p]}, which the reader checked. */
+  /**
+   * The value of the four hex digits at {@code b[p]}, or a negative number when one of them is no hex digit, as jq's
+   * {@code unhex4} gives -1: that digit's -1 from {@code Character.digit} sets every bit, and no shift after it clears
+   * the sign. A byte from 0x80 is negative here, so no hex digit.
+   */
   private static int hex4(byte[] b, int p) {
     int v = 0;
     for (int i = p; i < p + 4; i++) {
@@ -223,17 +227,17 @@ public final class JsonStrings {
           if (in + 4 > to) {
             return "Invalid \\uXXXX escape";
           }
-          int unit = checkedHex4(b, in);
+          int unit = hex4(b, in);
           if (unit < 0) {
             return "Invalid characters in \\uXXXX escape";
           }
           in += 4;
           if (unit >= 0xD800 && unit <= 0xDBFF) {
             // jq tells a missing, malformed or wrong second unit apart in no word: one message for all three. A
-            // malformed one is -1, below every low surrogate. jq also checks that a \\u follows; here b[in] is the next
-            // sequence's backslash, as every byte is in one, and a sequence that is no \\u has a backslash or a byte
-            // of U+FFFD at in + 2, no hex digit, so it is a malformed unit too.
-            if (in + 6 > to || !isLowSurrogate(checkedHex4(b, in + 2))) {
+            // malformed one is negative, below every low surrogate. jq also checks that a \\u follows; here b[in] is
+            // the next sequence's backslash, as every byte is in one, and a sequence that is no \\u has a backslash or a
+            // byte of U+FFFD at in + 2, no hex digit, so it is a malformed unit too.
+            if (in + 6 > to || !isLowSurrogate(hex4(b, in + 2))) {
               return "Invalid \\uXXXX\\uXXXX surrogate pair escape";
             }
             in += 6;
@@ -249,19 +253,5 @@ public final class JsonStrings {
 
   private static boolean isLowSurrogate(int unit) {
     return unit >= 0xDC00 && unit <= 0xDFFF;
-  }
-
-  /** jq's {@code unhex4}: the value of the four hex digits at {@code b[p]}, or -1 when one of them is no hex digit. */
-  private static int checkedHex4(byte[] b, int p) {
-    int v = 0;
-    for (int i = p; i < p + 4; i++) {
-      // A byte from 0x80 is negative here, so no hex digit.
-      int digit = Character.digit(b[i], 16);
-      if (digit < 0) {
-        return -1;
-      }
-      v = v << 4 | digit;
-    }
-    return v;
   }
 }
