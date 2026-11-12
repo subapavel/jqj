@@ -29,7 +29,8 @@ public final class JqEngine {
 
   /**
    * Compiles {@code text}: parses jq's whole grammar, then resolves it (ADR-0032). Resolved so far: {@code .}, fields,
-   * {@code |}, parentheses, literals and bare {@code @text}; any other construct is a Stub.
+   * {@code .[k]}, {@code .[a:b]} and {@code .[]} with their {@code ?}, {@code |}, {@code ,}, parentheses, literals and
+   * bare {@code @text}; any other construct is a Stub.
    *
    * @throws JqCompileException with jq's error blocks for a lexical, syntax or recovery error (ADR-0031), jq's
    *     not-given error for a program without a top-level filter, or a Stub's
