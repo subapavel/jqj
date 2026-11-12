@@ -161,6 +161,20 @@ check "tolerance set, within it" "$(run check)" 0
 printf 'scenario\tmachine\tscore\tunit\ttolerance%%\nG6.compact.10m\tm1\t100\tus/op\t10\n' > "$root/ratchet/bench.tsv"
 echo '[{"benchmark":"io.github.subapavel.jqj.bench.Gates.G6_compact_10m","mode":"avgt","primaryMetric":{"score":900.0,"scoreUnit":"us/op"}}]' > "$root/jmh.json"
 check "method G6_compact_10m reads as id G6.compact.10m" "$(run check)" 1
+# A NaN score is no score: it fails, as a bare literal and as JMH 1.37 writes it ("NaN", a string).
+printf 'scenario\tmachine\tscore\tunit\ttolerance%%\nG1\tm1\t100\tms/op\t10\n' > "$root/ratchet/bench.tsv"
+echo '[{"benchmark":"x.G1","mode":"avgt","primaryMetric":{"score":NaN,"scoreUnit":"ms/op"}}]' > "$root/jmh.json"
+check "bare NaN score fails" "$(run check)" 1
+has "NaN named" 'bench G1 has no finite score (NaN or INF)'
+echo '[{"benchmark":"x.G1","mode":"avgt","primaryMetric":{"score":"NaN","scoreUnit":"ms/op"}}]' > "$root/jmh.json"
+check "JMH's \"NaN\" score fails" "$(run check)" 1
+has "\"NaN\" named" 'bench G1 has no finite score (NaN or INF)'
+check "regen --all refuses a NaN score" "$(run regen --all)" 1
+has "regen names the NaN" 'bench G1 has no finite score (NaN or INF)'
+# A scenario with a tolerance that the machine's JMH result lacks fails.
+echo '[{"benchmark":"x.G2","mode":"avgt","primaryMetric":{"score":50.0,"scoreUnit":"ms/op"}}]' > "$root/jmh.json"
+check "scenario missing from the JMH result fails" "$(run check)" 1
+has "missing scenario named" 'bench G1 is missing from the JMH result'
 
 # --- regen --all ---
 fresh

@@ -63,6 +63,9 @@ jobs:
           sudo install -m 755 jq-ref /usr/local/bin/jq-ref
           rm jq-ref
           jq-ref --version
+      # ADR-0020: every recording against jq-ref, not only those a ticket changed.
+      - name: Recordings (oracle-record.sh --verify)
+        run: bash scripts/oracle-record.sh --verify $(git ls-files -- 'oracle/src/test/resources/**/*.rec')
       # Needs git, Java 25 (ratchet.java, javac), jq-ref and the stub-driven gate scripts; all are provided above.
       - name: Script tests (every scripts/test/*-test.sh)
         run: |
