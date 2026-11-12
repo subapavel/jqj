@@ -29,9 +29,14 @@ final class Corpus {
     return casesDir().getParent().getParent().getParent().getParent();
   }
 
-  /** The ratcheted ids and those the ticket names with {@code -Doracle.require=<file>}. */
+  /** The ratcheted ids and the differential ids the ticket names with {@code -Doracle.require=<file>}. */
   static Set<String> required() {
-    return DiffReport.required(root().resolve("ratchet/oracle/differential.txt"), System.getProperty("oracle.require"));
+    return required(System.getProperty("oracle.require"));
+  }
+
+  /** The ratcheted ids and the differential ids of {@code requireFile} (null: none). */
+  static Set<String> required(String requireFile) {
+    return DiffReport.required(root().resolve("ratchet/oracle/differential.txt"), requireFile, DiffReport.Oracle.DIFFERENTIAL);
   }
 
   /**
