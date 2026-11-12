@@ -57,12 +57,12 @@ public final class Slice implements Fn2 {
       if (quiet) {
         return CallForm.NONE;
       }
-      throw Errors.sliceIndices();
+      throw NavigationErrors.sliceIndices();
     }
     if (quiet) {
       return CallForm.NONE;
     }
-    throw Errors.cannotIndex(t, "object", shown((JqValue) a, (JqValue) b));
+    throw NavigationErrors.cannotIndex(t, "object", shown((JqValue) a, (JqValue) b));
   }
 
   /** What jq's error shows of the key {@code {"start": from, "end": to}}. */
@@ -153,10 +153,9 @@ public final class Slice implements Fn2 {
    * fraction below it; an end before the start is the start.
    */
   static long bounds(int length, JqValue from, JqValue to) {
+    // A NaN start takes none of the three branches below, as every comparison with NaN is false, and the cast makes
+    // it 0.
     double start = from instanceof JqNumber n ? n.doubleValue() : 0;
-    if (Double.isNaN(start)) {
-      start = 0;
-    }
     if (start < 0) {
       start += length;
     }

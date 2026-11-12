@@ -38,7 +38,7 @@ public final class Iterate implements Many {
         if (quiet) {
           yield END;
         }
-        throw Errors.cannotIterate(other);
+        throw NavigationErrors.cannotIterate(other);
       }
     };
   }
