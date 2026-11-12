@@ -12,17 +12,27 @@ sha=0123456789abcdef0123456789abcdef01234567
 bin=$tmp/bin
 mkdir "$bin"
 ghlog=$tmp/gh.log
+# the stub answers "gh api repos/{owner}/{repo}/pulls/<n>" from $tmp/pr-<n> (head ref, then title)
 cat > "$bin/gh" <<STUB
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$ghlog"
 case "\$1 \$2" in
-  "api repos/{owner}/{repo}/pulls/48") printf '%s\n' $sha spec/22-walking-skeleton 'Walking skeleton' ;;
-  "api repos/{owner}/{repo}/pulls/49") printf '%s\n' $sha t/49-some-ticket 'Some ticket' ;;
+  "api repos/{owner}/{repo}/pulls/"*)
+    f=$tmp/pr-\${2##*/}
+    [ -f "\$f" ] || { echo "stub gh: no such PR" >&2; exit 1; }
+    echo $sha
+    cat "\$f"
+    ;;
   "pr merge") exit 0 ;;
-  *) echo "stub gh: no such PR" >&2; exit 1 ;;
+  *) echo "stub gh: unexpected call" >&2; exit 1 ;;
 esac
 STUB
 chmod +x "$bin/gh"
+pr() { printf '%s\n%s\n' "$2" "$3" > "$tmp/pr-$1"; }
+# PR #48's real title
+pr 48 spec/22-walking-skeleton 'Spec 22: Walking skeleton (`.` and `.a` through every layer, tooling, oracles, ratchet)'
+s48='Merge spec 22 "Walking skeleton (`.` and `.a` through every layer, tooling, oracles, ratchet)" (#48)'
+pr 49 t/49-some-ticket 'Some ticket'
 export PATH="$bin:$PATH"
 export TMPDIR=$tmp
 export GIT_AUTHOR_NAME="O Wner" GIT_AUTHOR_EMAIL=o@x.y
@@ -54,7 +64,7 @@ check "dry run rc" "$rc" 0
 body=$(printf '%s\n' "$out" | sed -n 's/^body file: //p')
 check "dry run names the body file" "$([ -f "$body" ] && echo yes)" yes
 check "body is the trailer block" "$(cat "$body")" "$(printf 'Ticket: #22\nCo-authored-by: Claude <noreply@anthropic.com>\nSigned-off-by: O Wner <o@x.y>')"
-printf 'Merge spec 22 "Walking skeleton" (#48)\n\n' > "$tmp/msg"
+printf '%s\n\n' "$s48" > "$tmp/msg"
 cat "$body" >> "$tmp/msg"
 "$repo/scripts/check-trailers.sh" --message "$tmp/msg" > "$tmp/check" 2>&1
 check "subject plus body passes check-trailers.sh" "$?" 0
@@ -66,13 +76,37 @@ untouched "dry run"
 # the printed command is exact: run as printed, the stub sees the subject and the body file
 : > "$ghlog"
 (cd "$repo" && eval "$cmd")
-check "printed command" "$(cat "$ghlog")" "pr merge 48 --merge --match-head-commit $sha --subject Merge spec 22 \"Walking skeleton\" (#48) --body-file $body"
+check "printed command" "$(cat "$ghlog")" "pr merge 48 --merge --match-head-commit $sha --subject $s48 --body-file $body"
 
 # --execute runs that same command
 run scripts/merge-spec.sh 48 --execute
 check "execute rc" "$rc" 0
 body2=$(printf '%s\n' "$out" | sed -n 's/^body file: //p')
-check "execute merges once with the checked body" "$(grep '^pr merge' "$ghlog")" "pr merge 48 --merge --match-head-commit $sha --subject Merge spec 22 \"Walking skeleton\" (#48) --body-file $body2"
+check "execute merges once with the checked body" "$(grep '^pr merge' "$ghlog")" "pr merge 48 --merge --match-head-commit $sha --subject $s48 --body-file $body2"
+
+# the title loses one leading "Spec <n>" plus ':' or a dash only when <n> is the head branch's spec number
+subject_of() { # <pr> -> the subject the printed command passes to gh
+  run scripts/merge-spec.sh "$1"
+  : > "$ghlog"
+  (cd "$repo" && eval "$(printf '%s\n' "$out" | grep '^gh pr merge ')")
+  sed -n 's/^pr merge .* --subject \(.*\) --body-file .*$/\1/p' "$ghlog"
+}
+pr 51 spec/22-x 'Walking skeleton'
+check "unprefixed title unchanged" "$(subject_of 51)" 'Merge spec 22 "Walking skeleton" (#51)'
+pr 52 spec/22-x 'Spec 23: Other spec'
+check "other spec number unchanged" "$(subject_of 52)" 'Merge spec 22 "Spec 23: Other spec" (#52)'
+pr 53 spec/22-x 'Spec 220: Longer number'
+check "longer number unchanged" "$(subject_of 53)" 'Merge spec 22 "Spec 220: Longer number" (#53)'
+pr 57 spec/22-x 'Draft Spec 22: not leading'
+check "prefix not leading unchanged" "$(subject_of 57)" 'Merge spec 22 "Draft Spec 22: not leading" (#57)'
+pr 58 spec/22-x 'Spec 22:glued'
+check "prefix without a space unchanged" "$(subject_of 58)" 'Merge spec 22 "Spec 22:glued" (#58)'
+pr 54 spec/22-x 'Spec 22 — Em dash'
+check "em dash prefix stripped" "$(subject_of 54)" 'Merge spec 22 "Em dash" (#54)'
+pr 55 spec/22-x 'Spec 22 – En dash'
+check "en dash prefix stripped" "$(subject_of 55)" 'Merge spec 22 "En dash" (#55)'
+pr 56 spec/22-x 'Spec 22: Spec 22: twice'
+check "only one prefix stripped" "$(subject_of 56)" 'Merge spec 22 "Spec 22: twice" (#56)'
 
 # a missing author variable fails before any gh call, naming the variable
 for v in GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL; do

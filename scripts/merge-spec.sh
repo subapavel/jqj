@@ -38,6 +38,11 @@ if ! [[ "$ref" =~ ^spec/([0-9]+)- ]]; then
   exit 1
 fi
 spec=${BASH_REMATCH[1]}
+# one leading "Spec <spec>" plus ": " or a spaced em or en dash is dropped; any other title is kept as it is
+prefix="^Spec $spec(:| —| –) +(.*)$"
+if [[ "$title" =~ $prefix ]]; then
+  title=${BASH_REMATCH[2]}
+fi
 subject="Merge spec $spec \"$title\" (#$pr)"
 dir=$(mktemp -d "${TMPDIR:-/tmp}/merge-spec-$pr.XXXXXX") || exit 1
 body=$dir/body.txt
