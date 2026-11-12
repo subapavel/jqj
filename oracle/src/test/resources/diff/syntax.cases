@@ -418,3 +418,24 @@ arg -c
 filter .:
 stdin null\n
 end
+
+# #64 (ADR-0036): a constant key's parser-action error and the syntax errors around it, in the order the parse meets
+# them. Required at #64 (require/64.txt); jq-core's ConstantKeyTest checks the blocks.
+
+case syntax/object-key-number-literal
+arg -c
+filter {1:2}
+stdin null\n
+end
+
+case syntax/object-key-error-then-syntax-error
+arg -c
+filter {(1): 2 3}
+stdin null\n
+end
+
+case syntax/object-key-error-after-a-recovery
+arg -c
+filter {1+2:3} | {(1):2}
+stdin null\n
+end
