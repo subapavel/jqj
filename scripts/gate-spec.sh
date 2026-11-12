@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The spec gate (ADR-0014, ADR-0023). Reports the slowest ticket-gate step 1 and step 2 found in .logs/ against
-# their targets, then runs its steps in order and stops at the first failing step with that step's exit code.
+# The spec gate (ADR-0014, ADR-0023). Reports the slowest ticket-gate step 1 found in .logs/ against its target
+# (the ticket gate has no PIT step since F-27), then runs its steps in order and stops at the first failing step with that step's exit code.
 #
 #   scripts/gate-spec.sh <spec>
 #
@@ -18,8 +18,8 @@ spec=$1
 cd "$(dirname "$0")/.." || exit 2
 mkdir -p .logs
 
-# Slowest ticket-gate step 1 (verify, target 60 s) and step 2 (pit, target 180 s); a step over its target applies
-# the fallback ADR-0014 and ADR-0020 name, by a finding (ADR-0023, F-17).
+# Slowest ticket-gate step 1 (verify, target 60 s); a time over the target calls for the fallback ADR-0014 and
+# ADR-0020 name, by a finding (ADR-0023, F-17).
 slowest() { # <n> <step> <target seconds>
   local best=""
   best=$(awk -F'\t' -v step="$2" 'FNR == 1 { t = FILENAME; sub(/.*\//, "", t); sub(/-steps\.tsv$/, "", t) }
@@ -36,7 +36,6 @@ slowest() { # <n> <step> <target seconds>
   fi
 }
 slowest 1 verify 60
-slowest 2 pit 180
 
 now_ms() { date +%s%3N; }
 : > ".logs/spec$spec-steps.tsv"
