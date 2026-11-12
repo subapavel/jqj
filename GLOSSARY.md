@@ -66,6 +66,16 @@ in jqj's own text (ADR-0020).
 A compile error jq adds after a syntax error at a known place, such as "May need parentheses around
 object key expression"; its text matches jq.
 
+**Slot**:
+The place a `Bind` keeps the value it bound while its body runs; each Bind of a tree has its own
+(ADR-0034).
+_Avoid_: register, local (that is the JVM's).
+
+**Quiet variant**:
+The instance of a navigation step that `?` selects: where the step would raise its own error it
+gives no result, while errors from its target or key still propagate (ADR-0034).
+_Avoid_: safe variant, optional operation.
+
 ## Values
 
 **Document**:
