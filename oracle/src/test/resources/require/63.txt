@@ -29,7 +29,9 @@ man.test#c01c51fc4130
 
 # differential: precedence/postfix-chain (#62's recording, .a[0].b), then every case of diff/{index,iterate,slice,comma}
 # except the two array keys on an array (slice/key-array-one-on-array, slice/key-array-empty-on-array): jq's
-# jv_array_indexes stays a run-time Stub owned by #72 (decision 2 of the #63 approval).
+# jv_array_indexes stays a run-time Stub owned by #72 (decision 2 of the #63 approval). Also except the 35 cases
+# whose stdin holds NaN (index/key-nan, slice/array-*-nan, slice/array-nan-*, slice/string-*-nan,
+# slice/string-nan-*): NaN is a lenient token, which jqj's reader leaves a Stub until spec 5. They stay recorded.
 precedence/postfix-chain
 index/zero-null
 index/zero-true
@@ -75,7 +77,6 @@ index/key-3
 index/key-m4
 index/key-1e300
 index/key-m1e300
-index/key-nan
 index/key-1e1000
 index/object-key-1.0
 index/object-key-1e2
@@ -156,7 +157,6 @@ slice/array-null-m10
 slice/array-null-10
 slice/array-null-1e300
 slice/array-null-m1e300
-slice/array-null-nan
 slice/array-1.2-null
 slice/array-1.2-1.2
 slice/array-1.2-3.5
@@ -165,7 +165,6 @@ slice/array-1.2-m10
 slice/array-1.2-10
 slice/array-1.2-1e300
 slice/array-1.2-m1e300
-slice/array-1.2-nan
 slice/array-3.5-null
 slice/array-3.5-1.2
 slice/array-3.5-3.5
@@ -174,7 +173,6 @@ slice/array-3.5-m10
 slice/array-3.5-10
 slice/array-3.5-1e300
 slice/array-3.5-m1e300
-slice/array-3.5-nan
 slice/array-m2-null
 slice/array-m2-1.2
 slice/array-m2-3.5
@@ -183,7 +181,6 @@ slice/array-m2-m10
 slice/array-m2-10
 slice/array-m2-1e300
 slice/array-m2-m1e300
-slice/array-m2-nan
 slice/array-m10-null
 slice/array-m10-1.2
 slice/array-m10-3.5
@@ -192,7 +189,6 @@ slice/array-m10-m10
 slice/array-m10-10
 slice/array-m10-1e300
 slice/array-m10-m1e300
-slice/array-m10-nan
 slice/array-10-null
 slice/array-10-1.2
 slice/array-10-3.5
@@ -201,7 +197,6 @@ slice/array-10-m10
 slice/array-10-10
 slice/array-10-1e300
 slice/array-10-m1e300
-slice/array-10-nan
 slice/array-1e300-null
 slice/array-1e300-1.2
 slice/array-1e300-3.5
@@ -210,7 +205,6 @@ slice/array-1e300-m10
 slice/array-1e300-10
 slice/array-1e300-1e300
 slice/array-1e300-m1e300
-slice/array-1e300-nan
 slice/array-m1e300-null
 slice/array-m1e300-1.2
 slice/array-m1e300-3.5
@@ -219,16 +213,6 @@ slice/array-m1e300-m10
 slice/array-m1e300-10
 slice/array-m1e300-1e300
 slice/array-m1e300-m1e300
-slice/array-m1e300-nan
-slice/array-nan-null
-slice/array-nan-1.2
-slice/array-nan-3.5
-slice/array-nan-m2
-slice/array-nan-m10
-slice/array-nan-10
-slice/array-nan-1e300
-slice/array-nan-m1e300
-slice/array-nan-nan
 slice/string-null-null
 slice/string-null-1.2
 slice/string-null-3.5
@@ -237,7 +221,6 @@ slice/string-null-m10
 slice/string-null-10
 slice/string-null-1e300
 slice/string-null-m1e300
-slice/string-null-nan
 slice/string-1.2-null
 slice/string-1.2-1.2
 slice/string-1.2-3.5
@@ -246,7 +229,6 @@ slice/string-1.2-m10
 slice/string-1.2-10
 slice/string-1.2-1e300
 slice/string-1.2-m1e300
-slice/string-1.2-nan
 slice/string-3.5-null
 slice/string-3.5-1.2
 slice/string-3.5-3.5
@@ -255,7 +237,6 @@ slice/string-3.5-m10
 slice/string-3.5-10
 slice/string-3.5-1e300
 slice/string-3.5-m1e300
-slice/string-3.5-nan
 slice/string-m2-null
 slice/string-m2-1.2
 slice/string-m2-3.5
@@ -264,7 +245,6 @@ slice/string-m2-m10
 slice/string-m2-10
 slice/string-m2-1e300
 slice/string-m2-m1e300
-slice/string-m2-nan
 slice/string-m10-null
 slice/string-m10-1.2
 slice/string-m10-3.5
@@ -273,7 +253,6 @@ slice/string-m10-m10
 slice/string-m10-10
 slice/string-m10-1e300
 slice/string-m10-m1e300
-slice/string-m10-nan
 slice/string-10-null
 slice/string-10-1.2
 slice/string-10-3.5
@@ -282,7 +261,6 @@ slice/string-10-m10
 slice/string-10-10
 slice/string-10-1e300
 slice/string-10-m1e300
-slice/string-10-nan
 slice/string-1e300-null
 slice/string-1e300-1.2
 slice/string-1e300-3.5
@@ -291,7 +269,6 @@ slice/string-1e300-m10
 slice/string-1e300-10
 slice/string-1e300-1e300
 slice/string-1e300-m1e300
-slice/string-1e300-nan
 slice/string-m1e300-null
 slice/string-m1e300-1.2
 slice/string-m1e300-3.5
@@ -300,16 +277,6 @@ slice/string-m1e300-m10
 slice/string-m1e300-10
 slice/string-m1e300-1e300
 slice/string-m1e300-m1e300
-slice/string-m1e300-nan
-slice/string-nan-null
-slice/string-nan-1.2
-slice/string-nan-3.5
-slice/string-nan-m2
-slice/string-nan-m10
-slice/string-nan-10
-slice/string-nan-1e300
-slice/string-nan-m1e300
-slice/string-nan-nan
 slice/array-start-after-end
 slice/string-start-after-end
 slice/key-start-end-on-array
@@ -335,3 +302,39 @@ comma/error-in-first
 # #81's comma chains (diff/depth.cases): 10 921 commas matched; 10 922 the deviation long-comma-chains.
 depth/comma-10921
 depth/comma-10922
+
+# The implementation review's arms (#63): an array or object key dumped in the message, whole at 29 bytes and cut from
+# 30 by jv_dump_string_trunc; a BuiltArray under each navigation step, pretty and in an error; a bad slice bound or
+# key, with and without ?.
+index/dump-array-key-29
+index/dump-array-key-30
+index/dump-array-key-long
+index/dump-array-key-nested
+index/dump-array-key-e-acute-at-23
+index/dump-array-key-e-acute-at-24
+index/dump-array-key-escape-at-24
+index/dump-built-array-key
+index/dump-object-key-29
+index/dump-object-key-30
+index/dump-object-key-long
+index/dump-object-key-on-number
+slice/built-index
+slice/built-index-negative
+slice/built-index-past-end
+slice/built-slice
+slice/built-slice-negative
+slice/built-iterate
+slice/built-iterate-postfix
+slice/built-iterate-empty
+slice/built-element-slice
+slice/built-pretty
+slice/built-pretty-empty
+slice/built-field-error
+slice/bad-start-on-array
+slice/bad-end-on-array
+slice/quiet-bad-start-on-array
+slice/quiet-bad-end-on-array
+slice/quiet-bad-start-on-string
+slice/quiet-bad-then-more
+slice/quiet-bad-bound-from-input
+slice/quiet-key-bad-start-on-array

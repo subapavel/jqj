@@ -362,3 +362,78 @@ filter .[.b]?
 stdin "s"\n
 end
 
+# P2: an array or object key in the message, dumped by jv_dump_string_trunc: whole at 29 bytes, cut from 30, inside a
+# nested container, at a UTF-8 character and at an escape, and for an array a slice builds.
+
+case index/dump-array-key-29
+arg -c
+filter .a[.k]
+stdin {"a":{},"k":[10,11,12,13,14,15,16,17,1,2]}\n
+end
+
+case index/dump-array-key-30
+arg -c
+filter .a[.k]
+stdin {"a":{},"k":[10,11,12,13,14,15,16,17,18,1]}\n
+end
+
+case index/dump-array-key-long
+arg -c
+filter .a[.k]
+stdin {"a":{},"k":[10,11,12,13,14,15,16,17,18,19,20]}\n
+end
+
+case index/dump-array-key-nested
+arg -c
+filter .a[.k]
+stdin {"a":{},"k":[[10,11],[12,13],[14,15],[16,17],[18,19]]}\n
+end
+
+case index/dump-array-key-e-acute-at-23
+arg -c
+filter .a[.k]
+stdin {"a":{},"k":["aaaaaaaaaaaaaaaaaaaaaéaaaaaa"]}\n
+end
+
+case index/dump-array-key-e-acute-at-24
+arg -c
+filter .a[.k]
+stdin {"a":{},"k":["aaaaaaaaaaaaaaaaaaaaaaéaaaaaa"]}\n
+end
+
+case index/dump-array-key-escape-at-24
+arg -c
+filter .a[.k]
+stdin {"a":{},"k":["aaaaaaaaaaaaaaaaaaaaaa\\naaaaaa"]}\n
+end
+
+case index/dump-built-array-key
+arg -c
+filter .a[.k[1:]]
+stdin {"a":{},"k":[0,10,11,12,13,14,15,16,17,18,19,20]}\n
+end
+
+case index/dump-object-key-29
+arg -c
+filter .a[.k]
+stdin {"a":{},"k":{"a":1,"b":2,"c":3,"d":45678}}\n
+end
+
+case index/dump-object-key-30
+arg -c
+filter .a[.k]
+stdin {"a":{},"k":{"a":1,"b":2,"c":3,"d":456789}}\n
+end
+
+case index/dump-object-key-long
+arg -c
+filter .a[.k]
+stdin {"a":{},"k":{"a":1,"b":2,"c":3,"d":4,"e":5,"f":6}}\n
+end
+
+case index/dump-object-key-on-number
+arg -c
+filter .a[.k]
+stdin {"a":5,"k":{"a":1,"b":2,"c":3,"d":4,"e":5,"f":6}}\n
+end
+
