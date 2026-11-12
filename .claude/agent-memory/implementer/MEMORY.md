@@ -87,3 +87,4 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#36) Parsing a long String into BigDecimal/BigInteger is quadratic (1 000 000 digits ≈ 17.7 s): cut a long coefficient before any BigDecimal on a host-reachable path. PIT counts TIMED_OUT and MEMORY_ERROR as detected.
 - (#35) Comparing output through Java's UTF-8 decoder hides raw bad bytes (it makes U+FFFD too): compare bytes. After merging a parallel ticket that also ends Stubs, check that no Stub @TestFactory is left empty.
 - (#39) JMH: pass `-foe true` or a throwing benchmark exits 0; command-line `-jvmArgs` overrides `@Fork(jvmArgs)` (check the log's "VM options"). A recording ticket needs its own test that its cases exist (until #43).
+- (#49) `git fetch origin <branch>` only updates FETCH_HEAD: use `git fetch origin "+refs/heads/<b>:refs/remotes/origin/<b>"` for a usable `origin/<b>`. A worktree can start on a stale commit: check the packet's base sha before reading files.
