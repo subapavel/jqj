@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.query.run.Termination.Budget;
 import java.util.Map;
+import java.util.function.LongSupplier;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.Test;
 
@@ -89,10 +90,62 @@ class RunStateTest {
     }
   }
 
+  /** A deadline in nanoseconds for the fake clock's runs. */
+  private static final long DEADLINE = 100;
+
+  /** A fake monotonic clock (F-37): it reads what the test set, in nanoseconds. */
+  private static final class FakeClock implements LongSupplier {
+    long now;
+
+    FakeClock(long now) {
+      this.now = now;
+    }
+
+    @Override
+    public long getAsLong() {
+      return now;
+    }
+  }
+
   /**
-   * The deadline is checked at refuel only, after 4096 ticks of the run (ADR-0030, F-36). A deadline of 1 ns has passed
-   * by the time refuel checks it; the clock cannot be faked here (F-37), so the run ticks until a refuel ends it, and
-   * the tick that ended it is a refuel's.
+   * The deadline counts from begin, not from the read (ADR-0030): a host's pause between a primed read and begin that
+   * is longer than the deadline is not charged, and the run ends as DEADLINE once the clock passes begin + deadline.
+   */
+  @Test
+  void deadlineCountsFromBegin() {
+    FakeClock clock = new FakeClock(1_000);
+    RunState state = new RunState(clock);
+    state.prime();
+    state.tick(10);
+    clock.now = 1_000 + 2 * DEADLINE;
+    long begun = clock.now;
+    state.begin(Long.MAX_VALUE, DEADLINE, Long.MAX_VALUE);
+    // The first refuel, at the run's 4097th tick after the read's 10, finds no time passed since begin.
+    state.tick(INTERVAL + 1);
+    assertThat(state.steps()).as("ticks after the first refuel of a run begun after a long pause").isEqualTo(10L + INTERVAL + 1);
+
+    clock.now = begun + DEADLINE + 1;
+    assertBudget(() -> state.tick(INTERVAL + 1), Budget.DEADLINE, "the next refuel 1 ns past begin + deadline");
+  }
+
+  /** The deadline is over only past it (ADR-0017): a refuel exactly at begin + deadline passes, 1 ns later it ends. */
+  @Test
+  void deadlineEndsOnlyPastIt() {
+    FakeClock clock = new FakeClock(5_000);
+    RunState state = new RunState(clock);
+    state.begin(Long.MAX_VALUE, DEADLINE, Long.MAX_VALUE);
+    clock.now = 5_000 + DEADLINE;
+    state.tick(INTERVAL + 1);
+    assertThat(state.steps()).as("ticks after a refuel exactly at the deadline").isEqualTo(INTERVAL + 1L);
+
+    clock.now = 5_000 + DEADLINE + 1;
+    assertBudget(() -> state.tick(INTERVAL + 1), Budget.DEADLINE, "the next refuel 1 ns past the deadline");
+  }
+
+  /**
+   * The deadline is checked at refuel only, after 4096 ticks of the run (ADR-0030, F-36), and a run state made without
+   * a clock reads the system's: a deadline of 1 ns has passed by the time refuel checks it, so the run ticks until a
+   * refuel ends it, and the tick that ended it is a refuel's.
    */
   @Test
   void deadlineEndsTheRunAtARefuel() {
