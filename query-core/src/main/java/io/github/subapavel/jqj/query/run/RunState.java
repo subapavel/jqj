@@ -1,6 +1,7 @@
 package io.github.subapavel.jqj.query.run;
 
 import io.github.subapavel.jqj.query.run.Termination.Budget;
+import java.util.function.LongSupplier;
 
 /**
  * The budgets of one evaluation (ADR-0030, ADR-0008): its fuel, the step budget, the deadline and the bytes-written
@@ -15,8 +16,8 @@ import io.github.subapavel.jqj.query.run.Termination.Budget;
  * nearer, and checks the step budget, then the deadline, then the thread's interrupt.
  *
  * <p>The deadline counts from {@link #begin}, not from the read, so a host's pause between the two is not charged:
- * {@code begin} reads {@link System#nanoTime()} once as the deadline's start. Refuel is the only place that compares
- * the clock with the deadline, so a run under 4096 ticks never checks it.
+ * {@code begin} reads the clock, {@link System#nanoTime()}, once as the deadline's start. Refuel is the only place that
+ * compares the clock with the deadline, so a run under 4096 ticks never checks it.
  */
 public final class RunState {
   /** The ticks between two refuels (ADR-0008, ADR-0017). */
@@ -46,7 +47,7 @@ public final class RunState {
   /** The running run's deadline, in nanoseconds from {@link #start}. */
   private long deadline;
 
-  /** {@link System#nanoTime()} when the running run began. */
+  /** The clock when the running run began. */
   private long start;
 
   /** The running run's bytes-written budget; unlimited outside a run. */
@@ -55,8 +56,18 @@ public final class RunState {
   /** The bytes charged since the last begin. */
   private long written;
 
+  /** The monotonic clock in nanoseconds that the deadline reads: {@link System#nanoTime()} outside the tests. */
+  private final LongSupplier clock;
+
   /** An idle run state: no run, no tick, every budget unlimited. */
-  public RunState() {}
+  public RunState() {
+    this(System::nanoTime);
+  }
+
+  /** An idle run state whose deadline reads {@code clock}, a monotonic clock in nanoseconds: a test's fake (F-37). */
+  RunState(LongSupplier clock) {
+    this.clock = clock;
+  }
 
   /**
    * A main read (ADR-0030, ADR-0015): outside a run, the ticks count from here and the next run keeps them. A read
@@ -90,7 +101,7 @@ public final class RunState {
     deadline = deadlineNanos;
     writtenBudget = bytesWritten;
     written = 0;
-    start = System.nanoTime();
+    start = clock.getAsLong();
     refill(kept);
   }
 
@@ -151,7 +162,7 @@ public final class RunState {
     if (steps > stepBudget) {
       throw Termination.over(Budget.STEPS);
     }
-    if (System.nanoTime() - start > deadline) {
+    if (clock.getAsLong() - start > deadline) {
       throw Termination.over(Budget.DEADLINE);
     }
     // isInterrupted leaves the flag set, as ADR-0017 asks of a cancelled run.
