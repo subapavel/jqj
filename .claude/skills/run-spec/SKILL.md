@@ -57,7 +57,8 @@ Take hand-backs in the order they arrive; refill a freed slot from the frontier 
    obstacle, label `ready-for-human` if only the owner can clear it, release the slot.
 2. **Ticket gate** — verifier on the pushed ticket branch, in its own worktree
    (`git worktree add .claude/worktrees/verify-<ticket> t/<ticket>-<slug>`), the checks of
-   `docs/WORKFLOW.md` §6. Any `EXECUTED_FAIL`: a fix packet (file, line, evidence, the sentence)
+   `docs/WORKFLOW.md` §6. When `oracle/src/test/resources/require/<ticket>.txt` exists, the gate runs
+   with `ORACLE_REQUIRE=<that file>` so the required cases are enforced (F-38). Any `EXECUTED_FAIL`: a fix packet (file, line, evidence, the sentence)
    to the same implementer.
 3. **Class C review** — `mkdir -p .logs && touch .logs/.batch-in-review`, then call the Skill tool with
    `code-review`, fixed point = the ticket branch's merge-base with the integration branch, the
