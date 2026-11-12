@@ -28,3 +28,6 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#61) A merge of the integration tip can bring in an ADR amendment newer than the approved design: read the ADR status lines on the tip, not the design comment.
 - (#61) An op that calls the static `Printer.json` charges no ticks: check every new op that walks a value for `apply(RunState, …)`.
 - (#61) A tick test whose budget sits far below the charge only proves something is charged; pin the rate with a pair (N completes, N−1 ends).
+- (#62) Syntax-error stderr is not compared by the oracle, so token-name tables and lookahead sets are unit-test-only: count the witnessed rows.
+- (#62) A hand-written parser over parser.y counts as a translation for NOTICE (Lexer.java precedent); error-recovery logic must name its source (Bison manual vs parser.c vs GPL yacc.c).
+- (#62) F-13 is the JSON reader's depth limit; it does not cover the filter parser's recursion.

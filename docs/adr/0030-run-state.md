@@ -3,7 +3,7 @@
 Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #59; designer draft);
 amends ADR-0008 (`ws` in the protocol is the run state; a termination carries its budget),
 ADR-0009 (every call form takes the run state first), ADR-0013 (`…query.run` holds it) and
-ADR-0015 (when the reader's ticks reset)
+ADR-0015 (when the reader's ticks reset); amended by ADR-0035 (bytes built, #64)
 
 ADR-0008 and ADR-0009 write the protocol's state as `ws`, the Workspace. `query-core` cannot name
 the Workspace (founding §14), and spec 2a needs the steps, deadline and bytes-written budgets
