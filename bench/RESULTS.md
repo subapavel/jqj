@@ -4,6 +4,56 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Bench recording G1, G6, G7: jqj against jq-ref (ticket #39), 2026-11-12
+
+- Machine: `claude-cloud-4vcpu` (4 vCPU Intel Xeon Processor @ 2.10GHz, Linux 6.18.44-fc-v378),
+  `java version "25.0.5.0.3" 2026-10-25 LTS`, jq-ref `jq-1.8.2`. Date 2026-11-12, session 02:09Z to
+  02:11Z, no other command of this ticket's agent running (other worktrees' load not checked). Commit `2c0f444` on `t/39-bench-recording` (the commit that adds
+  `BenchCasesTest` and the G6/G7 cases; no code under measurement changed after the #38 tip `93840f6`).
+- Commands, from the repo root after `./mvnw -B -Pbench -DskipTests package` (`.logs/39-package.log`),
+  in one shell script (`.logs/39-session-*`): `java -jar bench/jmh/target/benchmarks.jar -foe true -prof gc
+  -rf json` (`.logs/39-jmh-session.log`, `.logs/39-jmh-result.json`), then `bench/jq-ref.sh`
+  (`.logs/39-jq-ref-session.log`), then the small-heap forks below. G7's process half ran
+  `jq-cli/target/jqj -c .a` through the default `jqj.launcher`.
+- Flag: `-foe <bool>` (fail on error) is in the jar's own `-h` (`.logs/39-jmh-help.log`); rc 0 with it
+  on means no scenario threw. All seven ids ran with the annotations' settings (avgt, 2 forks, 3 × 1 s
+  warm-up, 5 × 1 s measurement, 2 GiB heap; G7 single-shot, 10 forks, no warm-up).
+- Inputs as in the #30 section below (`orders`, 1 KiB / 100 KiB / 10 MiB). jq-ref as ADR-0019 says
+  (best of 5, K copies, minus start-up).
+- G7.engine.1k: `.a` on the 1 KB document runs; JMH with `-foe true` exited 0 over its 10 forks.
+- Factor = jqj JMH score / jq-ref per document, in the same unit. A factor above 1.0 would break gate
+  check 5 in spec 6; **none of the five G1/G6 cells is above 1.0**. G7 has no factor (ADR-0019); the
+  ratio is shown for the record only.
+
+| id | jqj (JMH, ± 99.9 % error) | jq-ref per document | factor jqj/jq-ref |
+| --- | --- | --- | --- |
+| G1.1k | 2.492 ± 0.136 µs | 21.746 µs | 0.115 |
+| G1.100k | 219.652 ± 16.790 µs | 2.348 ms | 0.094 |
+| G1.10m | 23.639 ± 2.048 ms | 391.4 ms | 0.060 |
+| G6.compact.10m | 53.416 ± 4.304 ms | 538.9 ms | 0.099 |
+| G6.pretty.10m | 60.352 ± 3.167 ms | 687.8 ms | 0.088 |
+| G7.engine.1k | 18.289 ± 4.126 ms (single shot, 10 forks) | 22.144 µs | no factor (ratio 826) |
+| G7.process.1k | 120.493 ± 11.990 ms (single shot, 10 forks) | 2.387 ms (one process) | no factor (ratio 50.5) |
+
+jq-ref columns behind the table (`bench/jq-ref.sh`): K, best, start-up (ms) = G1.1k 10000, 219.889,
+2.432; G1.100k 100, 237.046, 2.293; G1.10m 1, 393.728, 2.359; G6.compact.10m 1, 541.317, 2.430;
+G6.pretty.10m 1, 690.264, 2.422; G7.engine.1k 10000, 223.836, 2.400; G7.process.1k one process, 2.387.
+Allocation (`-prof gc`, B/op): G1.1k 320.0, G1.100k 321.5, G1.10m 547.0, G6.compact.10m 627.9,
+G6.pretty.10m 674.2, G7.engine.1k 2 214 792, G7.process.1k 1 317 285. Gate check 4's flat allocation
+reads G1.10m − G1.1k = 227 B/op against the limit of 1 KiB (observed here, not asserted by any test).
+
+**Small-heap forks of gate check 4** (`java -jar bench/jmh/target/benchmarks.jar 'G1_10m|G6_compact_10m'
+-foe true -jvmArgs "-Xms64m -Xmx64m" -prof gc -rf json`; `.logs/39-jmh-smallheap.log`, the log's
+"VM options" line reads `-Xms64m -Xmx64m`): both forks complete, rc 0, no exception.
+
+| id | 64 MiB fork | same cell at 2 GiB | factor of the 64 MiB fork |
+| --- | --- | --- | --- |
+| G1.10m | 24.282 ± 1.425 ms, 551.2 B/op | 23.639 ms | 0.062 |
+| G6.compact.10m | 51.777 ± 1.718 ms, 616.1 B/op | 53.416 ms | 0.096 |
+
+The factor of the 64 MiB rows uses the jq-ref time of the table above. Gate check 4 also names G2
+here; G2 enters the bench in spec 2.
+
 ## Bench module and jq-ref.sh: jq-ref per document (ticket #30), 2026-11-11
 
 - Machine: `claude-cloud-4vcpu` (4 vCPU Intel Xeon Processor @ 2.10GHz, Linux 6.18.44-fc-v378),
@@ -52,7 +102,8 @@ benchmark, G7 included.
   `bench/jq-ref.sh` straight after, in the same shell.
 - Small-heap fork of gate check 4 (G1 and G6 `-c` at 10 MiB; no extra ids, the same methods):
   `java -jar bench/jmh/target/benchmarks.jar 'G1_10m|G6_compact_10m' -jvmArgs "-Xms64m -Xmx64m" -prof gc -rf json`.
-  NOT_RUN in #30 (the Stubs end every fork before a read); #39 records it.
+  NOT_RUN in #30 (the Stubs end every fork before a read); recorded in #39 (section above). Add
+  `-foe true` to every recording run: without it a throwing benchmark exits 0.
 
 ## Build skeleton: one build alone and three in parallel (ticket #23), 2026-11-11
 
