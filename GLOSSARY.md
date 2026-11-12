@@ -484,8 +484,8 @@ The open, unblocked, unclaimed tickets of a spec or map.
 
 **Class-C module**:
 A module on a hard path, listed in `quality/floors.tsv` (ADR-0020; today `query-core` and
-`jq-core`). Mutation floors apply to it, and the ticket gate
-runs PIT on what a ticket changed in it.
+`jq-core`). Mutation floors apply to it, and the spec gate
+runs PIT on all of it (the ticket gate no longer does, F-27).
 _Avoid_: core module
 
 **Word check**:
