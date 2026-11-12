@@ -149,6 +149,22 @@ rm "$root/query-core/target/pit-reports/mutations.xml"
 check "oracle's report alone is no report of the module" "$(run floor-mutation query-core)" 0
 has "module without its own report is NOT_RUN" 'NOT_RUN mutation query-core'
 
+# --- mutation: jq-cli's crossModule report joins the same way as oracle's (ADR-0014, #47) ---
+fresh
+mkdir -p "$root/query-core/target/pit-reports" "$root/oracle/target/pit-reports" "$root/jq-cli/target/pit-reports"
+# line 7 is killed by jq-cli only, line 8 by oracle only, line 9 by neither, line 10 by its own report
+{ mut SURVIVED; mut SURVIVED line=8; mut SURVIVED line=9; mut KILLED line=10; } | xml query-core
+{ mut KILLED line=8; mut SURVIVED line=9; } | xml oracle
+{ mut KILLED; mut NO_COVERAGE line=9; mut KILLED class=p.Cli; } | xml jq-cli
+run floor-mutation query-core > /dev/null
+has "a mutant killed by jq-cli's or oracle's report is killed" 'query-core: 75 % (1 surviving of 4)'
+rm "$root/oracle/target/pit-reports/mutations.xml"
+run floor-mutation query-core > /dev/null
+has "jq-cli's report counts without oracle's" 'query-core: 50 % (2 surviving of 4)'
+rm "$root/query-core/target/pit-reports/mutations.xml"
+run floor-mutation query-core > /dev/null
+has "jq-cli's report alone is no report of the module" 'NOT_RUN mutation query-core'
+
 # --- bench: empty tolerance skipped ---
 fresh
 printf 'scenario\tmachine\tscore\tunit\ttolerance%%\nG1\tm1\t100\tms/op\t\n' > "$root/ratchet/bench.tsv"
