@@ -132,18 +132,12 @@ else
     log "could not install reference jq $JQ_REF_VERSION (continuing; oracle:differential is ENVIRONMENT_BLOCKED)"
   fi
 fi
-# Maven plugins for `./mvnw -o` (#54, docs/agents/environment.md). go-offline takes the plugins the POMs bind
-# (clean, PIT and the profiles' plugins included); verify adds what plugins resolve only while they run
-# (surefire's JUnit Platform provider, the JMH annotation processor); javadoc:help fetches the unpinned
+# Maven plugins for `./mvnw -o` (#54, docs/agents/environment.md), from the jqj checkout in the working
+# directory. go-offline takes the plugins of the build model (clean and PIT included); verify adds what a
+# plugin resolves only while it runs (surefire's JUnit Platform provider); javadoc:help fetches the unpinned
 # javadoc plugin. Test failures do not stop the fetch; clean leaves the checkout without target/.
 if [ -x jqj/mvnw ]; then
   fetch=(-Pbench,compile-oracle -Dmaven.test.failure.ignore=true dependency:go-offline verify javadoc:help)
-  if (cd jqj && . /etc/profile.d/mvnw-mirror.sh && ./mvnw -q -B "${fetch[@]}" && ./mvnw -q -B -Pbench clean) </dev/null; then
-    log "maven plugins fetched: ./mvnw -o runs every gate and CI step"
-  else
-    log "maven plugin fetch failed (continuing; an offline build may miss a plugin)"
-  fi
-else
-  log "no jqj checkout in $PWD: maven plugins not fetched"
-fi
+  (cd jqj && . /etc/profile.d/mvnw-mirror.sh && ./mvnw -q -B "${fetch[@]}" && ./mvnw -q -B -Pbench clean) </dev/null && log "maven plugins fetched" || log "maven plugin fetch failed (continuing)"
+else log "no jqj checkout: maven plugins not fetched"; fi
 log "done"
