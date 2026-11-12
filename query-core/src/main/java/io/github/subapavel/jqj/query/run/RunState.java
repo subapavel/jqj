@@ -1,0 +1,169 @@
+package io.github.subapavel.jqj.query.run;
+
+import io.github.subapavel.jqj.query.run.Termination.Budget;
+
+/**
+ * The budgets of one evaluation (ADR-0030, ADR-0008): its fuel, the step budget, the deadline and the bytes-written
+ * count, in a phase that is idle, primed or running. The engine's Workspace owns one and hands it to each run, so it
+ * is never shared between two running evaluations; it is not thread-safe.
+ *
+ * <p>A main read primes it: the run that begins next keeps the read's ticks and every tick after them, so a large
+ * document counts against the run that consumes it. A read during a run is charged to that run. {@link #end} leaves
+ * every budget unlimited until the next {@link #begin}: outside a run nothing is checked.
+ *
+ * <p>A tick is {@code if (--fuel < 0) refuel()}. Refuel comes every 4096 ticks, or at the step budget when that is
+ * nearer, and checks the step budget, then the deadline, then the thread's interrupt.
+ *
+ * <p>The deadline counts from {@link #begin}, not from the read, so a host's pause between the two is not charged:
+ * {@code begin} reads {@link System#nanoTime()} once as the deadline's start. Refuel is the only place that compares
+ * the clock with the deadline, so a run under 4096 ticks never checks it.
+ */
+public final class RunState {
+  /** The ticks between two refuels (ADR-0008, ADR-0017). */
+  private static final long INTERVAL = 4096;
+
+  /** A budget's largest value, its unlimited one. As fuel it lasts 2^63 - 1 ticks, so it never refuels. */
+  private static final long UNLIMITED = Long.MAX_VALUE;
+
+  /** Whether a run is running. */
+  private boolean running;
+
+  /** Whether a main read came after the last begin, outside a run: never while running. Idle is neither. */
+  private boolean primed;
+
+  /** The ticks counted before the current fill: the ticks counted so far are {@code counted + filled - fuel}. */
+  private long counted;
+
+  /** The fuel the current fill gave. */
+  private long filled = UNLIMITED;
+
+  /** The fuel left: a tick of n takes n, and below zero refuels. */
+  private long fuel = UNLIMITED;
+
+  /** The running run's step budget. */
+  private long stepBudget;
+
+  /** The running run's deadline, in nanoseconds from {@link #start}. */
+  private long deadline;
+
+  /** {@link System#nanoTime()} when the running run began. */
+  private long start;
+
+  /** The running run's bytes-written budget; unlimited outside a run. */
+  private long writtenBudget = UNLIMITED;
+
+  /** The bytes charged since the last begin. */
+  private long written;
+
+  /** An idle run state: no run, no tick, every budget unlimited. */
+  public RunState() {}
+
+  /**
+   * A main read (ADR-0030, ADR-0015): outside a run, the ticks count from here and the next run keeps them. A read
+   * during a run is that run's: its ticks count against the run's budget, and it primes nothing.
+   */
+  public void prime() {
+    if (!running) {
+      primed = true;
+      fill(0, UNLIMITED);
+    }
+  }
+
+  /**
+   * Begins a run with its budgets, each {@code Long.MAX_VALUE} when unlimited: the steps, the deadline in nanoseconds
+   * and the bytes written. A primed read's ticks count against it; without one it starts from no tick.
+   *
+   * @throws IllegalStateException when a run is running on this state, which then stays as it was
+   * @throws Termination over the step budget when the primed ticks already pass it; no run is then running
+   */
+  public void begin(long steps, long deadlineNanos, long bytesWritten) {
+    if (running) {
+      throw new IllegalStateException("a run is already running on this run state");
+    }
+    long kept = primed ? steps() : 0;
+    primed = false;
+    if (kept > steps) {
+      throw Termination.over(Budget.STEPS);
+    }
+    running = true;
+    stepBudget = steps;
+    deadline = deadlineNanos;
+    writtenBudget = bytesWritten;
+    written = 0;
+    start = System.nanoTime();
+    fill(kept, Math.min(INTERVAL, steps - kept));
+  }
+
+  /**
+   * Ends the running run, however it ended: every budget is unlimited until the next {@link #begin}, and
+   * {@link #steps()} goes on from the run's count.
+   */
+  public void end() {
+    running = false;
+    writtenBudget = UNLIMITED;
+    fill(steps(), UNLIMITED);
+  }
+
+  /**
+   * Charges one tick (ADR-0008).
+   *
+   * @throws Termination when refuel finds a budget over or the thread interrupted
+   */
+  public void tick() {
+    if (--fuel < 0) {
+      refuel();
+    }
+  }
+
+  /**
+   * Charges {@code n} ticks at once: the reader and the writer charge one per KiB (ADR-0015).
+   *
+   * @throws Termination when refuel finds a budget over or the thread interrupted
+   */
+  public void tick(int n) {
+    fuel -= n;
+    if (fuel < 0) {
+      refuel();
+    }
+  }
+
+  /**
+   * Charges one drain of {@code bytes} before it is written (ADR-0030): a drain that would pass the bytes-written budget
+   * is not charged and must not be written, so the output never exceeds the budget.
+   *
+   * @throws Termination over the bytes-written budget
+   */
+  public void chargeWritten(int bytes) {
+    if (bytes > writtenBudget - written) {
+      throw Termination.over(Budget.BYTES_WRITTEN);
+    }
+    written += bytes;
+  }
+
+  /** The ticks counted since the last main read outside a run, or since the last begin that no read primed. */
+  public long steps() {
+    return counted + filled - fuel;
+  }
+
+  /** Checks the step budget, then the deadline, then the interrupt (ADR-0030), and fills the fuel again. */
+  private void refuel() {
+    long steps = steps();
+    if (steps > stepBudget) {
+      throw Termination.over(Budget.STEPS);
+    }
+    if (System.nanoTime() - start > deadline) {
+      throw Termination.over(Budget.DEADLINE);
+    }
+    // isInterrupted leaves the flag set, as ADR-0017 asks of a cancelled run.
+    if (Thread.currentThread().isInterrupted()) {
+      throw Termination.cancelled();
+    }
+    fill(steps, Math.min(INTERVAL, stepBudget - steps));
+  }
+
+  private void fill(long counted, long fuel) {
+    this.counted = counted;
+    this.filled = fuel;
+    this.fuel = fuel;
+  }
+}
