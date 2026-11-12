@@ -176,7 +176,7 @@ filter {("a"):1}
 stdin null\n
 end
 
-# constant containers as keys: jq folds them, so the error is at parse time (not required at #64, see require/64.txt)
+# constant containers as keys: jq folds them, so the error is at parse time
 
 case construct/key-array-constant
 arg -c

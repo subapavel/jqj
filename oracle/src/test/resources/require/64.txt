@@ -37,13 +37,13 @@ jq.test#e9512ef8e30c
 jq.test#fac015c9b4bf
 man.test#471ca600c8d6
 
-# differential: diff/construct.cases, except construct/key-array-constant and construct/key-object-constant (a
-# constant container as a key needs jq's folding of constant arrays and objects; open for the architect) and
-# construct/key-length-at-run-time (length is #72's).
+# differential: diff/construct.cases, except construct/key-length-at-run-time (length is #72's). A constant container
+# as a key is folded as jq folds it, so its error is at parse time (ADR-0036 as corrected at fec65f1).
 construct/array-empty-body
 construct/array-index-and-slice
 construct/array-of-commas
 construct/key-after-a-string-key
+construct/key-array-constant
 construct/key-dot-then-number
 construct/key-false-computed
 construct/key-in-parentheses
@@ -54,6 +54,7 @@ construct/key-number-computed
 construct/key-number-second-pair
 construct/key-number-then-dot
 construct/key-number-then-dots
+construct/key-object-constant
 construct/key-string-computed
 construct/key-true-computed
 construct/key-two-errors
