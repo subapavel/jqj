@@ -11,15 +11,16 @@ import java.io.ByteArrayOutputStream;
 import org.junit.jupiter.api.Test;
 
 /**
- * Writing an error value (#34 design section 7): the string a filter error carries is built at run time, and its
- * writer arm is #35's (jq's re-escape), so writing it ends in the Stub. Exported types only.
+ * Writing an error value (#34 design section 7): the string a filter error carries is built at run time, and #35's
+ * writer arm prints it with jq's re-escape (its design K3 ended the Stub this test held until then). Exported types
+ * only.
  */
 class ErrorValueWriteTest {
-  /** ADR-0024, GLOSSARY "Stub": the mark every Stub message starts with. */
-  private static final String MARK = "jqj stub: ";
 
   @Test
-  void writingABuiltStringIsAStub() {
+  void writingABuiltStringIsJqsText() {
+    // jq-ref 1.8.2, observed 2026-11-12: printf '[1]' | jq-ref -c 'try .a catch .'
+    //   -> "Cannot index array with string (\"a\")"   (rc 0): the error value, its quotes escaped.
     Workspace workspace = newWorkspace();
     JqValue root = read(workspace, "[1]").root();
     JqFilterException e =
@@ -30,14 +31,12 @@ class ErrorValueWriteTest {
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     JqSink sink = JsonWriter.sink(workspace, out, OutputOptions.compact());
-    assertThatExceptionOfType(JqCompileException.class)
-        .as("writing the error value of .a on [1]")
-        .isThrownBy(() -> sink.emit(e.value()))
-        .withMessageStartingWith(MARK);
-    assertThat(out.toByteArray()).as("bytes written before the Stub").isEmpty();
+    assertThat(sink.emit(e.value())).as("emit's answer for the error value").isTrue();
+    assertThat(out.toString(UTF_8)).as("bytes written for the error value of .a on [1]").isEqualTo("\"Cannot index array with string (\\\"a\\\")\"\n");
+    assertThat(e.value().toJson()).as("toJson() of the error value").isEqualTo("\"Cannot index array with string (\\\"a\\\")\"");
 
-    // Witness: the same sink writes a document's value.
+    // The same sink then writes a document's value after it.
     sink.emit(root);
-    assertThat(out.toString(UTF_8)).as("bytes written for [1]").isEqualTo("[1]\n");
+    assertThat(out.toString(UTF_8)).as("bytes written for the error value and [1]").isEqualTo("\"Cannot index array with string (\\\"a\\\")\"\n[1]\n");
   }
 }
