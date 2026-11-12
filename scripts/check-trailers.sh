@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Commit trailer check (#67, docs/WORKFLOW.md section 11). Every commit in <range> has exactly one Signed-off-by,
-# a "Ticket: #<n>" line and a "Co-authored-by: Claude <noreply@anthropic.com>" line. Merge commits written by the
+# a "Ticket: #<n>" line and a "Co-authored-by: Claude <noreply@anthropic.com>" line, and no other line whose key
+# (matched case-insensitively, as git does) is Co-authored-by or Claude-Session (#49). Merge commits written by the
 # merger are checked; GitHub's own PR merge commit ("Merge <sha> into <sha>") is skipped. A commit whose full SHA
 # is a line of scripts/trailers-waiver.txt is skipped too (F-28); in that file blank lines and lines starting with
 # '#' are ignored, any other line that is not a 40-hex SHA is an error (exit 2), and no file means no waivers.
@@ -43,6 +44,7 @@ if [ -z "$shas" ]; then
   echo "checked 0 commits in $1: the range is empty, nothing was verified" >&2
   exit 1
 fi
+coauthor='Co-authored-by: Claude <noreply@anthropic.com>'
 rc=0
 n=0
 for sha in $shas; do
@@ -65,10 +67,14 @@ for sha in $shas; do
     echo "${sha:0:7} lacks 'Ticket: #<n>': $subject"
     rc=1
   fi
-  if ! printf '%s\n' "$msg" | grep -Fxq 'Co-authored-by: Claude <noreply@anthropic.com>'; then
-    echo "${sha:0:7} lacks 'Co-authored-by: Claude <noreply@anthropic.com>': $subject"
+  if ! printf '%s\n' "$msg" | grep -Fxq "$coauthor"; then
+    echo "${sha:0:7} lacks '$coauthor': $subject"
     rc=1
   fi
+  while IFS= read -r line; do
+    echo "${sha:0:7} has '$line'; section 11 allows only '$coauthor' and no Claude-Session: $subject"
+    rc=1
+  done < <(printf '%s\n' "$msg" | grep -iE '^(co-authored-by|claude-session):' | grep -Fxv "$coauthor")
 done
 echo "checked $n commits in $1"
 exit "$rc"
