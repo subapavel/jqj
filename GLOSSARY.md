@@ -87,8 +87,23 @@ A number made by arithmetic or a math builtin: a double, printed in jq's shortes
 _Avoid_: double (that is the Java type)
 
 **Canonical form**:
-The text jq prints for a literal number (`1e2` → `1E+2`; `1.10` stays).
+The text jq prints for a literal number (`1e2` → `1E+2`; `1.10` stays): decNumber's
+to-scientific-string after the exponent limits, or ±1.7976931348623157e+308 for an Infinity literal.
 _Avoid_: normalised form
+
+**Adjusted exponent**:
+The exponent of a number's first significant digit (`123e45` → 47). A literal prints in exponent
+form when its exponent is positive or its adjusted exponent is below −6.
+
+**Exponent limits**:
+jq's decNumber range for a literal. An adjusted exponent above 999 999 999 gives an Infinity
+literal; a non-zero value below 1E−1147483646 is rounded HALF_UP to a multiple of it; a zero's
+exponent is clamped into [−1 147 483 646, 999 999 999].
+
+**Infinity literal**:
+A literal past the upper exponent limit. It prints ±1.7976931348623157e+308, its double is
+±Infinity, and it has no decimal value (ADR-0028).
+_Avoid_: overflow number
 
 **Shape**:
 The shared key list of the objects built at one construction site.
