@@ -1,6 +1,6 @@
 # Host SPI, sandbox and budget defaults
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); amended by ADR-0020 (CLI environment from `Invocation`, locale); rewords the sandbox list of founding §11; amended by spec 2 grilling round 1 (bytes built per slot)
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); amended by ADR-0020 (CLI environment from `Invocation`, locale); rewords the sandbox list of founding §11; amended by spec 2 grilling round 1 (bytes built per slot); amended by ADR-0035 (fixed charges measured with `-prof gc` only, F-39; collectors charge per element)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1); joni facts on
 joni 2.2.9.
@@ -120,7 +120,7 @@ Bytes built are charged, monotonically, as:
 - 8 B per array element and 16 B per object entry (key and value), the same for shape and growable
   objects;
 - a built string's UTF-8 length;
-- a fixed charge per built container and per built string, its value measured (JOL or `-prof gc`)
+- a fixed charge per built container and per built string, its value measured (`-prof gc`; JOL is excluded, F-39)
   in the ticket that wires the budget and recorded in `bench/RESULTS.md`;
 - a copy charges its slots, growth charges the capacity it adds (ADR-0022), and `detach()` charges
   what it builds (ADR-0016); number boxes are never charged.

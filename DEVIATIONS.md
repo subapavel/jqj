@@ -121,6 +121,26 @@ jq-ref completes 10⁷ levels of `def f: if .==0 then 0 else (.-1|f)+1 end`. jqj
 keeps the recursion-depth budget (4 194 304 live activations, at least 10⁶ levels) and ends deeper
 recursion with a termination. Reason: recursion depth bounded by memory, ADR-0011.
 
+## Parse depth (ADR-0017, issue #81)
+
+jq's parser stops when its Bison stack is full (YYMAXDEPTH, 10 000 states) with `memory exhausted`, rc 3. jqj's
+stops at 512 nesting levels, with jq's `memory exhausted` block at the token that opens level 513, rc 3. Both
+sides are recorded on 1.8.2; jqj's boundary is pinned by jq-core ParseDepthTest:
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| `depth/paren-9994` (`deviation parse-depth`) | 9994 parentheses around `1` | `1` | rc 3, `memory exhausted` at column 129 |
+| `depth/paren-9995` (`deviation parse-depth`) | 9995 parentheses | rc 3, `memory exhausted` at column 9997 | rc 3, column 129 |
+| `depth/array-9994` (`deviation parse-depth`) | 9994 brackets around `1` | the nested arrays | rc 3, column 129 |
+| `depth/array-9995` (`deviation parse-depth`) | 9995 brackets | rc 3, column 9997 | rc 3, column 129 |
+| `depth/object-3331` (`deviation parse-depth`) | 3331 objects `{"a": …}` around `1` | the nested objects | rc 3, column 641 |
+| `depth/object-3332` (`deviation parse-depth`) | 3332 objects | rc 3, column 16658 | rc 3, column 641 |
+| `depth/pipe-10000` (`deviation parse-depth`) | `1\|1\|…\|1`, 10 000 pipes | rc 3, column 9997 | rc 3, column 1021 |
+
+jqj accepts 127 parentheses, brackets or objects and 509 pipes, `-` or `try`. Reason: jqj's parser is recursive
+descent (ADR-0032), so its depth is Java stack, and the engine starts no thread (ADR-0017). 9994 parentheses need
+about 20 MB of stack; 512 levels fit a 512 KiB stack (ADR-0017's `stackBytes`) with about a third to spare.
+
 ## `$JQ_BUILD_CONFIGURATION` (ADR-0017, issue #13)
 
 jq prints its configure string; jqj prints its own build string.

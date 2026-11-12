@@ -25,6 +25,13 @@ cli/unknown-after-file	6c93ce178002	interpreter
 cli/unknown-in-cluster	628a0e13a173	interpreter
 cli/unknown-long	a2d1d871c8cf	interpreter
 cli/unknown-short	b482df3c607e	interpreter
+depth/array-9994	90ee9a5b076c	interpreter
+depth/array-9995	d9336a51a72d	interpreter
+depth/object-3331	6799ad7afdb6	interpreter
+depth/object-3332	686e61f557bf	interpreter
+depth/paren-9994	52a3391c9355	interpreter
+depth/paren-9995	1e98075107c7	interpreter
+depth/pipe-10000	b372af5aeaa0	interpreter
 dot/array	68310399790a	interpreter
 dot/crlf-around	34a7d1f56b09	interpreter
 dot/duplicate-keys	875e6ab23081	interpreter
