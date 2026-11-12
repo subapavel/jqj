@@ -3,6 +3,7 @@ package io.github.subapavel.jqj;
 import static io.github.subapavel.jqj.TestDocuments.newWorkspace;
 import static io.github.subapavel.jqj.TestDocuments.read;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
@@ -108,6 +109,18 @@ class PrettyWriterTest {
       expected.append(" ".repeat(4 * pair)).append("}\n");
     }
     assertThat(pretty("{\"a\":[".repeat(100) + "1" + "]}".repeat(100) + "\n")).isEqualTo(expected.toString());
+  }
+
+  @Test
+  void nullOptionsThrowNullPointerException() {
+    // As the other API null checks (EngineTest, ExceptionsTest): null options fail at sink, on both overloads.
+    Workspace workspace = newWorkspace();
+    assertThatNullPointerException()
+        .as("sink(Workspace, OutputStream, null)")
+        .isThrownBy(() -> JsonWriter.sink(workspace, new RecordingTarget(), null));
+    assertThatNullPointerException()
+        .as("sink(Workspace, WritableByteChannel, null)")
+        .isThrownBy(() -> JsonWriter.sink(workspace, Channels.newChannel(new RecordingTarget()), null));
   }
 
   @Test

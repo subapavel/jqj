@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
+import java.util.Objects;
 
 /**
  * Sinks that write each result as UTF-8 JSON (ADR-0016, ADR-0015, ADR-0027): one line per result, drained into the
@@ -23,8 +24,11 @@ public final class JsonWriter {
   /**
    * A sink that prints each result and one LF into {@code out}, charging one step per started KiB of each drain
    * (F-23). A target's IOException leaves emit as an UncheckedIOException with it as the cause (ADR-0027).
+   *
+   * @throws NullPointerException if {@code options} is null
    */
   public static JqSink sink(Workspace workspace, OutputStream out, OutputOptions options) {
+    Objects.requireNonNull(options, "options");
     // OutputOptions has two instances so far (ADR-0024): every options that is not compact() is pretty().
     boolean pretty = options != OutputOptions.compact();
     Printer printer = workspace.printer;
