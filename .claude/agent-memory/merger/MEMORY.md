@@ -14,3 +14,4 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#36) git config's identity is Claude: a merge commit's Signed-off-by must come from GIT_AUTHOR_NAME/GIT_AUTHOR_EMAIL; check it before pushing.
 - (#36) A pass list can grow beyond the verifier's DifferentialOracleTest count: regen adds survey passes (e.g. new `gen/values-v1` seeds) that were neither ratcheted nor required.
 - (#35) A bare `cd` does not persist between calls: use `mvnw -f <worktree>/pom.xml` and `env -C <worktree> java scripts/ratchet.java …`.
+- (#39) The default reactor leaves out `bench/jmh`; a bench ticket's tests run only under `-Pbench` (the gate). `regen --all` (bench.tsv) needs every report and belongs to the spec gate, not the merger.

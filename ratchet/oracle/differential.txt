@@ -2,6 +2,9 @@ basics/compact-object	99d450161998	interpreter
 basics/field-of-array	2809090efd75	interpreter
 basics/file-argument	6c7392b8e989	interpreter
 bench/G1.1k	cf34a15087e3	interpreter
+bench/G6.compact.1k	e04071d3afa9	interpreter
+bench/G6.pretty.1k	6fe68dc9ed09	interpreter
+bench/G7.1k	c6e8cbfd94f1	interpreter
 cli/combined-Mc	b6c1c52d2acf	interpreter
 cli/combined-cM	c92f901bd586	interpreter
 cli/compact-after-file	285f67ce511b	interpreter

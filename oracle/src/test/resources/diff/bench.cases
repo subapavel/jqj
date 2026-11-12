@@ -9,3 +9,23 @@ arg -c
 filter .a.b.c
 stdin {"orders":[{"id":0,"total":0.13,"k":"k0"},{"id":1,"total":79.32,"k":"k1"},{"id":2,"total":158.51,"k":"k2"},{"id":3,"total":37.7,"k":"k3"},{"id":4,"total":116.89,"k":"k4"},{"id":5,"total":196.08,"k":"k5"},{"id":6,"total":75.27,"k":"k6"},{"id":7,"total":154.46,"k":"k7"},{"id":8,"total":33.65,"k":"k8"},{"id":9,"total":112.84,"k":"k9"},{"id":10,"total":192.03,"k":"k10"},{"id":11,"total":71.22,"k":"k11"},{"id":12,"total":150.41,"k":"k12"},{"id":13,"total":29.6,"k":"k13"},{"id":14,"total":108.79,"k":"k14"},{"id":15,"total":187.98,"k":"k15"}],"items":[{"sku":"s0","price":1},{"sku":"s1","price":4731},{"sku":"s2","price":9461},{"sku":"s3","price":4192},{"sku":"s4","price":8922},{"sku":"s5","price":3653},{"sku":"s6","price":8383},{"sku":"s7","price":3114},{"sku":"s8","price":7844},{"sku":"s9","price":2575},{"sku":"s10","price":7305},{"sku":"s11","price":2036},{"sku":"s12","price":6766},{"sku":"s13","price":1497},{"sku":"s14","price":6227},{"sku":"s15","price":958}],"a":{"b":{"c":"x"}}}                                 \n
 end
+
+# G6 (ADR-0019, Gates.G6CompactAt10m / G6PrettyAt10m): `-c .` and pretty `.`; ADR-0019 gives G6 no 1 KB cell, so the
+# cases run the same orders 1k document (ADR-0023). Same stdin as bench/G1.1k; BenchCasesTest ties it to Inputs.
+case bench/G6.compact.1k
+arg -c
+filter .
+stdin {"orders":[{"id":0,"total":0.13,"k":"k0"},{"id":1,"total":79.32,"k":"k1"},{"id":2,"total":158.51,"k":"k2"},{"id":3,"total":37.7,"k":"k3"},{"id":4,"total":116.89,"k":"k4"},{"id":5,"total":196.08,"k":"k5"},{"id":6,"total":75.27,"k":"k6"},{"id":7,"total":154.46,"k":"k7"},{"id":8,"total":33.65,"k":"k8"},{"id":9,"total":112.84,"k":"k9"},{"id":10,"total":192.03,"k":"k10"},{"id":11,"total":71.22,"k":"k11"},{"id":12,"total":150.41,"k":"k12"},{"id":13,"total":29.6,"k":"k13"},{"id":14,"total":108.79,"k":"k14"},{"id":15,"total":187.98,"k":"k15"}],"items":[{"sku":"s0","price":1},{"sku":"s1","price":4731},{"sku":"s2","price":9461},{"sku":"s3","price":4192},{"sku":"s4","price":8922},{"sku":"s5","price":3653},{"sku":"s6","price":8383},{"sku":"s7","price":3114},{"sku":"s8","price":7844},{"sku":"s9","price":2575},{"sku":"s10","price":7305},{"sku":"s11","price":2036},{"sku":"s12","price":6766},{"sku":"s13","price":1497},{"sku":"s14","price":6227},{"sku":"s15","price":958}],"a":{"b":{"c":"x"}}}                                 \n
+end
+
+case bench/G6.pretty.1k
+filter .
+stdin {"orders":[{"id":0,"total":0.13,"k":"k0"},{"id":1,"total":79.32,"k":"k1"},{"id":2,"total":158.51,"k":"k2"},{"id":3,"total":37.7,"k":"k3"},{"id":4,"total":116.89,"k":"k4"},{"id":5,"total":196.08,"k":"k5"},{"id":6,"total":75.27,"k":"k6"},{"id":7,"total":154.46,"k":"k7"},{"id":8,"total":33.65,"k":"k8"},{"id":9,"total":112.84,"k":"k9"},{"id":10,"total":192.03,"k":"k10"},{"id":11,"total":71.22,"k":"k11"},{"id":12,"total":150.41,"k":"k12"},{"id":13,"total":29.6,"k":"k13"},{"id":14,"total":108.79,"k":"k14"},{"id":15,"total":187.98,"k":"k15"}],"items":[{"sku":"s0","price":1},{"sku":"s1","price":4731},{"sku":"s2","price":9461},{"sku":"s3","price":4192},{"sku":"s4","price":8922},{"sku":"s5","price":3653},{"sku":"s6","price":8383},{"sku":"s7","price":3114},{"sku":"s8","price":7844},{"sku":"s9","price":2575},{"sku":"s10","price":7305},{"sku":"s11","price":2036},{"sku":"s12","price":6766},{"sku":"s13","price":1497},{"sku":"s14","price":6227},{"sku":"s15","price":958}],"a":{"b":{"c":"x"}}}                                 \n
+end
+
+# G7 (Gates.G7_engine_1k, G7_process_1k): -c .a on the orders 1k document.
+case bench/G7.1k
+arg -c
+filter .a
+stdin {"orders":[{"id":0,"total":0.13,"k":"k0"},{"id":1,"total":79.32,"k":"k1"},{"id":2,"total":158.51,"k":"k2"},{"id":3,"total":37.7,"k":"k3"},{"id":4,"total":116.89,"k":"k4"},{"id":5,"total":196.08,"k":"k5"},{"id":6,"total":75.27,"k":"k6"},{"id":7,"total":154.46,"k":"k7"},{"id":8,"total":33.65,"k":"k8"},{"id":9,"total":112.84,"k":"k9"},{"id":10,"total":192.03,"k":"k10"},{"id":11,"total":71.22,"k":"k11"},{"id":12,"total":150.41,"k":"k12"},{"id":13,"total":29.6,"k":"k13"},{"id":14,"total":108.79,"k":"k14"},{"id":15,"total":187.98,"k":"k15"}],"items":[{"sku":"s0","price":1},{"sku":"s1","price":4731},{"sku":"s2","price":9461},{"sku":"s3","price":4192},{"sku":"s4","price":8922},{"sku":"s5","price":3653},{"sku":"s6","price":8383},{"sku":"s7","price":3114},{"sku":"s8","price":7844},{"sku":"s9","price":2575},{"sku":"s10","price":7305},{"sku":"s11","price":2036},{"sku":"s12","price":6766},{"sku":"s13","price":1497},{"sku":"s14","price":6227},{"sku":"s15","price":958}],"a":{"b":{"c":"x"}}}                                 \n
+end
