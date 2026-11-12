@@ -314,6 +314,11 @@ The byte at which jq's parser holds a whole top-level value: a container's closi
 string's closing quote, or the byte after a number or literal (the end of input when there is
 none).
 
+**Escape sequence**:
+A backslash and what follows it inside a JSON string (`\n`, `\u00e9`); a string holding one is
+tag 6.
+_Avoid_: escape (that is a built value becoming reachable)
+
 **Engine**:
 The immutable, thread-safe object a host builds once with its limits and host; it compiles filters
 and reads documents, and keeps no filter.
