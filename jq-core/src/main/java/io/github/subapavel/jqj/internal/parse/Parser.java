@@ -33,8 +33,8 @@ import java.util.Set;
  * shows on recorded inputs, each with jq's recovery message: an unusual name after a leading dot ({@code '.' error}
  * and {@code '.' IDENT error}) and an object key expression ({@code error ':' DictExpr}). Every other error ends the
  * parse there, also where jq has a silent recovery production or one jqj does not build ({@code (}, {@code [}, a
- * term's {@code [}, {@code if ... then}, {@code catch}, {@code break} and an object pattern), as no recorded input
- * needs it. As in Bison, a recovery reports no new syntax error until three tokens have been shifted, and drops a
+ * term's {@code [}, a closing brace in an object's error state, {@code if ... then}, {@code catch}, {@code break} and
+ * an object pattern), as no recorded input needs it, so jqj's blocks are then the first of jq's. As in Bison, a recovery reports no new syntax error until three tokens have been shifted, and drops a
  * token it cannot take.
  */
 public final class Parser {
@@ -537,9 +537,9 @@ public final class Parser {
 
   /**
    * {@code {pair, ...}}, a comma after the last pair allowed. An error recovers as jq's {@code error ':' DictExpr}: the
-   * tokens up to a colon are dropped, the value after it parsed, then jq's message over the error. The error starts at
-   * the pair that the error is in, or at the first pair when it comes after a whole pair, as jq's pairs then reduce back
-   * to the brace.
+   * tokens up to a colon are dropped, the value after it parsed, then jq's message over the error. The error goes to
+   * the state of the comma before the pair it is in, starting at that pair; or to the brace's state, starting at the
+   * first pair, when it is in the first pair or comes after a whole pair, as jq's pairs then reduce back to the brace.
    */
   private Ast object() {
     Token open = advance();
@@ -552,7 +552,7 @@ public final class Parser {
     for (;;) {
       try {
         if (recovering) {
-          pairs.add(keyExpression(start, errorEnd));
+          pairs.add(keyExpression(start, errorEnd, start == first));
           recovering = false;
         } else if (token.kind() == Token.Kind.RBRACE) {
           break;
@@ -579,11 +579,15 @@ public final class Parser {
     return new Ast.ObjectCons(new Source(open.start(), close.end()), List.copyOf(pairs));
   }
 
-  /** jq's {@code error ':' DictExpr} after an error over {@code [start, end)}: its message once the value is parsed. */
-  private Ast.Pair keyExpression(int start, int end) {
+  /**
+   * jq's {@code error ':' DictExpr} after an error over {@code [start, end)}: its message once the value is parsed. The
+   * parse ends at the end of the text, as Bison's does, and at a closing brace when the error went to the brace's
+   * state, where jq's silent {@code '{' error '}'} would take it (not built, ADR-0032).
+   */
+  private Ast.Pair keyExpression(int start, int end, boolean atBrace) {
     int errorEnd = end;
     while (token.kind() != Token.Kind.COLON) {
-      if (token.kind() == Token.Kind.END) {
+      if (token.kind() == Token.Kind.END || atBrace && token.kind() == Token.Kind.RBRACE) {
         throw errors();
       }
       errorEnd = token.end();
