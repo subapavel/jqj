@@ -186,6 +186,11 @@ true
 null
 1
 2
+
+length, sort
+[1]
+1
+[1]
 CASES
 out=$tmp/fixture.tsv
 CENSUS_TESTS=$fx java "$tool" write "$out" > "$tmp/write.log" 2>&1
@@ -220,8 +225,8 @@ check "%%FAIL unknown label: variables and control flow meet at definitions" "$(
 check "%%FAIL module directive" "$(at "$out" x.test:107)" "7 -"
 check "a computed format name" "$(at "$out" x.test:111)" "4 -"
 check "a definition shadowing a builtin is the program's" "$(at "$out" x.test:115)" "2a S2a.20"
-check "a shadowed name's builtin before another builtin is the prelude's, with range/2 no ticket follows both" \
-  "$(at "$out" x.test:119)" "2a S2a.25"
+check "a shadowed name's builtin before another builtin is the prelude's; with range/2 it is .22, blocked by .19 since 2026-11-12" \
+  "$(at "$out" x.test:119)" "2a S2a.22"
 check "... and its native range/2 is needed" "$(awk -F'\t' '$4 == "x.test:119" { print $5 }' "$out")" \
   "S2a.11,S2a.14,S2a.19,S2a.20,S2a.21"
 check "%%FAIL IGNORE MSG: the parser" "$(at "$out" x.test:123)" "2a S2a.12"
@@ -236,7 +241,8 @@ check "needs .13 and .14: the earliest ticket blocked by both, .15" "$(at "$out"
 check "... and why names both" "$(awk -F'\t' '$4 == "x.test:155" { print $6 }' "$out")" ".[] []"
 check "needs .15 and .16: S2a.17, blocked by both since 2026-11-12" "$(at "$out" x.test:159)" "2a S2a.17"
 check "needs .11 and .13: .13 follows .11, unchanged" "$(at "$out" x.test:163)" "2a S2a.13"
-check "every fixture case has a line" "$(grep -vc '^#' "$out")" 42
+check "needs .22 and .23: neither follows the other, the sweep" "$(at "$out" x.test:168)" "2a S2a.25"
+check "every fixture case has a line" "$(grep -vc '^#' "$out")" 43
 has "why names the deciding builtin" "_match_impl" "$out"
 CENSUS_TESTS=$fx java "$tool" verify "$out" > "$tmp/verify.log" 2>&1
 check "fixture: the list is reproduced" "$?" 0
