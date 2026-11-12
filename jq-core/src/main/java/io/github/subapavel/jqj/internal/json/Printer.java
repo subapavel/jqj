@@ -17,14 +17,18 @@ import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
 /**
- * The compact writer (ADR-0015, ADR-0027): prints a value as jq's {@code -c} does into a 64 KiB buffer, which it
- * drains into a {@link Target} whenever it is full and once at the end. It walks a container with its own stack, so
- * depth costs no Java frames. One per Workspace; not thread-safe.
+ * The writer (ADR-0015, ADR-0027): prints a value as jq's {@code -c} does, or pretty as jq does by default, into a
+ * 64 KiB buffer, which it drains into a {@link Target} whenever it is full and once at the end. It walks a container
+ * with its own stack, so depth costs no Java frames. One per Workspace; not thread-safe.
  *
  * <p>null, the booleans and tag-5 strings are their bytes. A number is copied when it is CANONICAL (ADR-0012) and is
  * a Stub otherwise (#36); a tag-6 string, a tag-6 key and a built string are re-escaped as jq's {@code
  * jvp_dump_string} (#35). An object prints each key at its first position with its
  * last value (ADR-0002). A Stub met in the middle of a value leaves what was drained before it written.
+ *
+ * <p>Pretty (#37) changes only the layout of containers: each entry of a non-empty container starts on a new line,
+ * indented by two spaces a level, a key is followed by {@code ": "}, and the closing bracket is on its own line at the
+ * container's indent. An empty container is {@code []} or {@code {}}, as in compact output.
  */
 public final class Printer {
   /** Where the buffer drains: host code, which may read into the Workspace whose document is being printed. */
@@ -40,6 +44,12 @@ public final class Printer {
   /** jvp_dump_string's {@code %04x}: lowercase. */
   private static final char[] HEX = "0123456789abcdef".toCharArray();
 
+  /** jq's default indent: two spaces a level. */
+  private static final int INDENT = 2;
+
+  /** The spaces an indent is copied from, a chunk at a time. */
+  private static final byte[] SPACES = " ".repeat(256).getBytes(UTF_8);
+
   private final byte[] buffer = new byte[CAPACITY];
 
   /**
@@ -47,6 +57,9 @@ public final class Printer {
    * string decodes into an array of its own, dropped after it (architect's answer to #35 Open 3: bounded memory).
    */
   private byte[] scratch = new byte[0];
+
+  /** Whether the value being printed is laid out as jq's default pretty output; false for compact. */
+  private boolean pretty;
 
   /** Two slots per open container: its tape index, then the index of its next entry to print. */
   private int[] stack = new int[32];
@@ -57,10 +70,11 @@ public final class Printer {
   /** The document being printed, checked again after a drain in the middle of a value; null for a built value. */
   private Document doc;
 
-  /** Prints {@code v} and one LF, then drains everything into {@code target} (ADR-0027). */
-  public void line(JqValue v, Target target) {
+  /** Prints {@code v}, pretty or compact, and one LF, then drains everything into {@code target} (ADR-0027). */
+  public void line(JqValue v, boolean pretty, Target target) {
     // The document of an earlier line may be closed by now; a built value has none to check.
     doc = null;
+    this.pretty = pretty;
     this.target = target;
     // A value that ended in a Stub or a target's exception may have left bytes behind.
     pos = 0;
@@ -127,7 +141,8 @@ public final class Printer {
       } else {
         scalar(bytes, entry);
       }
-      // The value at `at` ended: print the next entry of the innermost open container, or close it.
+      // The value at `at` ended: print the next entry of the innermost open container, or close it. The entries of
+      // the innermost container are sp / 2 levels deep.
       while (sp > 0) {
         int container = stack[sp - 2];
         int next = stack[sp - 1];
@@ -137,11 +152,12 @@ public final class Printer {
             if (next > container + 1) {
               put(',');
             }
+            newline(sp >>> 1);
             stack[sp - 1] = Tape.next(tape, next);
             at = next;
             continue walk;
           }
-          put(']');
+          close(container, end, sp, ']');
         } else {
           while (next < end && !ObjectView.isFirst(tape, bytes, container, next)) {
             next = Tape.next(tape, next + 1);
@@ -151,13 +167,17 @@ public final class Printer {
             if (next > container + 1) {
               put(',');
             }
+            newline(sp >>> 1);
             string(bytes, tape[next]);
             put(':');
+            if (pretty) {
+              put(' ');
+            }
             stack[sp - 1] = Tape.next(tape, next + 1);
             at = ObjectView.lastValueOf(tape, bytes, next, end);
             continue walk;
           }
-          put('}');
+          close(container, end, sp, '}');
         }
         sp -= 2;
       }
@@ -265,6 +285,30 @@ public final class Printer {
         put(HEX[c >> 4]);
         put(HEX[c & 0xF]);
       }
+    }
+  }
+
+  /**
+   * Closes the container at tape index {@code container}, whose entries end at {@code end} and are {@code sp / 2}
+   * levels deep. Pretty, a non-empty container's bracket goes on a new line at the container's own indent; an empty
+   * one, and every container in compact output, closes right after its opening bracket or last entry. An object with
+   * entries always prints its first key, so {@code end} tells an empty object for both kinds.
+   */
+  private void close(int container, int end, int sp, char bracket) {
+    if (end > container + 1) {
+      newline((sp >>> 1) - 1);
+    }
+    put(bracket);
+  }
+
+  /** Pretty only: an LF and {@code levels} indents. Compact output has neither. */
+  private void newline(int levels) {
+    if (!pretty) {
+      return;
+    }
+    put('\n');
+    for (int n = levels * INDENT; n > 0; n -= SPACES.length) {
+      put(SPACES, 0, Math.min(n, SPACES.length));
     }
   }
 

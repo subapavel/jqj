@@ -1,16 +1,17 @@
 package io.github.subapavel.jqj;
 
-import io.github.subapavel.jqj.internal.Stub;
 import io.github.subapavel.jqj.internal.json.Printer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
+import java.util.Objects;
 
 /**
  * Sinks that write each result as UTF-8 JSON (ADR-0016, ADR-0015, ADR-0027): one line per result, drained into the
- * target before emit returns, never flushed. Compact only so far; {@code pretty()} is a Stub until #39.
+ * target before emit returns, never flushed. {@code compact()} prints as jq's {@code -c}, {@code pretty()} as jq's
+ * default indent 2 (#37).
  */
 public final class JsonWriter {
   private JsonWriter() {}
@@ -23,11 +24,13 @@ public final class JsonWriter {
   /**
    * A sink that prints each result and one LF into {@code out}, charging one step per started KiB of each drain
    * (F-23). A target's IOException leaves emit as an UncheckedIOException with it as the cause (ADR-0027).
+   *
+   * @throws NullPointerException if {@code options} is null
    */
   public static JqSink sink(Workspace workspace, OutputStream out, OutputOptions options) {
-    if (options != OutputOptions.compact()) {
-      throw Stub.unbuilt("pretty output");
-    }
+    Objects.requireNonNull(options, "options");
+    // OutputOptions has two instances so far (ADR-0024): every options that is not compact() is pretty().
+    boolean pretty = options != OutputOptions.compact();
     Printer printer = workspace.printer;
     Printer.Target target =
         (buffer, length) -> {
@@ -39,7 +42,7 @@ public final class JsonWriter {
           workspace.tick((length + 1023) >>> 10);
         };
     return v -> {
-      printer.line(v, target);
+      printer.line(v, pretty, target);
       return true;
     };
   }
