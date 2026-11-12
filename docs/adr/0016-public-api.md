@@ -93,7 +93,7 @@ ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (
   - `doubleValue()` follows ADR-0012's 17-digit rule;
   - `fitsLong()` is FITS_LONG (false for `-0`), `longValue()` throws `ArithmeticException` unless it
     fits;
-  - `decimalValue()` is exact for a literal and the printed digits for a computed number (`5e-324`,
+  - `decimalValue()` is exact for a literal (within the exponent limits, ADR-0028) and the printed digits for a computed number (`5e-324`,
     not `BigDecimal.valueOf`'s `4.9E-324`); it throws on NaN and ±Infinity;
   - `toString()` is jq's printed form; `of(long)`, `of(double)` and `parse(String)` (`tonumber`'s
     grammar, a literal).
