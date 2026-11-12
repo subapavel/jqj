@@ -1,7 +1,16 @@
+jq.test#00bd6269df2a	interpreter
+jq.test#023a4f8e4728	interpreter
+jq.test#052feb93dd6b	interpreter
+jq.test#05d369c853a6	interpreter
 jq.test#1ce903e38afb	interpreter
 jq.test#30896d652d49	interpreter
+jq.test#350f3cad33e6	interpreter
+jq.test#5391099daec9	interpreter
+jq.test#6f6d2a098114	interpreter
+jq.test#844e1c574b9c	interpreter
 jq.test#a1992d239479	interpreter
 jq.test#ab86f854cabe	interpreter
+jq.test#af2408bd1c91	interpreter
 jq.test#c400185394bd	interpreter
 jq.test#e3d73b9ff1ab	interpreter
 man.test#0ade8296aa15	interpreter
