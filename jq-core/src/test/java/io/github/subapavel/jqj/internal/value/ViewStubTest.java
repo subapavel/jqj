@@ -3,10 +3,8 @@ package io.github.subapavel.jqj.internal.value;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
-import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.JqEngine;
 import io.github.subapavel.jqj.Workspace;
 import io.github.subapavel.jqj.value.JqArray;
@@ -22,25 +20,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
 /**
- * ADR-0024: the view members that are still Stubs after #32, each ending in a JqCompileException whose message
- * starts with the Stub mark. The views come from {@code Workspace.read} (#32 conflict C4). #32 built the other
- * accessors, so their entries ended with their Stubs. #33 (S1.11) built the four {@code toJson()} and the UTF-8
- * classification, under which non-ASCII well-formed UTF-8 is tag 5; those six entries ended with their Stubs and
- * {@link #viewMembersBuiltBy33} checks them instead (#33 design C12). #36 built {@code NumberView.doubleValue()} and
- * {@code decimalValue()}, so their two entries ended with their Stubs (#36 design C5, the same rule); NumberViewTest
- * and StaleViewTest check them now. #35 decodes tag 6 (an escape, DEL or bytes that are not well-formed UTF-8; #33
- * design C5), so every entry that met a tag-6 string or key ended with its Stub and {@link #viewMembersBuiltBy35}
- * checks them instead (#35 design K3). No view member is a Stub any more, so the Stub factory has no entry left.
+ * ADR-0024: the view members that were Stubs after #32, now each built and checked here or elsewhere. The views come
+ * from {@code Workspace.read} (#32 conflict C4). #33 (S1.11) built the four {@code toJson()} and the UTF-8
+ * classification, under which non-ASCII well-formed UTF-8 is tag 5; {@link #viewMembersBuiltBy33} checks those six
+ * entries (#33 design C12). #36 built {@code NumberView.doubleValue()} and {@code decimalValue()} (#36 design C5, the
+ * same rule); NumberViewTest and StaleViewTest check them. #35 decodes tag 6 (an escape, DEL or bytes that are not
+ * well-formed UTF-8; #33 design C5), so every entry that met a tag-6 string or key ended with its Stub and {@link
+ * #viewMembersBuiltBy35} checks it instead (#35 design K3). No view member is a Stub any more, so the factory of Stub
+ * entries is gone.
  */
 class ViewStubTest {
-  /** ADR-0024, GLOSSARY "Stub": the mark every Stub message starts with. */
-  private static final String MARK = "jqj stub: ";
-
   /**
    * One array, so that no object lookup meets a tag-6 key before its own entry: a number with a fraction, a
    * plain string, an empty array and object, three tag-6 strings (an escape, non-ASCII, DEL), an object whose
@@ -48,25 +41,6 @@ class ViewStubTest {
    */
   private static final String DOC =
       "[1.5,\"x\",[],{},\"a\\nb\",\"\u00e9\",\"\u007f\",{\"\\u0061\":1,\"a\":2},{\"a\":1,\"\\u0061\":2}]";
-
-  /**
-   * Each dynamic test reads {@link #DOC} itself, so the read runs inside the test: the tests that read a tag-6
-   * string then cover the reader's classification too (PIT counts a test only for what runs inside it).
-   */
-  @TestFactory
-  Stream<DynamicTest> viewMembersNotBuiltYetAreStubs() {
-    Map<String, Function<JqArray, ThrowingCallable>> stubs = new LinkedHashMap<>();
-
-    return stubs.entrySet().stream()
-        .map(
-            stub ->
-                dynamicTest(
-                    stub.getKey(),
-                    () ->
-                        assertThatThrownBy(stub.getValue().apply(readDoc()))
-                            .isInstanceOf(JqCompileException.class)
-                            .hasMessageStartingWith(MARK)));
-  }
 
   /**
    * The tag-6 entries #35 ended (design K3, under #33's C12 rule): the seven members that met a tag-6 string or key,
@@ -139,7 +113,11 @@ class ViewStubTest {
                     () -> assertThat(member.getValue().apply(readDoc())).as(member.getKey()).isEqualTo(expected.get(member.getKey()))));
   }
 
-  /** Reads {@link #DOC} into a new Workspace and returns its root array. */
+  /**
+   * Reads {@link #DOC} into a new Workspace and returns its root array. Each dynamic test calls it itself, so the read
+   * runs inside the test: the tests that read a tag-6 string then cover the reader's classification too (PIT counts a
+   * test only for what runs inside it).
+   */
   private static JqArray readDoc() {
     Workspace workspace = JqEngine.builder().build().newWorkspace();
     return view(JqArray.class, ArrayView.class, workspace.read(MemorySegment.ofArray(DOC.getBytes(UTF_8))).root());
