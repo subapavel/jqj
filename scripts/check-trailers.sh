@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Commit trailer check (#67, docs/WORKFLOW.md section 11). Every commit in <range> has exactly one Signed-off-by,
 # a "Ticket: #<n>" line and a "Co-authored-by: Claude <noreply@anthropic.com>" line. Merge commits written by the
-# merger are checked; GitHub's own PR merge commit ("Merge <sha> into <sha>") is skipped.
+# merger are checked; GitHub's own PR merge commit ("Merge <sha> into <sha>") is skipped. A commit whose full SHA
+# is a line of scripts/trailers-waiver.txt is skipped too (F-28); in that file blank lines and lines starting with
+# '#' are ignored, any other line that is not a 40-hex SHA is an error (exit 2), and no file means no waivers.
 #
 #   scripts/check-trailers.sh <range>        e.g. origin/main..HEAD
 set -uo pipefail
@@ -17,6 +19,22 @@ case "$1" in
     ;;
 esac
 cd "$(dirname "$0")/.." || exit 2
+declare -A waived=()
+waiver=scripts/trailers-waiver.txt
+if [ -f "$waiver" ]; then
+  mapfile -t lines < "$waiver"
+  for i in "${!lines[@]}"; do
+    line=${lines[$i]}
+    case "$line" in
+      '' | '#'*) continue ;;
+    esac
+    if ! [[ "$line" =~ ^[0-9a-f]{40}$ ]]; then
+      echo "$waiver line $((i + 1)) is not a 40-hex SHA: '$line'" >&2
+      exit 2
+    fi
+    waived[$line]=1
+  done
+fi
 if ! shas=$(git rev-list "$1"); then
   echo "cannot resolve range $1 in $(pwd)" >&2
   exit 1
@@ -31,6 +49,10 @@ for sha in $shas; do
   msg=$(git log -1 --format=%B "$sha")
   subject=$(printf '%s\n' "$msg" | head -n 1)
   if [[ "$subject" =~ ^Merge\ [0-9a-f]{40}\ into\ [0-9a-f]{40}$ ]]; then
+    continue
+  fi
+  if [ -n "${waived[$sha]+x}" ]; then
+    echo "${sha:0:7} waived by $waiver: $subject"
     continue
   fi
   n=$((n + 1))
