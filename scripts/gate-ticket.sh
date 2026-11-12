@@ -5,11 +5,14 @@
 #
 #   scripts/gate-ticket.sh <ticket> <modules> [ref]
 #
-#   <modules>  comma-separated modules the ticket changes, e.g. query-core,jq-core
-#   [ref]      what "changed" means for PIT and the trailer check; default origin/main
+#   <modules>  comma-separated modules the ticket changes, e.g. query-core,jq-core; no step reads it since
+#              F-27 took PIT out, it stays so the callers keep one form
+#   [ref]      the ref for the trailer check (<ref>..HEAD) and the recording check (changed since <ref>);
+#              default origin/main
 #
-# Steps: 1 verify       ./mvnw -B -Pbench verify (the whole reactor; the oracle needs every module)
-#        2 pit          PIT on the classes changed since <ref> in <modules>, against the floor
+# Steps, numbered as in ADR-0014 (its step 2, PIT on the changed classes, left the ticket gate by F-27; PIT
+# runs only in the spec gate, on whole class-C modules):
+#        1 verify       ./mvnw -B -Pbench verify (the whole reactor; the oracle needs every module)
 #        3 lf, trailers, word, record   LF check, trailer check, word check, oracle recordings changed since <ref>
 #        4 ratchet      java scripts/ratchet.java check
 # Environment: ORACLE_REQUIRE, a file of the ticket's required case ids, becomes -Doracle.require=<file> (ADR-0020).
@@ -19,7 +22,6 @@ if [ $# -lt 2 ] || [ $# -gt 3 ]; then
   exit 2
 fi
 ticket=$1
-modules=$2
 ref=${3:-origin/main}
 cd "$(dirname "$0")/.." || exit 2
 mkdir -p .logs
@@ -47,31 +49,6 @@ require=()
 if [ -n "${ORACLE_REQUIRE:-}" ]; then require=("-Doracle.require=$ORACLE_REQUIRE"); fi
 
 step verify 0 ./mvnw -B -Pbench "${require[@]}" verify
-
-# Step 2: the classes changed in <modules> since <ref>, as io.github…Foo* (the star takes the inner classes along).
-IFS=, read -r -a mods <<< "$modules"
-classes=()
-while IFS= read -r path; do
-  for m in "${mods[@]}"; do
-    case "$path" in
-      "$m"/src/main/java/*.java)
-        rel=${path#"$m"/src/main/java/}
-        rel=${rel%.java}
-        case "$rel" in module-info | */package-info) continue ;; esac
-        classes+=("${rel//\//.}*")
-        ;;
-    esac
-  done
-done < <(git diff --name-only --diff-filter=AM "$ref"...HEAD)
-
-if [ ${#classes[@]} -eq 0 ]; then
-  echo "== pit: no changed class in $modules since $ref, skipped"
-else
-  target=$(IFS=,; echo "${classes[*]}")
-  step pit 0 ./mvnw -B -pl "$modules" -am test org.pitest:pitest-maven:mutationCoverage "-DtargetClasses=$target"
-  step pit-floor 1 java scripts/ratchet.java floor-mutation "${mods[@]}"
-fi
-
 step lf 0 scripts/check-lf-checkout.sh
 step trailers 0 scripts/check-trailers.sh "$ref..HEAD"
 step word 0 scripts/check-core-neutral.sh
