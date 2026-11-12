@@ -1,13 +1,11 @@
 package io.github.subapavel.jqj.oracle.jqtest;
 
+import io.github.subapavel.jqj.oracle.diff.Verdict;
 import java.util.List;
 
 /** An exception of jqj's, as {@link Jqj} hands it to the runner: its kind, message and compile error blocks. */
 public final class JqjException extends RuntimeException {
   private static final long serialVersionUID = 1L;
-
-  /** The mark every Stub message carries (ADR-0024). */
-  static final String STUB = "jqj stub: ";
 
   /** Which of jqj's four exceptions it was (ADR-0016). */
   public enum Kind {
@@ -38,8 +36,8 @@ public final class JqjException extends RuntimeException {
     return blocks;
   }
 
-  /** Whether jqj ended with a Stub: the message carries {@value #STUB}. */
+  /** Whether jqj ended with a Stub: the message carries {@value Verdict#STUB}. */
   boolean stub() {
-    return String.valueOf(getMessage()).contains(STUB);
+    return String.valueOf(getMessage()).contains(Verdict.STUB);
   }
 }
