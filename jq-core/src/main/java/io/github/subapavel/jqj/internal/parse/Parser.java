@@ -1,3 +1,28 @@
+/*
+ * Translated from jq 1.8.2 (https://github.com/jqlang/jq): the grammar, its error productions and their FAIL
+ * messages in src/parser.y.
+ *
+ * jq is copyright (C) 2012 Stephen Dolan
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 package io.github.subapavel.jqj.internal.parse;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -11,6 +36,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Parses a filter into its {@link Program} (ADR-0032): recursive descent over jq 1.8.2's grammar ({@code parser.y}),
@@ -34,8 +60,15 @@ import java.util.Set;
  * and {@code '.' IDENT error}) and an object key expression ({@code error ':' DictExpr}). Every other error ends the
  * parse there, also where jq has a silent recovery production or one jqj does not build ({@code (}, {@code [}, a
  * term's {@code [}, a closing brace in an object's error state, {@code if ... then}, {@code catch}, {@code break} and
- * an object pattern), as no recorded input needs it, so jqj's blocks are then the first of jq's. As in Bison, a recovery reports no new syntax error until three tokens have been shifted, and drops a
- * token it cannot take.
+ * an object pattern), as no recorded input needs it; jqj's blocks are then a prefix of jq's. jq's parser-action
+ * errors are not built either: where one comes before jq's syntax error, as {@code Cannot use number (1) as object
+ * key} does in {@code {(1): 2 3}} (#64), jqj's blocks are not a prefix (DEVIATIONS "Syntax-error text").
+ *
+ * <p>The recovery is written from the Bison manual's description of error recovery: the {@code error} token, the pop
+ * to the innermost state that shifts it, the discard of the tokens it cannot take, and no new error message until
+ * three tokens have been shifted. The details the manual leaves open (a token after one or two shifts is neither
+ * reported nor discarded; a discarded end of text ends the parse) follow jq-ref's recordings in ParserEdgesTest.
+ * Nothing is ported from jq's generated {@code src/parser.c} or from Bison's skeleton.
  */
 public final class Parser {
   private static final String TRY_FIELD = "try .[\"field\"] instead of .field for unusually named fields";
@@ -82,7 +115,7 @@ public final class Parser {
   private int firstLine;
   private int firstColumn;
 
-  /** Bison's {@code yyerrstatus}: 3 after an error, one less per shifted token; a syntax error is reported at 0. */
+  /** The shifts an error's recovery still needs: 3 after an error, one less per shift; an error is reported at 0. */
   private int errorStatus;
 
   /** Whether the innermost error state of the parse so far recovers (a leading dot, an object) or ends the parse. */
@@ -285,9 +318,7 @@ public final class Parser {
       }
       advance();
       // jq's "try" Exp "catch" error, not built: an error in the handler ends the parse.
-      boolean outer = enter(false);
-      Ast handler = term();
-      recovers = outer;
+      Ast handler = inErrorState(false, this::term);
       return new Ast.Try(new Source(start.start(), handler.source().end()), body, handler);
     }
     return postfix(primary());
@@ -313,20 +344,24 @@ public final class Parser {
       case LPAREN -> {
         advance();
         // jq's '(' error ')', silent: not built.
-        boolean outer = enter(false);
-        Ast body = query();
-        Token close = expect(Token.Kind.RPAREN);
-        recovers = outer;
-        yield new Ast.Paren(new Source(first.start(), close.end()), body);
+        yield inErrorState(
+            false,
+            () -> {
+              Ast body = query();
+              Token close = expect(Token.Kind.RPAREN);
+              return new Ast.Paren(new Source(first.start(), close.end()), body);
+            });
       }
       case LBRACKET -> {
         advance();
         // jq's '[' error ']', silent: not built.
-        boolean outer = enter(false);
-        Ast body = token.kind() == Token.Kind.RBRACKET ? null : query();
-        Token close = expect(Token.Kind.RBRACKET);
-        recovers = outer;
-        yield new Ast.ArrayCons(new Source(first.start(), close.end()), body);
+        yield inErrorState(
+            false,
+            () -> {
+              Ast body = token.kind() == Token.Kind.RBRACKET ? null : query();
+              Token close = expect(Token.Kind.RBRACKET);
+              return new Ast.ArrayCons(new Source(first.start(), close.end()), body);
+            });
       }
       case LBRACE -> object();
       case BINDING -> new Ast.Var(source(first), variable(advance()));
@@ -394,8 +429,7 @@ public final class Parser {
         advance();
         if (token.kind() != Token.Kind.BINDING) {
           // jq's "break" error, with its own message: not built.
-          recovers = false;
-          throw syntaxError();
+          throw inErrorState(false, this::syntaxError);
         }
         Token name = advance();
         yield new Ast.Break(new Source(start.start(), name.end()), variable(name));
@@ -409,22 +443,24 @@ public final class Parser {
     Ast cond = query();
     expectKeyword("then");
     // jq's "if" Query "then" error, with its own message: not built.
-    boolean outer = enter(false);
-    Ast then = query();
-    Ast otherwise = null;
-    int end;
-    if (isKeyword("elif")) {
-      otherwise = ifTail(advance());
-      end = otherwise.source().end();
-    } else {
-      if (isKeyword("else")) {
-        advance();
-        otherwise = query();
-      }
-      end = expectKeyword("end").end();
-    }
-    recovers = outer;
-    return new Ast.If(new Source(start.start(), end), cond, then, otherwise);
+    return inErrorState(
+        false,
+        () -> {
+          Ast then = query();
+          Ast otherwise = null;
+          int end;
+          if (isKeyword("elif")) {
+            otherwise = ifTail(advance());
+            end = otherwise.source().end();
+          } else {
+            if (isKeyword("else")) {
+              advance();
+              otherwise = query();
+            }
+            end = expectKeyword("end").end();
+          }
+          return new Ast.If(new Source(start.start(), end), cond, then, otherwise);
+        });
   }
 
   /** The suffixes after a term, each nesting the term so far as its target. */
@@ -446,9 +482,8 @@ public final class Parser {
         }
         case LBRACKET -> {
           // jq's Term '[' error ']', silent: not built.
-          boolean outer = enter(false);
-          target = bracket(target, token);
-          recovers = outer;
+          Ast indexed = target;
+          target = inErrorState(false, () -> bracket(indexed, token));
         }
         case QUESTION -> target = new Ast.Optional(source(advance()), target);
         default -> {
@@ -503,30 +538,30 @@ public final class Parser {
    */
   private Ast dot() {
     Token dot = advance();
-    boolean outer = enter(true);
     try {
-      switch (token.kind()) {
-        case STRING_START, FORMAT -> {
-          Ast.Str name = string();
-          recovers = outer;
-          boolean optional = token.kind() == Token.Kind.QUESTION;
-          int end = optional ? advance().end() : name.source().end();
-          return new Ast.StringField(new Source(dot.start(), end), null, name, optional);
-        }
-        case IDENT -> {
-          advance();
-          throw syntaxError();
-        }
-        default -> {
-          if (NO_TERM_AFTER.contains(token.kind()) || token.kind() == Token.Kind.KEYWORD && !KEYWORDS_AFTER_A_TERM.contains(word(token))) {
-            throw syntaxError();
-          }
-          recovers = outer;
-          return new Ast.Dot(source(dot));
-        }
-      }
+      return inErrorState(
+          true,
+          () ->
+              switch (token.kind()) {
+                case STRING_START, FORMAT -> {
+                  Ast.Str name = string();
+                  boolean optional = token.kind() == Token.Kind.QUESTION;
+                  int end = optional ? advance().end() : name.source().end();
+                  yield new Ast.StringField(new Source(dot.start(), end), null, name, optional);
+                }
+                case IDENT -> {
+                  advance();
+                  throw syntaxError();
+                }
+                default -> {
+                  if (NO_TERM_AFTER.contains(token.kind())
+                      || token.kind() == Token.Kind.KEYWORD && !KEYWORDS_AFTER_A_TERM.contains(word(token))) {
+                    throw syntaxError();
+                  }
+                  yield new Ast.Dot(source(dot));
+                }
+              });
     } catch (Unwind u) {
-      recovers = outer;
       fail(TRY_FIELD, dot.start(), u.end);
       if (u.drop) {
         discard();
@@ -543,40 +578,42 @@ public final class Parser {
    */
   private Ast object() {
     Token open = advance();
-    boolean outer = enter(true);
-    List<Ast.Pair> pairs = new ArrayList<>();
-    int first = token.start();
-    int start = first;
-    boolean recovering = false;
-    int errorEnd = 0;
-    for (;;) {
-      try {
-        if (recovering) {
-          pairs.add(keyExpression(start, errorEnd, start == first));
-          recovering = false;
-        } else if (token.kind() == Token.Kind.RBRACE) {
-          break;
-        } else {
-          pairs.add(pair());
-        }
-        if (token.kind() == Token.Kind.COMMA) {
-          advance();
-          start = token.start();
-        } else if (token.kind() != Token.Kind.RBRACE) {
-          start = first;
-          throw syntaxError();
-        }
-      } catch (Unwind u) {
-        if (u.drop) {
-          discard();
-        }
-        recovering = true;
-        errorEnd = u.end;
-      }
-    }
-    Token close = advance();
-    recovers = outer;
-    return new Ast.ObjectCons(new Source(open.start(), close.end()), List.copyOf(pairs));
+    return inErrorState(
+        true,
+        () -> {
+          List<Ast.Pair> pairs = new ArrayList<>();
+          int first = token.start();
+          int start = first;
+          boolean recovering = false;
+          int errorEnd = 0;
+          for (;;) {
+            try {
+              if (recovering) {
+                pairs.add(keyExpression(start, errorEnd, start == first));
+                recovering = false;
+              } else if (token.kind() == Token.Kind.RBRACE) {
+                break;
+              } else {
+                pairs.add(pair());
+              }
+              if (token.kind() == Token.Kind.COMMA) {
+                advance();
+                start = token.start();
+              } else if (token.kind() != Token.Kind.RBRACE) {
+                start = first;
+                throw syntaxError();
+              }
+            } catch (Unwind u) {
+              if (u.drop) {
+                discard();
+              }
+              recovering = true;
+              errorEnd = u.end;
+            }
+          }
+          Token close = advance();
+          return new Ast.ObjectCons(new Source(open.start(), close.end()), List.copyOf(pairs));
+        });
   }
 
   /**
@@ -676,16 +713,18 @@ public final class Parser {
       case LBRACE -> {
         advance();
         // jq's error ':' Pattern of an object pattern: not built.
-        boolean outer = enter(false);
-        List<Ast.ObjPat> entries = new ArrayList<>();
-        entries.add(objPat());
-        while (token.kind() == Token.Kind.COMMA) {
-          advance();
-          entries.add(objPat());
-        }
-        Token close = expect(Token.Kind.RBRACE);
-        recovers = outer;
-        return new Ast.ObjectPattern(new Source(open.start(), close.end()), List.copyOf(entries));
+        return inErrorState(
+            false,
+            () -> {
+              List<Ast.ObjPat> entries = new ArrayList<>();
+              entries.add(objPat());
+              while (token.kind() == Token.Kind.COMMA) {
+                advance();
+                entries.add(objPat());
+              }
+              Token close = expect(Token.Kind.RBRACE);
+              return new Ast.ObjectPattern(new Source(open.start(), close.end()), List.copyOf(entries));
+            });
       }
       default -> throw syntaxError();
     }
@@ -805,7 +844,7 @@ public final class Parser {
   }
 
   /**
-   * The current token is one the grammar rejects, as Bison's {@code yyerrlab}: reported unless an earlier error's
+   * The current token is one the grammar rejects (the Bison manual's error recovery): reported unless an earlier error's
    * recovery is in progress; when that recovery has just failed on it, it is to be dropped, and at the end of the text
    * the parse ends. The error then goes to the innermost error state: an Unwind to it when it recovers, which drops the
    * token once its own reduction is done, as Bison reads the next one only then; else the errors so far.
@@ -822,11 +861,15 @@ public final class Parser {
     return recovers ? new Unwind(token.end(), drop) : errors();
   }
 
-  /** Enters an error state that recovers or ends the parse; the caller restores the outer state it returns. */
-  private boolean enter(boolean recovering) {
+  /** {@code body}'s result, parsed in an error state that recovers or ends the parse; the outer state is restored after. */
+  private <T> T inErrorState(boolean recovering, Supplier<T> body) {
     boolean outer = recovers;
     recovers = recovering;
-    return outer;
+    try {
+      return body.get();
+    } finally {
+      recovers = outer;
+    }
   }
 
   /** Adds jq's error block of {@code message} over {@code [start, end)}. */
