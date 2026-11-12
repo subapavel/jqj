@@ -36,6 +36,18 @@ A behaviour where jqj differs from the reference jq on purpose, listed in `DEVIA
 its reason.
 _Avoid_: incompatibility, known issue
 
+**Interpolation**:
+The `\(f)` in a string literal: `f` runs on the input, and each result, printed as `tostring`
+prints it, is spliced into the string.
+_Avoid_: template
+
+**Escape run**:
+The longest run of escape sequences in a filter's string literal; jq checks it as one JSON string.
+Not an **Escape** of a built value.
+
+**Error block**:
+One compile error as jq prints it: message, line, column, the source line and carets (ADR-0031).
+
 ## Values
 
 **Document**:
@@ -400,6 +412,11 @@ The assignment of every jq-test case to the spec that makes it pass, from the bu
 constructs its filter reaches in the reference jq. Each spec gate requires the cases the census
 gives it.
 _Avoid_: case budget, target count
+
+**Disagreement**:
+A compile-mode case whose optimised and conservative runs both end without a termination but
+differ in exit code, stdout or stderr. It stops the next merge (F-29, ADR-0020 amendment for #60).
+_Avoid_: mismatch
 
 **Differential oracle**:
 Running a case in jqj and in the reference jq binary and requiring the same exit code, stdout and

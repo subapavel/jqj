@@ -102,8 +102,8 @@ then stop with `IDLE_NO_FRONTIER`, see §5):
    the spec merge. Then call the Skill tool with `pr` for the body (summary, evidence lines, merge danger),
    `gh pr create --base main --head spec/<spec>-<slug>`, the body closing the spec. Wait for CI in
    the foreground (`gh pr checks --watch`, with a timeout). Red CI is a fix packet, not a retry.
-5. **Merge** — `rm -f .logs/.batch-in-review && gh pr merge --merge` (never squash, never
-   rebase, never force). Run `scripts/clean-worktrees.sh`: it removes every
+5. **Merge** — `rm -f .logs/.batch-in-review && scripts/merge-spec.sh <pr>` (prints the body and the command; `--execute` merges; in a cloud session, where GraphQL is refused, merge with the GitHub MCP `merge_pull_request` using the printed subject and body file;
+   never squash, never rebase, never force). Run `scripts/clean-worktrees.sh`: it removes every
    merged agent worktree, forces only one whose index and files are already in `origin/main`
    history, keeps the rest with a reason, then prunes.
 6. Suggest `/retro` to the owner in one line.
