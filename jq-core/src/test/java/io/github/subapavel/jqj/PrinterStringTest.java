@@ -131,7 +131,7 @@ class PrinterStringTest {
     rows.put(bytes("{\"\\u00e9\":1,\"\\u0061\\u0062\":2,\"\\udfaa\":3,\"", HEX.parseHex("ff"), "\":4,\"é\":5}"), "{\"é\":5,\"ab\":2,\"\ufffd\":4}");
     // jq-ref 1.8.2: {"\n\u0001":[{"\u007f":"\/"}]} -> {"\n\u0001":[{"\u007f":"/"}]}
     rows.put(bytes("{\"\\n\\u0001\":[{\"\\u007f\":\"\\/\"}]}"), "{\"\\n\\u0001\":[{\"\\u007f\":\"/\"}]}");
-    // jq-ref 1.8.2 (ViewStubTest's document): {"\u0061":1,"a":2} -> {"a":2}; string.rec escaped-duplicate-key:
+    // jq-ref 1.8.2 (ViewAccessorsTest's document): {"\u0061":1,"a":2} -> {"a":2}; string.rec escaped-duplicate-key:
     // {"a":1,"\u0061":2} -> {"a":2}.
     rows.put(bytes("{\"\\u0061\":1,\"a\":2}"), "{\"a\":2}");
     rows.put(bytes("{\"a\":1,\"\\u0061\":2}"), "{\"a\":2}");
