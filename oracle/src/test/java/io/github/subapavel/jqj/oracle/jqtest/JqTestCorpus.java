@@ -57,9 +57,14 @@ final class JqTestCorpus {
     return dir().getParent().getParent().getParent().getParent().getParent();
   }
 
-  /** The ratcheted ids and those the ticket names with {@code -Doracle.require=<file>}. */
+  /** The ratcheted ids and the jqtest ids the ticket names with {@code -Doracle.require=<file>}. */
   static Set<String> required() {
-    return DiffReport.required(root().resolve("ratchet/oracle/jqtest.txt"), System.getProperty("oracle.require"));
+    return required(System.getProperty("oracle.require"));
+  }
+
+  /** The ratcheted ids and the jqtest ids of {@code requireFile} (null: none). */
+  static Set<String> required(String requireFile) {
+    return DiffReport.required(root().resolve("ratchet/oracle/jqtest.txt"), requireFile, DiffReport.Oracle.JQTEST);
   }
 
   /**
