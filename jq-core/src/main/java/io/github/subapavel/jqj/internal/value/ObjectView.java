@@ -2,6 +2,7 @@ package io.github.subapavel.jqj.internal.value;
 
 import io.github.subapavel.jqj.internal.json.JsonStrings;
 import io.github.subapavel.jqj.internal.json.Printer;
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqValue;
 import java.util.Arrays;
@@ -40,16 +41,66 @@ public record ObjectView(Document doc, int index) implements JqObject {
   /** The value of the last {@code key}, or Java {@code null} when the object has no such key (ADR-0026). */
   @Override
   public JqValue get(String key) {
+    return valueAt((int) find(key));
+  }
+
+  /**
+   * {@link #get(String)} for a filter: one tick per key scanned, which is every key, since the last one wins (ADR-0034,
+   * decision 3 of #63's approval).
+   */
+  public JqValue get(RunState state, String key) {
+    long found = find(key);
+    state.tick((int) (found >>> 32));
+    return valueAt((int) found);
+  }
+
+  /** The keys scanned for {@code key} in the high half; in the low half the tape index of its last value, 0 for none. */
+  private long find(String key) {
     long[] tape = doc.live();
     byte[] bytes = doc.bytes;
     int end = Tape.end(tape, index);
+    int keys = 0;
     int value = 0; // none yet: index 0 is the root, never a member's value
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
+      keys++;
       if (spells(bytes, tape[k], key)) {
         value = k + 1;
       }
     }
-    return value == 0 ? null : doc.valueAt(tape, value);
+    return (long) keys << 32 | value;
+  }
+
+  /** The value at tape index {@code value}, or Java {@code null} for 0. */
+  private JqValue valueAt(int value) {
+    return value == 0 ? null : doc.valueAt(doc.live(), value);
+  }
+
+  /** The cursor of {@code .[]}'s first key, its tape index, or -1 for an empty object (ADR-0034). */
+  public int firstKey() {
+    long[] tape = doc.live();
+    return index + 1 < Tape.end(tape, index) ? index + 1 : -1;
+  }
+
+  /**
+   * The cursor of the next key at its first position after the key at tape index {@code k}, or -1 after the last. It
+   * checks the document again: the sink that took the last value may have read another one onto this tape (ADR-0026).
+   */
+  public int nextKey(int k) {
+    long[] tape = doc.live();
+    byte[] bytes = doc.bytes;
+    int end = Tape.end(tape, index);
+    for (int next = Tape.next(tape, k + 1); next < end; next = Tape.next(tape, next + 1)) {
+      if (isFirst(tape, bytes, index, next)) {
+        return next;
+      }
+    }
+    return -1;
+  }
+
+  /** The last value of the key at the cursor {@code k} of {@link #firstKey()} or {@link #nextKey(int)}. */
+  public JqValue valueOfKey(int k) {
+    long[] tape = doc.live();
+    return doc.valueAt(tape, lastValueOf(tape, doc.bytes, k, Tape.end(tape, index)));
   }
 
   /**
