@@ -155,8 +155,9 @@ hasnt "no fallback named for step 1 (F-27)" "fallback" "$tmp/out"
 hasnt "no ticket-gate PIT report (F-27)" "slowest step 2" "$tmp/out"
 has "spec step 1 clean verify" "mvnw -B clean verify -Pbench" "$STUB_CALLS"
 has "spec step 2 PIT on whole class-C modules and oracle's crossModule run (ADR-0014)" "mvnw -B -pl query-core,jq-core,oracle -am test org.pitest:pitest-maven:mutationCoverage" "$STUB_CALLS"
-# The property replaces every module's POM list (observed, #45), so oracle's three Survey exclusions are repeated.
-has "jq-cli's tests and oracle's Surveys kept out of PIT" "mutationCoverage -DexcludedTestClasses=io.github.subapavel.jqj.cli.LauncherTest,io.github.subapavel.jqj.cli.\*ModulePathTest,io.github.subapavel.jqj.oracle.diff.DifferentialSurveyTest,io.github.subapavel.jqj.oracle.json.JsonSurveyTest,io.github.subapavel.jqj.oracle.jqtest.JqTestSurveyTest$" "$STUB_CALLS"
+# The property would replace every module's POM list (observed, #45): each module keeps its own list in its POM (#47).
+has "spec step 2 ends with the PIT goal" "mutationCoverage$" "$STUB_CALLS"
+hasnt "no excludedTestClasses property on the PIT call (#47)" "excludedTestClasses" "$STUB_CALLS"
 has "spec verifies every recording (ADR-0020)" "oracle-record.sh --verify oracle/src/test/resources/diff/x.rec oracle/src/test/resources/json/old.rec" "$STUB_CALLS"
 order=$(grep -o 'clean verify\|oracle-record\|mutationCoverage' "$STUB_CALLS" | tr '\n' ' ')
 check "spec record step after clean-verify, before PIT" "$order" "clean verify oracle-record mutationCoverage "
