@@ -15,7 +15,7 @@ public final class ConstOp extends Op {
   }
 
   @Override
-  public boolean run(RunState state, Object in, Sink out) {
+  public boolean run(RunState state, Object[] slots, Object in, Sink out) {
     return out.emit(value);
   }
 }
