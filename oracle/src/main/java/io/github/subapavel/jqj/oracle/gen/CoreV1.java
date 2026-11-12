@@ -4,8 +4,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import io.github.subapavel.jqj.oracle.diff.CaseFormat;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The {@code core-v1} Generator (ADR-0020, #58): a function from a Seed to one differential case, {@code
@@ -14,7 +16,9 @@ import java.util.Map;
  * seed as the state, integer draws only and no hash iteration. It is frozen at the first merge of {@code
  * diff/gen/core-v1.rec}: a change to any output byte makes it {@code core-v2}.
  *
- * <p>The parameters, approved on #58 (architect, 2026-11-12, from the designer's draft):
+ * <p>The parameters, approved on #58 (architect, 2026-11-12, from the designer's draft), after the dry run's first
+ * tuning step (W_ANY 25 to 15 %, try, try-catch and {@code ?} 2 to 3, empty 2 to 1, select 3 to 2, and the
+ * productions above 60 % rc 5 halved: array and object pattern, reduce, {@code N - N}, {@code N / N}, {@code or}):
  *
  * <table>
  *   <caption>core-v1</caption>
@@ -26,20 +30,20 @@ import java.util.Map;
  *   <tr><td>types</td><td>N number, S string, B boolean, A array, O object, Z null, V any. A typed slot is drawn as V
  *       with {@value #W_ANY} %. {@code gen(type, depth, scope)}: the root of each of E, D, B and F is depth 1; a node at
  *       depth 1, 2, 3, 4 is a leaf with 15, 35, 60, 100 %</td></tr>
- *   <tr><td>V inner</td><td>pipe 12, comma 6, {@code as $v} 6, array pattern 2, object pattern 2, {@code ?//} 1, if 3,
- *       if-elif 1, if without else 1, try 2, try-catch 2, {@code (E)?} 2, {@code //} 3, reduce 2, foreach 1, foreach
- *       with extract 1, label 2, select 3, first 2, {@code limit(n; E)} with n in 0..3 2, local {@code def f: ..;},
+ *   <tr><td>V inner</td><td>pipe 12, comma 6, {@code as $v} 6, array pattern 1, object pattern 1, {@code ?//} 1, if 3,
+ *       if-elif 1, if without else 1, try 3, try-catch 3, {@code (E)?} 3, {@code //} 3, reduce 1, foreach 1, foreach
+ *       with extract 1, label 2, select 2, first 2, {@code limit(n; E)} with n in 0..3 2, local {@code def f: ..;},
  *       {@code def f(g): ..;} and {@code def f($x): ..;} 1 each, {@code error(E)} 1, a call of a def or parameter of
  *       arity 1 or 2 in scope 6; a typed production of N 8, S 6, B 6, A 6, O 6</td></tr>
- *   <tr><td>typed inner</td><td>N: {@code + - * / %} 3 2 2 2 1, {@code X | length} (X one of S A O) 3, {@code
+ *   <tr><td>typed inner</td><td>N: {@code + - * / %} 3 1 2 1 1, {@code X | length} (X one of S A O) 3, {@code
  *       range(a; b)} 2. S: {@code S + S} 4, {@code V | tostring} 3, {@code S * n} (n in 0..3) 2, {@code V | type} 1.
  *       B: {@code V == V} 2, {@code V != Z} 1, {@code N < N}, {@code <=}, {@code >}, {@code >=} 1 each, {@code and} 2,
- *       {@code or} 2, {@code B | not} 2. A: {@code [V]} 6, {@code A + A} 2, {@code A - A} 1, {@code A | map(V)} 2. O:
+ *       {@code or} 1, {@code B | not} 2. A: {@code [V]} 6, {@code A + A} 2, {@code A - A} 1, {@code A | map(V)} 2. O:
  *       {@code {k: V}} with 1–2 keys 5, {@code O + O} 2, {@code O * O} 1, {@code {(S): V}} 1. Z: {@code null}</td></tr>
- *   <tr><td>leaves</td><td>V: {@code .} 8, path 12, {@code $v} 6, literal 4, {@code empty} 2, {@code length} 2,
+ *   <tr><td>leaves</td><td>V: {@code .} 8, path 12, {@code $v} 6, literal 4, {@code empty} 1, {@code length} 2,
  *       {@code type}, {@code tostring}, {@code not}, {@code error} 1 each, {@code break $l} 12 when a label is
- *       breakable (the draft's 4 gave breaks in 14 seeds), a call of an arity-0 def or parameter in scope 4. N: number 6, {@code length} 2, path 2, {@code $v} 2. S:
- *       string 6, {@code tostring} 2, {@code type} 1, path 1, {@code $v} 1. B: {@code true}/{@code false} 6, {@code
+ *       breakable (the draft's 4 gave breaks in 14 seeds), a call of an arity-0 def or parameter in scope 4. N: number
+ *       6, {@code length} 2, path 2, {@code $v} 2. S: string 6, {@code tostring} 2, {@code type} 1, path 1, {@code $v} 1. B: {@code true}/{@code false} 6, {@code
  *       not} 2, path 1, {@code $v} 1. A: {@code []} or 1–2 scalars 6, path 1, {@code $v} 1. O: {@code {}} or one key
  *       and a scalar 6, {@code .} 1, path 1, {@code $v} 1; each typed leaf also {@code break $l} 4 when a label is
  *       breakable (a break has every type). A V literal is N 4, S 3, B 2, Z 1, A 1, O 1</td></tr>
@@ -54,15 +58,17 @@ import java.util.Map;
  *   <tr><td>documents</td><td>top object 50, array 30, scalar 20; depth ≤ 3; 0–4 members (0 with 15 %), distinct keys
  *       per object: {@code a} 30, {@code b} 25, {@code c} 15, {@code "x y"} 10, {@code ""} 5, 1–3 printable ASCII
  *       characters without {@code "} and the backslash 15; values number 30, string 25, true, false, null 5 each,
- *       array 15, object 15 (a container only inside one at depth 1 or 2), numbers and strings from the filter's pools; strict JSON,
- *       compact, a trailing LF on 70 %, at most {@value #DOCUMENT_CAP} bytes (redrawn above)</td></tr>
+ *       array 15, object 15 (a container only inside one at depth 1 or 2), numbers and strings from the filter's
+ *       pools; strict JSON, compact, a trailing LF on 70 %, at most {@value #DOCUMENT_CAP} bytes (redrawn above)</td></tr>
  *   <tr><td>excluded</td><td>by construction: a {@code break} is drawn only from the breakable labels, a set a label
  *       adds to and a try body or handler, a {@code ?} operand, a whole {@code ?//} binding, the left side of
  *       {@code //}, every call argument and every def body empty; a closed name list (no {@code ..}, recurse,
  *       {@code range/3}, while, until, repeat, walk, flatten, tostream, sort, unique, min, max, {@code $__loc__},
  *       input, inputs, debug, env, {@code $ENV}, now, halt, {@code @format}, assignment); a def's name only after its
- *       body; only bound names, exact arities, computed keys only as {@code (S)}; no literal {@code /} or {@code %} by
- *       a literal zero (the divisor becomes {@code 1})</td></tr>
+ *       body; only bound names, exact arities, computed keys only as {@code (S)}, and a key jq folds to a constant
+ *       (a literal, or {@code + - * / % == != < <= > >=} or {@code S * n} over constants) redrawn as a string literal,
+ *       since jq refuses a constant non-string key at compile time; no literal {@code /} or {@code %} by a literal
+ *       zero (the divisor becomes {@code 1})</td></tr>
  *   <tr><td>printing</td><td>one printer; every compound operand in parentheses, a negative literal too</td></tr>
  * </table>
  */
@@ -79,7 +85,7 @@ public final class CoreV1 {
   public static final long TO = 2100;
 
   /** The percentage of typed slots drawn as V. */
-  static final int W_ANY = 25;
+  static final int W_ANY = 15;
 
   /** The places per filter that can give several results. */
   static final int SITES = 3;
@@ -105,6 +111,9 @@ public final class CoreV1 {
   private static final List<String> LABELS = List.of("$l", "$m");
 
   private static final List<String> DEFS = List.of("f", "g", "h");
+
+  /** The operators jq evaluates at compile time when every operand is a constant. */
+  private static final Set<Op> FOLDED = EnumSet.of(Op.ADD, Op.SUB, Op.MUL, Op.DIV, Op.MOD, Op.EQ, Op.NE, Op.LT, Op.LE, Op.GT, Op.GE, Op.REPEAT);
 
   /** The types of the grammar. */
   enum Type {
@@ -570,7 +579,7 @@ public final class CoreV1 {
       int b = s.breakable().isEmpty() ? 0 : 1;
       return switch (t) {
         case V -> {
-          int i = pick(8, 12, 6 * v, 4, 2, 2, 1, 1, 1, 1, 12 * b, s.arity0().isEmpty() ? 0 : 4);
+          int i = pick(8, 12, 6 * v, 4, 1, 2, 1, 1, 1, 1, 12 * b, s.arity0().isEmpty() ? 0 : 4);
           yield switch (i) {
             case 0 -> leaf(Op.DOT);
             case 1 -> path();
@@ -634,7 +643,7 @@ public final class CoreV1 {
           int def = fresh.isEmpty() ? 0 : 1;
           int def1 = fresh.size() < 2 ? 0 : 1;
           int call = s.callable().isEmpty() ? 0 : 6;
-          int i = pick(12, 6 * site, 6, 2, 2, 1, 3, 1, 1, 2, 2, 2, 3, 2, 1, 1, 2, 3, 2, 2, def, def1, def, 1, call, 8, 6, 6, 6, 6);
+          int i = pick(12, 6 * site, 6, 1, 1, 1, 3, 1, 1, 3, 3, 3, 3, 1, 1, 1, 2, 2, 2, 2, def, def1, def, 1, call, 8, 6, 6, 6, 6);
           yield switch (i) {
             case 0 -> node(Op.PIPE, gen(Type.V, d, s), gen(Type.V, d, s));
             case 1 -> {
@@ -702,7 +711,7 @@ public final class CoreV1 {
             default -> inner(Type.O, d, s);
           };
         }
-        case N -> switch (pick(3, 2, 2, 2, 1, 3, 2 * site)) {
+        case N -> switch (pick(3, 1, 2, 1, 1, 3, 2 * site)) {
           case 0 -> node(Op.ADD, gen(Type.N, d, s), gen(Type.N, d, s));
           case 1 -> node(Op.SUB, gen(Type.N, d, s), gen(Type.N, d, s));
           case 2 -> node(Op.MUL, gen(Type.N, d, s), gen(Type.N, d, s));
@@ -720,7 +729,7 @@ public final class CoreV1 {
           case 2 -> new Node(Op.REPEAT, List.of(Integer.toString(r.below(4))), List.of(gen(Type.S, d, s)));
           default -> node(Op.TYPE_OF, gen(Type.V, d, s));
         };
-        case B -> switch (pick(2, 1, 1, 1, 1, 1, 2, 2, 2)) {
+        case B -> switch (pick(2, 1, 1, 1, 1, 1, 2, 1, 2)) {
           case 0 -> node(Op.EQ, gen(Type.V, d, s), gen(Type.V, d, s));
           case 1 -> node(Op.NE, gen(Type.V, d, s), gen(Type.Z, d, s));
           case 2 -> node(Op.LT, gen(Type.N, d, s), gen(Type.N, d, s));
@@ -746,10 +755,25 @@ public final class CoreV1 {
           }
           case 1 -> node(Op.ADD, gen(Type.O, d, s), gen(Type.O, d, s));
           case 2 -> node(Op.MUL, gen(Type.O, d, s), gen(Type.O, d, s));
-          default -> node(Op.OBJECT_COMPUTED, gen(Type.S, d, s), gen(Type.V, d, s));
+          default -> {
+            Node key = gen(Type.S, d, s);
+            // jq folds a constant key at compile time and refuses one that is no string (rc 3).
+            if (constant(key)) key = literal(Type.S);
+            yield node(Op.OBJECT_COMPUTED, key, gen(Type.V, d, s));
+          }
         };
         case Z -> leaf(Type.Z, s);
       };
+    }
+
+    /** True for a literal, or an arithmetic or comparison operator (or {@code S * n}) over constants: what jq folds. */
+    private static boolean constant(Node n) {
+      if (n.op() == Op.LITERAL) return true;
+      if (!FOLDED.contains(n.op())) return false;
+      for (Node k : n.kids()) {
+        if (!constant(k)) return false;
+      }
+      return true;
     }
 
     /** {@code a / b} or {@code a % b}; a literal divided by a literal zero gets the divisor {@code 1}. */
