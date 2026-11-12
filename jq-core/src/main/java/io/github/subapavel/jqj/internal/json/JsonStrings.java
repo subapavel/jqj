@@ -70,8 +70,9 @@ public final class JsonStrings {
           int codePoint = hex4(b, in);
           in += 4;
           if (codePoint >= 0xD800 && codePoint <= 0xDBFF) {
-            // The reader checked that a low surrogate escape follows. jq's "codepoint > 0x10FFFF" cannot hold here.
-            codePoint = 0x10000 + ((codePoint - 0xD800) << 10 | (hex4(b, in + 2) - 0xDC00));
+            // The reader checked that a low surrogate escape follows. In these ranges jq's "- 0xD800" and "- 0xDC00" keep
+            // the low ten bits, and its "codepoint > 0x10FFFF" cannot hold.
+            codePoint = 0x10000 + ((codePoint & 0x3FF) << 10 | (hex4(b, in + 2) & 0x3FF));
             in += 6;
           }
           o += encode(codePoint, out, o);
