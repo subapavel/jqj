@@ -1,6 +1,6 @@
 # Push protocol: emit's false stops, a break is a Workspace token, two exception classes
 
-Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); amends ADR-0004, ADR-0005 and ADR-0007; amended by ADR-0015 (issue #11) and ADR-0017 (issue #13)
+Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); amends ADR-0004, ADR-0005 and ADR-0007; amended by ADR-0015 (issue #11) and ADR-0017 (issue #13); amended by F-32 (two more tick sites)
 
 Results are pushed. `interface Sink { boolean emit(Object v); }` lives in `query-core`. If emit
 returns `false`, that is a stop: the producer emits nothing more and returns `false` at once. The
@@ -92,3 +92,8 @@ into separately compiled code.
   limit) and by the remaining deadline (a termination).
 - The nesting-depth budget is not a termination: the parse depth limit is an ordinary jq error
   (F-13), and built values have no depth limit.
+
+## Amendment (F-32, spec 2)
+
+Steps are also charged on entering `Comma`'s right branch and each `AltBind` alternative after
+the first.
