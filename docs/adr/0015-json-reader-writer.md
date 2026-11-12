@@ -1,6 +1,6 @@
 # JSON reader and writer: jq's grammar, jq's messages by replay, a byte[] loop
 
-Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR
+Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits); amended by F-22 (depth counting); F-24 open (whole-container copy and whitespace)
 
 jq-ref 1.8.2 decides what the reader accepts and what it prints. The adviser ran every rule below
 on it (issue #11 round 1, commands K1–K8) and read jq-1.8.2's `jv_parse.c`, `jv_unicode.c`,
@@ -44,13 +44,13 @@ non-exported package `.internal.json`.
 
 ## Limits
 
-- **Depth** is jq's parser stack: one per open array, two per open object. A `[` or `{` that would
-  make it exceed 10 000 → "Exceeds depth limit for parsing at line L, column C", an ordinary jq
+- **Depth** is jq's parser stack: one slot per open array or object, plus one while an object key's
+  value is open (F-22). A `[` or `{` that would make it exceed 10 000 → "Exceeds depth limit for parsing at line L, column C", an ordinary jq
   error that `try fromjson catch .` catches (jq.test 2563), not a budget termination (F-13).
   `Limits.nestingDepth` sets the number. Built values have no depth limit. So 10 000 arrays
   pass, the 10 001st fails, and objects nest 5 000 deep. `--stream` has no depth limit, as jq.
-- **Sizes** (ADR-0002, amended): 2^31−3 bytes per document (F-12), 256 MiB per string, 16 MiB per
-  number literal, 2^28 entries per container, each → "Exceeds {document|string|number|container}
+- **Sizes** (ADR-0002, amended): 2^31−3 bytes per document (F-12), 2^28−1 bytes per string (quotes
+  included), 2^24−1 bytes per number literal, 2^28−1 entries per container (F-21), each → "Exceeds {document|string|number|container}
   size limit for parsing at line L, column C". A slurped stream is one document, so the document
   limit covers the whole input.
 
@@ -170,3 +170,13 @@ tapeReused; skipAll's 58/39/31 % does not validate).
   already rejects it.
 - **Slurp as N documents; `-R` lines or `--stream` events on a tape; duplicate detection in the
   reader (ADR-0002); document flags; whole-container copy in pretty mode.**
+
+## Amendment (#35 "S1.13 Strings", F-26)
+
+- Decoding repeats jq's two steps. `found_string`'s pass writes each escape sequence's code point
+  with `jvp_utf8_encode` (a lone low surrogate as its three bytes); `jv_string_sized` then replaces
+  bad sequences over the whole result, raw bytes and escape output together.
+- A sequence cut by the end of the string takes every remaining byte, continuation or not
+  (`length = end - in`): `"\xe0\xff"` gives one U+FFFD (`i_string_truncated-utf-8`). This replaces
+  "a missing continuation takes the bytes before it" above.
+- Tag-6 text is decoded at each access and never stored; the tape stays read-only.

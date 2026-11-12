@@ -3,7 +3,8 @@
 Behaviours where jqj differs from the reference jq (1.8.2) on purpose, each with its reason and the
 decision that made it. A difference not listed here is a bug. Every row is pinned by an oracle case or a named test
 that checks both columns. The row format is ADR-0020's; a row gains its `case` column in the
-ticket that writes its pinning case.
+ticket that writes its pinning case. A row's `case` cell names the case and its slug, as
+`` `<case id>` (`deviation <slug>`) ``; the differential runner refuses a slug no row names.
 
 ## Path expressions accept only navigation (ADR-0007, issue #6)
 
@@ -76,9 +77,9 @@ and pins it with oracle cases.
 
 jqj raises a jq error beyond these limits:
 - 2^31−3 bytes per document (F-12);
-- 256 MiB per string;
-- 16 MiB per number literal (jq allows up to 999 999 999 digits);
-- 2^28 entries per container.
+- 2^28−1 bytes per string, quotes included (F-21);
+- 2^24−1 bytes per number literal (jq allows up to 999 999 999 digits);
+- 2^28−1 entries per container.
 
 jq's limits are higher and of another kind: an array index up to 2^29−1 ("Array index too large"),
 strings under 2 GiB, tokens up to 1 GiB, literals up to 999 999 999 characters, and no
@@ -96,11 +97,11 @@ eligible filter (`<fixed path> | .[] | rest`):
 
 ## A raw NUL byte outside a string is an error (ADR-0015, issue #11)
 
-| input | jq 1.8.2 | jqj |
-| --- | --- | --- |
-| `1\x002` | `1` | "Invalid character" error at the NUL |
-| `[1\x00x,2]` | `[1,2]` | error at the NUL |
-| JSONTestSuite `n_multidigit_number_then_00.json` | accepted | rejected |
+| case | filter | input | jq 1.8.2 | jqj |
+| --- | --- | --- | --- | --- |
+| none yet | `-c .` | `1\x002` | `1` | "Invalid character" error at the NUL |
+| none yet | `-c .` | `[1\x00x,2]` | `[1,2]` | error at the NUL |
+| `json/n_multidigit_number_then_00` (`deviation nul`) | `-c .` | JSONTestSuite `n_multidigit_number_then_00.json` (`123\x00`) | accepted: `123` | rejected |
 
 Reason: bytes would hide behind a NUL in a host's message; jq's master branch already rejects a NUL
 there (`classify` returns INVALID) with the text "Invalid character" (master source read, not

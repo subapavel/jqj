@@ -1,6 +1,6 @@
 # Milestone 1: the final gate and the specs in build order
 
-Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`)
+Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`); amended by F-19 (spec 1 grilling: the API slice and the last ticket's measurements); amended by F-27 (both fallbacks fired at spec 1)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #17 round 1 and the ADR
 review). Each rule says whether it is the owner's answer or the architect's choice.
@@ -10,8 +10,10 @@ tooling tickets.
 
 ## Specs in build order
 
-1. **Walking skeleton.** The tooling tickets come first and block every class-C ticket. Then `.`
-   and `.a` over one document through every layer, under the full gates.
+1. **Walking skeleton.** The tooling tickets come first and block every class-C ticket except the
+   API-slice ticket, which the runner and bench tickets need and which only the build ticket blocks
+   (F-19). Then `.` and `.a` over one document through every layer, under the full gates; spec 1's
+   last ticket takes the gate-step and PIT-per-seed measurements (F-19).
 2. **Core language**, including computed numbers and their printing, the prelude loader and the
    natives its cases need, the ADR-0007 analyses its constructs need under the compile-mode oracle
    (path shapes arrive in spec 3, holds and root use in spec 5, touched fields stay out), recursion (ADR-0011) and the mechanics of all
@@ -53,8 +55,9 @@ splitting in two at its own grilling without reopening `docs/GATE.md`, are the o
   ADR-0020's open point.
 - **Generator minimums** (check 2, owner): 1000 cases in `differential.txt`, counted after
   ADR-0020's drops, each for `values-v1`, `core-v1` and `ownership-v1`; 200 for each of the six
-  builtin families. The host-facing builtins arrive in specs 5 and 7 with hand-written cases. Raised freely; lowered only by a finding. The skeleton tickets measure the
-  recording, verify and PIT cost per 1000 seeds.
+  builtin families. The host-facing builtins arrive in specs 5 and 7 with hand-written cases. Raised freely; lowered only by a finding. The tooling tickets measure the
+  recording and verify cost per 1000 seeds; spec 1's last ticket measures PIT per 1000 passing seeds,
+  or on the seeds that pass if fewer (F-19).
 - **Benchmarks before spec 6** (owner) fail nothing. Every spec gate records each existing cell's
   factor against same-session jq and runs the 64 MiB forks that exist, and a cell over 1.0× is reported to the owner at that
   spec's end. `bench.tsv` holds the numbers; its `tolerance%` is empty until spec 6's finding.
@@ -64,11 +67,12 @@ splitting in two at its own grilling without reopening `docs/GATE.md`, are the o
   and the `--seq` resynchronisation (check 3), the module-path cases (check 6), `NOTICE` and jq's
   MIT text in the jar (check 8), and a passing case for every `DEVIATIONS.md` row (check 2).
 - **The fallbacks fire at any spec gate** (owner; F-17): ADR-0014's 60 s oracle target and ADR-0014
-  and ADR-0020's 3-minute PIT target are measured by the skeleton tickets on a suite of a few cases.
+  and ADR-0020's 3-minute PIT target are measured by spec 1's last ticket on the cases that pass by then (F-19).
   At each spec gate the verifier reports the slowest ticket-gate step 1 and step 2 of the spec's
   tickets from `.logs/`; one above its target applies the fallback ADR-0014 and ADR-0020 already
   name (the compile-mode oracle moves to the spec gate; for PIT, seeds are grouped first), by a
-  finding, with no new owner round.
+  finding, with no new owner round. Both fired at spec 1 (F-27): from then on the verifier reports
+  step 1 only.
 - **Command line** (check 6, architect): jq-ref 1.8.2's `--help` lists 30 option lines; all are in
   except `--stream-errors`, which ADR-0020's shtest drop list now names. `-b`, `--run-tests`,
   `--debug-dump-disasm`, `--debug-trace` and `--debug-trace=all` are accepted by jq-ref but not in

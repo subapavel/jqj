@@ -21,3 +21,7 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - `gh issue view` fails (GraphQL blocked); use `gh api repos/<owner>/<repo>/issues/N` and
   `/comments`. The approved design is in the ticket comments, and it can sanction choices that
   look like standards deviations.
+- (#33) Before prescribing a position assert, check it is jq-ref's (grilling item 7); a channel target has no flush, so "never flushed" on it is vacuous.
+- (#34) Check each expected-value row against the `.rec`, not the comment; an oracle def is sha256(case..end lines + LF)[:12].
+- (#36) Read a verify worktree's PIT `mutations.xml` only after the gate has finished; mid-run it can be empty.
+- (#35) An empty @TestFactory map passes vacuously: a FAIL (CODING_STANDARDS Tests §1). jq's GitHub source is unreachable via gh here; translation checks rest on jq-ref recordings.

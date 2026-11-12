@@ -53,7 +53,8 @@ A value that is a position in a document. It is valid only while its document is
 _Avoid_: reference, pointer, lazy value
 
 **Stale view**:
-A view whose document has been replaced by a later read. Using it is an error, never a wrong value.
+A view whose document was closed or replaced by a later read, a failed read included. Using it is
+an error (`STALE_VIEW`), never a wrong value.
 _Avoid_: dangling view, expired value
 
 **Built value**:
@@ -86,8 +87,23 @@ A number made by arithmetic or a math builtin: a double, printed in jq's shortes
 _Avoid_: double (that is the Java type)
 
 **Canonical form**:
-The text jq prints for a literal number (`1e2` → `1E+2`; `1.10` stays).
+The text jq prints for a literal number (`1e2` → `1E+2`; `1.10` stays): decNumber's
+to-scientific-string after the exponent limits, or ±1.7976931348623157e+308 for an Infinity literal.
 _Avoid_: normalised form
+
+**Adjusted exponent**:
+The exponent of a number's first significant digit (`123e45` → 47). A literal prints in exponent
+form when its exponent is positive or its adjusted exponent is below −6.
+
+**Exponent limits**:
+jq's decNumber range for a literal. An adjusted exponent above 999 999 999 gives an Infinity
+literal; a non-zero value below 1E−1147483646 is rounded HALF_UP to a multiple of it; a zero's
+exponent is clamped into [−1 147 483 646, 999 999 999].
+
+**Infinity literal**:
+A literal past the upper exponent limit. It prints ±1.7976931348623157e+308, its double is
+±Infinity, and it has no decimal value (ADR-0028).
+_Avoid_: overflow number
 
 **Shape**:
 The shared key list of the objects built at one construction site.
@@ -260,13 +276,63 @@ _Avoid_: automatic streaming (the host switches it on, F-4); `--stream` (that is
 a different thing)
 
 **Walking skeleton**:
-Milestone 1's first spec: the thinnest path through every layer, `.` and `.a` over one document,
-under the full gates (ADR-0023).
+Milestone 1's first spec: the thinnest path through every layer, `.`, field chains such as
+`.a.b.c`, `|` and parentheses over one document, under the full gates (ADR-0023).
+
+**Tooling ticket**:
+A ticket of the walking skeleton that builds the build, the oracle runners, the ratchet, the gate
+scripts, the bench module or CI, before the language exists.
+_Avoid_: skeleton ticket, build skeleton ticket
+
+**Stub**:
+A body that ends with a `JqCompileException` (a `JqSyntaxException` for malformed input) whose
+message starts with `jqj stub: `, until the spec that owns it. The runners score its cases FAIL by
+that prefix; no test asserts the text after it.
+
+**Generator**:
+A frozen function from a seed to one oracle case, named `<name>-v<N>`; changing any byte it
+produces makes a new name.
+_Avoid_: fuzzer
+
+**Seed**:
+The number that alone decides a generated case; the last part of its id.
+
+**Form**:
+One of a generator's fixed command lines, chosen by the seed.
+_Avoid_: mode (that is a compile mode)
+
+**Dropped seed**:
+A seed left out because jq-ref gave rc 3 or timed out on it, listed in the case file's header.
+
+**Unlimited**:
+The value of a budget that never runs out: its largest value.
+_Avoid_: none, infinite, 0, −1
 
 **Host**:
 The program embedding the engine. It supplies the clock, the time zone, the environment, the
 module loader for `import` and the debug sink; extra inputs come per run.
 _Avoid_: runtime, container, platform
+
+**Executable**:
+What a backend makes of one filter's IR, and what a compiled filter runs: in milestone 1, the
+interpreter tree.
+_Avoid_: program, plan
+
+**Read block**:
+One read of jq's input loop: the bytes through the next LF, or 4091 bytes plus the rest of a
+UTF-8 character cut there (F-25). `(at <file>:N)` counts the read blocks that end in LF, up to the
+block that holds the completing byte.
+_Avoid_: chunk, line
+
+**Completing byte**:
+The byte at which jq's parser holds a whole top-level value: a container's closing bracket, a
+string's closing quote, or the byte after a number or literal (the end of input when there is
+none).
+
+**Escape sequence**:
+A backslash and what follows it inside a JSON string (`\n`, `\u00e9`); a string holding one is
+tag 6.
+_Avoid_: escape (that is a built value becoming reachable)
 
 **Engine**:
 The immutable, thread-safe object a host builds once with its limits and host; it compiles filters
@@ -291,8 +357,12 @@ _Avoid_: stdin (one source among several)
 **Detecting byte**:
 The byte at which jq's parser notices an error; a message's column points at it.
 
+**Malformed document**:
+Input bytes that jq's grammar rejects at some byte.
+_Avoid_: invalid document
+
 **Error replay**:
-Re-reading an invalid document with the translated jq parser to produce jq's message, line and
+Re-reading a malformed document with the translated jq parser to produce jq's message, line and
 column.
 
 **Lenient token**:
@@ -325,6 +395,9 @@ backend (ADR-0018).
 **Compile-mode oracle**:
 Running a case under the optimised and the conservative compile of one backend and requiring the
 same output and error.
+
+**Optimised compile**:
+Compiling with the facts the analyses prove; the default compile.
 
 **Conservative compile**:
 Compiling with every analysis fact at its safe value: cardinality many, every path TRACKED, a
@@ -411,8 +484,8 @@ The open, unblocked, unclaimed tickets of a spec or map.
 
 **Class-C module**:
 A module on a hard path, listed in `quality/floors.tsv` (ADR-0020; today `query-core` and
-`jq-core`). Mutation floors apply to it, and the ticket gate
-runs PIT on what a ticket changed in it.
+`jq-core`). Mutation floors apply to it, and the spec gate
+runs PIT on all of it (the ticket gate no longer does, F-27).
 _Avoid_: core module
 
 **Word check**:

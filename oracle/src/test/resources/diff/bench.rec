@@ -1,0 +1,29 @@
+# jq-1.8.2 sha256 b1c22172dd303f3be49e935aa56aa48a8b7a46e0bc838b4997d3bb451495870f
+
+case bench/G1.1k
+def cf34a15087e3
+rc 0
+stdout "x"\n
+stderr
+end
+
+case bench/G6.compact.1k
+def e04071d3afa9
+rc 0
+stdout {"orders":[{"id":0,"total":0.13,"k":"k0"},{"id":1,"total":79.32,"k":"k1"},{"id":2,"total":158.51,"k":"k2"},{"id":3,"total":37.7,"k":"k3"},{"id":4,"total":116.89,"k":"k4"},{"id":5,"total":196.08,"k":"k5"},{"id":6,"total":75.27,"k":"k6"},{"id":7,"total":154.46,"k":"k7"},{"id":8,"total":33.65,"k":"k8"},{"id":9,"total":112.84,"k":"k9"},{"id":10,"total":192.03,"k":"k10"},{"id":11,"total":71.22,"k":"k11"},{"id":12,"total":150.41,"k":"k12"},{"id":13,"total":29.6,"k":"k13"},{"id":14,"total":108.79,"k":"k14"},{"id":15,"total":187.98,"k":"k15"}],"items":[{"sku":"s0","price":1},{"sku":"s1","price":4731},{"sku":"s2","price":9461},{"sku":"s3","price":4192},{"sku":"s4","price":8922},{"sku":"s5","price":3653},{"sku":"s6","price":8383},{"sku":"s7","price":3114},{"sku":"s8","price":7844},{"sku":"s9","price":2575},{"sku":"s10","price":7305},{"sku":"s11","price":2036},{"sku":"s12","price":6766},{"sku":"s13","price":1497},{"sku":"s14","price":6227},{"sku":"s15","price":958}],"a":{"b":{"c":"x"}}}\n
+stderr
+end
+
+case bench/G6.pretty.1k
+def 6fe68dc9ed09
+rc 0
+stdout {\n  "orders": [\n    {\n      "id": 0,\n      "total": 0.13,\n      "k": "k0"\n    },\n    {\n      "id": 1,\n      "total": 79.32,\n      "k": "k1"\n    },\n    {\n      "id": 2,\n      "total": 158.51,\n      "k": "k2"\n    },\n    {\n      "id": 3,\n      "total": 37.7,\n      "k": "k3"\n    },\n    {\n      "id": 4,\n      "total": 116.89,\n      "k": "k4"\n    },\n    {\n      "id": 5,\n      "total": 196.08,\n      "k": "k5"\n    },\n    {\n      "id": 6,\n      "total": 75.27,\n      "k": "k6"\n    },\n    {\n      "id": 7,\n      "total": 154.46,\n      "k": "k7"\n    },\n    {\n      "id": 8,\n      "total": 33.65,\n      "k": "k8"\n    },\n    {\n      "id": 9,\n      "total": 112.84,\n      "k": "k9"\n    },\n    {\n      "id": 10,\n      "total": 192.03,\n      "k": "k10"\n    },\n    {\n      "id": 11,\n      "total": 71.22,\n      "k": "k11"\n    },\n    {\n      "id": 12,\n      "total": 150.41,\n      "k": "k12"\n    },\n    {\n      "id": 13,\n      "total": 29.6,\n      "k": "k13"\n    },\n    {\n      "id": 14,\n      "total": 108.79,\n      "k": "k14"\n    },\n    {\n      "id": 15,\n      "total": 187.98,\n      "k": "k15"\n    }\n  ],\n  "items": [\n    {\n      "sku": "s0",\n      "price": 1\n    },\n    {\n      "sku": "s1",\n      "price": 4731\n    },\n    {\n      "sku": "s2",\n      "price": 9461\n    },\n    {\n      "sku": "s3",\n      "price": 4192\n    },\n    {\n      "sku": "s4",\n      "price": 8922\n    },\n    {\n      "sku": "s5",\n      "price": 3653\n    },\n    {\n      "sku": "s6",\n      "price": 8383\n    },\n    {\n      "sku": "s7",\n      "price": 3114\n    },\n    {\n      "sku": "s8",\n      "price": 7844\n    },\n    {\n      "sku": "s9",\n      "price": 2575\n    },\n    {\n      "sku": "s10",\n      "price": 7305\n    },\n    {\n      "sku": "s11",\n      "price": 2036\n    },\n    {\n      "sku": "s12",\n      "price": 6766\n    },\n    {\n      "sku": "s13",\n      "price": 1497\n    },\n    {\n      "sku": "s14",\n      "price": 6227\n    },\n    {\n      "sku": "s15",\n      "price": 958\n    }\n  ],\n  "a": {\n    "b": {\n      "c": "x"\n    }\n  }\n}\n
+stderr
+end
+
+case bench/G7.1k
+def c6e8cbfd94f1
+rc 0
+stdout {"b":{"c":"x"}}\n
+stderr
+end

@@ -67,4 +67,29 @@ check "merge with trailers" "$(run)" 0
 # GitHub's own PR merge commit ("Merge <sha> into <sha>") is skipped
 g commit -q --amend -m "Merge $(g rev-parse HEAD~1) into $(g rev-parse HEAD^2)"
 check "GitHub PR merge commit" "$(run)" 0
+
+# the waiver (F-28): scripts/trailers-waiver.txt lists the full SHAs of commits the check skips
+waiver=$repo/scripts/trailers-waiver.txt
+g checkout -q -b waived main
+g commit -q --allow-empty -m "docs: no trailers"
+bare=$(g rev-parse HEAD)
+check "no waiver file: no waivers" "$(run)" 1
+grep -q "lacks 'Ticket" "$tmp/out"
+check "no waiver file names the trailer" "$?" 0
+grep -q "waiver" "$tmp/out"
+check "no waiver file is not reported" "$?" 1
+printf '# comment\n\n%s\n' "$bare" > "$waiver"
+check "listed SHA is waived" "$(run)" 0
+grep -q "^${bare:0:7} waived" "$tmp/out"
+check "waived commit is named" "$?" 0
+check "waived commit is not counted" "$(tail -n 1 "$tmp/out")" "checked 1 commits in $base..HEAD"
+printf '%s\n' "$base" > "$waiver"
+check "unlisted SHA still fails" "$(run)" 1
+printf '%s\n' "${bare:0:7}" > "$waiver"
+check "abbreviated SHA is an error" "$(run)" 2
+grep -q "40-hex" "$tmp/out"
+check "bad line names the rule" "$?" 0
+printf '%s\n' "$bare" "$bare nope" > "$waiver"
+check "line with trailing text is an error" "$(run)" 2
+rm "$waiver"
 exit $fails

@@ -99,7 +99,7 @@ them. A drop is a failure; a rise is recorded at regeneration. Writers never tou
 
 **Floors** (`quality/floors.tsv`, ADR-0020): JaCoCo lines ≥ 90 % and branches ≥ 80 % on
 `query-core` and `jq-core`, lines ≥ 80 % on `jq-cli`; PIT ≥ 80 % on the class-C modules, killed
-over all generated mutants.
+over all generated mutants. PIT runs only in the spec gate, never in the ticket gate (F-27).
 
 ## 7. Decisions, findings, owner questions
 

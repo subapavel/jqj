@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.github.subapavel.jqj</groupId>
+    <artifactId>jqj-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>oracle</artifactId>
+  <name>oracle</name>
+
+  <!-- Tests only: the oracle runs the code of every module (ADR-0014). -->
+  <dependencies>
+    <dependency>
+      <groupId>io.github.subapavel.jqj</groupId>
+      <artifactId>query-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.subapavel.jqj</groupId>
+      <artifactId>jq-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.subapavel.jqj</groupId>
+      <artifactId>jq-cli</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- The command line's in-process entry is not exported API (ADR-0020); only the oracle compiles against it. -->
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgs combine.children="append">
+            <arg>--add-exports</arg>
+            <arg>io.github.subapavel.jqj.cli/io.github.subapavel.jqj.cli=io.github.subapavel.jqj.oracle</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+      <!-- Oracle reports (ADR-0020) are written under surefire only: PIT does not pass this property on, so a
+           mutant's verdicts never reach the report that ratchet.java reads. -->
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <oracle.reports>${project.build.directory}/oracle-reports</oracle.reports>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+      <!-- Coverage of query-core and jq-core from every test in the reactor (ADR-0014). -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>jacoco-report-aggregate</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report-aggregate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- ./mvnw -pl oracle -am test pitest:mutationCoverage: mutates the upstream modules (ADR-0014). -->
+      <plugin>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
+        <configuration>
+          <crossModule>true</crossModule>
+          <!-- The Survey runs the cases nobody requires and fails only on CRASH (ADR-0020). -->
+          <excludedTestClasses>
+            <param>io.github.subapavel.jqj.oracle.diff.DifferentialSurveyTest</param>
+            <param>io.github.subapavel.jqj.oracle.json.JsonSurveyTest</param>
+            <param>io.github.subapavel.jqj.oracle.jqtest.JqTestSurveyTest</param>
+          </excludedTestClasses>
+          <additionalClasspathElements>
+            <additionalClasspathElement>${project.basedir}/../query-core/target/test-classes</additionalClasspathElement>
+            <additionalClasspathElement>${project.basedir}/../jq-core/target/test-classes</additionalClasspathElement>
+          </additionalClasspathElements>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

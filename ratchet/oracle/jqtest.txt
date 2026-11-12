@@ -1,0 +1,10 @@
+jq.test#1ce903e38afb	interpreter
+jq.test#30896d652d49	interpreter
+jq.test#a1992d239479	interpreter
+jq.test#ab86f854cabe	interpreter
+jq.test#c400185394bd	interpreter
+jq.test#e3d73b9ff1ab	interpreter
+man.test#0ade8296aa15	interpreter
+man.test#0ba9f00a93da	interpreter
+man.test#14c48adde9d4	interpreter
+man.test#47f9f93530b6	interpreter

@@ -1,6 +1,6 @@
 # Document and view lifetime: a new JsonDoc per read, detach() for what is kept
 
-Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0007 (2026-11-10, issue #6), ADR-0008 (issue #7), ADR-0015 (issue #11) and ADR-0016 (issue #13)
+Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0007 (2026-11-10, issue #6), ADR-0008 (issue #7), ADR-0015 (issue #11) and ADR-0016 (issue #13); amended by ADR-0026 (staleness on close and on a failed read)
 
 A view is valid while its document is alive. Every read makes a new `JsonDoc` (~32 B) over the
 Workspace's reused tape, and the previous `JsonDoc` drops both its tape and its bytes. A view of a
