@@ -19,9 +19,18 @@ public sealed interface JqNumber extends JqValue permits NumberView {
   long longValue();
 
   /**
-   * The number exactly for a literal, by its printed digits for a computed one.
+   * The number as a decimal: for a literal the value of its canonical form, for a computed one its printed digits
+   * (ADR-0028).
    *
-   * @throws ArithmeticException for NaN and the infinities
+   * <p>A literal keeps its scale ({@code 1.10} has scale 2), and {@code -0} gives a zero of the same scale, since
+   * {@code BigDecimal} has no -0. Within jq's exponent limits the value is the literal's exact value. Past them it is
+   * the value jq prints: {@code 5e-1147483647} gives {@code 1E-1147483646}, {@code 1e-2000000000} gives
+   * {@code 0E-1147483646}. At the upper limit the value stays finite: {@code 1e999999999} prints
+   * {@code 1E+999999999} and gives that value, while {@link #doubleValue()} is infinite. Above it
+   * ({@code 1E1000000000}, {@code 10e999999999}) the literal is an Infinity literal: it prints
+   * {@code 1.7976931348623157e+308} with its sign, {@link #doubleValue()} is that infinity, and this method throws.
+   *
+   * @throws ArithmeticException for NaN, the infinities and an Infinity literal
    */
   BigDecimal decimalValue();
 }
