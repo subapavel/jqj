@@ -22,6 +22,7 @@ import java.util.function.ToIntFunction;
  *   <li>an exception out of the entry is FAIL if its message carries the Stub prefix, otherwise CRASH;
  *   <li>jqj's stderr carrying the Stub prefix is FAIL;
  *   <li>a case without a recording, or whose def differs from the recording's, is STALE;
+ *   <li>a deviation case whose recording equals every part its {@code jqj-*} keys give is FAIL, "deviation gone";
  *   <li>otherwise the exit code, stdout and stderr must equal the expected outcome byte for byte, except that stderr
  *       is not compared when the expected stderr has a line starting {@code jq: error: syntax error}: PASS or FAIL.
  * </ol>
@@ -98,6 +99,10 @@ public final class DiffRunner {
     if (!recording.def().equals(c.def())) {
       String why = "the case's def " + c.def() + " differs from the recording's " + recording.def() + "; re-record with scripts/oracle-record.sh";
       return new Verdict(Verdict.Kind.STALE, why, c.id() + ": STALE, " + why);
+    }
+    if (deviation && c.jqj().matches(recording.outcome())) {
+      String why = "jq-ref's recording equals the jqj-* keys of deviation " + c.deviation() + "; drop the case's deviation and jqj-* lines, and the DEVIATIONS.md row if no case is left";
+      return new Verdict(Verdict.Kind.FAIL, "deviation gone", c.id() + ": FAIL, deviation gone: " + why + "\n");
     }
     Outcome ref = c.jqj().over(recording.outcome());
     boolean compareStderr = !("\n" + new String(ref.stderr(), UTF_8)).contains(SYNTAX_ERROR);

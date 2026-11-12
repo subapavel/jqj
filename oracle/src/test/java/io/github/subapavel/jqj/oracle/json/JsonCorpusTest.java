@@ -73,5 +73,6 @@ class JsonCorpusTest {
     // with line and column, is the reader's in spec 5; until then the Stub rule fails the case first.
     assertThat(e.c().jqj().rc()).isEqualTo(5);
     assertThat(e.c().jqj().stdout()).isEmpty();
+    assertThat(e.c().jqj().matches(e.recording().outcome())).as("deviation gone").isFalse();
   }
 }
