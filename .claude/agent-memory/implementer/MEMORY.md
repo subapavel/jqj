@@ -121,3 +121,4 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - `scripts/push-retry.sh` takes `<repo-dir> <refspec>`, e.g. `. HEAD:refs/heads/t/<n>-<slug>`.
 - (#54) `dependency:go-offline` misses surefire's JUnit Platform provider; a `verify` run fills it. Offline `-pl X` needs `-am compile`. Prefix goals (`javadoc:`) read `maven-metadata-<mirror id>.xml`.
 - (#62) A ticket that ends a Stub can flip an oracle meta-test that uses `Main::run` as its stub shell: grep `oracle/src/test` for each id in `require/<n>.txt`.
+- (#62) `-Dtest=<Class> -Dsurefire.failIfNoSpecifiedTests=false` with `-o -pl jq-core -am` runs a mutant loop about 4× faster than the whole module.

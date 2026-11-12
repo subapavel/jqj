@@ -133,8 +133,23 @@ jq prints its configure string; jqj prints its own build string.
 
 Reason: jq's syntax-error text comes from Bison's LALR tables (expecting lists that depend on the
 parser state, several errors after recovery); jqj's Pratt parser (founding §3) writes its own. A
-case whose recording says `syntax error` compares rc and stdout only. Every other error text
-matches jq.
+case whose recording says `syntax error` compares rc and stdout only.
+
+jqj's syntax block is jq's with its expecting list cut (ADR-0032). Its lexical blocks and the
+blocks of the two recovery productions it builds match jq's exactly: `'.' error` and `'.' IDENT
+error` (`try .["field"] instead of .field for unusually named fields`), and `error ':' DictExpr`
+(`May need parentheses around object key expression`). Where jq recovers by a production jqj does
+not build yet, jqj stops, and jq's blocks after that point are missing. These are the messages
+`Possibly unterminated 'if' statement` (`if . then 1`), `Possibly unterminated 'try' statement`
+(`try 1 catch ]`), `break requires a label to break to` (`break 1`) and an object pattern's `May
+need parentheses around object key expression` (`. as {1+2: $x} | 1`). They are also the silent
+`'(' error ')'`, `'[' error ']'`, `Term '[' error ']'` and `'{' error '}'`, after which jq goes on
+and reports later errors (`(1 2) | 3 | 4 5`). jqj's blocks are then a prefix of jq's.
+
+Known gap, resolved by #64: jq's parser-action errors are not built yet. Where one comes before
+jq's syntax error, jqj's blocks are not a prefix. For `{(1): 2 3}`, jq gives `Cannot use number (1)
+as object key` at column 3 and then the syntax error at column 9; jqj gives the syntax error alone.
+ParserEdgesTest pins jqj's blocks for each example.
 
 ## `-h`, `-V` and `--build-configuration` print jqj's own text (ADR-0023, issue #17)
 

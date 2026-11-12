@@ -21,6 +21,16 @@ licence text ships in the jq-core jar under META-INF/.
   jq 1.8.2's token rules, start conditions and try_exit (src/lexer.l) (#61)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/parse/FilterText.java, translated
   from jq 1.8.2's locfile_locate (src/locfile.c) (#61)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/parse/Parser.java, translated from
+  jq 1.8.2's grammar, its error productions and their FAIL messages (src/parser.y); its error
+  recovery is written from the Bison manual's description, with nothing taken from jq's generated
+  src/parser.c or from Bison's skeleton (#62)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/parse/BinOp.java, translated from
+  jq 1.8.2's precedence and associativity declarations (src/parser.y) (#62)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/parse/Token.java, translated from
+  jq 1.8.2's token names and their aliases (src/parser.y) (#62)
+- jq-core/src/test/resources/jq/builtin.jq, copied byte for byte from jq 1.8.2's src/builtin.jq,
+  a test resource; its SHA-256 is in jq-core/src/test/resources/jq/SOURCES.sha256 (#62)
 
 jq's man.test and manonig.test are generated from the examples of the jq manual
 (https://jqlang.org), Creative Commons Attribution 3.0 Unported

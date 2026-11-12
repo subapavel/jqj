@@ -28,7 +28,6 @@ package io.github.subapavel.jqj.internal.parse;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.internal.json.JsonStrings;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,8 +44,12 @@ import java.util.Set;
  * interpolation's {@code \(}; a closer that matches the innermost closes it, any other closer is an INVALID_CHARACTER
  * and closes nothing. Inside a string literal the tokens are runs of plain bytes (TEXT), escape runs, an interpolation's start
  * and the closing quote. An escape run is checked as one JSON string, as jq does: wrapped in quotes, its bad UTF-8
- * replaced, then {@code found_string}'s checks (ADR-0031). A bad run becomes an error block, collected until the
- * whole text is lexed and thrown before the parse (ADR-0032).
+ * replaced, then {@code found_string}'s checks (ADR-0031). A bad run's error block is kept for the parser, which adds it
+ * when it reads the run, as jq's {@code yylex} does (ADR-0032).
+ *
+ * <p>The lexer keeps its last match, as jq's {@code YY_USER_ACTION} keeps it in the location the parser reports the
+ * end of the text at: a token, a whole whitespace run, or one piece of a comment (its {@code #}, a byte, a backslash
+ * with what it takes along, or the LF or CR LF that ends it).
  */
 final class Lexer {
   /** jq's keywords; any other name is an IDENT, {@code __loc__} included. */
@@ -76,27 +79,34 @@ final class Lexer {
   /** The error blocks of the bad escape runs met so far, in order. */
   private final List<String> blocks = new ArrayList<>();
 
-  /** The offset of the first bad escape run. */
-  private int firstError;
+  /** The bytes {@code [lastStart, lastEnd)} of the last match; both 0 before the first. */
+  private int lastStart;
+
+  private int lastEnd;
 
   Lexer(String text) {
     this.text = new FilterText(text);
     this.b = this.text.bytes();
   }
 
-  /** The filter's UTF-8 bytes, which the tokens' offsets index; never written. */
-  byte[] bytes() {
-    return b;
+  /** The filter's text, whose bytes the tokens' offsets index. */
+  FilterText text() {
+    return text;
   }
 
-  /**
-   * Throws the lexical errors collected so far as one {@link JqCompileException}: one error block per bad escape run,
-   * with the first one's line and column (ADR-0031). Returns when there is none.
-   */
-  void throwErrors() {
-    if (!blocks.isEmpty()) {
-      throw new JqCompileException(blocks, text.line(firstError), text.column(firstError));
-    }
+  /** The error block of each INVALID_ESCAPES token lexed so far, in order (ADR-0031). */
+  List<String> errorBlocks() {
+    return blocks;
+  }
+
+  /** The first byte of the last match: after the END, where jq reports the end of the text. */
+  int lastStart() {
+    return lastStart;
+  }
+
+  /** The byte after the last match. */
+  int lastEnd() {
+    return lastEnd;
   }
 
   /** The next token, {@link Token.Kind#END} at the end of the text. */
@@ -141,16 +151,19 @@ final class Lexer {
           case ')', ']', '}' -> close(b[start]);
           default -> word(start);
         };
-    return new Token(kind, start, p);
+    return matched(kind, start);
   }
 
-  /** Skips whitespace and comments. */
+  /** Skips whitespace runs and comments, each run and each comment piece a match of its own. */
   private void skipSpace() {
-    while (p < b.length) {
-      byte c = b[p];
-      if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
-        p++;
-      } else if (c == '#') {
+    for (;;) {
+      int start = p;
+      if (isSpace(at(p))) {
+        do {
+          p++;
+        } while (isSpace(at(p)));
+        match(start);
+      } else if (at(p) == '#') {
         comment();
       } else {
         return;
@@ -159,21 +172,41 @@ final class Lexer {
   }
 
   /**
-   * A comment from its {@code #} up to the LF that ends it, or the end of the text: a backslash takes the byte after it
-   * along when that is a backslash or an LF, and a CR and LF after it too, so an odd run of backslashes before the line
-   * end continues the comment.
+   * A comment, jq's IN_COMMENT, from its {@code #} up to the LF or CR LF that ends it, or the end of the text: a
+   * backslash takes the byte after it along when that is a backslash or an LF, and a CR and LF after it too, so an odd
+   * run of backslashes before the line end continues the comment. The {@code #}, each such pair or triple, each other
+   * byte and the ending LF or CR LF are one match each.
    */
   private void comment() {
     p++;
-    while (p < b.length && b[p] != '\n') {
+    match(p - 1);
+    while (p < b.length) {
+      int start = p;
       if (b[p] == '\\' && (at(p + 1) == '\\' || at(p + 1) == '\n')) {
         p += 2;
       } else if (b[p] == '\\' && at(p + 1) == '\r' && at(p + 2) == '\n') {
         p += 3;
+      } else if (b[p] == '\n' || b[p] == '\r' && at(p + 1) == '\n') {
+        p += b[p] == '\n' ? 1 : 2;
+        match(start);
+        return;
       } else {
         p++;
       }
+      match(start);
     }
+  }
+
+  /** Records {@code [start, p)} as the last match. */
+  private void match(int start) {
+    lastStart = start;
+    lastEnd = p;
+  }
+
+  /** The token of {@code kind} over {@code [start, p)}, recorded as the last match. */
+  private Token matched(Token.Kind kind, int start) {
+    match(start);
+    return new Token(kind, start, p);
   }
 
   /**
@@ -271,7 +304,7 @@ final class Lexer {
     int start = p;
     Token.Kind kind;
     if (p == b.length) {
-      kind = Token.Kind.END;
+      return new Token(Token.Kind.END, start, p);
     } else if (b[p] == '"') {
       p++;
       depth--;
@@ -291,7 +324,7 @@ final class Lexer {
       escapeRun();
       kind = check(start, p);
     }
-    return new Token(kind, start, p);
+    return matched(kind, start);
   }
 
   /**
@@ -311,7 +344,7 @@ final class Lexer {
 
   /**
    * Checks the escape run {@code [start, end)} as jq's lexer does: {@code jv_parse} of the run in quotes, as a string
-   * with its bad UTF-8 replaced. A bad run's error block is collected, with jq's message and the position of that
+   * with its bad UTF-8 replaced. A bad run's error block is kept, with jq's message and the position of that
    * string's last byte, its closing quote unless a cut sequence took it, then the string itself (ADR-0031).
    */
   private Token.Kind check(int start, int end) {
@@ -334,9 +367,6 @@ final class Lexer {
         line++;
         lineStart = i + 1;
       }
-    }
-    if (blocks.isEmpty()) {
-      firstError = start;
     }
     String message =
         error + " at line " + line + ", column " + (parsed.length - lineStart) + " (while parsing '" + new String(parsed, UTF_8) + "')";
@@ -395,6 +425,11 @@ final class Lexer {
   /** The byte at {@code i} as 0 to 255, or -1 past the end. */
   private int at(int i) {
     return i < b.length ? b[i] & 0xFF : -1;
+  }
+
+  /** jq's whitespace in a filter: SP, TAB, CR and LF (#33). */
+  private static boolean isSpace(int c) {
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
   }
 
   private static boolean isNameStart(int c) {
