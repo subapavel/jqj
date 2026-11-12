@@ -128,38 +128,110 @@ class CoreV1Test {
   }
 
   /**
-   * A {@code break $l} finds its label without crossing a {@code try} body or handler, a {@code ?} operand or a
-   * {@code ?//} binding (the ticket's exclusion): a label crossed by one of them is unusable below it.
+   * A {@code break $l} finds its label without crossing a {@code try} body, a {@code ?} operand, a {@code ?//}
+   * binding, a def body, an argument of a user def or closure parameter, or the argument of {@code error} (#58's
+   * decision): a label crossed by one of them is unusable below it. The try handler, the left side of {@code //} and
+   * the arguments of select, first, limit and map do not cross, and breaks occur below them.
    */
   @Test
   void breakNeverCrossesCatch() {
+    Map<String, Integer> opened = new TreeMap<>();
     int breaks = 0;
-    for (CoreV1.Generated g : generated) breaks += breaksChecked(g.tree(), new ArrayDeque<>(), g.seed());
-    assertThat(breaks).as("breaks drawn").isGreaterThan(30);
+    for (CoreV1.Generated g : generated) breaks += breaksChecked(g.tree(), new ArrayDeque<>(), null, opened, g.seed());
+    assertThat(breaks).as("breaks drawn").isGreaterThan(90);
+    assertThat(opened.keySet()).as("breaks below an opened place").isSubsetOf("handler", "alternative", "select", "first", "limit", "map");
+    assertThat(opened.values().stream().mapToInt(Integer::intValue).sum()).as("breaks below an opened place").isGreaterThanOrEqualTo(5);
   }
 
   /** A label in scope and whether a catching construct lies between it and here. */
   private record Label(String name, boolean crossed) {}
 
-  private static int breaksChecked(Node n, Deque<Label> labels, long seed) {
+  /** The kids of {@code n} below which a label in scope is crossed. */
+  private static boolean crosses(Node n, int kid) {
+    return switch (n.op()) {
+      case TRY, TRY_CATCH, OPTIONAL, DEF0, DEF1, DEF1V, DEF2, ERROR_OF -> kid == 0;
+      case ALT_DESTRUCT, CALL, RECURSE -> true;
+      default -> false;
+    };
+  }
+
+  /** The opened place kid {@code kid} of {@code n} is, or null. */
+  private static String opened(Node n, int kid) {
+    return switch (n.op()) {
+      case TRY_CATCH -> kid == 1 ? "handler" : null;
+      case ALTERNATIVE -> kid == 0 ? "alternative" : null;
+      case SELECT -> "select";
+      case FIRST -> "first";
+      case LIMIT -> "limit";
+      case MAP -> kid == 1 ? "map" : null;
+      default -> null;
+    };
+  }
+
+  private static int breaksChecked(Node n, Deque<Label> labels, String place, Map<String, Integer> opened, long seed) {
     if (n.op() == Op.BREAK) {
       Label found = labels.stream().filter(l -> l.name().equals(n.names().getFirst())).findFirst().orElse(null);
       assertThat(found).as("seed %d: %s is bound", seed, n.names().getFirst()).isNotNull();
-      assertThat(found.crossed()).as("seed %d: break %s crosses a try, ? or ?//", seed, found.name()).isFalse();
+      assertThat(found.crossed()).as("seed %d: break %s crosses a closed place", seed, found.name()).isFalse();
+      if (place != null) opened.merge(place, 1, Integer::sum);
       return 1;
     }
     Deque<Label> here = labels;
-    if (EnumSet.of(Op.TRY, Op.TRY_CATCH, Op.OPTIONAL, Op.ALT_DESTRUCT).contains(n.op())) {
-      here = new ArrayDeque<>();
-      for (Label l : labels) here.addLast(new Label(l.name(), true));
-    }
     if (n.op() == Op.LABEL) {
       here = new ArrayDeque<>(here);
       here.addFirst(new Label(n.names().getFirst(), false));
     }
     int count = 0;
-    for (Node k : n.kids()) count += breaksChecked(k, here, seed);
+    for (int i = 0; i < n.kids().size(); i++) {
+      Deque<Label> below = here;
+      if (crosses(n, i)) {
+        below = new ArrayDeque<>();
+        for (Label l : here) below.addLast(new Label(l.name(), true));
+      }
+      String p = opened(n, i);
+      count += breaksChecked(n.kids().get(i), below, p != null ? p : place, opened, seed);
+    }
     return count;
+  }
+
+  /** The generator-only bounds of #58's decision: labels in at least 250 seeds, breaks in at least 90. */
+  @Test
+  void labelsAndBreaksAreCommon() {
+    int labels = 0;
+    int breaks = 0;
+    for (CoreV1.Generated g : generated) {
+      if (count(g.tree(), Op.LABEL) > 0) labels++;
+      if (count(g.tree(), Op.BREAK) > 0) breaks++;
+    }
+    assertThat(labels).as("seeds with a label").isGreaterThanOrEqualTo(250);
+    assertThat(breaks).as("seeds with a break").isGreaterThanOrEqualTo(90);
+  }
+
+  /** No seed holds a {@code ?//} together with {@code first}, {@code limit} or {@code break} (#58's decision). */
+  @Test
+  void noAltDestructuringWithFirstLimitOrBreak() {
+    int alts = 0;
+    for (CoreV1.Generated g : generated) {
+      if (count(g.tree(), Op.ALT_DESTRUCT) == 0) continue;
+      alts++;
+      int cuts = count(g.tree(), Op.FIRST) + count(g.tree(), Op.LIMIT) + count(g.tree(), Op.BREAK);
+      assertThat(cuts).as("seed %d: %s", g.seed(), CoreV1.print(g.tree())).isZero();
+    }
+    assertThat(alts).isGreaterThanOrEqualTo(30);
+  }
+
+  /** A label body drawn while a multi-result place is left is {@code K, R}. */
+  @Test
+  void labelBodiesAreOftenKCommaR() {
+    int commaBodies = 0;
+    for (CoreV1.Generated g : generated) commaBodies += commaLabels(g.tree());
+    assertThat(commaBodies).isGreaterThan(150);
+  }
+
+  private static int commaLabels(Node n) {
+    int c = n.op() == Op.LABEL && n.kids().getFirst().op() == Op.COMMA ? 1 : 0;
+    for (Node k : n.kids()) c += commaLabels(k);
+    return c;
   }
 
   private static final Pattern STRING = Pattern.compile("\"([^\"\\\\]|\\\\.)*\"");
