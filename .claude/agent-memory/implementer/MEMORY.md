@@ -105,3 +105,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#60) In try-with-resources a `catch` runs after close: read a view-backed value inside the block.
 - (#60) A record holding a `byte[]` compares it by identity: assert its parts.
 - (#60) Put a JUnit tag on the class when its `@AfterAll` writes a report; tagging only the factory writes an empty report in the untagged run.
+- (#79) Time budgets: a package-private `LongSupplier` constructor beside the public one (chained to `System::nanoTime`); keep one real-clock test so a mutant of the default clock still dies.
+- (#79) `git var GIT_AUTHOR_IDENT` gives the `Signed-off-by` identity; it differs from `git config user.name` here.
