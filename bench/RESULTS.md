@@ -91,6 +91,18 @@ script's `javac` of the recorder and the JVM start (`.logs/40-rec.tsv`, `.logs/4
 
 Both are far under the 10-minute bound the ticket set for re-measuring.
 
+**Recording `core-v1` (ticket #58, ADR-0033), 2026-11-12**
+
+`scripts/oracle-record.sh` in the `t/58-core-v1` worktree (52e54b1 merged with `spec/56-core-language-2a` at
+56174c7), the cloud container (4 vCPU Intel Xeon @ 2.30 GHz, load average 1.4–2.1), jq-ref 1.8.2, three runs
+each, wall clock including the script's `javac` and the JVM start (`.logs/58-record.log`, `.logs/58-record3.log`).
+All 2100 seeds recorded, 0 dropped; the three recordings are byte-identical.
+
+| command | runs | per 1000 seeds |
+| --- | --- | --- |
+| `--generate core-v1 0 2100` (2100 cases, 0 dropped) | 14.68 s, 16.20 s, 15.77 s | about 7.3 s |
+| `--verify …/gen/core-v1.rec` (2100 seeds) | 15.31 s, 15.86 s, 15.63 s | about 7.4 s |
+
 ## Bench recording G1, G6, G7: jqj against jq-ref (ticket #39), 2026-11-12
 
 - Machine: `claude-cloud-4vcpu` (4 vCPU Intel Xeon Processor @ 2.10GHz, Linux 6.18.44-fc-v378),
