@@ -222,6 +222,46 @@ class StaleViewTest {
   }
 
   @Test
+  void tag6AccessorsOfAStaleViewAreStale() {
+    // #35 design 1.9: each decode reads bytes only after doc.live(), so a tag-6 string or key of a closed or
+    // superseded document is stale, never a decode of another document's bytes. jq-ref 1.8.2, observed 2026-11-12:
+    // printf -- '{"\\u0073":"a\\nb","o":{"\\u006b":1}}' | jq-ref -c '., (.s | explode), .o.k' (\\u is one backslash
+    // and u) -> {"s":"a\nb","o":{"k":1}}  [97,10,98]  1
+    String tag6 = "{\"\\u0073\":\"a\\nb\",\"o\":{\"\\u006b\":1}}";
+    Workspace workspace = newWorkspace();
+    for (String supersededBy : new String[] {null, "{\"s\":\"xyz\",\"o\":{\"k\":2}}"}) {
+      String how = supersededBy == null ? "after close" : "after reading another document";
+      JsonDoc doc = read(workspace, tag6);
+      JqObject root = kind(JqObject.class, doc.root(), ".");
+      JqString s = kind(JqString.class, root.get("s"), ".s");
+      JqObject o = kind(JqObject.class, root.get("o"), ".o");
+      // Witness: before the document goes stale each accessor decodes.
+      assertThat(s.value()).as(".s before it is stale").isEqualTo("a\nb");
+      assertThat(s.utf8().byteSize()).as(".s utf8 length before it is stale").isEqualTo(3L);
+      assertThat(s.toJson()).as(".s toJson before it is stale").isEqualTo("\"a\\nb\"");
+      assertThat(o.size()).as("size of .o before it is stale").isEqualTo(1);
+      assertThat(kind(JqNumber.class, o.get("k"), ".o.k").longValue()).as(".o.k before it is stale").isEqualTo(1L);
+      List<String> keys = new ArrayList<>();
+      root.forEach((k, v) -> keys.add(k));
+      assertThat(keys).as("forEach over . before it is stale").containsExactly("s", "o");
+
+      if (supersededBy == null) {
+        doc.close();
+      } else {
+        read(workspace, supersededBy);
+      }
+
+      assertStale(s::value, "JqString.value() of a tag-6 string " + how);
+      assertStale(s::utf8, "JqString.utf8() of a tag-6 string " + how);
+      assertStale(s::toJson, "JqString.toJson() of a tag-6 string " + how);
+      assertStale(o::size, "JqObject.size() over a tag-6 key " + how);
+      assertStale(() -> o.get("k"), "JqObject.get(String) over a tag-6 key " + how);
+      assertStale(() -> root.forEach((k, v) -> keys.add(k)), "JqObject.forEach over tag-6 keys " + how);
+      assertThat(keys).as("forEach on a stale object calls nothing, %s", how).containsExactly("s", "o");
+    }
+  }
+
+  @Test
   void doubleValueOfAStaleViewIsStale() {
     // #36 design table U (ADR-0026): doubleValue() checks its document before it reads a byte, after close() and
     // after a later read. FOUR_KINDS's .n prints 1.5 on jq-ref (above), a double that is exact.

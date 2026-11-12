@@ -6,7 +6,6 @@ import static io.github.subapavel.jqj.TestDocuments.read;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqNumber;
@@ -23,13 +22,10 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The reader's UTF-8 classification (ADR-0015, #33 design C5): a string is tag 5, its bytes its value and its compact
- * output, unless it holds an escape, DEL or bytes that are not well-formed UTF-8, which make it tag 6, still a Stub
- * until #35 decodes it. Object keys compare by code point over UTF-8. Exported types only.
+ * output, unless it holds an escape, DEL or bytes that are not well-formed UTF-8, which make it tag 6, decoded by
+ * #35 with jq's U+FFFD replacement. Object keys compare by code point over UTF-8. Exported types only.
  */
 class Utf8ReadTest {
-  /** ADR-0024, GLOSSARY "Stub": the mark every Stub message starts with. */
-  private static final String MARK = "jqj stub: ";
-
   private static final HexFormat HEX = HexFormat.ofDelimiter(" ");
 
   /** {@code ["} + bytes + {@code "]}. */
@@ -70,24 +66,37 @@ class Utf8ReadTest {
       assertThat(target.bytes()).as("the writer's output of [\"%s\"]", e.getKey()).containsExactly(withLf(document));
     }
 
-    // jq-ref 1.8.2, observed 2026-11-11: each of these prints U+FFFD (ef bf bd) in their place: a stray
-    // continuation, an overlong form, a surrogate, a code point above U+10FFFF, a bad lead byte, and a sequence cut
-    // by the closing quote or by an ASCII letter. They are tag 6: value() and the writer are Stubs (#35), and no
-    // raw byte of them is written.
-    for (String hex : List.of("80", "c0 80", "c1 bf", "e0 9f bf", "ed a0 80", "f0 8f bf bf", "f4 90 80 80", "f5", "e0 a0", "c2 41", "e0 a0 41")) {
+    // jq-ref 1.8.2, observed 2026-11-12: printf '["<bytes>"]' | jq-ref -c '., (.[0] | explode)' gives U+FFFD (ef bf
+    // bd) in their place: a stray continuation, an overlong form, a surrogate, a code point above U+10FFFF, a bad lead
+    // byte, and a sequence cut by the closing quote or by an ASCII letter. They are tag 6, and #35 decodes them (its
+    // design K3 ended their Stubs): 80, e0 9f bf, ed a0 80, f0 8f bf bf, f4 90 80 80, f5 and e0 a0 -> ["�"] [65533];
+    // c0 80 and c1 bf -> ["��"] [65533,65533]; c2 41 and e0 a0 41 -> ["�A"] [65533,65]. No raw byte of them is written.
+    Map<String, String> replaced = new LinkedHashMap<>();
+    replaced.put("80", "�");
+    replaced.put("c0 80", "��");
+    replaced.put("c1 bf", "��");
+    replaced.put("e0 9f bf", "�");
+    replaced.put("ed a0 80", "�");
+    replaced.put("f0 8f bf bf", "�");
+    replaced.put("f4 90 80 80", "�");
+    replaced.put("f5", "�");
+    replaced.put("e0 a0", "�");
+    replaced.put("c2 41", "�A");
+    replaced.put("e0 a0 41", "�A");
+    for (Map.Entry<String, String> e : replaced.entrySet()) {
+      String hex = e.getKey();
       byte[] document = inArray(HEX.parseHex(hex));
       Workspace workspace = newWorkspace();
       RecordingTarget target = new RecordingTarget();
       JqSink sink = JsonWriter.sink(workspace, target, OutputOptions.compact());
       JqArray root = kind(JqArray.class, workspace.read(MemorySegment.ofArray(document)).root(), hex);
       JqString s = kind(JqString.class, root.get(0), hex);
-      assertThatExceptionOfType(JqCompileException.class).as("value() of %s", hex).isThrownBy(s::value).withMessageStartingWith(MARK);
-      assertThatExceptionOfType(JqCompileException.class)
-          .as("the writer's output of [\"%s\"]", hex)
-          .isThrownBy(() -> sink.emit(root))
-          .withMessageStartingWith(MARK);
-      // ADR-0027: a Stub met in the middle of a result may leave a prefix written, here at most the '["' before it.
-      assertThat("[\"").as("bytes written before the Stub of %s", hex).startsWith(target.text());
+      assertThat(s.value()).as("value() of %s", hex).isEqualTo(e.getValue());
+      assertThat(s.utf8().toArray(JAVA_BYTE)).as("utf8() of %s", hex).containsExactly(e.getValue().getBytes(UTF_8));
+      sink.emit(root);
+      // Bytes, not text: decoding the output would turn a raw bad byte into U+FFFD too. jq-ref 1.8.2, observed
+      // 2026-11-12 with od -tx1: each row's output is 5b 22, ef bf bd per U+FFFD (41 for A), 22 5d 0a.
+      assertThat(target.bytes()).as("the writer's output bytes of [\"%s\"]", hex).containsExactly(("[\"" + e.getValue() + "\"]\n").getBytes(UTF_8));
     }
   }
 

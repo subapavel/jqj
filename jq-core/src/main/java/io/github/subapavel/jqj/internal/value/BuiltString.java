@@ -2,7 +2,7 @@ package io.github.subapavel.jqj.internal.value;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import io.github.subapavel.jqj.internal.Stub;
+import io.github.subapavel.jqj.internal.json.Printer;
 import io.github.subapavel.jqj.value.JqString;
 import java.lang.foreign.MemorySegment;
 
@@ -34,10 +34,24 @@ public final class BuiltString implements JqString {
     return new BuiltString(utf8, 0, utf8.length);
   }
 
-  /** jq's compact text needs jq's re-escape, which is #35's. */
+  /** jq's compact text (ADR-0015, jq's re-escape). */
   @Override
   public String toJson() {
-    throw Stub.unbuilt("the JSON text of a built string");
+    return Printer.json(this);
+  }
+
+  /** The array holding the UTF-8 bytes, {@code [offset(), offset() + byteLength())} of it; never written. */
+  public byte[] bytes() {
+    return bytes;
+  }
+
+  public int offset() {
+    return offset;
+  }
+
+  /** The number of UTF-8 bytes. */
+  public int byteLength() {
+    return length;
   }
 
   @Override

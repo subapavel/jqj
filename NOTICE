@@ -14,6 +14,10 @@ Copyright (c) 2012 Stephen Dolan, are added to this list, with jq's copyright no
 ticket that copies or translates them (ADR-0015: the parser state machine of jv_parse.c). jq's
 licence text ships in the jq-core jar under META-INF/.
 
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/json/JsonStrings.java, translated
+  from jq 1.8.2's found_string (src/jv_parse.c), jvp_utf8_next and jvp_utf8_encode
+  (src/jv_unicode.c), jv_string_sized and jvp_string_copy_replace_bad (src/jv.c) (#35)
+
 jq's man.test and manonig.test are generated from the examples of the jq manual
 (https://jqlang.org), Creative Commons Attribution 3.0 Unported
 (https://creativecommons.org/licenses/by/3.0/), by the jq authors. They are added as test
