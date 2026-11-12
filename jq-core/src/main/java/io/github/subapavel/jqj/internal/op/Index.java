@@ -65,13 +65,18 @@ public final class Index implements Fn1 {
   public Object apply(RunState state, Object in, Object key) {
     JqValue t = (JqValue) in;
     JqValue k = (JqValue) key;
-    // jv_get's pairs; Java null is a pair jq has no value for, its "Cannot index" error.
+    // jv_get's pairs; Java null is a pair jq has no value for, its "Cannot index" error. One pattern per case: javac
+    // checks a case of several patterns again, a branch that is never taken.
     Object value =
         switch (t) {
           case ObjectView object ->
               switch (k) {
                 case JqString name -> orNull(object.get(state, name.value()));
-                case JqNull _, JqBool _, JqNumber _, JqArray _, ObjectView _ -> null;
+                case JqNull _ -> null;
+                case JqBool _ -> null;
+                case JqNumber _ -> null;
+                case JqArray _ -> null;
+                case ObjectView _ -> null;
               };
           case JqArray array ->
               switch (k) {
@@ -80,20 +85,31 @@ public final class Index implements Fn1 {
                 case ObjectView bounds ->
                     Slice.sliced(Slice.of(state, array, bounds.get(state, "start"), bounds.get(state, "end")), quiet);
                 case JqArray _ -> throw Stub.unbuilt("an array index of an array (jq's jv_array_indexes, #72)");
-                case JqNull _, JqBool _, JqString _ -> null;
+                case JqNull _ -> null;
+                case JqBool _ -> null;
+                case JqString _ -> null;
               };
           case JqString s ->
               switch (k) {
                 case ObjectView bounds ->
                     Slice.sliced(Slice.of(state, s, bounds.get(state, "start"), bounds.get(state, "end")), quiet);
-                case JqNull _, JqBool _, JqNumber _, JqString _, JqArray _ -> null;
+                case JqNull _ -> null;
+                case JqBool _ -> null;
+                case JqNumber _ -> null;
+                case JqString _ -> null;
+                case JqArray _ -> null;
               };
           case JqNull nul ->
               switch (k) {
-                case JqString _, JqNumber _, ObjectView _ -> nul;
-                case JqNull _, JqBool _, JqArray _ -> null;
+                case JqString _ -> nul;
+                case JqNumber _ -> nul;
+                case ObjectView _ -> nul;
+                case JqNull _ -> null;
+                case JqBool _ -> null;
+                case JqArray _ -> null;
               };
-          case JqBool _, JqNumber _ -> null;
+          case JqBool _ -> null;
+          case JqNumber _ -> null;
         };
     if (value != null) {
       return value;
