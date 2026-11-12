@@ -102,8 +102,10 @@ public class census {
           Map.entry("S2a.14", List.of("S2a.12")), // #64 <- #62
           Map.entry("S2a.15", List.of("S2a.13", "S2a.14")), // #65 <- #63, #64
           Map.entry("S2a.16", List.of("S2a.14")), // #66 <- #64
-          Map.entry("S2a.17", List.of("S2a.13", "S2a.14")), // #67 <- #63, #64
-          Map.entry("S2a.18", List.of("S2a.13")), // #68 <- #63
+          // #67 <- #63, #64; #65, #66 added 2026-11-12 from the census
+          Map.entry("S2a.17", List.of("S2a.13", "S2a.14", "S2a.15", "S2a.16")),
+          // #68 <- #63; #65, #66 added 2026-11-12 from the census
+          Map.entry("S2a.18", List.of("S2a.13", "S2a.15", "S2a.16")),
           Map.entry("S2a.19", List.of("S2a.17")), // #69 <- #67
           Map.entry("S2a.20", List.of("S2a.17", "S2a.18")), // #70 <- #67, #68
           Map.entry("S2a.21", List.of("S2a.20")), // #71 <- #70
