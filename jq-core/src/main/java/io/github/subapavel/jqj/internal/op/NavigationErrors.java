@@ -11,9 +11,12 @@ import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 
-/** jq 1.8.2's error texts of navigation (jq-ref, recorded: diff/index.rec, iterate.rec, slice.rec). */
-final class Errors {
-  private Errors() {}
+/**
+ * jq 1.8.2's error texts of navigation, the family of Field, Index, Slice and Iterate (jq-ref, recorded:
+ * diff/index.rec, iterate.rec, slice.rec).
+ */
+final class NavigationErrors {
+  private NavigationErrors() {}
 
   /** jq's name of {@code v}'s kind. One case per kind of the sealed {@link JqValue} (ADR-0016). */
   static String kind(JqValue v) {

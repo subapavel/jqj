@@ -46,7 +46,7 @@ public final class Field implements Fn0 {
         if (quiet) {
           yield CallForm.NONE;
         }
-        throw Errors.cannotIndex(other, "string", shown);
+        throw NavigationErrors.cannotIndex(other, "string", shown);
       }
     };
   }

@@ -56,7 +56,7 @@ public final class Index implements Fn1 {
       if (quiet) {
         return CallForm.NONE;
       }
-      throw Errors.sliceIndices();
+      throw NavigationErrors.sliceIndices();
     }
     if (t instanceof JqArray && k instanceof JqArray) {
       throw Stub.unbuilt("an array index of an array (jq's jv_array_indexes, #72)");
@@ -67,7 +67,7 @@ public final class Index implements Fn1 {
     if (quiet) {
       return CallForm.NONE;
     }
-    throw Errors.cannotIndex(t, k);
+    throw NavigationErrors.cannotIndex(t, k);
   }
 
   /** The element at {@code i} of {@code array}, or null: a view charges the entries it steps (ADR-0034). */
