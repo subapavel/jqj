@@ -24,7 +24,8 @@ import java.util.Arrays;
  * <p>null, the booleans and tag-5 strings are their bytes. A number is copied when it is CANONICAL (ADR-0012) and is
  * written in its canonical form otherwise (#36); a tag-6 string, a tag-6 key and a built string are re-escaped as
  * jq's {@code jvp_dump_string} (#35). An object prints each key at its first position with its
- * last value (ADR-0002). A Stub met in the middle of a value leaves what was drained before it written.
+ * last value (ADR-0002). A target's exception, or a document found stale after a drain, in the middle of a value
+ * leaves what was drained before it written.
  *
  * <p>Pretty (#37) changes only the layout of containers: each entry of a non-empty container starts on a new line,
  * indented by two spaces a level, a key is followed by {@code ": "}, and the closing bracket is on its own line at the
@@ -76,7 +77,7 @@ public final class Printer implements CanonicalForm.Out {
     doc = null;
     this.pretty = pretty;
     this.target = target;
-    // A value that ended in a Stub or a target's exception may have left bytes behind.
+    // A value that ended in a target's exception or a stale document may have left bytes behind.
     pos = 0;
     switch (v) {
       case JqNull _ -> put(NULL);

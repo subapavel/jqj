@@ -94,7 +94,9 @@ class Utf8ReadTest {
       assertThat(s.value()).as("value() of %s", hex).isEqualTo(e.getValue());
       assertThat(s.utf8().toArray(JAVA_BYTE)).as("utf8() of %s", hex).containsExactly(e.getValue().getBytes(UTF_8));
       sink.emit(root);
-      assertThat(target.text()).as("the writer's output of [\"%s\"]", hex).isEqualTo("[\"" + e.getValue() + "\"]\n");
+      // Bytes, not text: decoding the output would turn a raw bad byte into U+FFFD too. jq-ref 1.8.2, observed
+      // 2026-11-12 with od -tx1: each row's output is 5b 22, ef bf bd per U+FFFD (41 for A), 22 5d 0a.
+      assertThat(target.bytes()).as("the writer's output bytes of [\"%s\"]", hex).containsExactly(("[\"" + e.getValue() + "\"]\n").getBytes(UTF_8));
     }
   }
 
