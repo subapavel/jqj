@@ -572,9 +572,12 @@ public class census {
       Set.of("as", "def", "module", "import", "include", "if", "then", "elif", "else", "end", "and", "or", "reduce",
           "foreach", "try", "catch", "label", "break", "__loc__");
 
-  /** The tokens that end a term, after which `[` indexes rather than builds an array. */
-  static final Set<String> TERM_KINDS = Set.of("dot", "field", "str", "num", "var", "loc", "ident", "format");
-  static final Set<String> TERM_ENDS = Set.of("]", ")", "}", "?");
+  /**
+   * The tokens that end a term, after which `[` indexes rather than builds an array. A `}` is left out: the object
+   * before it already needs construction, the later ticket.
+   */
+  static final Set<String> TERM_KINDS = Set.of("dot", "field", "str", "var", "ident");
+  static final Set<String> TERM_ENDS = Set.of("]", ")", "?");
 
   static Lexed lex(String program) {
     List<Tok> toks = new ArrayList<>();
@@ -586,7 +589,6 @@ public class census {
       switch (tok.kind()) {
         case "num", "str" -> needs.add(t("S2a.11", "literal"));
         case "interp" -> needs.add(t("S2a.11", "interpolation"));
-        case "dotstr" -> needs.add(t("S2a.11", ".\"str\""));
         case "var" -> needs.add(t("S2a.17", "$var"));
         case "loc" -> needs.add(t("S2a.17", "$__loc__"));
         case "ident" -> {
@@ -685,11 +687,10 @@ public class census {
   static final String WORD = "(?:[a-zA-Z_][a-zA-Z_0-9]*::)*[a-zA-Z_][a-zA-Z_0-9]*";
   /** jq's tokens outside strings, longest first where two share a start; the op group takes any other character. */
   static final Pattern TOKEN =
-      Pattern.compile("(?<space>\\s+)|(?<comment>#[^\\n]*)|(?<rec>\\.\\.)"
-          + "|(?<num>(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?)|(?<field>\\." + WORD + ")"
-          + "|(?<dotstr>\\.(?=\"))|(?<dot>\\.)|(?<var>\\$" + WORD + ")|(?<format>@" + WORD + ")|(?<word>" + WORD + ")"
+      Pattern.compile("(?<space>\\s+)|(?<comment>#[^\\n]*)|(?<num>(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?)"
+          + "|(?<field>\\." + WORD + ")|(?<dot>\\.)|(?<var>\\$" + WORD + ")|(?<word>" + WORD + ")"
           + "|(?<op>\\?//|//=|[|+*/%-]=|[=!<>]=|//|(?s:.))");
-  static final List<String> TOKEN_KINDS = List.of("space", "comment", "rec", "num", "field", "dotstr", "dot", "var", "format", "word", "op");
+  static final List<String> TOKEN_KINDS = List.of("space", "comment", "num", "field", "dot", "var", "word", "op");
   /** A run of a string's characters up to its end or an interpolation, or one escape. */
   static final Pattern STRING_PART = Pattern.compile("\\\\(?s:.)|[^\"\\\\]+");
 }

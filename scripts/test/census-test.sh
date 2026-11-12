@@ -145,6 +145,34 @@ null
 %%FAIL IGNORE MSG
 . as [] | null
 jq: error: any text
+
+"\((.), 1)"
+null
+"null"
+
+. # reduce
+null
+null
+
+"ab"[0:1]
+null
+"a"
+
+(.)[0]
+[1]
+1
+
+.a?[0]
+null
+null
+
+def f: def g: f; g; f
+null
+null
+
+def empty: 1; [empty]
+null
+[1]
 CASES
 out=$tmp/fixture.tsv
 CENSUS_TESTS=$fx java "$tool" write "$out" > "$tmp/write.log" 2>&1
@@ -183,7 +211,14 @@ check "a shadowed name's builtin before another builtin is the prelude's" "$(at 
 check "... and its native range/2 is needed" "$(awk -F'\t' '$4 == "x.test:119" { print $5 }' "$out")" \
   "S2a.11,S2a.14,S2a.15,S2a.19,S2a.20,S2a.21"
 check "%%FAIL IGNORE MSG: the parser" "$(at "$out" x.test:123)" "2a S2a.12"
-check "every fixture case has a line" "$(grep -vc '^#' "$out")" 32
+check "a parenthesis in an interpolation does not end it" "$(at "$out" x.test:127)" "2a S2a.13"
+check "a comment is not code" "$(at "$out" x.test:131)" "1 -"
+check "[ after a string indexes" "$(at "$out" x.test:135)" "2a S2a.13"
+check "[ after a parenthesis indexes" "$(at "$out" x.test:139)" "2a S2a.13"
+check "[ after ? indexes" "$(at "$out" x.test:143)" "2a S2a.13"
+check "mutual recursion" "$(at "$out" x.test:147)" "2b -"
+check "a definition named like a native is the program's" "$(at "$out" x.test:151)" "2a S2a.20"
+check "every fixture case has a line" "$(grep -vc '^#' "$out")" 39
 has "why names the deciding builtin" "_match_impl" "$out"
 CENSUS_TESTS=$fx java "$tool" verify "$out" > "$tmp/verify.log" 2>&1
 check "fixture: the list is reproduced" "$?" 0
