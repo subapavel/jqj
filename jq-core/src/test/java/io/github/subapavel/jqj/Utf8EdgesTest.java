@@ -21,9 +21,6 @@ import org.junit.jupiter.api.Test;
  * design section 1), a lookup key at each UTF-8 length edge, and a lead byte from F5. Exported types only.
  */
 class Utf8EdgesTest {
-  /** ADR-0024, GLOSSARY "Stub": the mark every Stub message starts with. */
-  private static final String MARK = "jqj stub: ";
-
   private static final HexFormat HEX = HexFormat.ofDelimiter(" ");
 
   /** The bytes of {@code hex} followed by the UTF-8 bytes of {@code text}. */
@@ -78,21 +75,25 @@ class Utf8EdgesTest {
   }
 
   @Test
-  void aPartialBomCutByEofEndsInTheMalformedInputStub() {
-    // jq-ref 1.8.2, observed 2026-11-11: printf '\xef' and printf '\xef\xbb' | jq-ref -c . -> rc 0, no output.
-    // jqj does not do that yet: the read ends in the malformed-input Stub (ADR-0024), which spec 5 rewrites. Each is
-    // read alone and from a slice two bytes into its array, where the bytes left count from the slice's start.
+  void aPartialBomCutByEofIsNoDocumentForRead() {
+    // jq-ref 1.8.2, recorded in diff/string.rec (bom-partial-1, bom-partial-2): printf '\xef' and printf '\xef\xbb' |
+    // jq-ref -c . -> rc 0, no output: zero documents, which the command line now gives too (#35 answers). Workspace.read
+    // reads exactly one document (ADR-0026), so at the API a partial BOM cut by EOF stays a JqSyntaxException, like
+    // empty input (MalformedDocumentTest.emptyInputIsMalformed); #35 rewrote this test from "ends in the
+    // malformed-input Stub", and like that test it pins only the type (spec-1 grilling item 7). Each is read alone
+    // and from a slice two bytes into its array, where the bytes left count from the slice's start.
     for (String hex : new String[] {"ef", "ef bb"}) {
       assertThatExceptionOfType(JqSyntaxException.class)
           .as("a partial BOM %s alone", hex)
-          .isThrownBy(() -> newWorkspace().read(MemorySegment.ofArray(bytes(hex, ""))))
-          .withMessageStartingWith(MARK);
+          .isThrownBy(() -> newWorkspace().read(MemorySegment.ofArray(bytes(hex, ""))));
       MemorySegment partial = MemorySegment.ofArray(bytes("78 78 " + hex, "")).asSlice(2);
       assertThatExceptionOfType(JqSyntaxException.class)
           .as("a partial BOM %s in a slice at 2", hex)
-          .isThrownBy(() -> newWorkspace().read(partial))
-          .withMessageStartingWith(MARK);
+          .isThrownBy(() -> newWorkspace().read(partial));
     }
+    // Witness: the whole BOM before a document reads.
+    JqArray root = kind(JqArray.class, newWorkspace().read(MemorySegment.ofArray(bytes("ef bb bf", "[1]"))).root(), "BOM [1]");
+    assertThat(root.length()).as("length of [1] after a BOM").isEqualTo(1);
   }
 
   @Test
@@ -126,11 +127,12 @@ class Utf8EdgesTest {
 
   @Test
   void aLeadByteFromF5IsNotWellFormed() {
-    // jq-ref 1.8.2, observed 2026-11-11: printf '["\xf5\x80\x80\x80"]' | jq-ref -c . prints four U+FFFD, so the
-    // string is tag 6 and a Stub until #35, like the F5 alone of Utf8ReadTest.
+    // jq-ref 1.8.2, observed 2026-11-12: printf '["\xf5\x80\x80\x80"]' | jq-ref -c '., (.[0] | explode)' ->
+    // ["����"] [65533,65533,65533,65533]: F5 is a bad lead byte and each 80 a stray continuation, one U+FFFD each. The
+    // string is tag 6, and #35 decodes it (its design K3 ended the Stub this test held until then).
     JqArray root = kind(JqArray.class, newWorkspace().read(MemorySegment.ofArray(bytes("5b 22 f5 80 80 80 22 5d", ""))).root(), "f5 80 80 80");
     JqString s = kind(JqString.class, root.get(0), "f5 80 80 80");
-    assertThatExceptionOfType(JqCompileException.class).as("value() of f5 80 80 80").isThrownBy(s::value).withMessageStartingWith(MARK);
+    assertThat(s.value()).as("value() of f5 80 80 80").isEqualTo("����");
     // Witness: the four-byte sequence below F5 reads.
     JqArray f4 = kind(JqArray.class, newWorkspace().read(MemorySegment.ofArray(bytes("5b 22 f4 8f bf bf 22 5d", ""))).root(), "f4 8f bf bf");
     assertThat(kind(JqString.class, f4.get(0), "f4 8f bf bf").value()).as("value() of f4 8f bf bf").isEqualTo("􏿿");

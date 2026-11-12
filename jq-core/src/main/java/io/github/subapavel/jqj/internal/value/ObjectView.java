@@ -1,5 +1,6 @@
 package io.github.subapavel.jqj.internal.value;
 
+import io.github.subapavel.jqj.internal.json.JsonStrings;
 import io.github.subapavel.jqj.internal.json.Printer;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqValue;
@@ -10,9 +11,9 @@ import java.util.function.BiConsumer;
  * An object of a document (ADR-0003, ADR-0016): its document and tape index. Public only so the kind can permit it.
  * Its entries alternate key and value. The tape keeps duplicate keys, so every member checks them again, as jq does:
  * a key keeps its first position and its last value (ADR-0002). That check compares each key with the earlier ones,
- * so {@link #size()} and {@link #forEach} take time quadratic in the number of keys. Every key a member meets must be
- * a tag-5 string until #35 decodes tag 6. The writer walks the keys with the same pair, {@link #isFirst} and
- * {@link #lastValueOf}.
+ * so {@link #size()} and {@link #forEach} take time quadratic in the number of keys. Keys compare by their decoded
+ * bytes (#35): a tag-6 key is decoded at each compare, so {@code "\\u0061"} and {@code "a"} are one key. The writer
+ * walks the keys with the same pair, {@link #isFirst} and {@link #lastValueOf}.
  */
 public record ObjectView(Document doc, int index) implements JqObject {
 
@@ -44,7 +45,6 @@ public record ObjectView(Document doc, int index) implements JqObject {
     int end = Tape.end(tape, index);
     int value = 0; // none yet: index 0 is the root, never a member's value
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
-      StringView.requirePlain(tape[k]);
       if (spells(bytes, tape[k], key)) {
         value = k + 1;
       }
@@ -53,8 +53,8 @@ public record ObjectView(Document doc, int index) implements JqObject {
   }
 
   /**
-   * Each key at its first position with its last value; no call is made when a key is a Stub. Each step after a
-   * call checks the document again: the action may have read another document onto this tape (ADR-0016, STALE_VIEW).
+   * Each key at its first position, decoded, with its last value. Each step after a call checks the document again:
+   * the action may have read another document onto this tape (ADR-0016, STALE_VIEW).
    */
   @Override
   public void forEach(BiConsumer<? super String, ? super JqValue> action) {
@@ -63,7 +63,6 @@ public record ObjectView(Document doc, int index) implements JqObject {
     int end = Tape.end(tape, index);
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
       if (isFirst(tape, bytes, index, k)) {
-        // lastValueOf checks every later key, so the first call comes after all keys are checked.
         int value = lastValueOf(tape, bytes, k, end);
         action.accept(StringView.text(bytes, tape[k]), doc.valueAt(tape, value));
         tape = doc.live();
@@ -71,12 +70,8 @@ public record ObjectView(Document doc, int index) implements JqObject {
     }
   }
 
-  /**
-   * Whether the key at {@code k} of the object at {@code object} is tag 5 and no earlier key equals it; a tag-6 key is
-   * a Stub. The keys before {@code k} must have been checked already.
-   */
+  /** Whether no key before the key at {@code k} of the object at {@code object} equals it. */
   public static boolean isFirst(long[] tape, byte[] bytes, int object, int k) {
-    StringView.requirePlain(tape[k]);
     int first = object + 1;
     while (!sameKey(tape, bytes, first, k)) {
       first = Tape.next(tape, first + 1);
@@ -85,13 +80,11 @@ public record ObjectView(Document doc, int index) implements JqObject {
   }
 
   /**
-   * The value of the last key equal to the key at {@code k}, checking each later key on the way; {@code end} is the
-   * object's {@link Tape#end}.
+   * The value of the last key equal to the key at {@code k}; {@code end} is the object's {@link Tape#end}.
    */
   public static int lastValueOf(long[] tape, byte[] bytes, int k, int end) {
     int value = k + 1;
     for (int later = Tape.next(tape, k + 1); later < end; later = Tape.next(tape, later + 1)) {
-      StringView.requirePlain(tape[later]);
       if (sameKey(tape, bytes, later, k)) {
         value = later + 1;
       }
@@ -99,21 +92,39 @@ public record ObjectView(Document doc, int index) implements JqObject {
     return value;
   }
 
-  /** Two tag-5 keys are equal when their bytes are, quotes included. */
+  /**
+   * Two keys are equal when their decoded bytes are: two tag-5 keys compare their bytes, quotes included, without a
+   * copy; any other pair compares decoded arrays.
+   */
   private static boolean sameKey(long[] tape, byte[] bytes, int a, int b) {
-    int from = Tape.off(tape[a]);
-    int other = Tape.off(tape[b]);
-    return Arrays.equals(bytes, from, from + Tape.span(tape[a]), bytes, other, other + Tape.span(tape[b]));
+    long x = tape[a];
+    long y = tape[b];
+    if (Tape.tag(x) == Tape.STRING && Tape.tag(y) == Tape.STRING) {
+      int from = Tape.off(x);
+      int other = Tape.off(y);
+      return Arrays.equals(bytes, from, from + Tape.span(x), bytes, other, other + Tape.span(y));
+    }
+    return Arrays.equals(JsonStrings.decode(bytes, x), JsonStrings.decode(bytes, y));
   }
 
   /**
-   * Whether the tag-5 key {@code entry} spells {@code key}, compared by code point over its UTF-8 bytes. A lone
-   * surrogate is no code point, so a key holding one never matches; encoding {@code key} with a charset instead would
-   * turn it into {@code ?} and find the key {@code "?"}.
+   * Whether the key {@code entry} spells {@code key}: a tag-5 key over the document's bytes, a tag-6 key over its
+   * decoded bytes.
    */
   private static boolean spells(byte[] bytes, long entry, String key) {
-    int p = Tape.off(entry) + 1;
-    int end = Tape.off(entry) + Tape.span(entry) - 1;
+    if (Tape.tag(entry) == Tape.STRING) {
+      return spells(bytes, Tape.off(entry) + 1, Tape.off(entry) + Tape.span(entry) - 1, key);
+    }
+    byte[] decoded = JsonStrings.decode(bytes, entry);
+    return spells(decoded, 0, decoded.length, key);
+  }
+
+  /**
+   * Whether the UTF-8 bytes {@code bytes[p, end)} spell {@code key}, compared by code point. A lone surrogate is no code
+   * point, so a key holding one never matches; encoding {@code key} with a charset instead would turn it into {@code ?}
+   * and find the key {@code "?"}.
+   */
+  private static boolean spells(byte[] bytes, int p, int end, String key) {
     int n = key.length();
     for (int i = 0; i < n; i++) {
       char c = key.charAt(i);

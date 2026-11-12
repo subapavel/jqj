@@ -15,12 +15,14 @@ import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqValue;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.foreign.MemorySegment;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.SplittableRandom;
@@ -256,24 +258,75 @@ class JsonWriterTest {
   /**
    * Reader and writer round trip (CODING_STANDARDS "Property tests"). Each seed makes a document of the kinds #33
    * prints (null, booleans, CANONICAL numbers, tag-5 strings with non-ASCII, nested containers, distinct keys) with
-   * SP, TAB, CR and LF between its tokens, and its compact text by the rules of ADR-0012 and ADR-0015. The writer's
+   * SP, TAB, CR and LF between its tokens, and its compact text by the rules of ADR-0012 and ADR-0015. #35's design
+   * adds strings and keys holding the units of {@link #UNITS}: escape sequences, DEL and bad bytes. The writer's
    * output of the document must be that text, and its output of its own output must be the same bytes.
    */
   @ParameterizedTest(name = "seed {0}")
   @MethodSource("seeds")
   void writerIsAFixpointOverItsOwnOutput(long seed) {
     RandomGenerator random = new SplittableRandom(seed);
-    StringBuilder spaced = new StringBuilder();
+    ByteArrayOutputStream spaced = new ByteArrayOutputStream();
     StringBuilder expected = new StringBuilder();
     space(random, spaced);
     value(random, 0, spaced, expected);
     space(random, spaced);
 
-    String first = compact(spaced.toString());
-    assertThat(first).as("seed %d: the writer's output of %s", seed, spaced).isEqualTo(expected + "\n");
+    byte[] input = spaced.toByteArray();
+    String first = compact(input);
+    assertThat(first).as("seed %d: the writer's output of %s", seed, HexFormat.ofDelimiter(" ").formatHex(input)).isEqualTo(expected + "\n");
     String second = compact(first);
     assertThat(second).as("seed %d: the writer's output of its own output", seed).isEqualTo(first);
   }
+
+  /** The compact output of the document in {@code json}'s bytes, through the OutputStream sink. */
+  private static String compact(byte[] json) {
+    Workspace workspace = newWorkspace();
+    RecordingTarget target = new RecordingTarget();
+    JsonWriter.sink(workspace, target, OutputOptions.compact()).emit(workspace.read(MemorySegment.ofArray(json)).root());
+    return target.text();
+  }
+
+  /** A string unit: its bytes inside a JSON string, and the text jq prints for it there. */
+  private record Unit(byte[] input, String printed) {}
+
+  private static Unit unit(String hexOrNull, String escaped, String printed) {
+    return new Unit(hexOrNull == null ? escaped.getBytes(UTF_8) : HexFormat.ofDelimiter(" ").parseHex(hexOrNull), printed);
+  }
+
+  /**
+   * Units whose printed text does not depend on their neighbours. jq-ref 1.8.2, observed 2026-11-12, each alone in an
+   * array: ["\\u0041","\/","\n","\"","\\","\b","\f","\r","\t","\\u00E9","\\u0001","\\u001F","\\u007f","&lt;DEL&gt;",
+   * "\\ud834\\udd1e","\\udc00","\\uFFFE","\x80","\xff","\xc0\x80","\xed\xa0\x80","\xf4\x90\x80\x80","\xe0\x80\x80"]
+   * -> ["A","/","\n","\"","\\","\b","\f","\r","\t","é","\\u0001","\\u001f","\\u007f","\\u007f","𝄞","�","￾","�","�",
+   * "��","�","�","�"]; and side by side in one string they print the concatenation of these texts (PrinterStringTest's
+   * last row of tag6PrintsAsJvpDumpString). Here \\u is one backslash and u, and \xHH a raw byte.
+   */
+  private static final Unit[] UNITS = {
+    unit(null, "\\u0041", "A"),
+    unit(null, "\\/", "/"),
+    unit(null, "\\n", "\\n"),
+    unit(null, "\\\"", "\\\""),
+    unit(null, "\\\\", "\\\\"),
+    unit(null, "\\b", "\\b"),
+    unit(null, "\\f", "\\f"),
+    unit(null, "\\r", "\\r"),
+    unit(null, "\\t", "\\t"),
+    unit(null, "\\u00E9", "é"),
+    unit(null, "\\u0001", "\\u0001"),
+    unit(null, "\\u001F", "\\u001f"),
+    unit(null, "\\u007f", "\\u007f"),
+    unit("7f", null, "\\u007f"),
+    unit(null, "\\ud834\\udd1e", "𝄞"),
+    unit(null, "\\udc00", "\ufffd"),
+    unit(null, "\\uFFFE", "\ufffe"),
+    unit("80", null, "\ufffd"),
+    unit("ff", null, "\ufffd"),
+    unit("c0 80", null, "\ufffd\ufffd"),
+    unit("ed a0 80", null, "\ufffd"),
+    unit("f4 90 80 80", null, "\ufffd"),
+    unit("e0 80 80", null, "\ufffd"),
+  };
 
   private static final int MAX_DEPTH = 4;
 
@@ -283,11 +336,11 @@ class JsonWriterTest {
   /** Code points that need no escape and are well-formed UTF-8 of 2, 3 and 4 bytes, edges included. */
   private static final int[] NON_ASCII = {0x80, 0xE9, 0x3C0, 0x7FF, 0x800, 0x20AC, 0x2028, 0xD7FF, 0xE000, 0xFFFF, 0x10000, 0x1D11E, 0x10FFFF};
 
-  private static void space(RandomGenerator random, StringBuilder spaced) {
-    spaced.append(WHITESPACE[random.nextInt(WHITESPACE.length)]);
+  private static void space(RandomGenerator random, ByteArrayOutputStream spaced) {
+    spaced.writeBytes(WHITESPACE[random.nextInt(WHITESPACE.length)].getBytes(UTF_8));
   }
 
-  private static void value(RandomGenerator random, int depth, StringBuilder spaced, StringBuilder expected) {
+  private static void value(RandomGenerator random, int depth, ByteArrayOutputStream spaced, StringBuilder expected) {
     int kind = random.nextInt(depth < MAX_DEPTH ? 7 : 5);
     switch (kind) {
       case 0 -> both("null", spaced, expected);
@@ -312,8 +365,9 @@ class JsonWriterTest {
         int n = random.nextInt(0, 5);
         Set<String> keys = new HashSet<>();
         for (int i = 0; i < n; i++) {
-          String key = string(random);
-          if (!keys.add(key)) continue;
+          Unit key = string(random);
+          // Distinct by the printed text: two spellings of one decoded key are one key (ADR-0002).
+          if (!keys.add(key.printed())) continue;
           if (keys.size() > 1) both(",", spaced, expected);
           space(random, spaced);
           both(key, spaced, expected);
@@ -329,9 +383,14 @@ class JsonWriterTest {
     }
   }
 
-  private static void both(String token, StringBuilder spaced, StringBuilder expected) {
-    spaced.append(token);
+  private static void both(String token, ByteArrayOutputStream spaced, StringBuilder expected) {
+    spaced.writeBytes(token.getBytes(UTF_8));
     expected.append(token);
+  }
+
+  private static void both(Unit string, ByteArrayOutputStream spaced, StringBuilder expected) {
+    spaced.writeBytes(string.input());
+    expected.append(string.printed());
   }
 
   /** A strict JSON number without an exponent that ADR-0012 calls CANONICAL. */
@@ -361,21 +420,35 @@ class JsonWriterTest {
     return b.toString();
   }
 
-  /** A string that is tag 5: no escape, no DEL, no byte below 0x20, well-formed UTF-8 (ADR-0015). */
-  private static String string(RandomGenerator random) {
-    StringBuilder b = new StringBuilder("\"");
+  /**
+   * A string, quotes included, and its compact text: plain ASCII and well-formed non-ASCII (tag 5 when alone), and a
+   * unit of {@link #UNITS} in one char of five (tag 6).
+   */
+  private static Unit string(RandomGenerator random) {
+    ByteArrayOutputStream input = new ByteArrayOutputStream();
+    StringBuilder printed = new StringBuilder("\"");
+    input.write('"');
     int n = random.nextInt(0, 9);
     for (int i = 0; i < n; i++) {
-      if (random.nextInt(10) < 7) {
+      int pick = random.nextInt(10);
+      if (pick < 6) {
         char c;
         do {
           c = (char) random.nextInt(0x20, 0x7F);
         } while (c == '"' || c == '\\');
-        b.append(c);
+        input.write(c);
+        printed.append(c);
+      } else if (pick < 8) {
+        String s = Character.toString(NON_ASCII[random.nextInt(NON_ASCII.length)]);
+        input.writeBytes(s.getBytes(UTF_8));
+        printed.append(s);
       } else {
-        b.appendCodePoint(NON_ASCII[random.nextInt(NON_ASCII.length)]);
+        Unit u = UNITS[random.nextInt(UNITS.length)];
+        input.writeBytes(u.input());
+        printed.append(u.printed());
       }
     }
-    return b.append('"').toString();
+    input.write('"');
+    return new Unit(input.toByteArray(), printed.append('"').toString());
   }
 }
