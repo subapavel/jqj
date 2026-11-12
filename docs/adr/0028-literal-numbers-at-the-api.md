@@ -1,7 +1,7 @@
 # Literal numbers at the API: values after jq's exponent limits
 
-Status: accepted (2026-11-12, architect, from the designer's draft for #36 "S1.14 Numbers"); amends
-ADR-0016 (`JqNumber`). It narrows a public contract, so it is listed for the owner at spec 1's PR.
+Status: accepted (2026-11-12, architect, from the designer's draft for #36 "S1.14 Numbers");
+confirmed by the owner at PR #48 (F-28); amends ADR-0016 (`JqNumber`).
 
 - `decimalValue()` of a literal is its canonical form's value: jq's value after the exponent limits
   (`5e-1147483647` → `1E-1147483646`), with its scale kept (`1.10` has scale 2). `-0` gives a zero of
