@@ -63,18 +63,19 @@ ticket() { : > "$STUB_CALLS"; rm -rf "$repo/.logs"; (cd "$repo" && scripts/gate-
 check "ticket: usage" "$(ticket 25)" 2
 check "ticket: green" "$(ticket 25 query-core,jq-core base)" 0
 has "step 1 is the whole reactor with -Pbench" "mvnw -B -Pbench verify" "$STUB_CALLS"
-has "step 2 PIT on changed query-core class" "io.github.subapavel.jqj.query.Foo\*" "$STUB_CALLS"
-has "step 2 PIT on changed jq-core class" "io.github.subapavel.jqj.core.Bar\*" "$STUB_CALLS"
-hasnt "module-info is not a class to mutate" "module-info" "$STUB_CALLS"
-has "PIT runs for the named modules with -am" "-pl query-core,jq-core -am" "$STUB_CALLS"
+# F-27: PIT left the ticket gate, even with changed classes in class-C modules
+hasnt "no PIT call with changed query-core and jq-core classes" "pitest" "$STUB_CALLS"
+hasnt "no class list for PIT" "targetClasses" "$STUB_CALLS"
+check "mvnw runs only step 1" "$(grep -c '^mvnw ' "$STUB_CALLS")" 1
 has "step 3 LF check" "check-lf-checkout.sh" "$STUB_CALLS"
 has "step 3 trailer check on ref..HEAD" "check-trailers.sh base..HEAD" "$STUB_CALLS"
 has "step 3 word check" "check-core-neutral.sh" "$STUB_CALLS"
-check "logs of step 1 and 2" "$(ls "$repo/.logs" | grep -c '^25-\(verify\|pit\)\.log$')" 2
+check "log of step 1, no PIT log" "$(ls "$repo/.logs" | grep -c '^25-\(verify\|pit\|pit-floor\)\.log$')" 1
+has "step 1 log written" "25-verify.log" "$(ls "$repo/.logs" > "$tmp/ls"; echo "$tmp/ls")"
 has "step timings recorded" "^verify	" "$repo/.logs/25-steps.tsv"
-has "pit timing recorded" "^pit	" "$repo/.logs/25-steps.tsv"
+hasnt "no pit timing recorded" "^pit" "$repo/.logs/25-steps.tsv"
 order=$(grep -o 'mvnw -B -Pbench verify\|test org.pitest\|check-lf\|check-trailers\|check-core\|java ' "$STUB_CALLS" | tr '\n' ' ')
-check "steps in ADR order" "$order" "mvnw -B -Pbench verify test org.pitest check-lf check-trailers check-core "
+check "steps in ADR order" "$order" "mvnw -B -Pbench verify check-lf check-trailers check-core "
 
 : > "$STUB_CALLS"; rm -rf "$repo/.logs"
 (cd "$repo" && ORACLE_REQUIRE=/x/req.txt scripts/gate-ticket.sh 25 query-core base > "$tmp/out" 2>&1)
@@ -82,22 +83,24 @@ has "required case file passed to the oracle" "-Doracle.require=/x/req.txt" "$ST
 
 export STUB_FAIL=verify:7
 check "ticket: step 1 fails, its exit code" "$(ticket 25 query-core base)" 7
-hasnt "nothing after the failing step 1" "pitest" "$STUB_CALLS"
+hasnt "nothing after the failing step 1" "check-lf" "$STUB_CALLS"
 has "failing step named" "verify" "$tmp/out"
 
+# a failing PIT cannot stop the ticket gate: none runs (F-27)
 export STUB_FAIL=pitest:9
-check "ticket: step 2 fails, its exit code" "$(ticket 25 query-core base)" 9
-hasnt "step 3 not reached after step 2" "check-lf" "$STUB_CALLS"
+check "ticket: no PIT to fail" "$(ticket 25 query-core base)" 0
+hasnt "no PIT runs" "pitest" "$STUB_CALLS"
+has "step 3 reached after step 1" "check-lf" "$STUB_CALLS"
 
 export STUB_FAIL=check-trailers:4
 check "ticket: step 3 trailer check fails" "$(ticket 25 query-core base)" 4
 hasnt "ratchet not reached" "ratchet.java check" "$tmp/out"
 unset STUB_FAIL
 
-# no changed class: PIT is skipped, the rest runs
+# no changed class: the gate runs as with changed classes
 check "ticket: nothing to mutate" "$(ticket 25 query-core HEAD)" 0
-hasnt "PIT skipped without changed classes" "pitest" "$STUB_CALLS"
-has "skip announced" "no changed class" "$tmp/out"
+hasnt "no PIT without changed classes" "pitest" "$STUB_CALLS"
+hasnt "no PIT step announced" "== pit" "$tmp/out"
 
 # step 4: the ratchet decides
 printf 'jq.test#a\tinterp\n' > "$repo/ratchet/oracle-listed.tmp"
@@ -124,8 +127,7 @@ for m in query-core jq-core; do echo "<mutations><mutation status='KILLED'/></mu
 check "spec: green" "$(spec 22)" 0
 has "slowest step 1" "slowest step 1 (verify): 32 70.0 s" "$tmp/out"
 has "step 1 over its target" "over target 60 s" "$tmp/out"
-has "slowest step 2" "slowest step 2 (pit): 31 200.0 s" "$tmp/out"
-has "step 2 over its target" "over target 180 s" "$tmp/out"
+hasnt "no ticket-gate PIT report (F-27)" "slowest step 2" "$tmp/out"
 has "spec step 1 clean verify" "mvnw -B clean verify -Pbench" "$STUB_CALLS"
 has "spec step 2 PIT on whole class-C modules" "-pl query-core,jq-core -am" "$STUB_CALLS"
 has "spec step 3 JMH" "java -jar bench/jmh/target/benchmarks.jar -prof gc -rf json" "$STUB_CALLS"
