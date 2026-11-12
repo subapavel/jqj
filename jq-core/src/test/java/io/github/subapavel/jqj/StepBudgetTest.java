@@ -5,6 +5,7 @@ import static io.github.subapavel.jqj.RunBudgets.assertBudget;
 import static io.github.subapavel.jqj.RunBudgets.letters;
 import static io.github.subapavel.jqj.RunBudgets.printed;
 import static io.github.subapavel.jqj.RunBudgets.read;
+import static io.github.subapavel.jqj.RunBudgets.repeat;
 import static io.github.subapavel.jqj.RunBudgets.steps;
 import static io.github.subapavel.jqj.RunBudgets.writer;
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -16,7 +17,9 @@ import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.SplittableRandom;
 import java.util.random.RandomGenerator;
 import java.util.stream.LongStream;
@@ -153,6 +156,79 @@ class StepBudgetTest {
     RecordingTarget target = new RecordingTarget();
     assertThat(exact.compile(".").run(wholeRoot, NONE, writer(whole, target), whole)).as("%s: run's answer with exactly its steps", what).isTrue();
     assertThat(target.text()).as("%s: output with exactly its steps", what).isEqualTo(printed(letters));
+  }
+
+  /** 1 048 576 letters: printed as 1 048 579 bytes, 16 drains of 64 KiB and 3 bytes, 1 025 ticks (RunBudgets.letters). */
+  private static final int MIB = 1 << 20;
+
+  /**
+   * The cut is exact past a refuel too (ADR-0030): five 1 MiB lines are 5 125 writer ticks, which cross the refuel
+   * after 4 096. The document is read on another engine's Workspace, so only the writer ticks on the run's.
+   */
+  @Test
+  void stepBudgetCutsExactlyPastARefuel() {
+    JqValue mib = read(JqEngine.builder().build().newWorkspace(), letters(MIB)).root();
+
+    JqEngine exact = steps(5_125);
+    Workspace whole = exact.newWorkspace();
+    RecordingTarget target = new RecordingTarget();
+    assertThat(exact.compile(".").run(mib, NONE, repeat(writer(whole, target), 5), whole)).as("run's answer for five 1 MiB lines with 5 125 steps").isTrue();
+    assertThat(target.bytes().length).as("bytes written for five 1 MiB lines with 5 125 steps").isEqualTo(5 * (MIB + 3));
+
+    JqEngine under = steps(5_124);
+    Workspace cut = under.newWorkspace();
+    assertBudget(
+        () -> under.compile(".").run(mib, NONE, repeat(writer(cut, new RecordingTarget()), 5), cut), Budget.STEPS, "five 1 MiB lines with 5 124 steps");
+  }
+
+  /**
+   * A read during a run is charged to that run (ADR-0030: reads during a run count too), also when it is a main read
+   * on the run's own Workspace, as a sink or a writer's target may make (PrintBufferEdgeTest). The sink reads 20 000
+   * letters, 20 002 bytes, 20 ticks; nothing else ticks, since the input is null and the sink writes nothing.
+   */
+  @Test
+  void readDuringARunCountsAgainstItsSteps() {
+    JqEngine twenty = steps(20);
+    Workspace whole = twenty.newWorkspace();
+    List<JqValue> readInside = new ArrayList<>();
+    JqSink reading = v -> readInside.add(read(whole, letters(20_000)).root());
+    assertThat(twenty.compile(".").run(JqNull.NULL, NONE, reading, whole)).as("run's answer for a 20-tick read inside it with 20 steps").isTrue();
+    assertThat(readInside).as("documents read inside the run with 20 steps").singleElement().isInstanceOf(JqString.class);
+    assertThat(((JqString) readInside.get(0)).value()).as("the document read inside the run").hasSize(20_000);
+
+    JqEngine nineteen = steps(19);
+    Workspace cut = nineteen.newWorkspace();
+    assertBudget(
+        () ->
+            nineteen
+                .compile(".")
+                .run(
+                    JqNull.NULL,
+                    NONE,
+                    v -> {
+                      read(cut, letters(20_000));
+                      return true;
+                    },
+                    cut),
+        Budget.STEPS,
+        "a 20-tick read inside a run with 19 steps");
+
+    // Far under the read: 10 steps.
+    JqEngine ten = steps(10);
+    Workspace small = ten.newWorkspace();
+    assertBudget(
+        () ->
+            ten.compile(".")
+                .run(
+                    JqNull.NULL,
+                    NONE,
+                    v -> {
+                      read(small, letters(20_000));
+                      return true;
+                    },
+                    small),
+        Budget.STEPS,
+        "a 20-tick read inside a run with 10 steps");
   }
 
   private static byte[] bytes(String ascii) {
