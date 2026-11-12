@@ -1,5 +1,6 @@
 package io.github.subapavel.jqj.query.compile;
 
+import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
@@ -19,13 +20,16 @@ final class IrVerifier {
   /** The tree rule: no node object is used twice, so {@code seen} compares nodes by identity, not by equality. */
   private static void visit(Node node, Set<Node> seen) {
     if (!seen.add(node)) {
-      throw new IllegalStateException("the node at chars " + node.source() + " is used twice: the IR must be a tree");
+      throw new IllegalStateException("the node at bytes " + node.source() + " is used twice: the IR must be a tree");
     }
     // One arm per kind: javac compiles a case of two patterns to a second dispatch for a node that matches neither,
     // a path no node can take.
     switch (node) {
       case Identity _ -> {
         // No operand node.
+      }
+      case Const _ -> {
+        // A leaf: its value is no node.
       }
       case Intrinsic _ -> {
         // No operand node.
