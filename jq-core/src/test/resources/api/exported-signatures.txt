@@ -24,6 +24,7 @@ io.github.subapavel.jqj.JqCompileException | public final class io.github.subapa
 io.github.subapavel.jqj.JqCompileException | public int io.github.subapavel.jqj.JqCompileException.column()
 io.github.subapavel.jqj.JqCompileException | public int io.github.subapavel.jqj.JqCompileException.line()
 io.github.subapavel.jqj.JqCompileException | public io.github.subapavel.jqj.JqCompileException(java.lang.String,int,int)
+io.github.subapavel.jqj.JqCompileException | public io.github.subapavel.jqj.JqCompileException(java.util.List<java.lang.String>,int,int)
 io.github.subapavel.jqj.JqCompileException | public java.util.List<java.lang.String> io.github.subapavel.jqj.JqCompileException.blocks()
 
 io.github.subapavel.jqj.JqEngine | public final class io.github.subapavel.jqj.JqEngine
