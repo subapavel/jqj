@@ -94,3 +94,30 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#57) The S2a blocking graph exists only as "Blocked by" text in issue bodies (the native dependencies API is empty); `scripts/census.java` `BLOCKED_BY` mirrors it. jq-ref `--debug-dump-disasm` with no input compiles without running, and folds constants (`1+2` → LOADK 3): read constructs from the tokens.
 - (#47) pitest-maven 1.30.2 `crossModule` mutates only reactor modules the POM declares directly. The spec-gate PIT step takes about 26.5 min on this container. A transient proxy 429 on the mvnw wrapper download: retry.
 - (#55) `git reset --hard` is refused in worktrees: `git checkout -B <b> origin/<b>`. A script test pushing to a local bare repo: `git -c push.negotiate=false push`.
+- (#58) jq-ref 1.8.2: `{(<constant>): v}` with a non-string constant (also folded binops like `{(1+1): 2}`) is rc 3; `1/0` with literals is rc 5. A new method between an existing javadoc and its method fails `-Xlint:dangling-doc-comments` under `-Werror`.
+- (#59 test-author) An isolated worktree refuses `git config core.hooksPath`: run `bash scripts/check-trailers.sh --message <file>` before `git commit -F`. A query-core test compile failure skips jq-core: to see jq-core's red, use a scratch copy.
+- (#59) `-Xlint:all -Werror` rejects a public class in an exported package without an explicit constructor ("exposing a default constructor").
+- (#59) Guard-mutant sweep: commit first, then per mutant replace with `${c/"$old"/"$new"}`, run `./mvnw -B -o -pl jq-core -am test -Dmaven.test.failure.ignore=true`, grep `<<< FAILURE!`, restore with `git checkout -- <file>` (~10 s each).
+- (#59) JaCoCo counts a line as missed when its call throws (the probe sits after the invoke): a `throw X.over(...)` line needs a test that reaches it.
+- (#59) A javac `case A _, B _` leaves an unreachable second dispatch, so the line stays partly covered; give each kind its own arm.
+- (#59) Refuel's refill cap is only witnessed by an interrupt/deadline test across two refuels; a step cut alone stays exact without it.
+- (#60) `-P<id>` on the root command also activates a same-id profile in a module POM; clearing a property there switches surefire's `excludedGroups` off.
+- (#60) In try-with-resources a `catch` runs after close: read a view-backed value inside the block.
+- (#60) A record holding a `byte[]` compares it by identity: assert its parts.
+- (#60) Put a JUnit tag on the class when its `@AfterAll` writes a report; tagging only the factory writes an empty report in the untagged run.
+- (#79) Time budgets: a package-private `LongSupplier` constructor beside the public one (chained to `System::nanoTime`); keep one real-clock test so a mutant of the default clock still dies.
+- (#79) `git var GIT_AUTHOR_IDENT` gives the `Signed-off-by` identity; it differs from `git config user.name` here.
+- (#77) `check-trailers.sh <base>..HEAD` counts your merge commit too: give the merge message the full trailer block.
+- (#77) A writer target that reads a main document re-primes mid-drain, and the drain's tick comes after the write; a count that stops at a drain's start misses it.
+- (#61) The ratchet counts class-C coverage from oracle's aggregate: a branch no test reaches (e.g. a feature moved to a later ticket) still drops jq-core's ratchet; add a witness or delete the branch.
+- (#61) A tool call's text turns `\uXXXX` into the character: write jq-ref filters with escapes to a file via `printf '\134u…'`, then `jq-ref -n -f`.
+- (#61) jq-ref 1.8.2: an escape run ending in a 3- or 4-byte lead byte swallows the closing quote ("Unfinished string at EOF"); a 2-byte lead keeps it.
+- (#61) Adding a JqNumber or JqString permit breaks SealedPermitsTest and SealedPermitsModulePathTest.
+- (#61) Class-C implementers can hit the 200-turn cap: commit and push early.
+- (#61) Two worktrees on one branch: when another writer moves the ref, your index still holds the old files and `git status` shows them staged. `git restore --source=HEAD --staged --worktree <files>` brings them to the tip.
+- (#61) `git merge -s` is the strategy flag, not signoff: finish a merge commit with `git commit -s -F <msg>`.
+- (#78) Removing an API: grep every module (`oracle/`, `jq-cli/`, `bench/` too) and run the full `./mvnw -B -Pbench verify`; `-pl jq-core -am` missed oracle's SkeletonTest and the gate failed.
+- (#80) A test-only ticket shows its red against temporary mutants of the line it pins; run the mutant loop as a scratch script (`bash <script>`), the worktree guard refuses `for` loops inline.
+- `scripts/push-retry.sh` takes `<repo-dir> <refspec>`, e.g. `. HEAD:refs/heads/t/<n>-<slug>`.
+- (#54) `dependency:go-offline` misses surefire's JUnit Platform provider; a `verify` run fills it. Offline `-pl X` needs `-am compile`. Prefix goals (`javadoc:`) read `maven-metadata-<mirror id>.xml`.
+- (#62) A ticket that ends a Stub can flip an oracle meta-test that uses `Main::run` as its stub shell: grep `oracle/src/test` for each id in `require/<n>.txt`.

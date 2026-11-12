@@ -28,12 +28,13 @@ class CompileTest {
   void stubConstructThrowsCompileException() {
     JqEngine engine = JqEngine.builder().build();
     // jq-ref 1.8.2, observed 2026-11-11, each with printf '[1]' | jq-ref -c <text>:
-    //   1 -> 1 (rc 0); .[0] -> 1 (rc 0); .. -> [1] 1 (rc 0);
+    //   .[0] -> 1 (rc 0); .. -> [1] 1 (rc 0);
     //   '' and '   ' -> "Top-level program not given (try \".\")" (rc 3);
     //   FF or VT before the dot -> "syntax error, unexpected INVALID_CHARACTER" (rc 3): the filter's whitespace is
     //   SP, TAB, CR and LF only. Neither #33 nor #34 builds them, so each ends in the Stub. The .a entry ended with
-    //   its Stub in #34 (design C4) and moved to .[0], which stays a Stub until spec 2.
-    for (String text : List.of("1", ".[0]", "..", "", "   ", "\f.", "\u000b.")) {
+    //   its Stub in #34 (design C4) and moved to .[0], which stays a Stub until spec 2. #61 built the literal 1, so its
+    //   entry moved to 1, 2 (observed 2026-11-12: 1 2, rc 0), whose comma stays a Stub until #63.
+    for (String text : List.of("1, 2", ".[0]", "..", "", "   ", "\f.", "\u000b.")) {
       assertThatExceptionOfType(JqCompileException.class)
           .as("compile of %s", quoted(text))
           .isThrownBy(() -> engine.compile(text))

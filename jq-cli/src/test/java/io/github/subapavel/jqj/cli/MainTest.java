@@ -4,6 +4,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.subapavel.jqj.JqTermination;
+import io.github.subapavel.jqj.Limits;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -13,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -161,5 +164,28 @@ class MainTest {
             List.of(".", "missing.json"), Map.of(), cwd, new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream(), broken);
 
     assertThatThrownBy(() -> Main.run(invocation)).isInstanceOf(UncheckedIOException.class).hasMessageContaining("stderr closed");
+  }
+
+  @Test
+  void theBuilderHookShapesTheEngineOfTheRun() {
+    // The compile-mode oracle's entry (ADR-0020 amendment for #60): the hook gets the command line's builder last, so
+    // its limits replace Limits.cli(). With no steps, the read's one tick for "1" ends the run (StepBudgetTest).
+    Limits cli = Limits.cli();
+    Limits noSteps =
+        new Limits(0, cli.deadline(), cli.nestingDepth(), cli.recursionDepth(), cli.bytesBuilt(), cli.bytesWritten(), cli.regexMatchTime(), cli.stackBytes());
+
+    assertThatThrownBy(() -> Main.run(compactDotOnOne(new ByteArrayOutputStream()), b -> b.limits(noSteps)))
+        .as("the run with a hook that sets no steps")
+        .isInstanceOfSatisfying(JqTermination.class, t -> assertThat(t.budget()).as("budget").isEqualTo(JqTermination.Budget.STEPS));
+
+    // Witness: the identity hook runs as run(Invocation). jq-ref 1.8.2, observed 2026-11-12: printf '1\n' | jq-ref -c .
+    //   -> rc 0, stdout 1 and LF.
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    assertThat(Main.run(compactDotOnOne(out), UnaryOperator.identity())).as("exit code with the identity hook").isZero();
+    assertThat(out.toString(UTF_8)).as("stdout with the identity hook").isEqualTo("1\n");
+  }
+
+  private static Invocation compactDotOnOne(OutputStream out) {
+    return new Invocation(List.of("-c", "."), Map.of(), Path.of("."), new ByteArrayInputStream("1\n".getBytes(UTF_8)), out, new ByteArrayOutputStream());
   }
 }

@@ -6,6 +6,7 @@ import io.github.subapavel.jqj.internal.value.ArrayView;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.CanonicalForm;
 import io.github.subapavel.jqj.internal.value.Document;
+import io.github.subapavel.jqj.internal.value.LiteralNumber;
 import io.github.subapavel.jqj.internal.value.NumberView;
 import io.github.subapavel.jqj.internal.value.ObjectView;
 import io.github.subapavel.jqj.internal.value.StringView;
@@ -22,7 +23,7 @@ import java.util.Arrays;
  * with its own stack, so depth costs no Java frames. One per Workspace; not thread-safe.
  *
  * <p>null, the booleans and tag-5 strings are their bytes. A number is copied when it is CANONICAL (ADR-0012) and is
- * written in its canonical form otherwise (#36); a tag-6 string, a tag-6 key and a built string are re-escaped as
+ * written in its canonical form otherwise (#36); a filter's literal number is its canonical form (#61); a tag-6 string, a tag-6 key and a built string are re-escaped as
  * jq's {@code jvp_dump_string} (#35). An object prints each key at its first position with its
  * last value (ADR-0002). A target's exception, or a document found stale after a drain, in the middle of a value
  * leaves what was drained before it written.
@@ -83,6 +84,7 @@ public final class Printer implements CanonicalForm.Out {
       case JqNull _ -> put(NULL);
       case JqBool b -> put(b.value() ? TRUE : FALSE);
       case NumberView n -> value(n.doc(), n.index());
+      case LiteralNumber n -> put(n.canonical());
       case StringView s -> value(s.doc(), s.index());
       case BuiltString s -> built(s);
       case ArrayView a -> value(a.doc(), a.index());
@@ -344,8 +346,9 @@ public final class Printer implements CanonicalForm.Out {
 
   /**
    * Drains a full buffer in the middle of a value, then checks the document again when the value has one: the target
-   * is host code and may have read into the same Workspace (ADR-0027). Only a document's value or a built string fills
-   * the buffer: a literal is at most five bytes and starts in an empty one. A built string has no document.
+   * is host code and may have read into the same Workspace (ADR-0027). Only a document's value, a built string or a
+   * filter's literal number fills the buffer: null and a boolean are at most five bytes and start in an empty one. A
+   * built string and a literal number have no document.
    */
   private void drainFull() {
     drain();
