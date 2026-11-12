@@ -67,8 +67,9 @@ Take hand-backs in the order they arrive; refill a freed slot from the frontier 
    restart the ticket.
 4. **Merge** — merger (one at a time; queue the rest) with the integration branch and the ticket
    branch. A semantic conflict goes back to the ticket's implementer: "merge the integration tip,
-   resolve, re-run the scoped checks". After a merge: verifier regenerates the oracle pass lists
-   (`regen --oracles`, ADR-0020) on the integration branch; a ratchet drop is a failure of this ticket.
+   resolve, re-run the scoped checks". After a merge: verifier runs `scripts/after-merge.sh <ticket>` on the integration branch (a
+   full verify with the compile-mode oracle, then `regen --oracles`; ADR-0020 and its #60 amendment); a
+   Disagreement or a ratchet drop is a failure of this ticket.
 5. **Record** — evidence comment (`docs/agents/issue-tracker.md`), close the ticket, update the
    spec's status comment and `agent/HANDOFF.md`, append every hand-back's `Worth recording:` lines
    to `.claude/agent-memory/<role>/MEMORY.md` (AGENTS.md, Memory), push, remove the verify worktree.
