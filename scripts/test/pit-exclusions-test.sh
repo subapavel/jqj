@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Script test for the PIT test exclusions (#47, ADR-0014, ADR-0020). Each module keeps its excludedTestClasses in its
 # own POM and nowhere else: a -DexcludedTestClasses on the command line replaces every module's POM list instead of
-# adding to it (observed with -X, #45). Needs Java 25 and the Maven wrapper (help:effective-pom).
+# adding to it (observed with -X, #45). The crossModule runs of jq-cli and oracle reach every class-C module.
+# Needs Java 25 and the Maven wrapper (help:effective-pom).
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$here/../..
@@ -31,20 +32,37 @@ if ! "$repo/mvnw" -B -q -f "$repo/pom.xml" -pl "${modules// /,}" \
   echo "FAIL help:effective-pom:"; sed 's/^/     /' "$tmp/mvn.log"
   exit 1
 fi
-# <module>\t<sorted, comma-joined excludedTestClasses params> for every project of the effective POM
+# <module>\tproject, <module>\texcluded\t<param> and <module>\tdependency\t<artifactId> (the project's own
+# dependencies, not those of dependencyManagement, build plugins or profiles) for every project of the effective POM
 awk '
-  /<project[ >]/ { name = ""; parent = 0 }
+  function value(tag,   v) { v = $0; gsub(".*<" tag ">|</" tag ">.*", "", v); return v }
+  /<project[ >]/ { name = ""; parent = 0; skip = 0; deps = 0 }
   /<parent>/ { parent = 1 }
   /<\/parent>/ { parent = 0 }
-  !parent && name == "" && /<artifactId>/ { name = $0; gsub(/.*<artifactId>|<\/artifactId>.*/, "", name); print name "\t" }
+  !parent && name == "" && /<artifactId>/ { name = value("artifactId"); print name "\tproject" }
+  /<(dependencyManagement|build|profiles)>/ { skip++ }
+  /<\/(dependencyManagement|build|profiles)>/ { skip-- }
+  !skip && /<dependencies>/ { deps = 1 }
+  /<\/dependencies>/ { deps = 0 }
+  deps && /<artifactId>/ { print name "\tdependency\t" value("artifactId") }
   /<excludedTestClasses>/ { inside = 1; next }
   /<\/excludedTestClasses>/ { inside = 0 }
-  inside && /<param>/ { p = $0; gsub(/.*<param>|<\/param>.*/, "", p); print name "\t" p }
+  inside && /<param>/ { print name "\texcluded\t" value("param") }
 ' "$tmp/effective.xml" > "$tmp/params"
 for m in $modules; do
-  check "$m is in the effective POM" "$(grep -c "^$m	\$" "$tmp/params")" 1
-  got=$(awk -F'\t' -v m="$m" '$1 == m && $2 != "" { print $2 }' "$tmp/params" | LC_ALL=C sort | paste -sd, -)
+  check "$m is in the effective POM" "$(grep -c "^$m	project\$" "$tmp/params")" 1
+  got=$(awk -F'\t' -v m="$m" '$1 == m && $2 == "excluded" { print $3 }' "$tmp/params" | LC_ALL=C sort | paste -sd, -)
   check "$m effective excludedTestClasses" "$got" "$(expected "$m")"
+done
+
+# --- the crossModule runs reach every class-C module ---
+# pitest-maven 1.30.2 mutates, besides the module's own classes, only the reactor modules the POM declares as
+# dependencies (MojoToReportOptionsConverter.dependedOnProjects); a transitive one is not mutated.
+classc=$(awk -F'\t' 'NR > 1 && $2 == "C" { print $1 }' "$repo/quality/floors.tsv")
+for m in jq-cli oracle; do
+  for c in $classc; do
+    check "$m declares class-C module $c" "$(grep -c "^$m	dependency	$c\$" "$tmp/params")" 1
+  done
 done
 
 exit $fails

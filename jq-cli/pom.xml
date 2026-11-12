@@ -16,6 +16,12 @@
       <groupId>io.github.subapavel.jqj</groupId>
       <artifactId>jq-core</artifactId>
     </dependency>
+    <!-- Already on the class path through jq-core. Declared because PIT's crossModule run below mutates only the
+         modules this POM declares (pitest-maven 1.30.2), and query-core is class C (#47). -->
+    <dependency>
+      <groupId>io.github.subapavel.jqj</groupId>
+      <artifactId>query-core</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
