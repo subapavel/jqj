@@ -1560,3 +1560,31 @@ rc 0
 stdout
 stderr
 end
+
+case slice/bound-true-on-array
+def 7c6a012eb0e5
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Array/string slice indices must be integers\n
+end
+
+case slice/bound-array-on-array
+def b059a66ff118
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Array/string slice indices must be integers\n
+end
+
+case slice/bound-object-on-array
+def a5c651f1438a
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Array/string slice indices must be integers\n
+end
+
+case slice/bound-true-on-string
+def 2d7f987485fa
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Array/string slice indices must be integers\n
+end

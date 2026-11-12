@@ -1358,3 +1358,29 @@ filter .a[.k]?
 stdin {"a":[0,1,2],"k":{"start":"x","end":2}}\n
 end
 
+# P2: a bound of each other kind: a boolean, an array, an object.
+
+case slice/bound-true-on-array
+arg -c
+filter .[true:2]
+stdin [1,2,3]\n
+end
+
+case slice/bound-array-on-array
+arg -c
+filter .a[.k:2]
+stdin {"a":[1,2,3],"k":[1]}\n
+end
+
+case slice/bound-object-on-array
+arg -c
+filter .a[:.k]
+stdin {"a":[1,2,3],"k":{}}\n
+end
+
+case slice/bound-true-on-string
+arg -c
+filter .[true:2]
+stdin "abc"\n
+end
+

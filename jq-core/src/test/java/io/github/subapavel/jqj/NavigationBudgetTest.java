@@ -22,7 +22,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The tick sites #63 adds, at the public API (ADR-0008, F-32, ADR-0034, the #63 approval's decision 3): a comma charges
- * one step on entering its right branch; a Many loop ({@code .[]}) one step per element, before its emit; a tape walk
+ * one step on entering its right branch; a Many loop ({@code .[]}) one step per element, before its emit, and over an
+ * object one more per key its scans compare; a tape walk
  * charges the entries it steps, once per walk: a field's key scan, {@code .[n]}, a view's length and a view's slice; a
  * built array's slice charges the elements it copies, a string's slice one step per started KiB. A run may take exactly
  * its budget of ticks and the next one ends it with {@code JqTermination(BUDGET, STEPS)} (ADR-0030): each site has an
@@ -218,17 +219,18 @@ class NavigationBudgetTest {
   }
 
   @Test
-  void iterateOverAnObjectChargesOneStepPerValue() {
-    // .[] over an object: one tick per value before its emit, as over an array; the key walk itself is not charged
-    // (the code on 5ac7ae2; the implementer is to state the object walk's rate). With a repeated key the object has 20
-    // keys and 21 entries, and charges 20. jq-ref 1.8.2, observed 2026-11-12: [.[]] over {"k0":0,…,"k19":19,"k0":20}
-    // gives [20,1,…,19].
+  void iterateOverAnObjectChargesEachKeyComparison() {
+    // .[] over an object charges one tick per key each of its scans compares (ObjectView on 8d6bab2: a key's first
+    // position and its last value, ADR-0002), and the loop one per value: n distinct keys cost n * n + n - 1 ticks, the
+    // rate the architect accepted for #63 (a linear walk is a later ticket). 20 keys: 1 read tick and 419, so 420
+    // complete and 419 end. With k0 repeated the object has 20 keys and 21 entries: 441 and 440. jq-ref 1.8.2, observed
+    // 2026-11-12: [.[]] over {"k0":0,…,"k19":19,"k0":20} gives [20,1,…,19].
     String[] values = new String[20];
     for (int i = 0; i < 20; i++) values[i] = Integer.toString(i);
-    assertExactSteps(".[]", TWENTY_KEYS, 21, values);
+    assertExactSteps(".[]", TWENTY_KEYS, 420, values);
     String repeated = TWENTY_KEYS.substring(0, TWENTY_KEYS.length() - 1) + ",\"k0\":20}";
     values[0] = "20";
-    assertExactSteps(".[]", repeated, 21, values);
+    assertExactSteps(".[]", repeated, 441, values);
   }
 
   @Test
