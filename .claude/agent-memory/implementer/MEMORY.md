@@ -81,3 +81,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#33) Pin line and column of a read error only where jq-ref gives one (grilling item 7); a partial or bare BOM is rc 0 in jq-ref.
 - (#34) The word check scans query-core test comments too; and a lexer must reject a token-pair Stub (`..`) itself — the parser rejecting the bare pair leaves `..a` running.
 - (#34) Grilling decisions bind even when they look speculative (BuiltString `owner`, grilling 1.9): never drop them as a deviation.
+- (#38) A JVM child inherits JAVA_TOOL_OPTIONS here ("Picked up …" on stderr): remove it from ProcessBuilder.environment() in a process test. A surefire `test` execution bound to integration-test runs after package without failsafe.
+- (#38) `-Dtest=X` with `-am` needs `-Dsurefire.failIfNoSpecifiedTests=false` and skips upstream module tests.
