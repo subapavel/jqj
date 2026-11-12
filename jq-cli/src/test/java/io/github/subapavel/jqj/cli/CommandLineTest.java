@@ -168,14 +168,32 @@ class CommandLineTest {
 
   @Test
   void aDashWithoutALetterIsTheFilter() {
-    // observed 2026-11-11: jq-ref -_ .a in.json -> rc 3, "_/0 is not defined"; jq-ref - . and jq-ref -é .a in.json
-    // -> rc 3, a syntax error; printf '{"a":1}\n' | jq-ref -c -1 -> -1. Each is the filter, which jqj does not compile
-    // yet: exit code 3, not 2.
-    for (List<String> args :
-        List.of(List.of("-_", "in.json"), List.of("-", "."), List.of("-é", "in.json"), List.of("-c", "-1"))) {
+    // observed 2026-11-11: jq-ref -_ .a in.json -> rc 3, "_/0 is not defined"; printf '{"a":1}\n' | jq-ref -c -1 -> -1.
+    // Each is the filter, which jqj does not compile yet (a call and a negation): exit code 3, not 2.
+    for (List<String> args : List.of(List.of("-_", "in.json"), List.of("-c", "-1"))) {
       Outcome o = run(args, "{\"a\":1}\n");
       assertThat(o.rc()).as("exit code of %s", args).isEqualTo(3);
       assertThat(o.err()).as("stderr of %s", args).startsWith(MARK);
+    }
+    // observed 2026-11-12 (#62): jq-ref - . -> rc 3, "jq: error: syntax error, unexpected end of file at <top-level>,
+    // line 1, column 1:"; jq-ref -é in.json -> rc 3, "jq: error: syntax error, unexpected INVALID_CHARACTER at
+    // <top-level>, line 1, column 2:"; each then "jq: 1 compile error". The filter's syntax error, not "Unknown
+    // option" (rc 2): the dash was taken as the filter. Only the "unexpected" part is jq's text (DEVIATIONS
+    // "Syntax-error text"); the position, source line and caret are jq's block.
+    String[][] syntaxErrors = {
+      {"-", ".", "end of file", "line 1, column 1:\n    -\n    ^\n"},
+      {"-é", "in.json", "INVALID_CHARACTER", "line 1, column 2:\n    -é\n     ^\n"},
+    };
+    for (String[] c : syntaxErrors) {
+      List<String> args = List.of(c[0], c[1]);
+      Outcome o = run(args, "{\"a\":1}\n");
+      assertThat(o.rc()).as("exit code of %s", args).isEqualTo(3);
+      assertThat(o.out()).as("stdout of %s", args).isEmpty();
+      assertThat(o.err())
+          .as("stderr of %s", args)
+          .startsWith("jq: error: syntax error, unexpected " + c[2])
+          .contains(" at <top-level>, " + c[3])
+          .endsWith("jq: 1 compile error\n");
     }
   }
 
