@@ -515,6 +515,10 @@ bind/var-body-sees-input-and-slot	63aa1ac276ea	conservative
 bind/var-empty-source	bdddf48eb5d8	conservative
 bind/var-inner-shadows-outer	4446431c8630	conservative
 bind/var-per-result	76d1858303b8	conservative
+binds/interpolation-of-70-parts-last-part-outermost	2d1e0d033ca8	conservative
+binds/object-of-70-computed-keys-in-jq-order	b84c04f1da76	conservative
+binds/object-of-70-constant-keys-in-jq-order	4bafd4244040	conservative
+binds/pattern-of-70-keys-first-key-outermost	e57c537830a8	conservative
 chains/and-or-of-generators-in-jq-order	5183a0f807f9	conservative
 chains/assignment-under-alternative-is-inner-levels	9da2fad7ecaa	conservative
 chains/comparisons-in-and-or	fb8a9bfd11b5	conservative
