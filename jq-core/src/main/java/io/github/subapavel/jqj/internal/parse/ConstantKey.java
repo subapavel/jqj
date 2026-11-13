@@ -228,14 +228,19 @@ final class ConstantKey {
    * container and its elements.
    */
   private Object array(Ast body) {
-    List<Object> elements = new ArrayList<>();
+    // The terms are found right to left, as the chain nests, then folded left to right, each added once at the end.
+    List<Ast> terms = new ArrayList<>();
     Ast chain = body == null ? null : spine(body);
     while (chain instanceof Ast.Comma c) {
-      elements.addFirst(fold(c.right()));
+      terms.add(c.right());
       chain = spine(c.left());
     }
     if (chain != null) {
-      elements.addFirst(fold(chain));
+      terms.add(chain);
+    }
+    List<Object> elements = new ArrayList<>(terms.size());
+    for (int i = terms.size() - 1; i >= 0; i--) {
+      elements.add(fold(terms.get(i)));
     }
     for (Object e : elements) {
       if (!(e instanceof JqValue)) {
