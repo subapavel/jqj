@@ -58,11 +58,14 @@ class PreludeStubTest {
     assertCompiles("first(\"a\")");
   }
 
-  /** flatten/0 is a replaced definition (F-31): its native, unbuilt until #72, wins over builtin.jq's body. */
+  /**
+   * inputs/0 is a replaced definition (F-31): its native, unbuilt until spec 5, wins over builtin.jq's body. flatten/0,
+   * the other replaced definition this test named, is built since #72 and compiles.
+   */
   @Test
-  void flattenIsAStub() {
-    assertStub("[[1,[2]]|flatten]");
-    assertCompiles("[[1,[2]]|add]");
+  void inputsIsAStub() {
+    assertStub("[inputs]");
+    assertCompiles("[[1,[2]]|flatten]");
   }
 
   private static void assertStub(String filter) {

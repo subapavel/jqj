@@ -82,17 +82,44 @@ final class Binder {
   /** What a variable jq defines itself binds to: it is not built yet, so the Resolver stubs it. */
   record Predefined(String name) {}
 
-  /** The built entries of the {@link NativeTable}: ADR-0040's, with ADR-0041's {@code range/2}. */
+  /**
+   * The built entries of the {@link NativeTable}: ADR-0040's, ADR-0041's {@code range/2} and #72's language natives,
+   * one constant a line. Each declares {@code keepsArgs} (ADR-0005 amendment, ADR-0022), which spec 3's {@code
+   * keepsArgsIsSound} checks: whether its result may share a container or string with an argument or its input.
+   */
   enum Native implements Callee {
-    EMPTY("empty", 0),
-    ERROR("error", 0),
-    NOT("not", 0),
-    RANGE("range", 2);
+    EMPTY("empty", 0, false),
+    ERROR("error", 0, false),
+    NOT("not", 0, false),
+    RANGE("range", 2, false),
+    LENGTH("length", 0, false),
+    TYPE("type", 0, false),
+    TOSTRING("tostring", 0, true),
+    TOJSON("tojson", 0, false),
+    TONUMBER("tonumber", 0, false),
+    LAST("last", 1, true),
+    HAS("has", 1, false),
+    KEYS("keys", 0, true),
+    KEYS_UNSORTED("keys_unsorted", 0, true),
+    FLATTEN("flatten", 0, true),
+    FLATTEN_DEPTH("flatten", 1, true),
+    NAN("nan", 0, false),
+    INFINITE("infinite", 0, false),
+    ISNAN("isnan", 0, false),
+    ISINFINITE("isinfinite", 0, false),
+    ISNORMAL("isnormal", 0, false),
+    HAVE_DECNUM("have_decnum", 0, false),
+    HAVE_LITERAL_NUMBERS("have_literal_numbers", 0, false),
+    ;
 
     private final String signature;
 
-    Native(String name, int arity) {
+    /** Whether the result may share a container or string with an argument or the input, at any depth. */
+    final boolean keepsArgs;
+
+    Native(String name, int arity, boolean keepsArgs) {
       this.signature = name + "/" + arity;
+      this.keepsArgs = keepsArgs;
     }
   }
 
@@ -540,7 +567,7 @@ final class Binder {
     } else if (callee instanceof Library l) {
       edges.get(owner).add(ids.get(l.def()));
     }
-    if (callee instanceof Unbuilt u && NativeTable.kind(u.signature()) == NativeTable.Kind.C) {
+    if (cFunction(callee)) {
       List<List<Level>> operands = new ArrayList<>();
       for (Ast arg : args) {
         int from = level.inner.size();
@@ -555,6 +582,16 @@ final class Binder {
     for (Ast arg : args) {
       inner(arg);
     }
+  }
+
+  /**
+   * Whether {@code callee} is a C function of the native table, built or unbuilt, whose arguments stay in the caller's
+   * compile level (the #71 hand-over: jq-ref 1.8.2, recorded: natives/has-argument-in-level); a bytecoded or replacing
+   * native, a definition and a parameter are not.
+   */
+  private static boolean cFunction(Callee callee) {
+    String signature = callee instanceof Native n ? n.signature : callee instanceof Unbuilt u ? u.signature() : null;
+    return signature != null && NativeTable.kind(signature) == NativeTable.Kind.C;
   }
 
   /** What {@code name/arity} binds to here, in the order of the class comment, or null. */

@@ -81,9 +81,9 @@ class ParserEdgesTest {
             // stubs.
             ". as $x | 1 | ..",
             ". as {\"a\": $b} | 1 | ..",
-            // Unwrapped at #71: tostring/0 is an unbuilt native of #72 (ADR-0042 native table), so it still stubs
-            // (jq-ref 1.8.2, observed 2026-11-13 with -nc: 1, rc 0).
-            ". as {(1|tostring): $e} | 1",
+            // Unwrapped at #71. #72 builds tostring/0, so the key is ascii_downcase/0, which reaches spec 4's explode
+            // and so still stubs (jq-ref 1.8.2, observed 2026-11-13 with -nc: 1, rc 0).
+            ". as {(\"a\"|ascii_downcase): $e} | 1",
             ". as {$a: [$b]} | 1 | ..",
             "foreach . as $x (0; 1; 2) | ..",
             "if 1 then 2 elif 3 then 4 else 5 end | ..")) {

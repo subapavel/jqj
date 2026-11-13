@@ -14,7 +14,8 @@ import io.github.subapavel.jqj.value.JqValue;
  * text (jq-ref 1.8.2, recorded: literal/format-text-*). The dump is a loop as long as the value, so it charges its run
  * one tick per started KiB of the text, the writer's rate (ADR-0008, ADR-0015, ADR-0030). It knows the text's length
  * only after the dump, so it charges the string then, before the value exists (ADR-0035 amendment); a string is
- * returned unchanged and charges nothing.
+ * returned unchanged and charges nothing. {@code tostring} is this operation and {@code tojson} its {@link #dump} of
+ * every value, a string included (#72).
  */
 public final class TextFormat implements Fn0 {
   @Override
@@ -22,7 +23,12 @@ public final class TextFormat implements Fn0 {
     if (in instanceof JqString) {
       return in;
     }
-    byte[] text = ((JqValue) in).toJson().getBytes(UTF_8);
+    return dump(state, (JqValue) in);
+  }
+
+  /** {@code v}'s compact text as a built string, jq's {@code jv_dump_string}, charged as the class comment says. */
+  static BuiltString dump(RunState state, JqValue v) {
+    byte[] text = v.toJson().getBytes(UTF_8);
     state.tick((text.length + 1023) >>> 10);
     state.chargeBuilt(Charges.STRING + text.length);
     return BuiltString.of(text);

@@ -45,11 +45,9 @@ public final class PreludeSignatures {
    *   <li>a recursive group (ADR-0040's SCC rule; the spec's nine and {@code ..}): recurse/0, recurse/1, recurse/2,
    *       _flatten/1, while/2, until/2, repeat/1, combinations/0, tostream/0, walk/1, and every definition calling
    *       one: paths/0, paths/1, range/3, combinations/1;
-   *   <li>a replaced definition, whose native is unbuilt: flatten/0 and flatten/1 (#72), inputs/0 (spec 5);
-   *   <li>a native #72 builds: {@code type}, {@code length}, {@code tostring}, {@code has}, {@code keys_unsorted},
-   *       {@code isinfinite}, {@code isnormal} (to_entries, from_entries, with_entries, reverse, indices, index,
-   *       rindex, isfinite, arrays, objects, iterables, booleans, numbers, normals, finites, strings, scalars, join, in,
-   *       match/1, test/1, capture/1);
+   *   <li>a replaced definition, whose native is unbuilt: inputs/0 (spec 5);
+   *   <li>spec 4's {@code _strindices}, past the natives #72 built (indices, index, rindex), and {@code _match_impl}
+   *       (match/1, test/1, capture/1);
    *   <li>a native #73 builds: the {@code _…_by_impl} family and {@code max} (sort_by, group_by, unique_by, max_by,
    *       min_by, transpose);
    *   <li>spec 3's paths: {@code path/1}, {@code getpath}, {@code setpath}, {@code delpaths} and the update and
@@ -62,22 +60,23 @@ public final class PreludeSignatures {
    *   <li>spec 7's host builtins: {@code halt_error/1}, {@code debug/0} (halt_error/0, debug/1).
    * </ul>
    *
-   * <p>The 28 others compile: error/1, map, select, add/0, add/1, abs, nulls, values, range/1, limit, skip, first/0,
-   * first/1, isempty, all/0..2, any/0..2, nth/1, nth/2, last/0, JOIN/2..4, IN/1, IN/2. They need only the natives
-   * built before #71 ({@code empty}, {@code not}, {@code error/0}, {@code range/2}) and the constructs of #63 to #70.
-   * #72 and #73 may move entries out of this set, and only out (design approval, O3); an entry leaving it with its
-   * Stub is not a weakened test.
+   * <p>The 46 others compile: error/1, map, select, add/0, add/1, abs, nulls, values, range/1, limit, skip, first/0,
+   * first/1, isempty, all/0..2, any/0..2, nth/1, nth/2, last/0, JOIN/2..4, IN/1, IN/2 with the natives built before
+   * #71 ({@code empty}, {@code not}, {@code error/0}, {@code range/2}) and the constructs of #63 to #70; and since #72's
+   * natives ({@code type}, {@code length}, {@code tostring}, {@code has}, {@code keys_unsorted}, {@code isinfinite},
+   * {@code isnormal}, flatten's two), to_entries, from_entries, with_entries, reverse, isfinite, arrays, objects,
+   * iterables, booleans, numbers, normals, finites, strings, scalars, join, in, flatten/0 and flatten/1. #72 and #73
+   * may move entries out of this set, and only out (design approval, O3); an entry leaving it with its Stub is not a
+   * weakened test.
    */
   public static final Set<String> STUBS =
       Set.of(
           "halt_error/0", "sort_by/1", "group_by/1", "unique_by/1", "max_by/1", "min_by/1", "del/1", "_assign/2",
-          "_modify/2", "map_values/1", "recurse/1", "recurse/2", "recurse/0", "to_entries/0", "from_entries/0",
-          "with_entries/1", "reverse/0", "indices/1", "index/1", "rindex/1", "paths/0", "paths/1", "isfinite/0",
-          "arrays/0", "objects/0", "iterables/0", "booleans/0", "numbers/0", "normals/0", "finites/0", "strings/0",
-          "scalars/0", "join/1", "_flatten/1", "flatten/1", "flatten/0", "fromdateiso8601/0", "todateiso8601/0",
-          "fromdate/0", "todate/0", "ltrimstr/1", "rtrimstr/1", "trimstr/1", "match/2", "match/1", "test/2", "test/1",
+          "_modify/2", "map_values/1", "recurse/1", "recurse/2", "recurse/0", "indices/1", "index/1", "rindex/1",
+          "paths/0", "paths/1", "_flatten/1", "fromdateiso8601/0", "todateiso8601/0", "fromdate/0", "todate/0",
+          "ltrimstr/1", "rtrimstr/1", "trimstr/1", "match/2", "match/1", "test/2", "test/1",
           "capture/2", "capture/1", "scan/2", "scan/1", "splits/2", "splits/1", "split/2", "sub/3", "sub/2", "gsub/3",
-          "gsub/2", "while/2", "until/2", "range/3", "combinations/0", "combinations/1", "transpose/0", "in/1",
+          "gsub/2", "while/2", "until/2", "range/3", "combinations/0", "combinations/1", "transpose/0",
           "inside/1", "repeat/1", "inputs/0", "ascii_downcase/0", "ascii_upcase/0", "truncate_stream/1",
           "fromstream/1", "tostream/0", "walk/1", "pick/1", "debug/1", "INDEX/2", "INDEX/1");
 
