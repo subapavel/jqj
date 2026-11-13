@@ -7,7 +7,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import io.github.subapavel.jqj.Bindings;
 import io.github.subapavel.jqj.JqCompileException;
+import io.github.subapavel.jqj.JqEngine;
 import io.github.subapavel.jqj.internal.op.StepRun;
 import io.github.subapavel.jqj.query.ir.Bind;
 import io.github.subapavel.jqj.query.ir.Identity;
@@ -16,6 +18,8 @@ import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.ir.Try;
+import io.github.subapavel.jqj.value.JqNull;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -79,9 +83,10 @@ class ResolverTest {
    * One filter per other construct of the grammar. jq-ref 1.8.2, observed 2026-11-12 (.logs/62-jqref-accept.log of
    * the test-author's run): none is a syntax error; each gives rc 0 or 5, or rc 3 with a resolution error (module not
    * found for import and include). The {@code $$$$v} form is builtin.jq's {@code _modify}. #70 binds every call: the
-   * entries that bound nowhere are jq's compile error ({@link #referencesThatBindNowhereAreJqsCompileError}), and a call
-   * of a jq builtin #71 binds is wrapped in a user definition of the same arity whose body is {@code ..}, which still
-   * stubs (jq-ref 1.8.2, observed 2026-11-13 with -nc: each wrapped entry gives rc 0 or 5).
+   * entries that bound nowhere are jq's compile error ({@link #referencesThatBindNowhereAreJqsCompileError}). #70 wrapped
+   * a call of a jq builtin in a user definition whose body is {@code ..}; #71's native table and prelude unwrapped them
+   * (ADR-0042): an unbuilt native still stubs, and limit/2, which compiles, moved to {@link
+   * #preludeCallsRunAsJqRefRunsThem}.
    */
   private static final List<String> GRAMMAR =
       List.of(
@@ -93,10 +98,12 @@ class ResolverTest {
           ".a |= .b",
           ".a |= 1 | .b += 2 | .d *= 2 | .e /= 1 | .g //= 3 | .h = 4",
           ".f %= 1 | .c -= 1",
-          // unwrap at #71 (ADR-0042 native table)
-          "def getpath(p): ..; getpath([\"a\"]) |= 1",
-          // unwrap at #71 (ADR-0042 native table)
-          "def tostring: ..; {if: 1, and: 2, a: 3, \"b\": 4, @base64 \"k\": 5, \"x\\(1)\": 6, (1|tostring): 7, $__loc__, c}",
+          // Unwrapped at #71: getpath/1 is an unbuilt native of spec 3 (ADR-0042) and |= is _modify's; jq-ref 1.8.2,
+          // observed 2026-11-13 with -nc: {"a":1}, rc 0.
+          "getpath([\"a\"]) |= 1",
+          // Unwrapped at #71: tostring/0 is an unbuilt native of #72 (ADR-0042); jq-ref 1.8.2, observed 2026-11-13
+          // with -nc: {"if":1,"and":2,"a":3,"b":4,"k":5,"x1":6,"1":7,"__loc__":{"file":"<top-level>","line":1},"c":null}.
+          "{if: 1, and: 2, a: 3, \"b\": 4, @base64 \"k\": 5, \"x\\(1)\": 6, (1|tostring): 7, $__loc__, c}",
           "1 as $x | {$x: 2} | ..",
           "{a: -1, b: 1 | . + 1} | ..",
           "[] | ..",
@@ -130,9 +137,7 @@ class ResolverTest {
           ".. .a",
           "@text \"a\" | ..",
           "@json",
-          "1 # c\n+ 2 | ..",
-          // unwrap at #71 (ADR-0042 native table)
-          "def limit(n; f): ..; [limit(2; 1, 2, 3)]");
+          "1 # c\n+ 2 | ..");
 
   /**
    * The GRAMMAR entries that bound nowhere, moved here when #70 bound every reference (ADR-0040): a constant called
@@ -157,14 +162,42 @@ class ResolverTest {
   @Test
   void rangeWithOtherThanTwoBoundsIsAStub() {
     // #69 lowers range/2 only; range/1 and range/3 are builtin.jq's, from #71's prelude (ADR-0041). jq-ref 1.8.2,
-    // observed 2026-11-13 with -nc: range(5) gives 0 to 4 and range(0; 10; 3) gives 0, 3, 6, 9 (rc 0); wrapped, each
-    // gives null (the body .. on null).
-    // unwrap at #71 (ADR-0042 native table)
-    parsesToAStub("def range(n): ..; range(5)");
-    // unwrap at #71 (ADR-0042 native table)
-    parsesToAStub("def range(a; b; c): ..; range(0; 10; 3)");
+    // observed 2026-11-13 with -nc: range(5) gives 0 to 4 and range(0; 10; 3) gives 0, 3, 6, 9 (rc 0). Unwrapped at
+    // #71: range/1 is range(0;$x) and runs (preludeCallsRunAsJqRefRunsThem); range/3 calls while/2, a recursive group,
+    // so it stays a Stub until spec 2b (PreludeSignatures.STUBS).
+    parsesToAStub("range(0; 10; 3)");
     // Witness: two bounds lower.
     assertThat(shape(ir("range(0; 5)"))).as("IR of range(0; 5)").isEqualTo("range(0; 5)[0,11)");
+  }
+
+  /**
+   * The entries #70 wrapped in a user definition whose body is {@code ..} until #71's prelude and native table, unwrapped
+   * (ADR-0042): limit/2 and range/1 are builtin.jq's and compile, so they left the Stub lists. jq-ref 1.8.2, observed
+   * 2026-11-13 with -nc: {@code [limit(2; 1, 2, 3)]} gives [1,2] and {@code range(5)} gives 0 to 4, rc 0.
+   */
+  @Test
+  void preludeCallsRunAsJqRefRunsThem() {
+    assertThat(results("[limit(2; 1, 2, 3)]")).as("results of [limit(2; 1, 2, 3)]").containsExactly("[1,2]");
+    assertThat(results("range(5)")).as("results of range(5)").containsExactly("0", "1", "2", "3", "4");
+  }
+
+  /** The results of {@code filter} on null as compact JSON, through the exported API; asserts that the run completes. */
+  private static List<String> results(String filter) {
+    JqEngine engine = JqEngine.builder().build();
+    List<String> out = new ArrayList<>();
+    boolean ranOut =
+        engine
+            .compile(filter)
+            .run(
+                JqNull.NULL,
+                Bindings.builder().build(),
+                v -> {
+                  out.add(v.toJson());
+                  return true;
+                },
+                engine.newWorkspace());
+    assertThat(ranOut).as("run's answer for %s when the sink never stops", filter).isTrue();
+    return out;
   }
 
   @Test

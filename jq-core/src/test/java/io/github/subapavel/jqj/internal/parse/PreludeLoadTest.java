@@ -22,10 +22,14 @@ class PreludeLoadTest {
   @Test
   void aFreshJvmParsesThePreludeOnlyAtTheFirstNonNativeBuiltinAndOnce() throws IOException, InterruptedException {
     Path java = Path.of(System.getProperty("java.home"), "bin", "java");
-    Process p =
+    ProcessBuilder launch =
         new ProcessBuilder(java.toString(), "-cp", System.getProperty("java.class.path"), PreludeLoadProbe.class.getName())
-            .redirectErrorStream(true)
-            .start();
+            .redirectErrorStream(true);
+    // A JVM started with one of these set prints "Picked up ..." on stderr, which a build host may set (IrDepthTest).
+    launch.environment().remove("JAVA_TOOL_OPTIONS");
+    launch.environment().remove("JDK_JAVA_OPTIONS");
+    launch.environment().remove("_JAVA_OPTIONS");
+    Process p = launch.start();
     p.getOutputStream().close();
     boolean ended = p.waitFor(120, TimeUnit.SECONDS);
     if (!ended) p.destroyForcibly();
