@@ -17,9 +17,9 @@ import java.util.function.BiConsumer;
  * position and its last value (ADR-0002). That check compares each key with the earlier ones and the later ones, so
  * {@link #size()} and {@link #forEach} take time quadratic in the number of keys there. Keys compare by their decoded
  * bytes (#35): a tag-6 key is decoded at each compare, so {@code "\\u0061"} and {@code "a"} are one key. A filter's
- * {@code .[]} makes the same two scans per member and charges one tick per key each compares, so an object of n keys
- * costs n * n + n - 1 ticks with the loop's one per member (ADR-0008, ADR-0034); the writer walks its keys with the same
- * scans, {@link #firstScan} and {@link #lastScan}, and charges them the same way.
+ * {@code .[]} makes the same two scans per member and charges one tick per key each compares, so a tag-9 object of n
+ * distinct keys costs n * n + n - 1 ticks with the loop's one per member (ADR-0008, ADR-0034); the writer walks its
+ * keys with the same scans, {@link #firstScan} and {@link #lastScan}, and charges them the same way.
  */
 public record ObjectView(Document doc, int index) implements JqObject, Members, Keyed {
 

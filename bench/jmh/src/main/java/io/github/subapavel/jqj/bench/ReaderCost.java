@@ -23,10 +23,10 @@ import org.openjdk.jmh.annotations.Warmup;
 
 /**
  * The reader's cost bar of #82 (ADR-0002 as amended by F-40): one read of a document onto a reused Workspace, its
- * tape and proof table warmed by a read in setup. The documents are Spike B's at 1 KB, 100 KB and 10 MB (bench/RESULTS.md
- * "Spike B": {@code Docs.make} on {@code spike/field-read}, the field in the middle), whose root objects have 8, 770 and
- * 78 841 keys, and a flat object of 78 841 keys and small integers. The settings are Spike B's. The results are in
- * bench/RESULTS.md, "#82". Not a gate scenario: no bench id of ADR-0024.
+ * tape and proof table warmed by a read in setup. The documents are Spike B's at 1 KB, 100 KB and 10 MB
+ * (bench/RESULTS.md "Spike B": {@code Docs.make} on {@code spike/field-read}, the field in the middle), whose root
+ * objects have 8, 770 and 78 841 keys, and a flat object of 78 841 keys and small integers. The settings are Spike B's.
+ * The results are in bench/RESULTS.md, "#82". Not a gate scenario: no bench id of ADR-0024.
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
