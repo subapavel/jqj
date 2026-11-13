@@ -36,3 +36,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#63) Sign-encoded or long-packed scan returns are this codebase's recurring hot-path idiom: raise once as a carry.
 - (#64) A file headed "Translated from jq" must appear in NOTICE: diff NOTICE against `git grep -l "Translated from jq"`. A measured constant needs one absolute pin; one pair per rate cannot catch `*`→`/`, ask for two counts.
 - (#64) DiffRunner skips stderr only for `jq: error: syntax error`; action-only compile errors are compared byte for byte.
+
+- (#65) A constant-operand row (`1 + 2`) in a run-budget test is folded at parse time: check every filter in a budget test for a fold. An ADR rate list covers only the loops it names: grep each new loop over Members for a tick and match it to a rate. Diff NOTICE against `git grep -l "Translated from jq"` on every ticket.
