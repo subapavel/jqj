@@ -19,3 +19,10 @@ Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #64; desig
 - **Charge by capacity in collectors**: the count then depends on the growth policy, so a change to it moves budget results.
 - **JOL to measure the fixed charges**: GPL-2.0, not on the licence list (F-39).
 - **A counter in the Workspace**: `query-core` cannot name it (founding §14), and the other budgets are already in RunState.
+
+## Amendment (2026-11-13, ticket #65)
+
+- **An operator charges its result by the value it builds**: a string STRING plus its UTF-8 length, an array CONTAINER plus ELEMENT per element kept, an object CONTAINER plus ENTRY per distinct key as it enters (at every merge level). An operand returned unchanged (`null + x`) charges nothing; error texts are not charged.
+- **A builder that knows its length only after a scratch dump** (`@text`, later `tostring`) charges after the dump and before the value exists.
+- **Folding at parse time** builds no value larger than 4 KiB: a string or container result past it is left unfolded, so the run builds and charges it. The output is the same, since a string key is valid either way.
+- Considered: a counting pre-pass (twice the work); upper-bound charges (they depend on the operands); folding any size, as jq does (an unbounded allocation at compile time).
