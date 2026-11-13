@@ -5,7 +5,7 @@ import io.github.subapavel.jqj.query.run.Sink;
 
 /** A node of the interpreter tree, in push form only (ADR-0008, ADR-0018). */
 public abstract sealed class Op
-    permits IdentityOp, ConstOp, PipeOp, CommaOp, BindOp, VarOp, IntrinsicOp, Intrinsic1Op, Intrinsic2Op, IntrinsicManyOp {
+    permits IdentityOp, ConstOp, PipeOp, CommaOp, BindOp, VarOp, IntrinsicOp, Intrinsic1Op, Intrinsic2Op, IntrinsicNOp, IntrinsicManyOp, CollectOp {
   Op() {}
 
   /**

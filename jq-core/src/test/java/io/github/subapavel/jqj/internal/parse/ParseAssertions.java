@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
@@ -96,6 +97,7 @@ final class ParseAssertions {
         yield "(" + value + " as " + name + " | " + shape(b.body(), inner, met) + ")";
       }
       case Var v -> scope.getOrDefault(v.slot(), "$?");
+      case Collect c -> "[" + shape(c.body(), scope, met) + "]" + chars(c.source());
     };
   }
 
