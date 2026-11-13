@@ -5,6 +5,7 @@ import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 import java.util.Arrays;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -14,9 +15,10 @@ import java.util.TreeMap;
  * container, a document's or a built one, a built container of its members' copies, an object its keys' too, in its
  * members' order. The walk keeps an explicit stack, so a deep value takes no Java stack. It runs under the host rule
  * of ADR-0016, after the run, where no budget, deadline or interrupt reaches it: it charges no bytes built and no
- * tick, and its time is bounded by the value's size times the log of its widest object's keys. A document's object is
- * read once, its keys decoded into a map ordered by their bytes, so a repeated key keeps its first position and takes
- * its last value without the scans of {@link ObjectView#next}.
+ * tick. A container the value holds at several places is copied once and its copy shared, so the time is bounded by
+ * the members of its distinct containers times the log of its widest object's keys. A document's object is read once,
+ * its keys decoded into a map ordered by their unsigned bytes (UTF-8 order), so a repeated key keeps its first
+ * position and takes its last value without the scans of {@link ObjectView#next}.
  */
 public final class Detach {
   /** The capacity of a container's first array of copies. */
@@ -38,18 +40,25 @@ public final class Detach {
     // The walks of built containers and arrays charge their scans to a run state no run began: every budget of it is
     // unlimited, and none of those walks scans.
     RunState free = new RunState();
+    // A container the value holds at several places is copied once, and the copy is shared: values are immutable.
+    Map<Members, JqValue> copies = new IdentityHashMap<>();
     Frame top = null;
     JqValue next = value;
     for (;;) {
       JqValue copied;
       if (next instanceof Members container) {
-        Frame frame = Frame.of(container, top, free);
-        if (frame.length > 0) {
-          top = frame;
-          next = (JqValue) frame.values[0];
-          continue;
+        JqValue done = copies.get(container);
+        if (done != null) {
+          copied = done;
+        } else {
+          Frame frame = Frame.of(container, top, free);
+          if (frame.length > 0) {
+            top = frame;
+            next = (JqValue) frame.values[0];
+            continue;
+          }
+          copied = frame.build();
         }
-        copied = frame.build();
       } else {
         copied = leaf(next);
       }
@@ -64,6 +73,7 @@ public final class Detach {
           break;
         }
         copied = top.build();
+        copies.put(top.container, copied);
         top = top.parent;
       }
     }
@@ -93,6 +103,7 @@ public final class Detach {
    * A container on the stack: its members, each replaced by its copy in turn, and for an object their keys' copies.
    */
   private static final class Frame {
+    final Members container;
     final Frame parent;
 
     /** The members, {@code [0, length)}: the copies before {@link #at}, the members still to copy from it on. */
@@ -106,14 +117,15 @@ public final class Detach {
     /** The member being copied. */
     int at;
 
-    private Frame(Frame parent, boolean keyed) {
+    private Frame(Members container, Frame parent) {
+      this.container = container;
       this.parent = parent;
-      this.keys = keyed ? new JqString[0] : null;
+      this.keys = container instanceof Keyed ? new JqString[0] : null;
     }
 
     /** The frame of {@code container}'s members, each object key once, at its first position with its last value. */
     static Frame of(Members container, Frame parent, RunState free) {
-      Frame frame = new Frame(parent, container instanceof Keyed);
+      Frame frame = new Frame(container, parent);
       if (container instanceof ObjectView object) {
         frame.addDistinct(object);
       } else {
@@ -136,7 +148,7 @@ public final class Detach {
       long[] tape = doc.live();
       byte[] bytes = doc.bytes();
       int end = Tape.end(tape, object.index());
-      Map<byte[], Integer> seen = new TreeMap<>(Arrays::compare);
+      Map<byte[], Integer> seen = new TreeMap<>(Arrays::compareUnsigned);
       for (int k = object.index() + 1; k < end; k = Tape.next(tape, k + 1)) {
         byte[] name = JsonStrings.decode(bytes, tape[k]);
         JqValue member = doc.valueAt(tape, k + 1);
