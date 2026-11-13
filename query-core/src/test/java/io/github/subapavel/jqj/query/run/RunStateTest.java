@@ -263,6 +263,68 @@ class RunStateTest {
     assertThat(state.steps()).as("ticks of the next run").isZero();
   }
 
+  /**
+   * The bytes built count each charge since the last begin and none that is refused (ADR-0035): what a caller reads to
+   * share one budget among several runs, as the parse-time folds of one compile do (#65).
+   */
+  @Test
+  void builtCountsTheChargesSinceTheLastBegin() {
+    RunState state = new RunState();
+    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, 10, Long.MAX_VALUE);
+    state.chargeBuilt(4);
+    state.chargeBuilt(3);
+    assertThatExceptionOfType(Termination.class).as("4 bytes with 3 left").isThrownBy(() -> state.chargeBuilt(4));
+    assertThat(state.built()).as("bytes built after a refused charge").isEqualTo(7);
+    state.end();
+    assertThat(state.built()).as("bytes built after end").isEqualTo(7);
+
+    // Witness: the next begin counts from zero.
+    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, 10, Long.MAX_VALUE);
+    assertThat(state.built()).as("bytes built at the next begin").isZero();
+  }
+
+  /**
+   * Label tokens count from 1 in each run, and a Break's mark is taken back only by its own token (ADR-0039, ADR-0008):
+   * a false is a break to the Label whose token was marked, and a stop for any other.
+   */
+  @Test
+  void labelTokensCountFromOneInEachRun() {
+    RunState state = new RunState();
+    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
+    assertThat(state.label()).as("first token of the run").isEqualTo(1);
+    long inner = state.label();
+    assertThat(inner).as("second token of the run").isEqualTo(2);
+    assertThat(state.breakTo(1)).as("what a Break returns").isFalse();
+    assertThat(state.caught(inner)).as("the inner Label of token 2 after a break to 1").isFalse();
+    assertThat(state.caught(1)).as("the Label of token 1 after a break to 1").isTrue();
+    assertThat(state.caught(1)).as("the same Label again, the mark taken back: a stop").isFalse();
+
+    // A mark left at the end of a run is no break in the next one, whose first token is 1 again: the mark of 1 left
+    // here would otherwise read as a break to it.
+    state.breakTo(1);
+    state.end();
+    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
+    long first = state.label();
+    assertThat(first).as("first token of the next run").isEqualTo(1);
+    assertThat(state.caught(first)).as("its Label after a stop").isFalse();
+  }
+
+  @Test
+  void labelTokensDoNotWrapPastTwoToThe32Activations() {
+    // ADR-0039: a token is never 0, the mark of no break, and no two activations of a run share one. A counter of 32
+    // bits gives 0 after 2^32 - 1 activations, so that Label would take a stop for its break (review of #68).
+    RunState state = new RunState();
+    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
+    state.labelsAfter(0xFFFF_FFFFL);
+    long token = state.label();
+    assertThat(state.caught(token)).as("the Label of the token after 2^32 - 1, after a stop").isFalse();
+    assertThat(token).as("the token after 2^32 - 1").isEqualTo(0x1_0000_0000L);
+    long next = state.label();
+    state.breakTo(next);
+    assertThat(state.caught(token)).as("the outer Label after a break to the next token").isFalse();
+    assertThat(state.caught(next)).as("the Label of the next token after its break").isTrue();
+  }
+
   /** Asserts that {@code call} ends the run with {@code Termination(BUDGET, budget)} and the budget's message. */
   private static void assertBudget(ThrowingCallable call, Budget budget, String what) {
     Termination t = assertThatExceptionOfType(Termination.class).as("%s", what).isThrownBy(call).actual();

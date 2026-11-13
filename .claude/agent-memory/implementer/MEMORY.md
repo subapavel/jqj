@@ -135,3 +135,15 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#83) A lazily built cache on a shared value must be published through final fields; its charge then depends on history (who built it first), which a review should hear about.
 
 - (#65) When t/NN is checked out in another worktree, branch impl/NN from origin/t/NN and push HEAD:t/NN. The worktree guard refuses `-m $'..'` and compound or piped git commands: use `commit -F file -s`, one git command per call. Pass `-Doracle.require` as an absolute path. Record-pattern switches leave one null-component branch per nested type-switch for JaCoCo; a null-operand test covers them. The CLI reads non-ASCII args as U+FFFD with no locale; probe through stdin.
+
+- (#65) A constant-operand row (`1 + 2`) in a run-budget test is folded at parse time: check every filter in a budget test for a fold. An ADR rate list covers only the loops it names: grep each new loop over Members for a tick and match it to a rate. Diff NOTICE against `git grep -l "Translated from jq"` on every ticket.
+
+- (#65) A budget started per operator inside a recursive fold does not bound the fold: a container of folds adds them up; check where each fold RunState begins. A time or out-of-memory test witnesses only that a bound exists; the bound value needs a pair at the bound. A shared helper with a flag that skips a tick for one caller: check that caller against ADR-0008.
+
+- (#65) A shape check that repeats what a fold does can be hidden by the fold fallback: pick a case where only the shape decides. A parse-time fold has no step budget unless one is given: check compile-time arithmetic for O(n*m) work, and that each compile shares one fold budget.
+
+- (#65) A resolver that folds top-down calls the fold at every level of a Binary chain: uncharged literal building multiplies by the chain depth. `min(cap, left)` where cap equals the total is an equivalent mutant. Number arithmetic charges no tick, so `1 + 2` is no "left to the run" witness.
+- (#65) For a time-bound guard, take the green margin from the per-test time in surefire's TEST-*.xml, and take the red location from the timed-out stack in the red log.
+- (#66) Adding an IR kind breaks the exhaustive switch in ParseAssertions.shape; add its arm. Lowering a construct breaks the Stub lists (ResolverTest PRECEDENCE/GRAMMAR, ParserTest, ParserEdgesTest); append ` | ..` (the #65 ruling).
+- (#67) `merge -F` stops at the commit-msg hook (it needs exactly one Signed-off-by); finish with `git commit -q -F <file> -s`. `-pl query-core test` skips the parent's check-core-neutral; use `-pl jq-core -am`. Apply one hand mutant per red run when two mutants reach the same test.
+- (#68) check-core-neutral also scans query-core test comments. Surefire takes several classes with a comma (`-Dtest=A,B`). A pattern switch over a sealed type gets a synthetic default arm that JaCoCo counts as a missed branch. Red logs need the test count, so run them without -q.

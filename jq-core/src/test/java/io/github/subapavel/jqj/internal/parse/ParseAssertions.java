@@ -5,15 +5,22 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.JqCompileException;
+import io.github.subapavel.jqj.query.ir.Alt;
+import io.github.subapavel.jqj.query.ir.AltBind;
+import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
+import io.github.subapavel.jqj.query.ir.Label;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
+import io.github.subapavel.jqj.query.ir.Try;
 import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.value.JqValue;
 import java.util.HashMap;
@@ -74,8 +81,14 @@ final class ParseAssertions {
    * [s,e)}, an Intrinsic its Operation's name, its arguments in parentheses when it has any, and {@code [s,e)}; a Pipe
    * {@code (left | right)}, a Comma {@code (left, right)}, a Bind {@code (value as $i | body)} and a Var {@code $i},
    * where i counts the Binds in the order they are met, so the text names which Bind a Var reads and not the slot's
-   * number. An argument is printed without its Source; a Pipe, Comma or Bind's own Source is left out (no design fixes
-   * it). A Var with no enclosing Bind of its slot is {@code $?}.
+   * number; an If {@code (if cond then t else e)} and an Alt {@code (left // right)} (#66); an AltBind (#67) {@code
+   * (value as $i | m1 -> [f, ...] ?// m2 -> [f, ...] as [$g, ...] | body)}, its value slot, then each alternative's
+   * match and its from slots by their names at the match's leaf, then its group slots, each named as a Bind is; a Try
+   * (#68) {@code (try body catch handler)}, a Label {@code (label $i | body)}, its slot named as a Bind's is, and a
+   * Break {@code break $i} and {@code [s,e)}, naming its Label. An argument is printed without its Source; a Pipe,
+   * Comma, Bind, If, Alt, AltBind, Try or Label's own Source is left out (no design fixes it). A Var with no enclosing
+   * Bind of its slot, a Break with no enclosing Label of its slot, and a from slot no Bind of the match holds, is
+   * {@code $?}.
    */
   static String shape(Node node) {
     return shape(node, Map.of(), new int[1]);
@@ -98,7 +111,52 @@ final class ParseAssertions {
       }
       case Var v -> scope.getOrDefault(v.slot(), "$?");
       case Collect c -> "[" + shape(c.body(), scope, met) + "]" + chars(c.source());
+      case If i -> "(if " + shape(i.cond(), scope, met) + " then " + shape(i.then(), scope, met) + " else " + shape(i.otherwise(), scope, met) + ")";
+      case Alt a -> "(" + shape(a.left(), scope, met) + " // " + shape(a.right(), scope, met) + ")";
+      case AltBind a -> {
+        String name = "$" + met[0]++;
+        String value = shape(a.value(), scope, met);
+        Map<Integer, String> at = new HashMap<>(scope);
+        at.put(a.slot(), name);
+        StringJoiner alternatives = new StringJoiner(" ?// ");
+        for (Alternative alternative : a.alternatives()) {
+          Map<Integer, String> leaf = new HashMap<>();
+          String match = match(alternative.match(), at, met, leaf);
+          StringJoiner from = new StringJoiner(", ", "[", "]");
+          alternative.from().forEach(slot -> from.add(leaf.getOrDefault(slot, "$?")));
+          alternatives.add(match + " -> " + from);
+        }
+        Map<Integer, String> inner = new HashMap<>(scope);
+        StringJoiner groups = new StringJoiner(", ", "[", "]");
+        for (int slot : a.slots()) {
+          String group = "$" + met[0]++;
+          inner.put(slot, group);
+          groups.add(group);
+        }
+        yield "(" + value + " as " + name + " | " + alternatives + " as " + groups + " | " + shape(a.body(), inner, met) + ")";
+      }
+      case Try t -> "(try " + shape(t.body(), scope, met) + " catch " + shape(t.handler(), scope, met) + ")";
+      case Label l -> {
+        String name = "$" + met[0]++;
+        Map<Integer, String> inner = new HashMap<>(scope);
+        inner.put(l.slot(), name);
+        yield "(label " + name + " | " + shape(l.body(), inner, met) + ")";
+      }
+      case Break b -> "break " + scope.getOrDefault(b.slot(), "$?") + chars(b.source());
     };
+  }
+
+  /** An alternative's match, its Binds as {@link #shape} prints them; {@code leaf} gets the scope at its leaf. */
+  private static String match(Node node, Map<Integer, String> scope, int[] met, Map<Integer, String> leaf) {
+    if (node instanceof Bind b) {
+      String name = "$" + met[0]++;
+      String value = shape(b.value(), scope, met);
+      Map<Integer, String> inner = new HashMap<>(scope);
+      inner.put(b.slot(), name);
+      return "(" + value + " as " + name + " | " + match(b.body(), inner, met, leaf) + ")";
+    }
+    leaf.putAll(scope);
+    return shape(node, scope, met);
   }
 
   private static String arguments(List<Node> args, Map<Integer, String> scope, int[] met) {

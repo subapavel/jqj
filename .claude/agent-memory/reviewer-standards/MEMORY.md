@@ -36,3 +36,21 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#63) Sign-encoded or long-packed scan returns are this codebase's recurring hot-path idiom: raise once as a carry.
 - (#64) A file headed "Translated from jq" must appear in NOTICE: diff NOTICE against `git grep -l "Translated from jq"`. A measured constant needs one absolute pin; one pair per rate cannot catch `*`→`/`, ask for two counts.
 - (#64) DiffRunner skips stderr only for `jq: error: syntax error`; action-only compile errors are compared byte for byte.
+
+- (#65) A constant-operand row (`1 + 2`) in a run-budget test is folded at parse time: check every filter in a budget test for a fold. An ADR rate list covers only the loops it names: grep each new loop over Members for a tick and match it to a rate. Diff NOTICE against `git grep -l "Translated from jq"` on every ticket.
+
+- (#65) A budget started per operator inside a recursive fold does not bound the fold: a container of folds adds them up; check where each fold RunState begins. A time or out-of-memory test witnesses only that a bound exists; the bound value needs a pair at the bound. A shared helper with a flag that skips a tick for one caller: check that caller against ADR-0008.
+
+- (#65) A shape check that repeats what a fold does can be hidden by the fold fallback: pick a case where only the shape decides. A parse-time fold has no step budget unless one is given: check compile-time arithmetic for O(n*m) work, and that each compile shares one fold budget.
+
+- (#65) A resolver that folds top-down calls the fold at every level of a Binary chain: uncharged literal building multiplies by the chain depth. `min(cap, left)` where cap equals the total is an equivalent mutant. Number arithmetic charges no tick, so `1 + 2` is no "left to the run" witness.
+- (#65) In every builder loop, check the collection call and where the charge sits: `addFirst` in a loop is O(n²), and a charge after the loop bounds nothing.
+- (#65) `chargeBuilt` does not add the bytes when a charge fails, so a later, smaller fold can still fit; changing the fold order changes which nodes fold at the edge.
+- (#65) A mutant argued but not run counts as killed if it under-charges more than a mutant already killed at the same check.
+- (#66) `NumberView.doubleValue` re-scans its token on every call, while `LiteralNumber` caches its double. A "charges nothing" test built on a filter literal says nothing about a document literal.
+- (#66) Under ADR-0014, required oracle cases count toward jq-core's mutation score (PIT crossModule), so a mutant killed only by such a case counts as killed.
+- (#66) DiffRunner compares stderr unless the expected output has `jq: error: syntax error`.
+- (#67) A Stub-list entry that gains ` | ..` loses its only check: find a positive witness for each construct the ticket lowers. Each new arm in `ConstantKey.fold` is a new charge and needs its own N/N+1 pair.
+- (#67) When a Const lowering gives the same output as the general path, the oracle sees the difference only while that path is a Stub. The lasting check is a run under `bytesBuilt(0)`.
+- (#68) For any walk that runs after the run (Detach), check four ways the cost can exceed what was charged: colliding keys (a HashMap keyed by ByteBuffer is not Comparable to its own class), shared built containers (`[.,.]` chains), repeated views of one document node, and leaf views and keys. Each needs a memo plus a time-bound red.
+- (#68) An `int` counter whose "none" value is 0 collides once it wraps; grep RunState for int tokens.
