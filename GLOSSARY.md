@@ -80,6 +80,14 @@ _Avoid_: safe variant, optional operation.
 The keys of an object construction in source order, with a repeated key keeping its first place and its last value, as jq builds it (ADR-0034, #64).
 _Avoid_: key set (it has an order).
 
+**Distinct-key object**:
+A read object whose tape entry is tag 10: the reader proved no key repeats, so its walks take each member once (ADR-0002, #82).
+_Avoid_: dedup flag, unique object.
+
+**Repeated key**:
+A key equal, by its decoded bytes, to an earlier key of the same object; jq keeps the first place with the last value.
+_Avoid_: duplicate key (in new text).
+
 **Constant key**:
 An object-construction key known at parse time: a computed key jq folds to a constant (a number, string or container); a non-string one is a parser-action error (ADR-0036).
 _Avoid_: static key, literal key (a folded key is not a literal).

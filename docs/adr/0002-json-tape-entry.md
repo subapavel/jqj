@@ -1,6 +1,6 @@
 # JSON tape entry: one long per value
 
-Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0015 (issue #11); amended by F-21 (exact size limits)
+Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0015 (issue #11); amended by F-21 (exact size limits); amended by F-40 (#82: tag 10 is a distinct-key object)
 
 A document's tape is one `long[]` with **one entry per JSON value, object keys included**. Each
 entry is a 4-bit tag, a 28-bit span and a 32-bit offset. We chose it because it is the smallest
@@ -30,7 +30,7 @@ of tape for 11.2 MB of JSON, 1.46× the input. A reused tape reads a 1 KB messag
   | 7 | reserved scalar: skipped value (ADR-0015) |
   | 8 | array |
   | 9 | object |
-  | 10 | reserved: object known to hold a duplicate key |
+  | 10 | distinct-key object: the reader proved no key repeats (F-40, #82) |
   | 11–14 | reserved for other formats |
   | 15 | reserved: wide (two-long) entry |
 
@@ -68,3 +68,10 @@ of tape for 11.2 MB of JSON, 1.46× the input. A reused tape reads a 1 KB messag
 - The document limit is 2^31−3 bytes, the largest `byte[]` (F-12), not 4 GiB.
 - Tag 7 is reserved for a skipped value: span = byte length, offset = first byte, a scalar for the
   sibling rule. No reader writes it in milestone 1.
+
+## Amendment (F-40, ticket #82)
+
+- **Tag 10 is a distinct-key object**: the reader proved its keys all different. Tag 9 is an object not proved so, which may or may not repeat a key. This replaces the reserved "known to hold a duplicate key": with an unproved tag every walker stays correct, only slower.
+- **The proof runs at the object's close**, where the reader already rewrites the entry, so the tape stays read-only once the document exists. It runs only for objects of more than 8 keys whose keys are all tag 5: each key's bytes are hashed into a reused table, a slot match is settled by a byte compare, and a key that needs more than 8 probes ends the proof (tag 9), so the reader stays linear on hostile keys.
+- **On tag 10**, `.[]`, length, the writer and `detach()` take each member once, and a field lookup stops at its match: `.[]` charges one tick per member, `.a` one per key scanned. Tag 9 keeps #63's scans, ticked per key compared; the writer's scan on tag 9 is ticked the same way.
+- **Cost bar**: this narrower detector reverses the rejected option above only while it stays within the owner's ~10 % line on the Spike B documents (1 KB, 100 KB, 10 MB), measured with JMH against the tip before #82 and recorded in `bench/RESULTS.md` "#82", together with the 78 841-key object. Over the line, #82 stops `ready-for-human` and this amendment is withdrawn.
