@@ -9,15 +9,18 @@ import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
+import io.github.subapavel.jqj.query.ir.Label;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
+import io.github.subapavel.jqj.query.ir.Try;
 import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.value.JqValue;
 import java.util.HashMap;
@@ -80,9 +83,12 @@ final class ParseAssertions {
    * where i counts the Binds in the order they are met, so the text names which Bind a Var reads and not the slot's
    * number; an If {@code (if cond then t else e)} and an Alt {@code (left // right)} (#66); an AltBind (#67) {@code
    * (value as $i | m1 -> [f, ...] ?// m2 -> [f, ...] as [$g, ...] | body)}, its value slot, then each alternative's
-   * match and its from slots by their names at the match's leaf, then its group slots, each named as a Bind is. An
-   * argument is printed without its Source; a Pipe, Comma, Bind, If, Alt or AltBind's own Source is left out (no design
-   * fixes it). A Var with no enclosing Bind of its slot, and a from slot no Bind of the match holds, is {@code $?}.
+   * match and its from slots by their names at the match's leaf, then its group slots, each named as a Bind is; a Try
+   * (#68) {@code (try body catch handler)}, a Label {@code (label $i | body)}, its slot named as a Bind's is, and a
+   * Break {@code break $i} and {@code [s,e)}, naming its Label. An argument is printed without its Source; a Pipe,
+   * Comma, Bind, If, Alt, AltBind, Try or Label's own Source is left out (no design fixes it). A Var with no enclosing
+   * Bind of its slot, a Break with no enclosing Label of its slot, and a from slot no Bind of the match holds, is
+   * {@code $?}.
    */
   static String shape(Node node) {
     return shape(node, Map.of(), new int[1]);
@@ -129,6 +135,14 @@ final class ParseAssertions {
         }
         yield "(" + value + " as " + name + " | " + alternatives + " as " + groups + " | " + shape(a.body(), inner, met) + ")";
       }
+      case Try t -> "(try " + shape(t.body(), scope, met) + " catch " + shape(t.handler(), scope, met) + ")";
+      case Label l -> {
+        String name = "$" + met[0]++;
+        Map<Integer, String> inner = new HashMap<>(scope);
+        inner.put(l.slot(), name);
+        yield "(label " + name + " | " + shape(l.body(), inner, met) + ")";
+      }
+      case Break b -> "break " + scope.getOrDefault(b.slot(), "$?") + chars(b.source());
     };
   }
 

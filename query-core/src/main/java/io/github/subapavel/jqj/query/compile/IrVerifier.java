@@ -4,14 +4,17 @@ import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
+import io.github.subapavel.jqj.query.ir.Label;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
+import io.github.subapavel.jqj.query.ir.Try;
 import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.query.run.Fn0;
 import io.github.subapavel.jqj.query.run.Fn1;
@@ -26,11 +29,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Checks the rules of the IR (ADR-0005, ADR-0034, ADR-0038) before a backend sees a tree; a broken rule is an
+ * Checks the rules of the IR (ADR-0005, ADR-0034, ADR-0038, ADR-0039) before a backend sees a tree; a broken rule is an
  * IllegalStateException. The tree uses no node object twice. A slot is bound by one Bind, by one AltBind (its value
- * slot and its group slots), or is a parameter, which no node binds and every node may read; a Var reads its slot only
- * inside its Bind's body, an AltBind's value slot only in its alternatives and its body, and a group slot only in its
- * AltBind's body. An AltBind has an alternative at least, each with one from entry per group slot, and each from-slot,
+ * slot and its group slots), by one Label, or is a parameter, which no node binds and every node may read; a Var reads
+ * its slot only inside its Bind's body, an AltBind's value slot only in its alternatives and its body, and a group slot
+ * only in its AltBind's body. A Label's slot is read by no Var, only by a Break inside the Label's body, and a Break
+ * names no other slot. An AltBind has an alternative at least, each with one from entry per group slot, and each from-slot,
  * unless it is -1 for null, is in scope at its match's leaf, the innermost body of the match's chain of Binds. An
  * Intrinsic's arguments are atomic (Identity, Var or Const), as many as its call form's arity: none for Fn0, one for
  * Fn1, two for Fn2, and any number for an FnN or a Many, which take them as an array.
@@ -44,6 +48,9 @@ final class IrVerifier {
 
   /** The slots in scope where the walk is: the parameters, and those of each Bind and AltBind around it. */
   private final Set<Integer> scope = new HashSet<>();
+
+  /** The slots of the Labels around where the walk is: a Break may name them, a Var may not. */
+  private final Set<Integer> labels = new HashSet<>();
 
   /** The leaf of each match whose alternative the walk has not left, by identity, with its alternative's from-slots. */
   private final Map<Node, List<Integer>> leaves = new IdentityHashMap<>();
@@ -122,6 +129,21 @@ final class IrVerifier {
         scope.remove(b.slot());
       }
       case AltBind a -> altBind(a);
+      case Try t -> {
+        visit(t.body());
+        visit(t.handler());
+      }
+      case Label l -> {
+        take(l.slot(), node);
+        labels.add(l.slot());
+        visit(l.body());
+        labels.remove(l.slot());
+      }
+      case Break b -> {
+        if (!labels.contains(b.slot())) {
+          throw new IllegalStateException("the Break of slot " + b.slot() + " at bytes " + b.source() + " is outside the body of a Label of its slot");
+        }
+      }
     }
   }
 
