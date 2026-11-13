@@ -114,3 +114,13 @@ reduce/range2-literal-exponent
 reduce/range2-literal-from-input
 reduce/range2-literal-from-input-direct
 reduce/range2-literal-end
+
+# The precedence cases #69 owns (diff/precedence.cases), whose filters left ResolverTest.PRECEDENCE when #69 lowered
+# reduce and foreach.
+precedence/reduce-source-takes-a-sum
+precedence/foreach-source-takes-a-sum
+precedence/reduce-is-a-term
+
+# A census row that needs only S2a.11 to S2a.19 but is credited to S2a.22 (census/jqtest.tsv), passing once #69
+# lowers foreach, as #68 required its own such rows (review ruling 4 on #68): [label $out | foreach .[] as $item ...].
+jq.test#a45caa2bc474
