@@ -24,3 +24,4 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#66) If a unit test runs the same filter as a differential case left out of the require file, that case is already green: ask why it was left out.
 - (#67) A test cited as the witness of an error order may produce only one error (one name declared, the other not). Check that it has two items to order.
 - (#69) Count the ids in a require file against the evidence's "N of N". When an issue body gains a blocker edge, check that census.java's BLOCKED_BY mirrors it.
+- (#70) A new global bound can stub other tickets' constructs (operator chains, wide objects); grep what it counts and compare DEVIATIONS widths with the finding, not the ruling's prose.
