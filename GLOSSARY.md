@@ -76,6 +76,21 @@ An error raised by what runs on a Try's result after its body emitted it. That T
 How many Try results an error is still inside on its way out; a Try catches only an error at depth zero (ADR-0039).
 _Avoid_: downstream flag.
 
+**Live definition**:
+A definition the main filter reaches through calls, closure arguments included; jq checks and compiles only these (ADR-0040).
+_Avoid_: used definition.
+
+**Compile level**:
+The main filter, a live definition's body, or a closure argument of a jq-defined function. Its binding errors are reported, and those of its inner levels only when it has none (ADR-0040).
+_Avoid_: scope (that is lexical).
+
+**Inline cap**:
+How many nodes one compile may lower from definition bodies and closures; past it, the filter is a Stub in spec 2a (ADR-0040).
+
+**Value parameter**:
+A `$name` parameter: it wraps the body in `name as $name | …` and binds per result, and `name` stays a filter parameter (ADR-0040).
+_Avoid_: variable parameter.
+
 **Pattern**:
 The left side of `as`, which takes a value apart into variables: `$name`, an array pattern or an object pattern. An absent part is null; a non-container part raises (ADR-0038).
 _Avoid_: matcher (jq's internal word).
