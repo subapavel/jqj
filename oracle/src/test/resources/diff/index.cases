@@ -535,3 +535,9 @@ filter [.[] | . * 2] | .[[4, 6]]
 stdin [1,2,3,2,3]\n
 end
 
+
+case index/array-key-on-array-deep-after-unequal
+arg -c
+filter def d: reduce range(10001) as $i (0; [.]); [0, d] | try .[[1, d]] catch .
+stdin null\n
+end
