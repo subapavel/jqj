@@ -1,5 +1,6 @@
 package io.github.subapavel.jqj;
 
+import io.github.subapavel.jqj.internal.value.Detach;
 import io.github.subapavel.jqj.query.compile.Executable;
 import io.github.subapavel.jqj.query.run.FilterException;
 import io.github.subapavel.jqj.query.run.RunState;
@@ -33,7 +34,7 @@ public final class JqFilter {
    * and ends it however it ends, so the Workspace is free again after a termination, an error or the sink's exception
    * (ADR-0030). A name in {@code bindings} that the compile did not declare is ignored.
    *
-   * @throws JqFilterException with jq's error value when the filter raises an error
+   * @throws JqFilterException with jq's error value, detached from every document, when the filter raises an error
    * @throws JqTermination with exit code 5 when the steps, the deadline, the bytes built or written run out, or the thread
    *     is interrupted
    * @throws IllegalArgumentException when {@code bindings} leave a declared variable unbound; nothing runs
@@ -52,7 +53,9 @@ public final class JqFilter {
         state.end();
       }
     } catch (FilterException e) {
-      throw new JqFilterException((JqValue) e.value());
+      // After the run, so the detach charges nothing (ADR-0016's host rule, ADR-0039), and while the document still
+      // holds: the payload outlives the Workspace's next read.
+      throw new JqFilterException(Detach.of((JqValue) e.value()));
     } catch (Termination t) {
       throw terminated(t);
     }

@@ -12,6 +12,7 @@ import io.github.subapavel.jqj.internal.op.Interpolate;
 import io.github.subapavel.jqj.internal.op.Iterate;
 import io.github.subapavel.jqj.internal.op.JqTruth;
 import io.github.subapavel.jqj.internal.op.ObjectKey;
+import io.github.subapavel.jqj.internal.op.Raise;
 import io.github.subapavel.jqj.internal.op.Slice;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltString;
@@ -20,16 +21,19 @@ import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
+import io.github.subapavel.jqj.query.ir.Label;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
+import io.github.subapavel.jqj.query.ir.Try;
 import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
@@ -55,7 +59,10 @@ import java.util.Set;
  * each an If, and {@code //}, an Alt, both on jq's truth (ADR-0037); and (#67, ADR-0038) {@code E as p | body}, its
  * pattern lowered to Binds in jq's matcher order, and {@code E as p1 ?// p2 ... | body}, an AltBind; {@code $name}, a
  * Var of its slot, a host variable's a parameter slot; {@code $__loc__}, a Const; and a string with interpolations, an
- * Intrinsic of Interpolate over its parts. Every other kind is a Stub.
+ * Intrinsic of Interpolate over its parts; and (#68, ADR-0039) {@code if ... elif ... else ... end}, nested Ifs,
+ * {@code try}, {@code catch} and a postfix {@code ?} on a term that is no step, a Try, {@code error} and {@code
+ * error(f)}, and {@code label $name | ...} and {@code break $name}, a Label and a Break of its slot. Every other kind is
+ * a Stub.
  *
  * <p>A key or bound that is a Const or a Var is the step's argument; any other is bound around the step's target, the
  * key outside the target and {@code a} outside {@code b} (ADR-0034, jq's {@code gen_index} and {@code
@@ -63,7 +70,8 @@ import java.util.Set;
  * flattened by a loop and built again balanced, so its depth is about log2 of its length, with the same results and
  * ticks (F-32).
  *
- * <p>Each {@code $name} that no scope holds is jq's compile error over its token, and the lowering goes on: the errors
+ * <p>Each {@code $name} that no scope holds is jq's compile error over its token, and each {@code break $name} that no
+ * label holds over the whole term, and the lowering goes on: the errors
  * are collected in the order the lowering meets them, which is jq's (jq-ref 1.8.2, recorded: diff/bind.rec
  * bind/unbound-two), so every operand left of its right one, and thrown together once the whole filter is lowered
  * (ADR-0036, ADR-0038). A Stub is thrown at once, whatever was collected before it.
@@ -99,6 +107,9 @@ public final class Resolver {
 
   /** The names in scope where the lowering is, innermost first. */
   private Scope scope;
+
+  /** The label names in scope where the lowering is, innermost first: a scope apart from the variables' (ADR-0039). */
+  private Scope labels;
 
   /** The compile errors met so far, in jq's order, and the line and column of the first. */
   private final List<String> blocks = new ArrayList<>();
@@ -199,6 +210,14 @@ public final class Resolver {
       case Ast.Binary b when b.op() == BinOp.ALTERNATIVE -> new Alt(b.source(), lower(b.left()), lower(b.right()), JqTruth.TRUTHY);
       case Ast.Call c when c.args().isEmpty() && c.name().equals("not") -> not(c.source());
       case Ast.Neg n -> pipe(lower(n.operand()), new Intrinsic(n.source(), Arithmetic.NEGATE, List.of()));
+      case Ast.If i -> conditional(i);
+      case Ast.Try t -> attempt(t.source(), t.body(), t.handler());
+      case Ast.Optional o -> attempt(new Source(o.target().source().start(), o.source().end()), o.target(), null);
+      case Ast.Call c when c.args().isEmpty() && c.name().equals("error") -> new Intrinsic(c.source(), Raise.OP, List.of());
+      // builtin.jq's def error(msg): msg|error; inlined, its nodes at the call's Source (ADR-0040, ADR-0042).
+      case Ast.Call c when c.args().size() == 1 && c.name().equals("error") -> new Pipe(c.source(), lower(c.args().getFirst()), new Intrinsic(c.source(), Raise.OP, List.of()));
+      case Ast.Label l -> label(l);
+      case Ast.Break b -> breakTo(b);
       // Each other kind, and each guarded one outside its guard, belongs to a later ticket (spec 2a and 2b).
       default -> throw Stub.unbuilt("the " + ast.getClass().getSimpleName() + " at byte " + ast.source().start());
     };
@@ -309,6 +328,59 @@ public final class Resolver {
     return when(at, new Identity(at), bool(at, false), bool(at, true));
   }
 
+  /**
+   * {@code if c then a elif c2 then b else d end} (ADR-0039): nested Ifs on jq's truth, an elif the If of its else and a
+   * missing else an Identity, lowered in source order, as jq reports their unbound variables (jq-ref 1.8.2, observed
+   * 2026-11-13: {@code if $a then $b elif $c then $d else $e end} reports $a to $e in order).
+   */
+  private Node conditional(Ast.If i) {
+    Node cond = lower(i.cond());
+    Node then = lower(i.then());
+    Node otherwise = i.otherwise() == null ? new Identity(i.source()) : lower(i.otherwise());
+    return when(i.source(), cond, then, otherwise);
+  }
+
+  /**
+   * {@code try body catch handler} at {@code at}, and {@code try body} and {@code body?} with a null handler, which
+   * take {@code empty} (ADR-0039). The body is lowered first, as jq reports its unbound variables first (jq-ref 1.8.2,
+   * observed 2026-11-13: {@code try $a catch $b}). A navigation step's {@code ?} is its quiet variant (ADR-0034), which
+   * the parser marks on the step.
+   */
+  private Node attempt(Source at, Ast body, Ast handler) {
+    Node lowered = lower(body);
+    Node caught = handler == null ? new Intrinsic(at, Empty.OP, List.of()) : lower(handler);
+    return new Try(at, lowered, caught);
+  }
+
+  /**
+   * {@code label $name | body} (ADR-0039): a slot of its own for the activation's token, the name in the labels' scope,
+   * apart from the variables', while the body is lowered.
+   */
+  private Node label(Ast.Label l) {
+    int slot = slots++;
+    Scope outer = labels;
+    labels = new Scope(l.name(), slot, outer);
+    Node body = lower(l.body());
+    labels = outer;
+    return new Label(l.source(), slot, body);
+  }
+
+  /**
+   * {@code break $name}: a Break to the slot of the innermost label of the name. A name no label holds is jq's compile
+   * error {@code $*label-name is not defined} over the whole term (jq-ref 1.8.2, recorded: control/break-unknown),
+   * collected with the variables' errors in the order the lowering meets them (control/break-and-var-unknown); an
+   * {@code empty} stands for it, as the compile fails.
+   */
+  private Node breakTo(Ast.Break b) {
+    for (Scope s = labels; s != null; s = s.outer()) {
+      if (s.name().equals(b.name())) {
+        return new Break(b.source(), s.slot());
+      }
+    }
+    notDefined("$*label-" + b.name(), b.source());
+    return new Intrinsic(b.source(), Empty.OP, List.of());
+  }
+
   /** {@code if cond then then else otherwise} on jq's truth, spanning {@code at}. */
   private static If when(Source at, Node cond, Node then, Node otherwise) {
     return new If(at, cond, then, otherwise, JqTruth.TRUTHY);
@@ -348,12 +420,17 @@ public final class Resolver {
     if (PREDEFINED.contains(name)) {
       throw Stub.unbuilt("$" + name);
     }
+    notDefined("$" + name, error);
+    return new Const(at, JqNull.NULL);
+  }
+
+  /** Collects jq's compile error {@code <shown> is not defined} over {@code error}, the first one placing the throw. */
+  private void notDefined(String shown, Source error) {
     if (blocks.isEmpty()) {
       firstLine = text.line(error.start());
       firstColumn = text.column(error.start());
     }
-    blocks.add(text.block("$" + name + " is not defined", error.start(), error.end()));
-    return new Const(at, JqNull.NULL);
+    blocks.add(text.block(shown + " is not defined", error.start(), error.end()));
   }
 
   /** {@code $__loc__} at {@code at}: its location, a constant (ADR-0038, jq's {@code gen_loc_object}). */

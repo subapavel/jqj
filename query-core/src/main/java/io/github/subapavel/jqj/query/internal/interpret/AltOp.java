@@ -6,8 +6,8 @@ import io.github.subapavel.jqj.query.run.Truth;
 
 /**
  * {@code left // right} (ADR-0037): the left side's results for which the truth holds, as they come, and the right
- * side's only when there was none. A stop on the left returns at once, without the right. It catches nothing
- * (ADR-0008) and charges no step of its own.
+ * side's only when there was none. A false on the left, a stop or a break, returns at once, without the right
+ * (ADR-0039). It catches nothing (ADR-0008) and charges no step of its own.
  */
 public final class AltOp extends Op {
   private final Op left;

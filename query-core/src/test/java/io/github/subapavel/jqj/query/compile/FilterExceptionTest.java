@@ -26,7 +26,7 @@ import org.junit.jupiter.params.provider.EnumSource;
  * The wrap depth of ADR-0039 (GLOSSARY "Wrap depth", "Downstream error") over plain objects (founding §14): an error
  * thrown from a Try's sink leaves with its depth + 1, that Try's run unwraps it (− 1) and re-raises it, and a Try runs
  * its handler only on an error of depth 0, on that error's value. The caller of {@code Executable.run}, which is what
- * {@code JqFilter.run} calls, sees depth 0. An error of the handler propagates; after a caught error the body is
+ * the engine's filter run calls, sees depth 0. An error of the handler propagates; after a caught error the body is
  * abandoned.
  *
  * <p>Shapes the test-author fixed from ADR-0039 (no draft text reached the red): {@code Try(Source, Node body, Node
@@ -37,7 +37,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 class FilterExceptionTest {
   private static final Source AT = new Source(0, 1);
 
-  /** An Fn0 that raises its input as the error value, as jq-core's {@code error} does. */
+  /** An Fn0 that raises its input as the error value, as the engine's {@code error} builtin does. */
   private static final Fn0 RAISE = (state, in) -> {
     throw new FilterException(in);
   };
@@ -146,7 +146,7 @@ class FilterExceptionTest {
   @EnumSource(CompileMode.class)
   void aDownstreamErrorInsideAnOuterTryRunsTheOuterHandler(CompileMode mode) {
     // try ((try a catch inner) | raise) catch . : the inner Try lets the error through at depth 0 again, so the outer
-    // Try catches it. jq-ref: control/try-inner-downstream-handler gives "o".
+    // Try catches it. The reference: control/try-inner-downstream-handler gives "o".
     Object a = new Object();
     Object inner = new Object();
     Node body = new Pipe(AT, new Try(AT, new Const(AT, a), new Const(AT, inner)), raise());
@@ -156,7 +156,7 @@ class FilterExceptionTest {
   @ParameterizedTest
   @EnumSource(CompileMode.class)
   void aDownstreamErrorOfATryIsNotItsOwn(CompileMode mode) {
-    // (try a catch handler) | raise : jq-ref control/try-downstream-passes raises x.
+    // (try a catch handler) | raise : the reference's control/try-downstream-passes raises x.
     Object a = new Object();
     Node root = new Pipe(AT, new Try(AT, new Const(AT, a), new Const(AT, "handler")), raise());
     Executable e = compile(root, mode);
@@ -173,7 +173,7 @@ class FilterExceptionTest {
   @ParameterizedTest
   @EnumSource(CompileMode.class)
   void anErrorOfTheHandlerPropagates(CompileMode mode) {
-    // jq-ref: control/try-handler-raises raises b.
+    // The reference: control/try-handler-raises raises b.
     Object b = new Object();
     Executable e = compile(new Try(AT, raise(new Object()), raise(b)), mode);
     assertThatExceptionOfType(FilterException.class)
@@ -185,7 +185,7 @@ class FilterExceptionTest {
   @ParameterizedTest
   @EnumSource(CompileMode.class)
   void theBodyIsAbandonedAfterItsFirstError(CompileMode mode) {
-    // jq-ref: control/try-abandons, [try (1, error(2), 3) catch .] gives [1,2].
+    // The reference: control/try-abandons, [try (1, error(2), 3) catch .] gives [1,2].
     Object one = new Object();
     Object two = new Object();
     Node body = new Comma(AT, new Const(AT, one), new Comma(AT, raise(two), new Const(AT, new Object())));
