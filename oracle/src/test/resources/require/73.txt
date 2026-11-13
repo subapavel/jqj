@@ -22,6 +22,16 @@ man.test#ae4a1bf1acc9
 man.test#b7d5c7e066e6
 man.test#e2285d04ed5a
 
+# jqtest: handed over from S2a.25, census cases whose ticket column is S2a.25 although their tickets column needs
+# nothing beyond S2a.23.
+jq.test#0dea8f727204
+jq.test#11af6b75d24b
+jq.test#1672b4ef1199
+jq.test#1ae9d9b70e85
+jq.test#c25920696c9d
+man.test#11af6b75d24b
+man.test#5bf81149996b
+
 # differential: every case of diff/sort.cases: stability with equal keys, mixed kinds, min and max of [], group_by on
 # objects, the errors, the depth limits and NaN's place.
 sort/kinds-mixed
@@ -57,3 +67,11 @@ sort/equality-too-deep
 sort/nan-order
 sort/nan-pairs-keep-their-order
 sort/nan-pairs-long
+
+# differential: DEVIATIONS.md "Order inside a comparison cycle", jqj's column filled in by this ticket, and the cycle
+# cases that match jq.
+sort/deviation-cycle-sort
+sort/deviation-cycle-unique
+sort/deviation-cycle-group-by
+sort/cycle-min-max
+sort/cycle-unique-one-run

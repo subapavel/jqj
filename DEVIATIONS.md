@@ -61,17 +61,20 @@ jq compares two literals as exact decimals and every other pair as doubles. So t
 the same double, plus a computed number equal to both, form a cycle. Inside such a cycle, the result
 of `sort`, `sort_by`, `unique`, `unique_by` and `group_by` is jqj's own; `unique` and `group_by`
 can also group differently (`[(1e20+0),100000000000000000001,100000000000000000000] | unique` →
-`[1e+20]` on jq). `min`, `max` and their `_by` forms match jq. jq's order comes from libc `qsort`:
+`[1e+20]` on jq). `min`, `max` and their `_by` forms match jq. jq's order comes from libc `qsort`,
+jqj's from its own bottom-up merge sort (#73: runs of 1, 2, 4, … merged pairwise):
 
-| filter | jq 1.8.2 |
-| --- | --- |
-| `[100000000000000000001,(1e20+0),100000000000000000000] \| sort` | the input unchanged |
-| `[100000000000000000001,(1e20+0),100000000000000000000] \| unique` | `[100000000000000000001,100000000000000000000]` |
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| `sort/deviation-cycle-sort` (`deviation comparison-cycle`) | `[100000000000000000001,(1e20+0),100000000000000000000] \| sort` | the input unchanged | `[100000000000000000000,100000000000000000001,1e+20]` |
+| `sort/deviation-cycle-unique` (`deviation comparison-cycle`) | `[100000000000000000001,(1e20+0),100000000000000000000] \| unique` | `[100000000000000000001,100000000000000000000]` | `[100000000000000000000,100000000000000000001]` |
+| `sort/deviation-cycle-group-by` (`deviation comparison-cycle`) | `[100000000000000000001,(1e20+0),100000000000000000000] \| group_by(.)` | `[[100000000000000000001,1e+20],[100000000000000000000]]` | `[[100000000000000000000],[100000000000000000001,1e+20]]` |
+
+`sort/cycle-min-max` and `sort/cycle-unique-one-run` (the `[1e+20]` example) match jq.
 
 Reason: `==` and `<` stay identical to jq's. A total order would change
 `(100000000000000000001+0) == 100000000000000000001` from true to false, and imitating `qsort` would
-tie jqj to one binary. The jqj column depends on the merge order, so the sort ticket fills it in
-and pins it with oracle cases.
+tie jqj to one binary.
 
 ## Size limits of the tape (ADR-0002)
 

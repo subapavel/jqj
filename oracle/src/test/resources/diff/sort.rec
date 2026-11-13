@@ -230,3 +230,38 @@ rc 0
 stdout [0,7,14,21,28,35,2,9,16,23,30,37,4,11,18,25,32,39,6,13,20,27,34,1,8,15,22,29,36,3,10,17,24,31,38,5,12,19,26,33]\n
 stderr
 end
+
+case sort/deviation-cycle-sort
+def 5a5e4bda602b
+rc 0
+stdout [100000000000000000001,1e+20,100000000000000000000]\n
+stderr
+end
+
+case sort/deviation-cycle-unique
+def 49aba943fa43
+rc 0
+stdout [100000000000000000001,100000000000000000000]\n
+stderr
+end
+
+case sort/deviation-cycle-group-by
+def f7fba065587c
+rc 0
+stdout [[100000000000000000001,1e+20],[100000000000000000000]]\n
+stderr
+end
+
+case sort/cycle-min-max
+def f10aa5d2a647
+rc 0
+stdout 100000000000000000000\n100000000000000000000\n100000000000000000000\n100000000000000000000\n
+stderr
+end
+
+case sort/cycle-unique-one-run
+def 1288c4ab1705
+rc 0
+stdout [1e+20]\n
+stderr
+end
