@@ -20,6 +20,10 @@ jq 1.8.2 shares one variable per name across a `?//` chain (`bind_alternation_ma
   - One tick per later alternative entered (F-32); nothing is charged.
   - Inside an alternative, a group name means its latest store so far, or null.
 - **Slots**: a slot is bound by one Bind, by one AltBind (its value slot and its group slots), or is a parameter. A group slot is read only in its AltBind's body. Each from-slot is in scope at its match's leaf. The IrVerifier checks all three.
+- **Rulings on the red (90e4ac7)**:
+  - An Alternative's `from` entry of −1 means null.
+  - Inside an alternative, a group name read before its store resolves to a Const null, and after its store to that alternative's own slot, so a group slot is still read only in the body.
+  - A parse-time error (ADR-0036) suppresses the binding errors, as jq-ref shows for `{(1): $a} | $b`.
 - **Host variables**: the declared names, sorted, take parameter slots 0..k−1 in the root scope. Through `Compiler.compile(Node, int parameters, CompileMode)` and `Executable.run(RunState, Object[] parameters, Object in, Sink)`, the slots are in scope everywhere and bound by no node. A declared name left unbound gives IllegalArgumentException (ADR-0016). A name in the Bindings that was never declared is ignored.
 - **`$__loc__`** is a Const `{"file":"<top-level>","line":N}` (jq's `gen_loc_object`; the line counts LF only). It is a constant for ADR-0036's key fold.
 - **String interpolation** is `Intrinsic(Interpolate, parts)`, with the last part outermost. It charges STRING plus the total length before allocating and never folds.
