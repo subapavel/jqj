@@ -99,8 +99,9 @@ class ParserTest {
     // Each is jq syntax the resolver does not lower yet (jq-ref 1.8.2, observed 2026-11-11 on {"a":...}: .. $__loc__
     // ".a |= .b" run), so each parses and resolves to the Stub. The inputs jq rejects (and, ",", .é, .a.é, #c) moved to
     // unbuiltTokensThatJqRejectsAreErrors when #62 built the syntax errors; #63 lowers .a?, .[0], .["a"], .[], ".a, .b"
-    // and .a[0], whose IR ResolverTest.navigationAndCommaLowerToTheirIr asserts. None was dropped.
-    for (String text : List.of("..", "$__loc__", ".a and .b", ".a |= .b")) {
+    // and .a[0], whose IR ResolverTest.navigationAndCommaLowerToTheirIr asserts. None was dropped. #66 lowers and, so its
+    // entry ends with | .., which still stubs.
+    for (String text : List.of("..", "$__loc__", ".a and .b | ..", ".a |= .b")) {
       parsesToAStub(text);
     }
     // Witness: the built prefixes resolve to IR.

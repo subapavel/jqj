@@ -140,6 +140,7 @@ class ParserEdgesTest {
   @Test
   void aLeadingDotIsATermBeforeEachKeywordThatFollowsOne() {
     // One case per word of KEYWORDS_AFTER_A_TERM, each rc 0 on jq-ref; any other keyword is '.' error's (". if" above).
+    // #66 lowers and and or, so their entries end with | .., which still stubs.
     for (String text :
         List.of(
             ". as $x | 1",
@@ -147,8 +148,8 @@ class ParserEdgesTest {
             "if 1 then . elif 2 then 3 else 4 end",
             "if 1 then . else 2 end",
             "if 1 then 2 else . end",
-            ". and true",
-            ". or true",
+            ". and true | ..",
+            ". or true | ..",
             "try . catch 1")) {
       parsesToAStub(text);
     }

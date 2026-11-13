@@ -1,11 +1,13 @@
 package io.github.subapavel.jqj.query.compile;
 
+import io.github.subapavel.jqj.query.internal.interpret.AltOp;
 import io.github.subapavel.jqj.query.internal.interpret.Argument;
 import io.github.subapavel.jqj.query.internal.interpret.BindOp;
 import io.github.subapavel.jqj.query.internal.interpret.CollectOp;
 import io.github.subapavel.jqj.query.internal.interpret.CommaOp;
 import io.github.subapavel.jqj.query.internal.interpret.ConstOp;
 import io.github.subapavel.jqj.query.internal.interpret.IdentityOp;
+import io.github.subapavel.jqj.query.internal.interpret.IfOp;
 import io.github.subapavel.jqj.query.internal.interpret.Intrinsic1Op;
 import io.github.subapavel.jqj.query.internal.interpret.Intrinsic2Op;
 import io.github.subapavel.jqj.query.internal.interpret.IntrinsicManyOp;
@@ -14,11 +16,13 @@ import io.github.subapavel.jqj.query.internal.interpret.IntrinsicOp;
 import io.github.subapavel.jqj.query.internal.interpret.Op;
 import io.github.subapavel.jqj.query.internal.interpret.PipeOp;
 import io.github.subapavel.jqj.query.internal.interpret.VarOp;
+import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.Bind;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
@@ -54,6 +58,8 @@ public final class Compiler {
       case Var v -> new VarOp(v.slot());
       case Intrinsic i -> intrinsic(i);
       case Collect c -> new CollectOp(interpreter(c.body()), c.collector());
+      case If i -> new IfOp(interpreter(i.cond()), interpreter(i.then()), interpreter(i.otherwise()), i.truth());
+      case Alt a -> new AltOp(interpreter(a.left()), interpreter(a.right()), a.truth());
     };
   }
 

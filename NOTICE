@@ -58,6 +58,11 @@ licence text ships in the jq-core jar under META-INF/.
   jq 1.8.2's jvp_equal, jvp_array_equal and jvp_object_equal (src/jv.c) (#65)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/value/ObjectMerge.java, translated from
   jq 1.8.2's jv_object_merge and jvp_object_merge_recursive (src/jv.c) (#65)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/value/Order.java, translated from
+  jq 1.8.2's jvp_cmp, string_cmp and jv_keys (src/jv_aux.c) (#66)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Comparison.java, translated from
+  jq 1.8.2's binop_equal, binop_notequal, order_cmp and the four binop_less, binop_greater,
+  binop_lesseq and binop_greatereq (src/builtin.c) (#66)
 - jq-core/src/test/resources/jq/builtin.jq, copied byte for byte from jq 1.8.2's src/builtin.jq,
   a test resource; its SHA-256 is in jq-core/src/test/resources/jq/SOURCES.sha256 (#62)
 
