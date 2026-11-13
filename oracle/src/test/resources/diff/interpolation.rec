@@ -118,3 +118,52 @@ rc 0
 stdout {"k1":1}\n
 stderr
 end
+
+case interpolation/plain-format-base64
+def c27b86573e71
+rc 0
+stdout "k"\n
+stderr
+end
+
+case interpolation/plain-format-text
+def d92fef3606b5
+rc 0
+stdout "a"\n
+stderr
+end
+
+case interpolation/plain-format-json
+def 44e87a82a338
+rc 0
+stdout "<"\n
+stderr
+end
+
+case interpolation/plain-format-html
+def 596cf3bd2fd5
+rc 0
+stdout "<&>"\n
+stderr
+end
+
+case interpolation/plain-format-unknown
+def 774785de5d8f
+rc 0
+stdout "k"\n
+stderr
+end
+
+case interpolation/plain-format-key
+def 7ca8ca12660a
+rc 0
+stdout {"k":1}\n
+stderr
+end
+
+case interpolation/plain-format-field
+def 929428b430d0
+rc 0
+stdout 1\n
+stderr
+end

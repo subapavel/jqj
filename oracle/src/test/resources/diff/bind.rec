@@ -476,6 +476,13 @@ stdout
 stderr jq: error: Cannot use number (1) as object key at <top-level>, line 1, column 3:\n    {(1): $a} | $b\n      ^\njq: 1 compile error\n
 end
 
+case bind/unbound-operator-operands
+def c8c222492180
+rc 3
+stdout
+stderr jq: error: $b is not defined at <top-level>, line 1, column 1:\n    $b + $a\n    ^^\njq: error: $a is not defined at <top-level>, line 1, column 6:\n    $b + $a\n         ^^\njq: 2 compile errors\n
+end
+
 case bind/object-var-shorthand
 def 85fc398f7e0f
 rc 0

@@ -114,6 +114,30 @@ class HugeConstantKeyTest {
   }
 
   @Test
+  void aLocationIsChargedAsAnObjectOfTwoEntries() {
+    // ADR-0035's #65 amendment, #67's standards review: $__loc__ + . folds $__loc__ to an object of two entries whose
+    // strings are shared, 64 + 2 x 16 = 96. After an array literal of m elements and it, ("x"*4096) needs 4177: m =
+    // 130529 leaves that (1 048 569 bytes in all), m = 130530 (1 048 577) does not, so the repeat is left to the run.
+    JqEngine zero = bytesBuilt(0);
+    Results folded = new Results();
+    zero.compile(afterObject(130529, "$__loc__")).run(JqNull.NULL, NONE, folded, zero.newWorkspace());
+    assertThat(folded.values).as("results after $__loc__ and a literal of 130529 elements under 0 bytes built").hasSize(1);
+    assertBudget(
+        () -> zero.compile(afterObject(130530, "$__loc__")).run(JqNull.NULL, NONE, new Results(), zero.newWorkspace()),
+        Budget.BYTES_BUILT,
+        "a repeat after $__loc__ and a literal of 130530 elements under 0 bytes built");
+    // {$__loc__} + . charges its key "__loc__" as a string, 40 + 7, the location, 96, and itself as a container and one
+    // entry, 64 + 16: 223. m = 130514 leaves 4177 (exactly 1 048 576 bytes in all), m = 130515 (1 048 584) does not.
+    Results pair = new Results();
+    zero.compile(afterObject(130514, "{$__loc__}")).run(JqNull.NULL, NONE, pair, zero.newWorkspace());
+    assertThat(pair.values).as("results after {$__loc__} and a literal of 130514 elements under 0 bytes built").hasSize(1);
+    assertBudget(
+        () -> zero.compile(afterObject(130515, "{$__loc__}")).run(JqNull.NULL, NONE, new Results(), zero.newWorkspace()),
+        Budget.BYTES_BUILT,
+        "a repeat after {$__loc__} and a literal of 130515 elements under 0 bytes built");
+  }
+
+  @Test
   void theCapCountsTheKeptFoldsAFoldUses() {
     // The parser's key checks fold ("x"*n) and ("y"*n), 40 + n bytes each, and keep them; the resolver's fold of the
     // + uses them. For n = 1000 the whole fold is under 40 + 4096 and is a Const, so the run builds nothing under 0

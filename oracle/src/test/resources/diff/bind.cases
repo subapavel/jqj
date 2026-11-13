@@ -433,6 +433,12 @@ filter {(1): $a} | $b
 stdin null\n
 end
 
+case bind/unbound-operator-operands
+arg -c
+filter $b + $a
+stdin null\n
+end
+
 # {$x} and {$x: v}
 
 case bind/object-var-shorthand
