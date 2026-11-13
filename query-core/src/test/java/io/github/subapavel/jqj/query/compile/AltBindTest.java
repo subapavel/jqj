@@ -162,7 +162,7 @@ class AltBindTest {
       }
 
       @Override
-      public Object value(RunState state, Object in, long cursor) {
+      public Object value(RunState state, Object in, Object[] args, long cursor) {
         return values[(int) cursor];
       }
     };
