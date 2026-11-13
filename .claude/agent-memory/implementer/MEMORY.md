@@ -131,3 +131,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#63) Class-C implementers exceed 200 turns: commit green work early.
 - (#63) javac compiles a multi-pattern case into an instanceof chain whose last branch is never taken, and JaCoCo 0.8.16 counts it: one pattern per case keeps branch coverage at the ratchet.
 - (#64) `-prof gc` on JDK 25 here: empty BuiltArray 40 B, shaped object 48, growable 64, BuiltString 40. jq folds a constant pipe only when one side is `.`, and an array only when its commas nest to the left.
+- (#83) The gate's ratchet step reads a stale `<module>/target/pit-reports` left by a targeted PIT run and fails the floor: delete it before the gate.
+- (#83) A lazily built cache on a shared value must be published through final fields; its charge then depends on history (who built it first), which a review should hear about.
