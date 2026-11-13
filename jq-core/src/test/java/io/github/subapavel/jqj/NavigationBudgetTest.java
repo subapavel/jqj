@@ -3,10 +3,13 @@ package io.github.subapavel.jqj;
 import static io.github.subapavel.jqj.RunBudgets.NONE;
 import static io.github.subapavel.jqj.RunBudgets.assertBudget;
 import static io.github.subapavel.jqj.RunBudgets.steps;
+import static io.github.subapavel.jqj.RunBudgets.writer;
 import static io.github.subapavel.jqj.TestDocuments.assertStale;
 import static io.github.subapavel.jqj.TestDocuments.kind;
 import static io.github.subapavel.jqj.TestDocuments.read;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 import io.github.subapavel.jqj.JqTermination.Budget;
 import io.github.subapavel.jqj.RunBudgets.Results;
@@ -18,12 +21,14 @@ import io.github.subapavel.jqj.value.JqValue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 /**
  * The tick sites #63 adds, at the public API (ADR-0008, F-32, ADR-0034, the #63 approval's decision 3): a comma charges
- * one step on entering its right branch; a Many loop ({@code .[]}) one step per element, before its emit, and over an
- * object one more per key its scans compare; a tape walk
+ * one step on entering its right branch; a Many loop ({@code .[]}) one step per element, before its emit; a walk of a
+ * read object first proves its keys, one step per key entry (ADR-0044, #85), whichever walker asks; a tape walk
  * charges the entries it steps, once per walk: a field's key scan, {@code .[n]}, a view's length and a view's slice; a
  * built array's slice charges the elements it copies, a string's slice one step per started KiB. A run may take exactly
  * its budget of ticks and the next one ends it with {@code JqTermination(BUDGET, STEPS)} (ADR-0030): each site has an
@@ -161,7 +166,9 @@ class NavigationBudgetTest {
     Workspace whole = exact.newWorkspace();
     JqValue root = read(whole, json).root();
     Results all = new Results();
-    assertThat(exact.compile(filter).run(root, NONE, all, whole)).as("run's answer for %s with %s steps", filter, steps).isTrue();
+    boolean[] answer = new boolean[1];
+    assertThatCode(() -> answer[0] = exact.compile(filter).run(root, NONE, all, whole)).as("run of %s with %s steps", filter, steps).doesNotThrowAnyException();
+    assertThat(answer[0]).as("run's answer for %s with %s steps", filter, steps).isTrue();
     assertThat(all.values.stream().map(JqValue::toJson).toList()).as("results of %s with %s steps", filter, steps).containsExactly(texts);
     JqEngine under = steps(steps - 1);
     Workspace cut = under.newWorkspace();
@@ -218,19 +225,135 @@ class NavigationBudgetTest {
     assertExactSteps(".[1:3]", "\"abc\"", 2, "\"bc\"");
   }
 
-  @Test
-  void iterateOverAnObjectChargesEachKeyComparison() {
-    // .[] over an object charges one tick per key each of its scans compares (ObjectView on 8d6bab2: a key's first
-    // position and its last value, ADR-0002), and the loop one per value: n distinct keys cost n * n + n - 1 ticks, the
-    // rate the architect accepted for #63 (a linear walk is a later ticket). 20 keys: 1 read tick and 419, so 420
-    // complete and 419 end. With k0 repeated the object has 20 keys and 21 entries: 441 and 440. jq-ref 1.8.2, observed
-    // 2026-11-12: [.[]] over {"k0":0,…,"k19":19,"k0":20} gives [20,1,…,19].
+  /** {@link #TWENTY_KEYS} with k0 repeated last: 20 keys in 21 key entries, k0's last value 20. */
+  private static final String REPEATED = TWENTY_KEYS.substring(0, TWENTY_KEYS.length() - 1) + ",\"k0\":20}";
+
+  /** {@code [o,o]} for {@link #TWENTY_KEYS} o, under 1 KiB. */
+  private static final String TWO_OBJECTS = "[" + TWENTY_KEYS + "," + TWENTY_KEYS + "]";
+
+  /** 0 to 19, the values of {@link #TWENTY_KEYS}; with {@code repeated}, k0's last value 20 in k0's first place. */
+  private static String[] memberValues(boolean repeated) {
     String[] values = new String[20];
     for (int i = 0; i < 20; i++) values[i] = Integer.toString(i);
-    assertExactSteps(".[]", TWENTY_KEYS, 420, values);
-    String repeated = TWENTY_KEYS.substring(0, TWENTY_KEYS.length() - 1) + ",\"k0\":20}";
-    values[0] = "20";
-    assertExactSteps(".[]", repeated, 441, values);
+    if (repeated) values[0] = "20";
+    return values;
+  }
+
+  /** The keys of {@link #TWENTY_KEYS} as a JSON array, {@code ["k0",…]}, in the order of {@code order}. */
+  private static String keyArray(int... order) {
+    StringJoiner keys = new StringJoiner(",", "[", "]");
+    for (int i : order) keys.add("\"k" + i + "\"");
+    return keys.toString();
+  }
+
+  private static final int[] SOURCE_ORDER = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
+
+  @Test
+  void iterateOverAnObjectChargesItsProofAndEachMember() {
+    // ADR-0044: .[] walks a read object through its key proof, one tick per key entry, and the loop charges one per
+    // member before its emit (ADR-0034). 20 keys: 1 read tick, 20 proof ticks and 20 member ticks, so 41 complete and 40
+    // end (n * n + n - 1 + 1 = 420 on 25ef36c, F-40). With k0 repeated the object has 21 key entries and 20 members:
+    // 1 + 21 + 20 = 42. jq-ref 1.8.2, observed 2026-11-12: [.[]] over {"k0":0,…,"k19":19,"k0":20} gives [20,1,…,19].
+    assertAll(() -> assertExactSteps(".[]", TWENTY_KEYS, 41, memberValues(false)), () -> assertExactSteps(".[]", REPEATED, 42, memberValues(true)));
+  }
+
+  @Test
+  void lengthOfAnObjectChargesItsProof() {
+    // ADR-0044: length is a walker; it counts the members its proof finds, one tick per key entry: 1 + 20 = 21 (210 on
+    // 25ef36c), 1 + 21 = 22 with k0 repeated. jq-ref 1.8.2, observed 2026-11-13: length gives 20 on both.
+    assertAll(() -> assertExactSteps("length", TWENTY_KEYS, 21, "20"), () -> assertExactSteps("length", REPEATED, 22, "20"));
+  }
+
+  @Test
+  void keysUnsortedChargesItsProofAndEachKey() {
+    // ADR-0044 and Keys (#72): the proof, one tick per key entry, then one per key collected: 1 + 20 + 20 = 41 (230 on
+    // 25ef36c), 1 + 21 + 20 = 42 with k0 repeated. jq-ref 1.8.2, observed 2026-11-13: keys_unsorted gives
+    // ["k0",…,"k19"] on both.
+    assertAll(
+        () -> assertExactSteps("keys_unsorted", TWENTY_KEYS, 41, keyArray(SOURCE_ORDER)),
+        () -> assertExactSteps("keys_unsorted", REPEATED, 42, keyArray(SOURCE_ORDER)));
+  }
+
+  @Test
+  void keysChargesItsProofEachKeyAndItsSort() {
+    // keys_unsorted's ticks and one per compare of the sort for each started KiB of the shorter key (Keys, #72). The sort
+    // does not change with #85: on 25ef36c keys takes 282 and keys_unsorted 230, so these 20 keys sort in 52 compares.
+    // 41 + 52 = 93, and 42 + 52 = 94 with k0 repeated (the sort sees the same 20 keys). jq-ref 1.8.2, observed
+    // 2026-11-13: keys gives ["k0","k1","k10",…,"k19","k2",…,"k9"] on both.
+    String sorted = keyArray(0, 1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 3, 4, 5, 6, 7, 8, 9);
+    assertAll(() -> assertExactSteps("keys", TWENTY_KEYS, 93, sorted), () -> assertExactSteps("keys", REPEATED, 94, sorted));
+  }
+
+  /** {@code [{"key":"k0","value":v0},…]} for {@link #memberValues}. */
+  private static String entries(boolean repeated) {
+    String[] values = memberValues(repeated);
+    StringJoiner entries = new StringJoiner(",", "[", "]");
+    for (int i = 0; i < 20; i++) entries.add("{\"key\":\"k" + i + "\",\"value\":" + values[i] + "}");
+    return entries.toString();
+  }
+
+  @Test
+  void toEntriesChargesItsProofAndEachEntry() {
+    // ADR-0044: to_entries becomes a native walker (ADR-0042 amended): the proof, one tick per key entry, then one per
+    // entry: 1 + 20 + 20 = 41 (650 on 25ef36c, the prelude's keys_unsorted and a field read per key), 1 + 21 + 20 = 42
+    // with k0 repeated. jq-ref 1.8.2, observed 2026-11-13: to_entries gives [{"key":"k0","value":0},…] and, repeated,
+    // k0's value 20 in the first place.
+    assertAll(() -> assertExactSteps("to_entries", TWENTY_KEYS, 41, entries(false)), () -> assertExactSteps("to_entries", REPEATED, 42, entries(true)));
+  }
+
+  @Test
+  void aMergeChargesItsReadSidesProofAndEachEntryCopied() {
+    // ADR-0044: ObjectMerge walks both sides; the read side's proof is one tick per key entry, and the merge one per
+    // entry copied (ArithmeticStepsTest): 1 + 20 + 20 = 41 whichever side the read object is on, for + as for *
+    // (420 on 25ef36c). jq-ref 1.8.2, observed 2026-11-13: the four give the object unchanged.
+    assertAll(
+        Stream.of(". + {}", "{} + .", ". * {}", "{} * .").<Executable>map(filter -> () -> assertExactSteps(filter, TWENTY_KEYS, 41, TWENTY_KEYS)));
+  }
+
+  @Test
+  void anOrderChargesBothProofsAndItsKeyLists() {
+    // .[0] steps no entry and .[1] one (ArrayView.get). Order (ADR-0037) collects each side's key list through its proof:
+    // 20 proof and 20 collect ticks per side, then 20 key pairs of one started KiB each, then 20 member pairs; the member
+    // after a proved key is the next entry, which costs no scan. 1 + 1 + 80 + 20 + 20 = 122 (880 on 25ef36c). jq-ref
+    // 1.8.2, observed 2026-11-13: [o,o] | .[0] < .[1] gives false.
+    assertExactSteps(".[0] < .[1]", TWO_OBJECTS, 122, "false");
+  }
+
+  @Test
+  void anEqualityChargesItsLeftProofTheRightSizeAndAFieldReadPerMember() {
+    // ADR-0044: Equality walks its left side through the proof (20) and takes the right side's size from its proof (20),
+    // then per member pair one tick (20) and a field read on the right, which scans all 20 keys (400, out of scope for
+    // #85). 1 + 1 + 20 + 20 + 20 + 400 = 462 (1 050 on 25ef36c). jq-ref 1.8.2, observed 2026-11-13: [o,o] | .[0] == .[1]
+    // gives true.
+    assertExactSteps(".[0] == .[1]", TWO_OBJECTS, 462, "true");
+  }
+
+  @Test
+  void printingAnObjectChargesItsProof() {
+    // ADR-0044: the Printer walks a read object through its proof, one tick per key entry, and charges no tick per
+    // member; the writer charges one per started KiB of its drain (F-23). 1 + 20 + 1 = 22, and 1 + 21 + 1 = 23 with k0
+    // repeated (2 on 25ef36c: the Printer's key scans charge nothing, F-40). jq-ref 1.8.2, observed 2026-11-13: -c .
+    // prints the object unchanged and, repeated, {"k0":20,"k1":1,…,"k19":19}.
+    assertAll(
+        () -> assertExactPrinted(TWENTY_KEYS, 22, TWENTY_KEYS),
+        () -> assertExactPrinted(REPEATED, 23, "{\"k0\":20" + TWENTY_KEYS.substring("{\"k0\":0".length())));
+  }
+
+  /**
+   * The adjacent pair for the compact writer: {@code json} printed by {@code -c .} completes with {@code steps} steps,
+   * printing {@code text} and an LF, and ends with {@code JqTermination(BUDGET, STEPS)} with {@code steps - 1}.
+   */
+  private static void assertExactPrinted(String json, long steps, String text) {
+    JqEngine exact = steps(steps);
+    Workspace whole = exact.newWorkspace();
+    JqValue root = read(whole, json).root();
+    RecordingTarget target = new RecordingTarget();
+    assertThat(exact.compile(".").run(root, NONE, writer(whole, target), whole)).as("run's answer printing %s with %s steps", json, steps).isTrue();
+    assertThat(target.text()).as("output of %s with %s steps", json, steps).isEqualTo(text + "\n");
+    JqEngine under = steps(steps - 1);
+    Workspace cut = under.newWorkspace();
+    JqValue cutRoot = read(cut, json).root();
+    assertBudget(() -> under.compile(".").run(cutRoot, NONE, writer(cut, new RecordingTarget()), cut), Budget.STEPS, "printing " + json + " with " + (steps - 1) + " steps");
   }
 
   @Test
