@@ -35,6 +35,9 @@ licence text ships in the jq-core jar under META-INF/.
   jq 1.8.2's jv_get (src/jv_aux.c) (#63)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Slice.java, translated from
   jq 1.8.2's parse_slice and the slice of jv_get (src/jv_aux.c) (#63)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/parse/ConstantKey.java, translated from
+  jq 1.8.2's check_object_key (src/parser.y) and the folds its block_is_const sees,
+  gen_const_array and gen_const_object (src/compile.c) (#64)
 - jq-core/src/test/resources/jq/builtin.jq, copied byte for byte from jq 1.8.2's src/builtin.jq,
   a test resource; its SHA-256 is in jq-core/src/test/resources/jq/SOURCES.sha256 (#62)
 
