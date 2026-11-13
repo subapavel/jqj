@@ -15,3 +15,6 @@ chains/folded-prefix-then-terms
 chains/comparisons-in-and-or
 chains/difference-is-left-associative
 chains/quotient-is-left-associative
+chains/difference-of-generators-in-jq-order
+chains/and-or-of-generators-in-jq-order
+chains/folded-prefix-then-generators-in-jq-order

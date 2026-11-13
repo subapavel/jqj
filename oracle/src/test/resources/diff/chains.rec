@@ -83,3 +83,24 @@ rc 0
 stdout 1\n
 stderr
 end
+
+case chains/difference-of-generators-in-jq-order
+def 570fd135a3dc
+rc 0
+stdout -109\n-108\n-119\n-118\n-209\n-208\n-219\n-218\n
+stderr
+end
+
+case chains/and-or-of-generators-in-jq-order
+def 5183a0f807f9
+rc 0
+stdout true\nfalse\ntrue\ntrue\nfalse\n
+stderr
+end
+
+case chains/folded-prefix-then-generators-in-jq-order
+def 83847198edeb
+rc 0
+stdout -11\n-21\n-21\n-41\n
+stderr
+end

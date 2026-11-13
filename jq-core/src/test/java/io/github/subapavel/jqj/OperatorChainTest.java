@@ -5,6 +5,7 @@ import static io.github.subapavel.jqj.Inlining.results;
 import static io.github.subapavel.jqj.Inlining.shown;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import java.io.File;
@@ -146,6 +147,16 @@ class OperatorChainTest {
     JqCompileException e = catchThrowableOfType(JqCompileException.class, () -> Inlining.ENGINE.compile(filter));
     assertThat(e).as("what compiling %s threw", shown(filter)).isNotNull();
     assertThat(e.getMessage()).as("message of the compile error of %s", shown(filter)).startsWith(MARK + "a filter that inlines more than 65536 nodes");
+  }
+
+  /**
+   * And no more than one: 13 000 chains of three terms inside a definition are 65 000 nodes, under the cap, and
+   * compile, where two nodes an operator would be 91 000.
+   */
+  @Test
+  void eachOperatorOfAChainSpendsOnlyOneNode() {
+    String filter = "def f: [" + terms(13_000, ", ", "(length+length+length)") + "]; f";
+    assertThatCode(() -> Inlining.ENGINE.compile(filter)).as("compiling %s", shown(filter)).doesNotThrowAnyException();
   }
 
   /** {@code n} copies of {@code term} joined by {@code separator}. */
