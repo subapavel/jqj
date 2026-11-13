@@ -141,7 +141,9 @@ class IfTailPropertyTest {
   /**
    * Two to 40 random terms: true (a constant or a one-result call giving a list), false, the toy null, raising, or
    * generating (a Comma of two of the three truth values, a Many of zero to three of them that may raise after its
-   * last, or a call with no result).
+   * last, or a call with no result). Only a generating term ticks, and a run often ends before it reaches one, so two
+   * seeds in three get a step budget of zero to three steps: with one in three of zero to seven, only 11 of the 400
+   * left-nested chains ended on it, under {@link #theAndOrSeedsReachEveryOutcome}'s 5 %.
    */
   static AndOr andOr(long seed) {
     Generator g = new Generator(seed);
@@ -172,7 +174,7 @@ class IfTailPropertyTest {
     }
     boolean and = g.below(2) == 0;
     boolean leftTakesTheMiddle = g.below(2) == 0;
-    long steps = g.below(3) == 0 ? g.below(8) : Long.MAX_VALUE;
+    long steps = g.below(3) == 0 ? Long.MAX_VALUE : g.below(4);
     int stopAt = g.below(3) == 0 ? Integer.MAX_VALUE : 1 + g.below(6);
     return new AndOr(List.copyOf(terms), and, leftTakesTheMiddle, steps, stopAt);
   }
@@ -232,7 +234,8 @@ class IfTailPropertyTest {
   /**
    * Witness that the and/or property is not vacuous: over the seeds, the left-nested chain runs out with two results or
    * more, with one, with none, stops at the sink, raises and ends at the step budget, each in 5 % of the seeds at least,
-   * and gives both truth values among its results; no seed crashes.
+   * and gives both truth values among its results; no seed crashes. (At #94's red the chains of the 400 seeds gave 38,
+   * 171, 42, 34, 81 and 34.)
    */
   @Test
   void theAndOrSeedsReachEveryOutcome() {
