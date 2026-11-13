@@ -22,7 +22,10 @@ public abstract sealed class Op
         AltBindOp,
         TryOp,
         LabelOp,
-        BreakOp {
+        BreakOp,
+        ReduceOp,
+        ForeachOp,
+        AdvanceOp {
   Op() {}
 
   /**
