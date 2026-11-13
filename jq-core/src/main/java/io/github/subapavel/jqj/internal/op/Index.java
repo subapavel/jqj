@@ -1,5 +1,5 @@
 /*
- * Translated from jq 1.8.2 (https://github.com/jqlang/jq): jv_get in src/jv_aux.c.
+ * Translated from jq 1.8.2 (https://github.com/jqlang/jq): jv_get in src/jv_aux.c, and jv_array_indexes in src/jv.c.
  *
  * jq is copyright (C) 2012 Stephen Dolan
  *
@@ -24,10 +24,12 @@
  */
 package io.github.subapavel.jqj.internal.op;
 
-import io.github.subapavel.jqj.internal.Stub;
 import io.github.subapavel.jqj.internal.value.ArrayView;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
+import io.github.subapavel.jqj.internal.value.DoubleNumber;
+import io.github.subapavel.jqj.internal.value.Equality;
 import io.github.subapavel.jqj.internal.value.Keyed;
+import io.github.subapavel.jqj.internal.value.Members;
 import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.run.CallForm;
 import io.github.subapavel.jqj.query.run.Fn1;
@@ -45,8 +47,8 @@ import io.github.subapavel.jqj.value.JqValue;
  * give the key's last value or null; an array and a number give the element, or null for NaN or past either end, a
  * fraction cut toward zero and a negative index counted from the end; an array or a string and an object key give the
  * slice of the key's {@code "start"} and {@code "end"} ({@link Slice}); null and a string, number or object key give
- * null. Any other pair is jq's error, which the quiet variant {@code .[k]?} drops (ADR-0034). An array key on an array
- * ({@code jv_array_indexes}) is a run-time Stub until #72, never dropped.
+ * null; an array and an array key give the key's {@link #indexes} (#72). Any other pair is jq's error, which the quiet
+ * variant {@code .[k]?} drops (ADR-0034).
  */
 public final class Index implements Fn1 {
   /** {@code .[k]}. */
@@ -85,7 +87,7 @@ public final class Index implements Fn1 {
                 // parse_slice reads both keys; a missing one is jq's invalid, which is no number.
                 case Keyed bounds ->
                     Slice.sliced(Slice.of(state, array, bounds.get(state, "start"), bounds.get(state, "end")), quiet);
-                case JqArray _ -> throw Stub.unbuilt("an array index of an array (jq's jv_array_indexes, #72)");
+                case JqArray keys -> indexes(state, (Members) array, (Members) keys);
                 case JqNull _ -> null;
                 case JqBool _ -> null;
                 case JqString _ -> null;
@@ -119,6 +121,40 @@ public final class Index implements Fn1 {
       return CallForm.NONE;
     }
     throw NavigationErrors.cannotIndex(t, k);
+  }
+
+  /**
+   * jq's {@code jv_array_indexes} of the array {@code a} and the array key {@code b}: in order, each index of {@code a}
+   * at which {@code b}'s elements, not none, equal {@code a}'s from there on, overlapping runs included (jq-ref 1.8.2,
+   * recorded: index/array-key-on-array-*, slice/key-array-*-on-array). As jq does, every pair inside {@code a} is
+   * compared, after a pair that differs too, so a too-deep pair raises Equality's error wherever it is; a place past
+   * {@code a}'s end is jq's invalid, equal to nothing. Each pair ticks once (ADR-0008), on top of Equality's own; the
+   * result is a built array of computed numbers, charged as it grows (ADR-0035).
+   */
+  private static BuiltArray indexes(RunState state, Members a, Members b) {
+    Built.Elements found = new Built.Elements(state);
+    int index = 0;
+    for (int start = a.first(); start != -1; start = a.next(state, start)) {
+      // jq's idx stays the start only if the first pair is equal and no later pair differs.
+      boolean equal = true;
+      boolean any = false;
+      int at = start;
+      for (int k = b.first(); k != -1; k = b.next(state, k)) {
+        state.tick();
+        any = true;
+        if (at == -1) {
+          equal = false;
+        } else {
+          equal &= Equality.equal(state, a.member(state, at), b.member(state, k));
+          at = a.next(state, at);
+        }
+      }
+      if (any && equal) {
+        found.add(new DoubleNumber(index));
+      }
+      index++;
+    }
+    return found.array();
   }
 
   /** {@code value}, or null for Java {@code null}, a missing key or an element past the end. */

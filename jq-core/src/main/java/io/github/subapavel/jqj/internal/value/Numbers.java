@@ -59,4 +59,21 @@ public final class Numbers {
       case Literal l -> l.negate();
     };
   }
+
+  /**
+   * jq's {@code jv_number_abs}, decNumber's {@code decNumberAbs} for a literal: a literal whose token has a sign is
+   * negated ({@link #negate}), so {@code -0} gives {@code 0} and {@code -1.10} gives {@code 1.10}, and any other is
+   * itself; a computed number's is its double's absolute value, NaN staying NaN (jq-ref 1.8.2, recorded:
+   * natives/length-kinds, natives/length-built).
+   */
+  public static JqNumber abs(JqNumber n) {
+    return switch (n) {
+      case DoubleNumber d -> new DoubleNumber(Math.abs(d.doubleValue()));
+      case Literal l -> {
+        // The offset first: it checks a view's document (Literal).
+        int off = l.tokenOffset();
+        yield l.tokenBytes()[off] == '-' ? l.negate() : n;
+      }
+    };
+  }
 }

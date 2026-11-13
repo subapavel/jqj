@@ -1384,3 +1384,30 @@ filter .[true:2]
 stdin "abc"\n
 end
 
+# #72 (the #63 hand-over): a NaN bound from the filter's nan/0, which a document cannot give until spec 5 (#63's
+# slice/*-nan cases stay reader Stubs): a NaN start is 0 and a NaN end the length, on an array and on a string.
+
+case slice/nan-bounds-on-array
+arg -c
+filter .[:nan], .[nan:], .[nan:nan], .[nan:1], .[1:nan]
+stdin [0,1,2]\n
+end
+
+case slice/nan-bounds-on-built-array
+arg -c
+filter [range(3)] | .[:nan], .[nan:1]
+stdin null\n
+end
+
+case slice/nan-bounds-on-string
+arg -c
+filter .[:nan], .[nan:], .[nan:nan], .[nan:2], .[1:nan]
+stdin "abc"\n
+end
+
+case slice/nan-bounds-on-null
+arg -c
+filter .[nan:], .[:nan]
+stdin null\n
+end
+
