@@ -23,8 +23,8 @@ class ResolverTest {
   /**
    * The precedence/* filters (diff/precedence.rec, recorded on jq-ref 1.8.2: each runs, rc 0 or 5). Each needs a kind
    * #62 does not lower, so each parses and resolves to the Stub; the recording is the owning ticket's red. A filter
-   * whose kinds a later ticket lowers (#64 constructions, #65 arithmetic and negation) ends with {@code | ..}, which
-   * still stubs, here and in {@link #GRAMMAR}.
+   * whose kinds a later ticket lowers (#64 constructions, #65 arithmetic and negation, #66 comparison, {@code and},
+   * {@code or}, {@code not} and {@code //}) ends with {@code | ..}, which still stubs, here and in {@link #GRAMMAR}.
    */
   private static final List<String> PRECEDENCE =
       List.of(
@@ -34,12 +34,12 @@ class ResolverTest {
           "\"x\" as $x | \"y\" as $y | $x + $y",
           "label $out | 1, break $out, 2",
           "1, 2 | . + 10 | ..",
-          "1, null // 2",
+          "1, null // 2 | ..",
           ".a = null // 2",
           ".a = true or false",
-          "true or true and false",
-          "false == false and false",
-          "1 + 1 == 2",
+          "true or true and false | ..",
+          "false == false and false | ..",
+          "1 + 1 == 2 | ..",
           "1 + 2 * 3 | ..",
           "2 * 3 + 1 | ..",
           "- \"a\" * 2 | ..",
@@ -74,8 +74,8 @@ class ResolverTest {
           "..",
           "..?",
           "$__loc__",
-          ".a and .b",
-          ".a // .b",
+          ".a and .b | ..",
+          ".a // .b | ..",
           ".a |= .b",
           ".a |= 1 | .b += 2 | .d *= 2 | .e /= 1 | .g //= 3 | .h = 4",
           ".f %= 1 | .c -= 1",
@@ -88,7 +88,7 @@ class ResolverTest {
           "[1, 2] | ..",
           "-1 | ..",
           "-(1 + 2) | ..",
-          "not",
+          "not | ..",
           "true(1)",
           "foo",
           "$x",
