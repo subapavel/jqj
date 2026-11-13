@@ -4,8 +4,8 @@ import io.github.subapavel.jqj.query.run.Termination.Budget;
 import java.util.function.LongSupplier;
 
 /**
- * The budgets of one evaluation (ADR-0030, ADR-0008): its fuel, the step budget, the deadline and the bytes-written
- * count, in a phase that is idle, primed or running. The engine's Workspace owns one and hands it to each run, so it
+ * The budgets of one evaluation (ADR-0030, ADR-0008, ADR-0035): its fuel, the step budget, the deadline and the
+ * bytes-built and bytes-written counts, in a phase that is idle, primed or running. The engine's Workspace owns one and hands it to each run, so it
  * is never shared between two running evaluations; it is not thread-safe.
  *
  * <p>A main read primes it: the run that begins next keeps the ticks counted since, less those the writer charged
@@ -54,6 +54,12 @@ public final class RunState {
   /** The clock when the running run began. */
   private long start;
 
+  /** The running run's bytes-built budget (ADR-0035); unlimited outside a run. */
+  private long builtBudget = UNLIMITED;
+
+  /** The bytes built since the last begin. */
+  private long built;
+
   /** The running run's bytes-written budget; unlimited outside a run. */
   private long writtenBudget = UNLIMITED;
 
@@ -86,14 +92,24 @@ public final class RunState {
   }
 
   /**
-   * Begins a run with its budgets, each {@code Long.MAX_VALUE} when unlimited: the steps, the deadline in nanoseconds
-   * and the bytes written. A primed read's ticks count against it, the writer's outside a run do not; without a primed
-   * read it starts from no tick.
+   * {@link #begin(long, long, long, long)} with the bytes built unlimited.
    *
    * @throws IllegalStateException when a run is running on this state, which then stays as it was
    * @throws Termination over the step budget when the primed ticks already pass it; no run is then running
    */
   public void begin(long steps, long deadlineNanos, long bytesWritten) {
+    begin(steps, deadlineNanos, UNLIMITED, bytesWritten);
+  }
+
+  /**
+   * Begins a run with its budgets, each {@code Long.MAX_VALUE} when unlimited: the steps, the deadline in nanoseconds,
+   * the bytes built (ADR-0035) and the bytes written. A primed read's ticks count against it, the writer's outside a
+   * run do not; without a primed read it starts from no tick. The bytes built and written count from zero.
+   *
+   * @throws IllegalStateException when a run is running on this state, which then stays as it was
+   * @throws Termination over the step budget when the primed ticks already pass it; no run is then running
+   */
+  public void begin(long steps, long deadlineNanos, long bytesBuilt, long bytesWritten) {
     if (running) {
       throw new IllegalStateException("a run is already running on this run state");
     }
@@ -105,6 +121,8 @@ public final class RunState {
     running = true;
     stepBudget = steps;
     deadline = deadlineNanos;
+    builtBudget = bytesBuilt;
+    built = 0;
     writtenBudget = bytesWritten;
     written = 0;
     start = clock.getAsLong();
@@ -117,6 +135,7 @@ public final class RunState {
    */
   public void end() {
     running = false;
+    builtBudget = UNLIMITED;
     writtenBudget = UNLIMITED;
     fill(steps(), UNLIMITED);
   }
@@ -155,6 +174,19 @@ public final class RunState {
       unkept += n;
     }
     tick(n);
+  }
+
+  /**
+   * Charges {@code bytes} a builder is about to allocate (ADR-0035, {@link Charges}): a charge that would pass the
+   * bytes-built budget is not counted, and the builder must not allocate, so a run never holds more than its limit.
+   *
+   * @throws Termination over the bytes-built budget
+   */
+  public void chargeBuilt(long bytes) {
+    if (bytes > builtBudget - built) {
+      throw Termination.over(Budget.BYTES_BUILT);
+    }
+    built += bytes;
   }
 
   /**

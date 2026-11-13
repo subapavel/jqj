@@ -26,11 +26,11 @@ package io.github.subapavel.jqj.internal.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import io.github.subapavel.jqj.internal.value.ObjectView;
 import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
+import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 
@@ -54,7 +54,7 @@ public final class ErrorDump {
         switch (v) {
           case JqString _ -> '"';
           case JqArray _ -> ']';
-          case ObjectView _ -> '}';
+          case JqObject _ -> '}';
           case JqNumber _ -> 0;
           // Null and the booleans are never longer than five bytes, so they are never cut.
           case JqNull _ -> 0;

@@ -60,9 +60,10 @@ import java.util.function.Supplier;
  * and {@code '.' IDENT error}) and an object key expression ({@code error ':' DictExpr}). Every other error ends the
  * parse there, also where jq has a silent recovery production or one jqj does not build ({@code (}, {@code [}, a
  * term's {@code [}, a closing brace in an object's error state, {@code if ... then}, {@code catch}, {@code break} and
- * an object pattern), as no recorded input needs it; jqj's blocks are then a prefix of jq's. jq's parser-action
- * errors are not built either: where one comes before jq's syntax error, as {@code Cannot use number (1) as object
- * key} does in {@code {(1): 2 3}} (#64), jqj's blocks are not a prefix (DEVIATIONS "Syntax-error text").
+ * an object pattern), as no recorded input needs it; jqj's blocks are then a prefix of jq's. A parser-action error
+ * is added when jq's action runs, and the parse goes on (ADR-0036): a constant object key that is no string
+ * ({@link ConstantKey}), checked once its pair is parsed, so {@code {(1): 2 3}} reports the key before the syntax
+ * error. The key of an object pattern is not checked yet, as patterns are not lowered.
  *
  * <p>A filter nested deeper than {@link #MAX_DEPTH} levels ends the parse with jq's {@code memory exhausted} block
  * (DEVIATIONS "Parse depth"), so a recursion of the parse never overflows the stack.
@@ -682,10 +683,15 @@ public final class Parser {
     return new Ast.Pair(new Source(start, value.source().end()), null, value);
   }
 
-  /** {@code key: value} or a key alone: a name or keyword, {@code $name}, {@code $__loc__} alone, a string, or {@code (query)}. */
+  /**
+   * {@code key: value} or a key alone: a name or keyword, {@code $name}, {@code $__loc__} alone, a string, or
+   * {@code (query)}. Once a computed key's pair is parsed, jq's action checks the key (ADR-0036): a constant that is no
+   * string is its error over the query, and the parse goes on.
+   */
   private Ast.Pair pair() {
     Token first = token;
     Ast.Key key;
+    Ast computed = null;
     switch (token.kind()) {
       case IDENT, KEYWORD -> key = new Ast.NameKey(source(first), word(advance()));
       case BINDING -> key = new Ast.VarKey(source(first), variable(advance()));
@@ -705,6 +711,7 @@ public final class Parser {
           throw syntaxError();
         }
         key = new Ast.QueryKey(new Source(first.start(), close.end()), query);
+        computed = query;
       }
       default -> throw syntaxError();
     }
@@ -713,6 +720,12 @@ public final class Parser {
     }
     advance();
     Ast value = dictExpr();
+    if (computed != null) {
+      String error = ConstantKey.error(computed);
+      if (error != null) {
+        fail(error, computed.source().start(), computed.source().end());
+      }
+    }
     return new Ast.Pair(new Source(first.start(), value.source().end()), key, value);
   }
 
