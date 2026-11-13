@@ -28,7 +28,9 @@ import org.junit.jupiter.params.provider.MethodSource;
  * every other (ADR-0002 as amended by F-40); and with an unproved tag every walker stays correct, only slower, so the
  * walks of a distinct-key object equal those of the same tape re-tagged 9, which takes #63's scans. The oracle of the
  * first is ADR-0002's rule applied to what the seed drew (which names, which spelt with escapes), never the reader's
- * hash; the oracle of the second is the scan walk of 5ab4aa7, which #63's differential cases cover.
+ * hash; the oracle of the second is the scan walk of 5ab4aa7, which #63's differential cases cover. The second writes
+ * the root's tag 10 itself, so it does not depend on the reader's hash: a distinct object whose keys need more than 8
+ * probes is rightly tag 9 (ADR-0002), and a weak hash makes that happen on random keys.
  */
 class DistinctKeyPropertiesTest {
 
@@ -163,16 +165,19 @@ class DistinctKeyPropertiesTest {
     SplittableRandom r = new SplittableRandom(seed);
     List<String> keys = new ArrayList<>();
     String json = wide(r, 2, keys);
-    Document proved = new JsonReader(TapeLimits.ADR_0002).read(segment(json));
-    long[] tape = proved.live();
-    assertThat(Tape.tag(tape[0])).as("tag of the root of %s", json).isEqualTo(10);
-    // The copy: the same entries, every tag 10 written as 9 (an object not proved), so its walks take #63's scans.
-    long[] scanTape = Arrays.copyOf(tape, Tape.end(tape, 0));
+    Document read = new JsonReader(TapeLimits.ADR_0002).read(segment(json));
+    long[] tape = read.live();
+    // The root is distinct by construction, so tag 10 is true of it whatever the reader's probes gave: the distinct
+    // copy writes it, and keeps the reader's tags inside (10 or 9, both true). The scan copy writes every 10 as 9 (an
+    // object not proved), so its walks take #63's scans.
+    long[] distinctTape = Arrays.copyOf(tape, Tape.end(tape, 0));
+    distinctTape[0] = Tape.entry(10, Tape.span(tape[0]), Tape.off(tape[0]));
+    long[] scanTape = Arrays.copyOf(distinctTape, distinctTape.length);
     for (int i = 0; i < scanTape.length; i++) {
       if (Tape.tag(scanTape[i]) == 10) scanTape[i] = Tape.entry(Tape.OBJECT, Tape.span(scanTape[i]), Tape.off(scanTape[i]));
     }
-    ObjectView fast = new ObjectView(proved, 0);
-    ObjectView scan = new ObjectView(new Document(proved.bytes(), scanTape), 0);
+    ObjectView fast = new ObjectView(new Document(read.bytes(), distinctTape), 0);
+    ObjectView scan = new ObjectView(new Document(read.bytes(), scanTape), 0);
 
     assertThat(walk(fast)).as("first, next and member on %s", json).isEqualTo(walk(scan));
     assertThat(fast.size()).as("size of %s", json).isEqualTo(scan.size()).isEqualTo(keys.size());
