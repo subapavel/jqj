@@ -73,7 +73,7 @@ report compile-copy-only "x${T}FAIL${T}${T}d1\n"
 check "compile mode lines checked per mode" "$(run check)" 1
 has "failing mode named" 'copy-only'
 
-# --- the compile-mode oracle (ADR-0020 amendment for #60): the ticket gate never produces its report (F-27) ---
+# --- the compile-mode oracle (ADR-0020 amendment for #60): a build without -Pcompile-oracle writes no report ---
 fresh
 printf 'x\td1\tconservative\n' > "$root/ratchet/oracle/compile.txt"
 check "check without a compile report passes" "$(run check)" 0
@@ -81,6 +81,14 @@ has "check says the compile oracle did not run" 'NOT_RUN compile: no report'
 printf 'a#1\tinterp\n' > "$root/ratchet/oracle/jqtest.txt"
 check "another oracle without its report still fails" "$(run check)" 1
 has "its listed id is missing" 'jqtest: a#1 interp is missing from the report'
+# the ticket gate runs the profile and requires the compile report (F-46, #89)
+fresh
+printf 'x\td1\tconservative\n' > "$root/ratchet/oracle/compile.txt"
+check "check --require-compile without a compile report fails" "$(run check --require-compile)" 1
+has "its listed compile id is missing" 'compile: x conservative is missing from the report'
+report compile-conservative "x${T}PASS${T}${T}d1\n"
+check "check --require-compile with the report passes" "$(run check --require-compile)" 0
+check "check with an unknown option is usage" "$(run check --frobnicate)" 2
 fresh
 printf 'x\td1\tconservative\n' > "$root/ratchet/oracle/compile.txt"
 report compile-conservative "x${T}PASS${T}${T}d1\ny${T}FAIL${T}disagree: stdout differs at byte 0${T}d2\n"

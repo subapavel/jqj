@@ -2,6 +2,8 @@
 # Script test for scripts/gate-ticket.sh and scripts/gate-spec.sh (#25, ADR-0014). A throwaway repo holds copies of
 # the gate scripts and ratchet.java, a stub mvnw that logs its arguments, stub check scripts, and a stub java for
 # the JMH jar. STUB_FAIL=<word>:<rc> makes the stub mvnw or check script whose arguments contain <word> exit <rc>.
+# STUB_COMPILE_REPORT=<printf rows> makes the stub mvnw, when called with the compile-oracle profile, write them as
+# oracle/target/oracle-reports/compile-conservative.tsv.
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 tmp=$(mktemp -d)
@@ -25,6 +27,10 @@ echo "$(basename "$0") $*" >> "$STUB_CALLS"
 case "${STUB_FAIL:-}" in
   "") ;;
   *) w=${STUB_FAIL%%:*}; rc=${STUB_FAIL##*:}; case "$(basename "$0") $*" in *"$w"*) exit "$rc" ;; esac ;;
+esac
+case "$(basename "$0") $*" in
+  "mvnw "*compile-oracle*) if [ -n "${STUB_COMPILE_REPORT:-}" ]; then
+      mkdir -p oracle/target/oracle-reports; printf "$STUB_COMPILE_REPORT" > oracle/target/oracle-reports/compile-conservative.tsv; fi ;;
 esac
 exit 0'
 printf '%s\n' "$stub" > "$repo/mvnw"
@@ -65,7 +71,7 @@ ticket() { : > "$STUB_CALLS"; rm -rf "$repo/.logs"; (cd "$repo" && scripts/gate-
 
 check "ticket: usage" "$(ticket 25)" 2
 check "ticket: green" "$(ticket 25 query-core,jq-core base)" 0
-has "step 1 is the whole reactor with -Pbench" "mvnw -B -Pbench verify" "$STUB_CALLS"
+has "step 1 is the whole reactor with -Pbench and the compile-mode oracle (F-46)" "mvnw -B -Pbench,compile-oracle verify" "$STUB_CALLS"
 # F-27: PIT left the ticket gate, even with changed classes in class-C modules
 hasnt "no PIT call with changed query-core and jq-core classes" "pitest" "$STUB_CALLS"
 hasnt "no class list for PIT" "targetClasses" "$STUB_CALLS"
@@ -77,8 +83,8 @@ check "log of step 1, no PIT log" "$(ls "$repo/.logs" | grep -c '^25-\(verify\|p
 has "step 1 log written" "25-verify.log" "$(ls "$repo/.logs" > "$tmp/ls"; echo "$tmp/ls")"
 has "step timings recorded" "^verify	" "$repo/.logs/25-steps.tsv"
 hasnt "no pit timing recorded" "^pit" "$repo/.logs/25-steps.tsv"
-order=$(grep -o 'mvnw -B -Pbench verify\|test org.pitest\|check-lf\|check-trailers\|check-core\|java ' "$STUB_CALLS" | tr '\n' ' ')
-check "steps in ADR order" "$order" "mvnw -B -Pbench verify check-lf check-trailers check-core "
+order=$(grep -o 'mvnw -B -Pbench,compile-oracle verify\|test org.pitest\|check-lf\|check-trailers\|check-core\|java ' "$STUB_CALLS" | tr '\n' ' ')
+check "steps in ADR order" "$order" "mvnw -B -Pbench,compile-oracle verify check-lf check-trailers check-core "
 
 : > "$STUB_CALLS"; rm -rf "$repo/.logs"
 (cd "$repo" && ORACLE_REQUIRE=/x/req.txt scripts/gate-ticket.sh 25 query-core base > "$tmp/out" 2>&1)
@@ -112,6 +118,24 @@ printf 'jq.test#a\tinterp\n' > "$repo/ratchet/oracle/jqtest.txt"
 check "ticket: step 4 ratchet fails" "$(ticket 25 query-core base)" 1
 has "ratchet failure shown" "jq.test#a" "$tmp/out"
 rm "$repo/ratchet/oracle/jqtest.txt" "$repo/ratchet/oracle-listed.tmp"
+
+# step 1 runs the compile-mode oracle, so step 4 sees a ratcheted compile-mode case that now fails (F-46, #89)
+printf 'x\td1\tconservative\n' > "$repo/ratchet/oracle/compile.txt"
+export STUB_COMPILE_REPORT='x\tFAIL\tstub: length/0\td1\n'
+check "ticket: a ratcheted compile-mode case that fails fails the gate" "$(ticket 25 query-core base)" 1
+has "the failing compile-mode case is named" "compile: x conservative is FAIL" "$tmp/out"
+hasnt "the compile-mode oracle is not NOT_RUN" "NOT_RUN compile" "$tmp/out"
+export STUB_COMPILE_REPORT='x\tPASS\t\td1\n'
+check "ticket: a ratcheted compile-mode case that passes" "$(ticket 25 query-core base)" 0
+hasnt "the passing compile-mode oracle is not NOT_RUN" "NOT_RUN compile" "$tmp/out"
+# step 1 had the profile but wrote no compile report: the ticket gate requires it, so the listed id is missing
+unset STUB_COMPILE_REPORT
+rm -rf "$repo/oracle/target"
+check "ticket: the profile without a compile report fails the gate" "$(ticket 25 query-core base)" 1
+has "step 1 had the profile" "mvnw -B -Pbench,compile-oracle verify" "$STUB_CALLS"
+has "the compile-mode case missing from the report is named" "compile: x conservative is missing from the report" "$tmp/out"
+hasnt "no NOT_RUN compile in the ticket gate" "NOT_RUN compile" "$tmp/out"
+rm -rf "$repo/ratchet/oracle/compile.txt" "$repo/oracle/target"
 
 # step 3 record: the recordings changed since ref are verified (ADR-0020)
 mkdir -p "$repo/oracle/src/test/resources/diff"
