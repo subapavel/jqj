@@ -183,6 +183,11 @@ class KeyProofTest {
     assertThat(pairwise.plan()).as("plan of a pairwise walk with a repeat").isNotNull();
     assertThat(members(pairwise)).as("members of a pairwise walk with a repeat").containsExactly("a=2", "b=1");
     assertThat(KeyProof.walk(new RunState(), object("{\"a\":0,\"b\":1}"), false).plan()).as("plan of a pairwise walk without one").isNull();
+    // Escaped keys, each decoded once into its own ordinal's place: the second \u0062 is b again, found as the key of
+    // its first place, not of another. jq-ref 1.8.2, observed 2026-11-13: {"\u0061":0,"\u0062":1,"\u0062":2} gives
+    // {"a":0,"b":2}.
+    ObjectWalk escapedRepeat = KeyProof.walk(new RunState(), object("{\"\\u0061\":0,\"\\u0062\":1,\"\\u0062\":2}"), false);
+    assertThat(members(escapedRepeat)).as("members of a pairwise walk of escaped keys with a repeat").containsExactly("a=0", "b=2");
     List<String> keys = new ArrayList<>();
     for (int i = 0; i < 9; i++) keys.add("k" + i);
     keys.add("k3");
