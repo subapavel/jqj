@@ -76,3 +76,12 @@ defs/value-param-body-unbound-variable
 defs/recursive-def-never-expanded
 defs/recursive-def-dead
 defs/closure-of-the-same-def-is-not-recursion
+# Added by the implementer: the hand-overs (a user def hides not and range/2; $a, error($b) reports $a only) and the
+# Binder's order of inner levels.
+defs/def-shadows-native-not
+defs/def-shadows-native-range
+defs/main-variable-error-hides-error-argument
+defs/operator-operands-inner-levels-right-first
+defs/interpolation-inner-levels-last-first
+defs/update-operands-are-inner-levels
+defs/arithmetic-update-value-is-in-the-level

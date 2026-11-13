@@ -214,6 +214,18 @@ function's code must fit 65 536 bytes. jqj compiles to an IR and an interpreter 
 chain is bounded at run time by the step budget instead (one tick per right branch, F-32; jq-core
 CommaChainTest pins chains of 10⁴ and 10⁵).
 
+## Long path chains (F-42, issue #70)
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| jq-core `LongPathChainTest` | `.a.a…`, 21 845 steps of `.a`, on `null` | rc 3, `jq: error: function compiled to 65537 bytes which is too long` | `null`, rc 0 |
+
+jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) prints `null` for 21 844 steps and rejects one more
+with the bytecode limit of "Long comma chains". jqj lowers a postfix chain by a loop and makes a run of more than 512
+field reads one step that reads them in turn, so a chain of any length compiles and runs, also on a 512 KiB stack
+(ADR-0017's `stackBytes`); its cost is one read per step, as a shorter chain's. `LongPathChainTest` pins 21 844 and
+10⁵ steps on the test thread and on a 512 KiB thread.
+
 ## Array length limit (ADR-0035, issue #64)
 
 jq 1.8.2 raises "Array index too large" when an array grows past an index of 2^29−1, as `jv_array_append` does
