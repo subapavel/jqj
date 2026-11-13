@@ -148,6 +148,7 @@ bind/unbound-outside-scope
 bind/unbound-in-own-source
 bind/unbound-in-pattern-key
 bind/unbound-and-constant-key
+bind/unbound-operator-operands
 bind/object-var-shorthand
 bind/object-var-key
 bind/object-var-key-number
@@ -169,6 +170,13 @@ interpolation/error-in-part
 interpolation/shorthand-key
 interpolation/field-name
 interpolation/computed-key
+interpolation/plain-format-base64
+interpolation/plain-format-text
+interpolation/plain-format-json
+interpolation/plain-format-html
+interpolation/plain-format-unknown
+interpolation/plain-format-key
+interpolation/plain-format-field
 
 # differential: the hand-over from #66 (comment on #67): its NaN comes from #65's arithmetic and needs `as $n`.
 compare/nan-in-an-array

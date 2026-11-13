@@ -270,7 +270,8 @@ public final class Resolver {
    * {@code l op r} as the call of {@code operation} on its operands: {@code r} bound outside {@code l}, so the right
    * operand is the outer loop, as jq's {@code gen_binop} runs it, an Identity, Const or Var operand passed as an
    * argument without a Bind (ADR-0034 amendment for #65, ADR-0037, ADR-0038). The left operand is lowered first, so
-   * its unbound variables come first, as jq reports them (HostVariablesTest: {@code $x + $y}). A comparison is lowered
+   * its unbound variables come first, as jq reports them (jq-ref 1.8.2, recorded: diff/bind.rec
+   * bind/unbound-operator-operands, {@code $b + $a} reports $b then $a). A comparison is lowered
    * so even when both sides are constants (design approval O6 of #66).
    */
   private Node operator(Ast.Binary b, Operation operation) {
