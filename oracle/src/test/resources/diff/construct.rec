@@ -230,3 +230,108 @@ rc 5
 stdout
 stderr jq: error (at <stdin>:1): Cannot use number (1) as object key\n
 end
+
+case construct/key-array-two-constants
+def 5ac1393a82fb
+rc 3
+stdout
+stderr jq: error: Cannot use array ([1,2]) as object key at <top-level>, line 1, column 3:\n    {([1,2]):1}\n      ^^^^^\njq: 1 compile error\n
+end
+
+case construct/key-array-left-nested-commas
+def f267ccb09cdb
+rc 3
+stdout
+stderr jq: error: Cannot use array ([1,2,3]) as object key at <top-level>, line 1, column 3:\n    {([(1,2),3]):1}\n      ^^^^^^^^^\njq: 1 compile error\n
+end
+
+case construct/key-array-right-nested-commas
+def ac74d8b3d0e9
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot use array ([1,2,3]) as object key\n
+end
+
+case construct/key-array-empty
+def af0125d02011
+rc 3
+stdout
+stderr jq: error: Cannot use array ([]) as object key at <top-level>, line 1, column 3:\n    {([]):1}\n      ^^\njq: 1 compile error\n
+end
+
+case construct/key-array-of-dot
+def 38aa1995866d
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot use array ([null]) as object key\n
+end
+
+case construct/key-parentheses-pipe-dot
+def dfb0886dad09
+rc 3
+stdout
+stderr jq: error: Cannot use number (1) as object key at <top-level>, line 1, column 3:\n    {((1)|(.)):1}\n      ^^^^^^^\njq: 1 compile error\n
+end
+
+case construct/key-object-nested-constants
+def bc8c13812515
+rc 3
+stdout
+stderr jq: error: Cannot use object ({"a":1,"b":[2]}) as object key at <top-level>, line 1, column 3:\n    {({"a":1,b:[2]}):1}\n      ^^^^^^^^^^^^^\njq: 1 compile error\n
+end
+
+case construct/key-object-shorthand
+def 275c9d1c11f8
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot use object ({"a":null}) as object key\n
+end
+
+case construct/key-interpolated-string
+def 860ec1adaff7
+rc 0
+stdout {"a1":1}\n
+stderr
+end
+
+case construct/key-interpolated-string-then-constant-key
+def 2e2ac6b66824
+rc 3
+stdout
+stderr jq: error: Cannot use number (1) as object key at <top-level>, line 1, column 19:\n    {("a\\(1)"):1} | {(1):2}\n                      ^\njq: 1 compile error\n
+end
+
+case construct/key-computed-repeated
+def b83fadbc4a6e
+rc 0
+stdout {"a":3,"b":2}\n
+stderr
+end
+
+case construct/key-computed-then-missing-field
+def 874f94c4bea3
+rc 0
+stdout null\n
+stderr
+end
+
+case construct/key-computed-then-field
+def 07d26872865a
+rc 0
+stdout 1\n
+stderr
+end
+
+case construct/object-empty-iterate
+def 96329c596618
+rc 0
+stdout
+stderr
+end
+
+case construct/object-field-second
+def 5e06efde1453
+rc 0
+stdout 2\n
+stderr
+end
