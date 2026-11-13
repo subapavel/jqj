@@ -4,6 +4,20 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Cold parse of the prelude, `builtin.jq` (ticket #71, ADR-0042), 2026-11-13
+
+- Machine: `claude-cloud-4vcpu` (4 vCPU, Linux 6.18.44-fc-v445), JDK 25.0.5.0.3 (HotSpot 64-Bit
+  Server VM), JMH 1.37. Commit measured: `5ab488a` plus the uncommitted `PreludeParse` benchmark
+  (committed with this section). Other worktrees' load was not checked.
+- Command: `java -jar bench/jmh/target/benchmarks.jar PreludeParse -foe true -rf json -rff
+  .logs/71-prelude-parse.json` (the class's settings: single shot, 10 forks, each a fresh JVM, no
+  warm-up, 1 measurement of batch size 1, `-Xms2g -Xmx2g`). Log `.logs/71-prelude-parse.log`. The
+  shot is one `Parser.parse` of the prelude's text, read in setup; no parser class is loaded before it.
+
+| method | what is timed | shots | mean | min | p50 | max |
+| --- | --- | --- | --- | --- | --- | --- |
+| `prelude_cold_parse` | `Parser.parse(builtin.jq)` in a fresh JVM | 10 | 39.009 ± 9.615 ms (99.9 %) | 30.161 ms | 39.905 ms | 51.977 ms |
+
 ## Fixed charges of bytes built, CONTAINER and STRING (ticket #64, ADR-0035, F-39), 2026-11-13
 
 - Machine: `claude-cloud-4vcpu` (4 vCPU, Linux 6.18.44-fc-v445), JDK 25.0.5.0.3 (HotSpot 64-Bit
