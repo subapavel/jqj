@@ -69,6 +69,13 @@ object key expression"; its text matches jq.
 **Slot**:
 The place a `Bind`, an `AltBind` or a parameter keeps a value while its scope runs; each has its own (ADR-0034, ADR-0038).
 
+**Downstream error**:
+An error raised by what runs on a Try's result after its body emitted it. That Try lets it through; an outer Try, or an AltBind inside the body, may still catch it (ADR-0039).
+
+**Wrap depth**:
+How many Try results an error is still inside on its way out; a Try catches only an error at depth zero (ADR-0039).
+_Avoid_: downstream flag.
+
 **Pattern**:
 The left side of `as`, which takes a value apart into variables: `$name`, an array pattern or an object pattern. An absent part is null; a non-container part raises (ADR-0038).
 _Avoid_: matcher (jq's internal word).
