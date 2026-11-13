@@ -38,3 +38,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#63) jq 1.8.2 `jv_dump_string_trunc`: a string dump keeps 25 bytes and adds `..."`; any other dump keeps 26 bytes and adds `...`.
 - (#64) A Workspace read invalidates earlier views: give each input its own reading Workspace. jq-ref prints `<skipped: too deep>` past level 10 000; build deep values by chaining runs.
 - (#63, #64) Class-C red tests take more than 80 turns: expect one resume.
+- (#82) A test that calls a method the ticket adds stops the module's whole test compile: observe the behaviour reds with a scratch stand-in for that one method, and name the assumed signature in the hand-back.
+- (#82) A random-input property must not demand more than the design guarantees (a probe limit can legitimately leave an object unproved); pin safety, and completeness only where the bound makes it certain.
