@@ -29,7 +29,8 @@ jq 1.8.2's `gen_reduce` and `gen_foreach` keep the loop state in a fresh variabl
   - It stops when v ≥ end on doubles and adds 1 at each step, as jq does.
   - One tick per value; nothing is charged.
   - If jq-ref shows that the first value keeps its literal form (`[range(1.10;3)]`), `Many.value` gains its arguments: `Many.value(RunState, Object in, Object[] args, long cursor)`, amending ADR-0034.
-- **`range/1`** is builtin.jq's `def range($x): range(0;$x);`, lowered by the resolver until the prelude exists (#71).
+- **`range/2`** joins ADR-0040's native table, so a user `def range(a;b)` shadows it. **`range/1`** is builtin.jq's `def range($x): range(0;$x);` and comes from #71's prelude by inlining, with no resolver special case. #69's cases that need `range/1`, the recorded `reduce-*` depth cases among them, are required at #71's gate.
+- **Binder (ADR-0040)**: SRC and I bind in the enclosing scope; P's names are in scope for U and E only. The state slot is no name: pass 2 takes it fresh for each inlined copy.
 
 ## Considered options
 
