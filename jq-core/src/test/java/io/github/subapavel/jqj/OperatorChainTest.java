@@ -5,6 +5,7 @@ import static io.github.subapavel.jqj.Inlining.results;
 import static io.github.subapavel.jqj.Inlining.shown;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,7 +59,8 @@ class OperatorChainTest {
           + "20000 terms of .a == .a and: a Stub\n"
           + "20000 terms of 1+: 20000\n"
           + "20000 terms of 1+ and a last +.a: 20000\n"
-          + "20000 terms of .a //: a compile error\n";
+          + "20000 terms of .a //: a compile error\n"
+          + "600 chains, then 30001 levels: a Stub\n";
 
   @TempDir Path dir;
 
@@ -111,6 +113,41 @@ class OperatorChainTest {
     assertThat(got.get()).as("results of %s on null", shown(filter)).isEqualTo(List.of(result));
   }
 
+  /**
+   * A chain's levels end with it: 600 chains side by side, each inside its operators' levels only while it is lowered,
+   * run, one folded in part, as jq-ref 1.8.2 prints them (observed 2026-11-13, -nc -f): 600 nulls, and 600 twos.
+   */
+  @ParameterizedTest(name = "{0}")
+  @CsvSource(delimiter = '|', value = {"(.a+.a+.a) | null", "(1+1+.a) | 2"})
+  void chainsSideBySideRun(String chain, String each) {
+    String filter = "[" + terms(600, ", ", chain) + "]";
+    assertThat(results(filter)).as("results of 600 of %s side by side", chain).isEqualTo(List.of("[" + terms(600, ",", each) + "]"));
+  }
+
+  /**
+   * A chain counts its operators' levels as it walks down them, so inside a definition a chain past the IR bound is
+   * the bound's Stub before it spends the inline cap, which 40 000 terms would pass (ADR-0040 "Inline cap").
+   */
+  @Test
+  void aLongChainInADefinitionIsTheIrDepthStub() throws InterruptedException {
+    String filter = "def f: " + terms(40_000, " + ", "length") + "; f";
+    Throwable thrown = on(LARGE, () -> Inlining.ENGINE.compile(filter));
+    assertThat(thrown).as("what compiling %s threw on a 16 MiB thread", shown(filter)).isInstanceOf(JqCompileException.class);
+    assertThat(thrown.getMessage()).as("message of the compile error of %s", shown(filter)).startsWith(MARK + "a filter of more than 512 levels of IR");
+  }
+
+  /**
+   * Each operator of a chain spends a node of the inline cap, as its own lowering would: 15 000 chains of three terms
+   * inside a definition are 75 000 nodes, past the cap of 65 536, and its Stub, while their terms alone are 45 000.
+   */
+  @Test
+  void eachOperatorOfAChainSpendsANode() {
+    String filter = "def f: [" + terms(15_000, ", ", "(length+length+length)") + "]; f";
+    JqCompileException e = catchThrowableOfType(JqCompileException.class, () -> Inlining.ENGINE.compile(filter));
+    assertThat(e).as("what compiling %s threw", shown(filter)).isNotNull();
+    assertThat(e.getMessage()).as("message of the compile error of %s", shown(filter)).startsWith(MARK + "a filter that inlines more than 65536 nodes");
+  }
+
   /** {@code n} copies of {@code term} joined by {@code separator}. */
   private static String terms(int n, String separator, String term) {
     StringJoiner joined = new StringJoiner(separator);
@@ -122,19 +159,21 @@ class OperatorChainTest {
 
   /**
    * The child JVM of {@link #onA512KiBThreadInAFreshJvmLongOperatorChainsAreStubsOrFold}: on a 512 KiB thread each,
-   * it compiles and runs on null each chain of {@link #CHILD_TERMS} terms and prints a line for each.
+   * it compiles and runs on null each chain of {@link #CHILD_TERMS} terms, then 600 short chains before a filter past
+   * the IR bound, and prints a line for each.
    */
   static final class Child {
     private Child() {}
 
     public static void main(String[] args) throws InterruptedException {
-      run(".a+", terms(CHILD_TERMS, "+", ".a"));
-      run(".a and", terms(CHILD_TERMS, " and ", ".a"));
-      run(".a or", terms(CHILD_TERMS, " or ", ".a"));
-      run(".a == .a and", terms(CHILD_TERMS, " and ", ".a == .a"));
-      run("1+", terms(CHILD_TERMS, "+", "1"));
-      run("1+ and a last +.a", terms(CHILD_TERMS, "+", "1") + "+.a");
-      run(".a //", terms(CHILD_TERMS, " // ", ".a"));
+      run(CHILD_TERMS + " terms of .a+", terms(CHILD_TERMS, "+", ".a"));
+      run(CHILD_TERMS + " terms of .a and", terms(CHILD_TERMS, " and ", ".a"));
+      run(CHILD_TERMS + " terms of .a or", terms(CHILD_TERMS, " or ", ".a"));
+      run(CHILD_TERMS + " terms of .a == .a and", terms(CHILD_TERMS, " and ", ".a == .a"));
+      run(CHILD_TERMS + " terms of 1+", terms(CHILD_TERMS, "+", "1"));
+      run(CHILD_TERMS + " terms of 1+ and a last +.a", terms(CHILD_TERMS, "+", "1") + "+.a");
+      run(CHILD_TERMS + " terms of .a //", terms(CHILD_TERMS, " // ", ".a"));
+      run("600 chains, then 30001 levels", chainsThenLevels());
     }
 
     private static void run(String name, String filter) throws InterruptedException {
@@ -148,7 +187,19 @@ class OperatorChainTest {
       } else {
         shown = thrown.toString();
       }
-      System.out.println(CHILD_TERMS + " terms of " + name + ": " + shown);
+      System.out.println(name + ": " + shown);
+    }
+
+    /**
+     * 600 chains of three terms, then 30 000 brackets around {@code .} through 300 definitions of 100 each, as
+     * IrDepthTest nests them: the lowering stops the brackets at the bound only if each chain's levels ended with it.
+     */
+    private static String chainsThenLevels() {
+      StringBuilder f = new StringBuilder();
+      for (int i = 1; i <= 300; i++) {
+        f.append("def f").append(i).append(": ").append("[".repeat(100)).append(i == 1 ? "." : "f" + (i - 1)).append("]".repeat(100)).append("; ");
+      }
+      return f.append(terms(600, ", ", "(.a+.a+.a)")).append(", f300").toString();
     }
   }
 
