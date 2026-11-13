@@ -258,14 +258,6 @@ and running on a 512 KiB stack.
 | jq-core `IrDepthTest` | `1 as $x \| $x+$x+…`, 600 terms | `600`, rc 0 | a Stub |
 | jq-core `IrDepthTest` | `.a and .a and …`, 600 terms, on `null` | `false`, rc 0 | a Stub |
 | jq-core `IrDepthTest` | `.a or .a or …`, 600 terms, on `null` | `false`, rc 0 | a Stub |
-| jq-core `IrDepthTest` | `{k0: .a, k1: .a, …}`, 600 pairs, on `null` | the object of 600 null values, rc 0 | a Stub |
-| jq-core `IrDepthTest` | `{k0, k1, …}`, 600 keys, on `null` | the same object, rc 0 | a Stub |
-| jq-core `IrDepthTest` | `{"a": "k"} \| {(.a): 1, (.a): 1, …}`, 300 pairs | `{"k":1}`, rc 0 | a Stub |
-| jq-core `IrDepthTest` | `"\(.a)\(.a)…"`, 600 interpolations, on `null` | the string of 600 `null`s, rc 0 | a Stub |
-| jq-core `IrDepthTest` | `. as [$a0, $a1, …] \| 1`, 600 variables, on `null` | `1`, rc 0 | a Stub |
-| jq-core `IrDepthTest` | `. as {k0: $a0, k1: $a1, …} \| 1`, 600 keys, on `null` | `1`, rc 0 | a Stub |
-| jq-core `IrDepthTest` | `. as {$a0, $a1, …} \| 1`, 600 variables, on `null` | `1`, rc 0 | a Stub |
-| jq-core `IrDepthTest` | `def f($a0; $a1; …): 1; f(1; 1; …)`, 600 value parameters | `1`, rc 0 | a Stub |
 
 jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) compiles every row and gives its result. jqj stubs a
 filter of more than `Resolver.MAX_IR_DEPTH` = 512 levels of built IR, the leaf counted, as it stubs the 512th nested
@@ -273,8 +265,14 @@ expansion (ADR-0040 "Inline cap"). The depth is the whole IR's, measured once th
 Resolver built a node (ADR-0040 "What counts"): an Ast's own node, the Bind of each value parameter around an
 expansion's body, the Bind of a computed key or bound around the chain before it, and the Pipe trees of a chain. So
 the bound stubs a construct whose IR is as deep as it is wide: an operator between two filters binds both, two levels
-a term, and one between variables; `and` and `or` are a level a term; an object's computed value is a level and its
-computed key two; an interpolation, a pattern's variable and a value parameter are a level each. The Binder and the
+a term, and one between variables; `and` and `or` are a level a term. An object, an interpolation, a pattern
+(`?//` alternatives among them) and a value parameter's expansion no longer stack: past `Resolver.BIND_RUN` = 64
+nested Binds each lowers to one Binds, a level whatever its width, its values in the nested form's order (ADR-0043,
+#93). `IrDepthTest` runs each at 600 parts on a 16 MiB stack and at jq-ref 1.8.2's widest (4 997 computed values,
+4 998 keys without values, 4 995 computed keys, 4 368 interpolations, 9 361 variables or keys of a pattern, two
+alternatives of 3 276 variables, 4 095 value parameters; one more is rc 3 there) on a 512 KiB stack in a fresh JVM,
+each with jq-ref's result. Nested constructs still stack, a level per Binds (eight nested 64-pair objects are 512
+levels), and so do nested definitions and nested value parameters, whose Stub stays. The Binder and the
 Resolver walk a left-associative operator chain by a loop (#86), so a chain of any length past the bound is this
 Stub, not a StackOverflowError (jq-core `OperatorChainTest`, 20 000 terms on a 512 KiB stack); jq-ref 1.8.2 runs
 6 554 terms of `.a+`, 3 277 of `.a and` or `.a or` and 2 185 of `.a == .a and`, and rejects one more with the
