@@ -13,8 +13,8 @@ Spec 2a compiles no recursion, so every call that compiles is inlined, as ADR-00
   - It takes over the binding-error collection of #67 and #68, so there is one list. Scoped constructs (#69) register with it.
 - **Live definitions**: a def is checked and lowered only if the main filter reaches it, closure arguments included. A self-reference does not keep a def alive.
 - **Errors**:
-  - The binding errors (`f/1 is not defined`, `$x is not defined`, `$*label-l is not defined`) form one list of blocks, thrown before any lowering. The caret covers the name only.
-  - A compile level (main, a live def's body, a closure argument of a jq-defined builtin) reports its own references in source order.
+  - The binding errors (`f/1 is not defined`, `$x is not defined`, `$*label-l is not defined`) form one list of blocks, thrown before any lowering. The caret covers the name only, except for `break $l`, where it covers the whole term (jq-ref).
+  - A compile level (main, a live def's body, a closure argument of any jq-defined function, user or builtin) reports its own references in source order.
   - It reports its inner levels only when it had no error itself.
   - A native's arguments stay in the caller's level.
 - **Lowering (pass 2)**: a call to a live non-recursive def lowers the def's body in its defining environment plus its params, with fresh slots for each copy.
@@ -22,7 +22,7 @@ Spec 2a compiles no recursion, so every call that compiles is inlined, as ADR-00
   - `$a` is `Bind(a, s_a, …)`, with the first param outermost, and `a/0` stays callable.
   - Captured variables, params and labels resolve to the defining scope. A `break` in a closure targets the caller's label slot.
 - **Recursion**: recursive groups are the call graph's cyclic SCCs. A param call is not an edge. Lowering a call into a recursive group is a Stub. A live recursive def that is never expanded compiles.
-- **Natives**: `empty`, `error/0`, `error/1` and `not` move into one native table, looked up after every def, so a user def can shadow them.
+- **Natives**: `empty`, `error/0` and `not` move into one native table, looked up after every def, so a user def can shadow them. `error/1` is jq-defined (`def error(msg): msg|error;`), so its argument is an inner compile level (jq-ref: `zz1, error(zz2)` reports zz1 only).
 - **Inline cap**: `Resolver.INLINE_CAP = 65 536`, an internal constant. Each node lowered inside an expansion spends one; past the cap, or with an expansion nested 512 deep, the filter is a Stub. The red measures the census's S2a.20 maximum, and the cap is kept if that maximum is at most 10⁴.
 - **Cost**: an inlined call, closure or value parameter ticks nothing and builds nothing.
 - **query-core gains nothing** in 2a. `Call` and the IR function list arrive with their first user (2b), which re-checks ADR-0006's pass order.
