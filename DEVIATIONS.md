@@ -240,6 +240,21 @@ jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) prints `[0,9991]` 
 rejects one more, rc 3. jqj compiles past that count: `LongDefRunTest` pins 9 993 and 10⁵ definitions compiling
 and running on a 512 KiB stack.
 
+## IR depth (F-44, ADR-0040, issue #70)
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| jq-core `IrDepthTest` | `def f1: [[…[.]…]]; def f2: [[…[f1]…]]; …`, 100 brackets each, 512 brackets around `.` in all: 513 levels, on `null` | 512 nested arrays around `null`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | the same with 30 000 brackets: 30 001 levels | rc 0, printed 10 001 arrays deep and then `<skipped: too deep>` | a Stub |
+
+jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) runs both. jqj stubs a filter of more than
+`Resolver.MAX_IR_DEPTH` = 512 levels of built IR, the leaf counted, as it stubs the 512th nested expansion (ADR-0040
+"Inline cap"). The parser's 512 nesting levels bound one body ("Parse depth"); definitions nest one body in another,
+so without the bound the IR, and the Resolver's recursion over it, would be as deep as the inline cap lets them.
+30 001 levels overflowed a 512 KiB stack (ADR-0017's `stackBytes`). The Resolver counts the levels as it builds
+them, so the count is at most the IR's depth. `IrDepthTest` pins 512 levels running and 513 a Stub. Spec 2b's calls
+revisit the bound.
+
 ## Array length limit (ADR-0035, issue #64)
 
 jq 1.8.2 raises "Array index too large" when an array grows past an index of 2^29−1, as `jv_array_append` does

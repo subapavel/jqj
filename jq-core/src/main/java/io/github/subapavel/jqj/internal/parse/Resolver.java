@@ -91,7 +91,7 @@ import java.util.function.Supplier;
  * parameter {@code $a} is also a Bind of it around the body, the first parameter outermost (ADR-0040). Lowering a call
  * of a recursive definition is a Stub until spec 2b. One compile spends at most {@link #INLINE_CAP} nodes inside
  * expansions, and nests at most {@link #EXPANSIONS} - 1 of them; past either the filter is a Stub (GLOSSARY "Inline
- * cap"). A Stub is thrown at once.
+ * cap"), and so is a filter of more than {@link #MAX_IR_DEPTH} levels of IR (F-44). A Stub is thrown at once.
  */
 public final class Resolver {
   /** jq's message for a program with no top-level filter, which is no syntax error (ADR-0032). */
@@ -102,6 +102,16 @@ public final class Resolver {
 
   /** ADR-0040: the nesting of expansions that is a Stub, the 512th (#70 red ruling: 511 nested compile). */
   static final int EXPANSIONS = 512;
+
+  /**
+   * ADR-0040 "IR depth" (F-44): the most levels of built IR a filter may have, the leaf counted ({@code [[.]]} has
+   * three); past it the filter is a Stub, as the 512th nested expansion is, since nested expansions would otherwise
+   * stack the IR, and the Resolver's recursion, as deep as the inline cap lets them. A level is counted for each Ast
+   * that builds a node of its own (all but a parenthesis, a run of definitions and a call), around its parts' levels;
+   * the nodes a call builds and those a construct builds around its parts are not counted, so the count is at most the
+   * IR's depth.
+   */
+  static final int MAX_IR_DEPTH = 512;
 
   /**
    * The most nodes of a chain that stay a Pipe chain, and the longest run of steps of one result or none that stays
@@ -133,6 +143,9 @@ public final class Resolver {
 
   /** The nodes lowered inside expansions so far. */
   private int inlined;
+
+  /** The levels of built IR the lowering is inside ({@link #MAX_IR_DEPTH}). A Stub ends the compile, so no throw restores it. */
+  private int levels;
 
   /**
    * A declaration the Binder bound a reference to, in scope where the lowering is: a variable's, label's or value
@@ -219,10 +232,15 @@ public final class Resolver {
       case Ast.Paren p -> lower(p.body());
       case Ast.Def d -> definitions(d);
       case Ast.Call c -> call(c);
-      // Every other kind builds a node of its own, which an expansion pays for (ADR-0040 "Inline cap").
+      // Every other kind builds a node of its own, which an expansion pays for (ADR-0040 "Inline cap"), one level deeper.
       default -> {
         spend();
-        yield built(ast);
+        if (++levels > MAX_IR_DEPTH) {
+          throw Stub.unbuilt("a filter of more than " + MAX_IR_DEPTH + " levels of IR");
+        }
+        Node node = built(ast);
+        levels--;
+        yield node;
       }
     };
   }
