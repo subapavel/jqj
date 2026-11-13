@@ -5,6 +5,7 @@ import io.github.subapavel.jqj.query.internal.interpret.AltBindOp;
 import io.github.subapavel.jqj.query.internal.interpret.AltOp;
 import io.github.subapavel.jqj.query.internal.interpret.Argument;
 import io.github.subapavel.jqj.query.internal.interpret.BindOp;
+import io.github.subapavel.jqj.query.internal.interpret.BindsOp;
 import io.github.subapavel.jqj.query.internal.interpret.BreakOp;
 import io.github.subapavel.jqj.query.internal.interpret.CollectOp;
 import io.github.subapavel.jqj.query.internal.interpret.CommaOp;
@@ -28,6 +29,7 @@ import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Binds;
 import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
@@ -82,10 +84,11 @@ public final class Compiler {
       case Pipe p -> new PipeOp(interpreter(p.left()), interpreter(p.right()));
       case Comma c -> new CommaOp(interpreter(c.left()), interpreter(c.right()));
       case Bind b -> new BindOp(interpreter(b.value()), b.slot(), interpreter(b.body()));
+      case Binds b -> binds(b);
       case Var v -> new VarOp(v.slot());
       case Intrinsic i -> intrinsic(i);
       case Collect c -> new CollectOp(interpreter(c.body()), c.collector());
-      case If i -> new IfOp(interpreter(i.cond()), interpreter(i.then()), interpreter(i.otherwise()), i.truth());
+      case If i -> new IfOp(interpreter(i.cond()), tail(i.cond()), interpreter(i.then()), interpreter(i.otherwise()), i.truth());
       case Alt a -> new AltOp(interpreter(a.left()), interpreter(a.right()), a.truth());
       case AltBind a -> altBind(a);
       case Try t -> new TryOp(interpreter(t.body()), interpreter(t.handler()));
@@ -94,6 +97,40 @@ public final class Compiler {
       case Reduce r -> new ReduceOp(interpreter(r.init()), r.slot(), interpreter(r.each()));
       case Foreach f -> new ForeachOp(interpreter(f.init()), f.slot(), interpreter(f.each()));
       case Advance a -> new AdvanceOp(a.slot(), interpreter(a.update()));
+    };
+  }
+
+  /** The Binds {@code b}, its values built in a loop, so the build does not go deeper with their number. */
+  private static Op binds(Binds b) {
+    List<Node> values = b.values();
+    Op[] ops = new Op[values.size()];
+    boolean[] tails = new boolean[ops.length];
+    for (int k = 0; k < ops.length; k++) {
+      ops[k] = interpreter(values.get(k));
+      tails[k] = tail(values.get(k));
+    }
+    return new BindsOp(ops, tails, ints(b.slots()), interpreter(b.body()));
+  }
+
+  /**
+   * Whether {@code node} is a tail emitter (ADR-0043), decided by its kind alone: an Identity, a Const, a Var, an
+   * Intrinsic of a one-result call form, or a Pipe, If, Bind or Binds whose parts are all tail emitters. Such a node
+   * gives one result at most and holds no Break, so it never breaks out (ADR-0008). Every other kind, a Break among
+   * them, is none.
+   */
+  private static boolean tail(Node node) {
+    return switch (node) {
+      case Identity _ -> true;
+      case Const _ -> true;
+      case Var _ -> true;
+      case Intrinsic i -> !(i.op().form() instanceof Many);
+      case Pipe p -> tail(p.left()) && tail(p.right());
+      case If i -> tail(i.cond()) && tail(i.then()) && tail(i.otherwise());
+      case Bind b -> tail(b.value()) && tail(b.body());
+      case Binds b -> b.values().stream().allMatch(Compiler::tail) && tail(b.body());
+      // False is safe for any kind: a node not taken for a tail emitter runs in push form, which is right for every
+      // node and only runs the rest inside its emit, one recursion deeper. True is safe only for the kinds above.
+      default -> false;
     };
   }
 
