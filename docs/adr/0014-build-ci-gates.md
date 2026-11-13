@@ -35,7 +35,7 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
      PIT runs only in the spec gate.**
   3. The LF check, the trailer check and the word check, each under about 2 s. The trailer check
      skips only the full SHAs in `scripts/trailers-waiver.txt`; a new line there is owner-only (F-28).
-  4. `java scripts/ratchet.java check`.
+  4. `java scripts/ratchet.java check --require-compile` (the flag since #89: a missing compile report fails; CI's plain `check` prints NOT_RUN).
 
   Spec 1's last ticket measures each step alone and with three gates in parallel, once cases pass,
   and records the numbers in `bench/RESULTS.md` (F-19).
