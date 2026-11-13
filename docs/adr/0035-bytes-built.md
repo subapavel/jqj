@@ -29,4 +29,10 @@ Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #64; desig
   - When a capped fold gives nothing and the key is an array or object expression, it is folded again for the kind check only, so jq's compile error (rc 3) is kept, as in `{(("x"*5000)/"x"):1}`.
   - That second fold runs under its own bytes-built bound of 1 MiB, shared by the whole constant expression. Each cap, the 4 KiB and the 1 MiB, holds for the whole fold, not per operator, so a container of folds is bounded too. Past that bound the key is left to the run, which raises the same text with rc 5. DEVIATIONS row "Huge constant keys".
   - A string result is never folded again.
+- **One fold budget per compile** (#65, third standards review):
+  - Every parse-time fold of one compile, the key-kind check included, shares one RunState.
+  - That RunState holds 1 MiB of bytes built and 2²⁰ steps; it never runs unlimited.
+  - Each fold result is still capped at 4 KiB, and the key-kind check at 1 MiB.
+  - Once the compile budget is spent, later folds are left to the run, so the output is the same. A key-kind error past it follows DEVIATIONS "Huge constant keys".
+  - "Builds no value larger than 4 KiB" means no fold result; literals written in the filter text are not folds.
 - Considered: a counting pre-pass (twice the work); upper-bound charges (they depend on the operands); folding any size, as jq does (an unbounded allocation at compile time).
