@@ -1,6 +1,6 @@
 # Reduce and Foreach bind a state slot that one Advance takes and refills; range is a Many
 
-Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #69; designer draft); amends ADR-0005 (Reduce, Foreach, Advance), ADR-0008 (none of the three ticks), ADR-0034 and ADR-0038 (slot rule)
+Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #69; designer draft); amends ADR-0005 (Reduce, Foreach, Advance), ADR-0008 (none of the three ticks), ADR-0034 and ADR-0038 (slot rule); amended by F-43 (#69: the `_state` read, atomic range bounds, the Many args contract)
 
 jq 1.8.2's `gen_reduce` and `gen_foreach` keep the loop state in a fresh variable. The pattern's matchers wrap `LOADVN state; update; STOREV state` (LOADVN loads the value and then nulls the variable). Patterns lower to Binds around a body (ADR-0038), so the update must be a node beneath them. The jq facts were read from jq-1.8.2 source; #69's red records them on jq-ref, and jq-ref wins.
 
@@ -32,7 +32,20 @@ jq 1.8.2's `gen_reduce` and `gen_foreach` keep the loop state in a fresh variabl
 - **`range/2`** joins ADR-0040's native table, so a user `def range(a;b)` shadows it. **`range/1`** is builtin.jq's `def range($x): range(0;$x);` and comes from #71's prelude by inlining, with no resolver special case. #69's cases that need `range/1`, the recorded `reduce-*` depth cases among them, are required at #71's gate.
 - **Binder (ADR-0040)**: SRC and I bind in the enclosing scope; P's names are in scope for U and E only. The state slot is no name: pass 2 takes it fresh for each inlined copy.
 
-## Considered options
+## Amendment (F-43, #69)
+
+- **The state read**:
+  - jq-core reads the state through a `_state` operation. It maps the slot's Java null, the state after an empty update, to `null`.
+  - The built lowering is `Pipe(Reduce(I, s, bindP(SRC, Advance(s, Pipe(_state, U)))), _state)`; Foreach is the same, with E after the Advance.
+  - On jq-ref, `reduce (1,2) as $x (0; empty)` gives `null`, and foreach's next update after an empty one sees `null`.
+  - query-core's null stays no jq value (§14).
+- **Bounds**: a range bound that is already atomic (Identity, Const or Var) is passed as an argument with no Bind, following ADR-0034's convention. The order is unchanged: start outer, and `[range((1,2);(3,4))]` gives `[1,2,1,2,3,2,2,3]` on jq-ref.
+- **The Many args contract**:
+  - The call site allocates a new args array for each loop. IntrinsicManyOp does so on every run, and a future bytecode backend or trampoline (ADR-0011) must do the same.
+  - `first` may replace an argument in that array with a form the later calls read more cheaply. Range stores its end's double once, because a NumberView recomputes it on every read (ADR-0012).
+  - A Const is never written: only the array's element is replaced.
+- **The verifier**: it accepts at most one Advance per loop. A loop whose `each` never advances, such as `reduce empty as $x (0; .)`, is valid.
+
 
 - **Pattern Binds inside the update**: a retried alternative would rerun U on the old state.
 - **A Destructure node or patterns as node data**: rejected by ADR-0038.
