@@ -141,6 +141,20 @@ jqj accepts 127 parentheses, brackets or objects and 509 pipes, `-` or `try`. Re
 descent (ADR-0032), so its depth is Java stack, and the engine starts no thread (ADR-0017). 9994 parentheses need
 about 20 MB of stack; 512 levels fit a 512 KiB stack (ADR-0017's `stackBytes`) with about a third to spare.
 
+## Huge constant keys (ADR-0035, issue #65)
+
+jq folds a computed object key whole at parse time, so a key that folds to an array or an object is its compile
+error, rc 3, however much the fold builds. jqj folds at most 4 KiB, and folds a key past that a second time, for the
+kind check only, under 1 MiB of bytes built. Past that bound the key is left to the run, which raises the same text
+with rc 5. Both sides are recorded on 1.8.2; the bound is pinned by jq-core HugeConstantKeyTest:
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| `constant-key-cap/huge-split` (`deviation huge-constant-keys`) | `{(("x"*2000000)/"x"):1}` | rc 3, `Cannot use array (["","","","","","","","",...]) as object key` at column 3 | rc 5, the same text at run time |
+
+Reason: an untrusted filter such as `{(("x"*1e9)/"x"):1}` would otherwise make the compile allocate gigabytes, where
+no budget applies (ADR-0035). A key below the bound keeps jq's rc 3 (`constant-key-cap/split`).
+
 ## `$JQ_BUILD_CONFIGURATION` (ADR-0017, issue #13)
 
 jq prints its configure string; jqj prints its own build string.

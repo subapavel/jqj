@@ -114,3 +114,14 @@ arg -c
 filter {((("x"*5000)/"x") * {}):1}
 stdin null\n
 end
+
+# Deviation: past the check's own 1 MiB bound jqj leaves the key to the run, rc 5 (DEVIATIONS "Huge constant keys")
+
+case constant-key-cap/huge-split
+deviation huge-constant-keys
+arg -c
+filter {(("x"*2000000)/"x"):1}
+stdin null\n
+jqj-rc 5
+jqj-stderr jq: error (at <stdin>:1): Cannot use array (["","","","","","","","",...]) as object key\n
+end

@@ -118,3 +118,10 @@ rc 5
 stdout
 stderr jq: error (at <stdin>:1): array (["","","","","","","","",...]) and object ({}) cannot be multiplied\n
 end
+
+case constant-key-cap/huge-split
+def b688fffd8a61
+rc 3
+stdout
+stderr jq: error: Cannot use array (["","","","","","","","",...]) as object key at <top-level>, line 1, column 3:\n    {(("x"*2000000)/"x"):1}\n      ^^^^^^^^^^^^^^^^^\njq: 1 compile error\n
+end
