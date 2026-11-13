@@ -5,7 +5,10 @@ import io.github.subapavel.jqj.internal.parse.Parser;
 import io.github.subapavel.jqj.internal.parse.Resolver;
 import io.github.subapavel.jqj.query.compile.CompileMode;
 import io.github.subapavel.jqj.query.compile.Compiler;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Compiles filters (ADR-0016). Immutable and thread-safe; it keeps no filter. It carries its limits, which every run
@@ -28,15 +31,31 @@ public final class JqEngine {
   }
 
   /**
-   * Compiles {@code text}: parses jq's whole grammar, then resolves it (ADR-0032). Resolved so far: {@code .}, fields,
-   * {@code .[k]}, {@code .[a:b]} and {@code .[]} with their {@code ?}, {@code |}, {@code ,}, parentheses, literals and
-   * bare {@code @text}; any other construct is a Stub.
+   * Compiles {@code text}, which declares no host variable: {@link #compile(String, Set)} with none.
    *
    * @throws JqCompileException with jq's error blocks for a lexical, syntax or recovery error (ADR-0031), jq's
-   *     not-given error for a program without a top-level filter, or a Stub's
+   *     not-given error for a program without a top-level filter, jq's error for each variable not defined, or a
+   *     Stub's
    */
   public JqFilter compile(String text) {
-    return new JqFilter(Compiler.compile(Resolver.resolve(Parser.parse(text)), compileMode), limits);
+    return compile(text, Set.of());
+  }
+
+  /**
+   * Compiles {@code text} with the host variables {@code variables}, names without their {@code $}, each read as
+   * {@code $name} anywhere in the filter and given its value by each run's {@link Bindings} (ADR-0016, ADR-0038): parses
+   * jq's whole grammar, then resolves it (ADR-0032). Resolved so far: navigation, {@code |}, {@code ,}, literals,
+   * constructions, arithmetic, comparisons, {@code and}, {@code or}, {@code not}, {@code //}, {@code as} bindings and
+   * patterns, {@code ?//}, {@code $__loc__} and string interpolation; any other construct is a Stub.
+   *
+   * @throws JqCompileException with jq's error blocks for a lexical, syntax or recovery error (ADR-0031), jq's
+   *     not-given error for a program without a top-level filter, jq's error for each variable neither declared nor
+   *     bound by {@code as}, or a Stub's
+   */
+  public JqFilter compile(String text, Set<String> variables) {
+    // ADR-0038: the declared names, sorted, take the parameter slots.
+    List<String> names = List.copyOf(new TreeSet<>(variables));
+    return new JqFilter(Compiler.compile(Resolver.resolve(Parser.parse(text), names), names.size(), compileMode), limits, names);
   }
 
   /** A new Workspace, for one running evaluation at a time. */
