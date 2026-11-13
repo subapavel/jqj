@@ -26,6 +26,7 @@
 package io.github.subapavel.jqj.internal.parse;
 
 import io.github.subapavel.jqj.internal.op.Arithmetic;
+import io.github.subapavel.jqj.internal.op.Comparison;
 import io.github.subapavel.jqj.internal.op.ObjectKey;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltObject;
@@ -57,7 +58,8 @@ import java.util.Map;
  * and its last value). Nothing else folds: {@code 1|2}, {@code -1}, {@code 1?}, {@code [.]} and a key whose value or
  * key is a shorthand or a variable are known only at run time. {@code $__loc__} folds in jq too; it is not built yet, so
  * it is no constant here. An arithmetic operator on two constants folds to its result (#65, {@link #binary}), which the
- * resolver lowers to a Const too. One instance holds one compile's folds (ADR-0035 amendments, #65 third and fourth
+ * resolver lowers to a Const too; a comparison of two constants folds to its boolean (#66), which the resolver leaves
+ * to the run (design approval O6). One instance holds one compile's folds (ADR-0035 amendments, #65 third and fourth
  * reviews): each node is folded at most once, its result kept, and every fold charges one run state with the
  * compile's budget; a {@link Program} carries it from the parser to the resolver.
  */
@@ -76,6 +78,16 @@ final class ConstantKey {
           BinOp.MULTIPLY, Arithmetic.MULTIPLY,
           BinOp.DIVIDE, Arithmetic.DIVIDE,
           BinOp.MODULO, Arithmetic.MODULO);
+
+  /** The comparison operators, which jq folds too, and their operations (#66). */
+  private static final Map<BinOp, Operation> COMPARISON =
+      Map.of(
+          BinOp.EQUAL, Comparison.EQUAL,
+          BinOp.NOT_EQUAL, Comparison.NOT_EQUAL,
+          BinOp.LESS, Comparison.LESS,
+          BinOp.GREATER, Comparison.GREATER,
+          BinOp.LESS_EQUAL, Comparison.LESS_EQUAL,
+          BinOp.GREATER_EQUAL, Comparison.GREATER_EQUAL);
 
   /**
    * The bytes the operators of a Const's whole fold may build together (ADR-0035 amendment: no fold result larger than
@@ -176,15 +188,20 @@ final class ConstantKey {
     return ARITHMETIC.get(op);
   }
 
+  /** The operation of a comparison operator, or null for any other. */
+  static Operation comparison(BinOp op) {
+    return COMPARISON.get(op);
+  }
+
   /**
-   * jq's {@code constant_fold} of {@code + - * / %} (GLOSSARY "Fold"): the operator on two constants, computed now as
-   * the run would, charging the compile's budget, the bytes it builds counted for {@link #constant}'s cap. A fold that
-   * raises, or that would build or step past the budget, is none ({@link #fold}): the run computes it, raising or
-   * building and charging there. The other operators fold in jq too; comparison is #66's, and {@code and}, {@code or}
-   * and {@code //} are not folded.
+   * jq's {@code constant_fold} of {@code + - * / %} and (#66) {@code == != < > <= >=} (GLOSSARY "Fold"): the operator
+   * on two constants, computed now as the run would, charging the compile's budget, the bytes it builds counted for
+   * {@link #constant}'s cap; a comparison builds none. A fold that raises, or that would build or step past the budget,
+   * is none ({@link #fold}): the run computes it, raising or building and charging there. {@code and}, {@code or} and
+   * {@code //} are not folded (ADR-0037).
    */
   private Object binary(Ast.Binary b) {
-    Operation op = ARITHMETIC.get(b.op());
+    Operation op = ARITHMETIC.getOrDefault(b.op(), COMPARISON.get(b.op()));
     if (op == null || !(fold(b.left()) instanceof JqValue left) || !(fold(b.right()) instanceof JqValue right)) {
       return null;
     }

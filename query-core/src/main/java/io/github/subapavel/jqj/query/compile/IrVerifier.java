@@ -1,10 +1,12 @@
 package io.github.subapavel.jqj.query.compile;
 
+import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.Bind;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
@@ -75,6 +77,15 @@ final class IrVerifier {
         visit(c.right());
       }
       case Collect c -> visit(c.body());
+      case If i -> {
+        visit(i.cond());
+        visit(i.then());
+        visit(i.otherwise());
+      }
+      case Alt a -> {
+        visit(a.left());
+        visit(a.right());
+      }
       case Bind b -> {
         if (!bound.add(b.slot())) {
           throw new IllegalStateException("the slot " + b.slot() + " of the Bind at bytes " + b.source() + " is bound twice in the tree");
