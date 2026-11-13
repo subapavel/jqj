@@ -123,6 +123,16 @@ class ResolverTest {
           "[limit(2; 1, 2, 3)]");
 
   @Test
+  void rangeWithOtherThanTwoBoundsIsAStub() {
+    // #69 lowers range/2 only; range/1 and range/3 are builtin.jq's, from #71's prelude (ADR-0041). jq-ref 1.8.2,
+    // observed 2026-11-13 with -nc: range(5) gives 0 to 4 and range(0; 10; 3) gives 0, 3, 6, 9 (rc 0).
+    parsesToAStub("range(5)");
+    parsesToAStub("range(0; 10; 3)");
+    // Witness: two bounds lower.
+    assertThat(shape(ir("range(0; 5)"))).as("IR of range(0; 5)").isEqualTo("range(0; 5)[0,11)");
+  }
+
+  @Test
   void everyUnloweredKindParsesAndResolvesToAStub() {
     for (String text : PRECEDENCE) {
       parsesToAStub(text);
