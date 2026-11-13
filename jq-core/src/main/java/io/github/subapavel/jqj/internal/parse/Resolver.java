@@ -100,8 +100,9 @@ import java.util.function.Supplier;
  * in the environment ({@link Env}): a slot, a closure or a definition's body. A call of a definition lowers its body in
  * the environment the definition was written in, plus its parameters, with fresh slots for each copy; a filter
  * parameter is the caller's closure, lowered in the caller's environment on the callee's input at each use, and a value
- * parameter {@code $a} is also a Bind of it around the body, the first parameter outermost (ADR-0040). Lowering a call
- * of a recursive definition is a Stub until spec 2b. One compile spends at most {@link #INLINE_CAP} nodes inside
+ * parameter {@code $a} is also a Bind of it around the body, the first parameter outermost (ADR-0040), and past {@link
+ * #BIND_RUN} of them their one Binds (ADR-0043), as an object's, an interpolation's and a pattern's Binds are.
+ * Lowering a call of a recursive definition is a Stub until spec 2b. One compile spends at most {@link #INLINE_CAP} nodes inside
  * expansions, and nests at most {@link #EXPANSIONS} - 1 of them; past either the filter is a Stub (GLOSSARY "Inline
  * cap"), and so is a filter of more than {@link #MAX_IR_DEPTH} levels of IR (F-44). A Stub is thrown at once.
  *
@@ -194,7 +195,8 @@ public final class Resolver {
 
   /**
    * The levels of IR the lowering is inside ({@link #MAX_IR_DEPTH}): one for each Ast that builds a node of its own and
-   * one for each value parameter Bound around an expansion's body. Every throw ends the compile, so none restores it.
+   * one for each value parameter Bound around an expansion's body, or one for their Binds past {@link #BIND_RUN} of
+   * them. Every throw ends the compile, so none restores it.
    */
   private int levels;
 

@@ -617,6 +617,38 @@ class ResolverTest {
   }
 
   /**
+   * The same boundary for the other parts the lowering binds (#93, implementer, the hand mutants of the pattern bound):
+   * a pattern of n variables is the value's Bind and n steps, so 63 variables stay 64 Bind nodes and 64 are one Binds
+   * of 65 values; each {@code ?//} alternative's match of 64 steps stays nested and of 65 is one Binds; and an
+   * interpolation's text parts are passed as arguments, so 64 interpolations between text stay nested and 65 are one
+   * Binds of the 65 interpolations alone.
+   */
+  @Test
+  void theBoundCountsThePatternsValueEachMatchAndOnlyTheBoundParts() {
+    for (int n : new int[] {64, 65}) {
+      Node pattern = ir(". as [" + terms(n - 1, ", ", "$a%d") + "] | 1");
+      Node alternatives = ir(". as [" + terms(n, ", ", "$a%d") + "] ?// [" + terms(n, ", ", "$a%d") + "] | 1");
+      Node text = ir("\"" + terms(n, "-", "\\(.v%d)") + "\"");
+      if (n == 64) {
+        assertThat(count(pattern, Binds.class)).as("Binds nodes in the IR of a pattern of 63 variables").isZero();
+        assertThat(count(pattern, Bind.class)).as("Bind nodes in the IR of a pattern of 63 variables").isEqualTo(64);
+        assertThat(count(alternatives, Binds.class)).as("Binds nodes in the IR of two alternatives of 64 variables").isZero();
+        assertThat(count(alternatives, Bind.class)).as("Bind nodes in the IR of two alternatives of 64 variables").isEqualTo(128);
+        assertThat(count(text, Binds.class)).as("Binds nodes in the IR of 64 interpolations between text").isZero();
+        assertThat(count(text, Bind.class)).as("Bind nodes in the IR of 64 interpolations between text").isEqualTo(64);
+      } else {
+        assertThat(pattern).as("IR of a pattern of 64 variables").isInstanceOf(Binds.class);
+        assertThat(((Binds) pattern).values()).as("values of the Binds of a pattern of 64 variables").hasSize(65);
+        assertThat(count(pattern, Bind.class)).as("Bind nodes in the IR of a pattern of 64 variables").isZero();
+        assertThat(count(alternatives, Binds.class)).as("Binds nodes in the IR of two alternatives of 65 variables").isEqualTo(2);
+        assertThat(count(alternatives, Bind.class)).as("Bind nodes in the IR of two alternatives of 65 variables").isZero();
+        assertThat(text).as("IR of 65 interpolations between text").isInstanceOf(Binds.class);
+        assertThat(((Binds) text).values()).as("values of the Binds of 65 interpolations between text").hasSize(65);
+      }
+    }
+  }
+
+  /**
    * The steps of an array pattern of 70 variables on the level {@code $<level>}, named from {@code $<first>}, as the
    * nested form prints them: the element 69 first, each {@code ($level | .[k](i)) as $name | }.
    */
