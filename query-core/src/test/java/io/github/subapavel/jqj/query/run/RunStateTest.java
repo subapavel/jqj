@@ -325,6 +325,24 @@ class RunStateTest {
     assertThat(state.caught(next)).as("the Label of the next token after its break").isTrue();
   }
 
+  /**
+   * ADR-0030 as amended by ADR-0044: one reused scratch of ints, the same array while it is long enough, a longer one
+   * when asked for more, which stays; nothing is charged for it.
+   */
+  @Test
+  void intsIsOneReusedScratchThatGrowsToTheLongestAsked() {
+    RunState state = new RunState();
+    int[] first = state.ints(8);
+    assertThat(first).as("scratch for 8").hasSize(8);
+    assertThat(state.ints(8)).as("scratch for 8 again").isSameAs(first);
+    assertThat(state.ints(3)).as("scratch for 3 after 8").isSameAs(first);
+    int[] longer = state.ints(9);
+    assertThat(longer).as("scratch for 9 after 8").hasSize(9).isNotSameAs(first);
+    assertThat(state.ints(8)).as("scratch for 8 after 9").isSameAs(longer);
+    assertThat(state.steps()).as("ticks of the scratch").isZero();
+    assertThat(state.built()).as("bytes built of the scratch").isZero();
+  }
+
   /** Asserts that {@code call} ends the run with {@code Termination(BUDGET, budget)} and the budget's message. */
   private static void assertBudget(ThrowingCallable call, Budget budget, String what) {
     Termination t = assertThatExceptionOfType(Termination.class).as("%s", what).isThrownBy(call).actual();
