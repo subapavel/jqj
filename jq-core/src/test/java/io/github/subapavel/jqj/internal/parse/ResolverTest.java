@@ -209,4 +209,32 @@ class ResolverTest {
       assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
     }
   }
+
+  /**
+   * #67's lowerings (ADR-0038), each run on jq-ref 1.8.2 in diff/bind.rec and interpolation.rec: {@code E as $x} is
+   * one Bind; a pattern's steps are non-quiet indexes of its level's slot, array elements last first; a Var or Const
+   * key, index or operand is an argument without a Bind; an interpolation's Identity and text parts are arguments; a
+   * {@code ?//} is an AltBind whose alternatives end in an Identity leaf, a name an alternative never stores reading
+   * one Const null bound around the chain.
+   */
+  @Test
+  void variablesPatternsAndInterpolationsLowerToTheirIr() {
+    Map<String, String> shapes =
+        Map.ofEntries(
+            Map.entry("1 as $x | $x", "(1[0,1) as $0 | $0)"),
+            Map.entry("1 as $i | .[$i]", "(1[0,1) as $0 | .[k]($0)[10,15))"),
+            Map.entry("1 as $x | $x + .", "(1[0,1) as $0 | _plus($0; .)[10,16))"),
+            Map.entry(". as [$a, $b] | $a", "(.[0,1) as $0 | (($0 | .[k](1)[10,12)) as $1 | (($0 | .[k](0)[6,8)) as $2 | $2)))"),
+            Map.entry("\"b\" as $k | . as {($k): $v} | $v", "(\"b\"[0,3) as $0 | (.[12,13) as $1 | (($1 | .[k]($0)[18,26)) as $2 | $2)))"),
+            Map.entry(". as {$a: [$b]} | $b", "(.[0,1) as $0 | (($0 | .[k](\"a\")[6,14)) as $1 | (($1 | .[k](0)[11,13)) as $2 | $2)))"),
+            Map.entry("\"a\\(.)b\"", "interpolation(\"a\"; .; \"b\")[0,8)"),
+            Map.entry("\"\\(1, 2)\\(.a)\"", "(.a[10,12) as $0 | ((1[3,4), 2[6,7)) as $1 | interpolation($1; $0)[0,14)))"),
+            Map.entry(". as [$a] ?// $a | $a", "(.[0,1) as $0 | (($0 | .[k](0)[6,8)) as $1 | .[5,9)) -> [$1] ?// .[14,16) -> [$0] as [$2] | $2)"),
+            Map.entry(
+                ". as [$a] ?// $b | $a",
+                "(null[0,21) as $0 | (.[0,1) as $1 | (($1 | .[k](0)[6,8)) as $2 | .[5,9)) -> [$2, $0] ?// .[14,16) -> [$0, $1] as [$3, $4] | $3))"));
+    for (Map.Entry<String, String> e : shapes.entrySet()) {
+      assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
+    }
+  }
 }
