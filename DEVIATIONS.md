@@ -214,17 +214,31 @@ function's code must fit 65 536 bytes. jqj compiles to an IR and an interpreter 
 chain is bounded at run time by the step budget instead (one tick per right branch, F-32; jq-core
 CommaChainTest pins chains of 10⁴ and 10⁵).
 
-## Long path chains (F-42, issue #70)
+## Long path chains (F-42, F-44, issue #70)
 
 | case | filter | jq 1.8.2 | jqj |
 | --- | --- | --- | --- |
 | jq-core `LongPathChainTest` | `.a.a…`, 21 845 steps of `.a`, on `null` | rc 3, `jq: error: function compiled to 65537 bytes which is too long` | `null`, rc 0 |
+| jq-core `LongPathChainTest` | `.[0][0]…`, 21 845 steps of `[0]`, on `null` | rc 3, the same message | `null`, rc 0 |
 
-jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) prints `null` for 21 844 steps and rejects one more
-with the bytecode limit of "Long comma chains". jqj lowers a postfix chain by a loop and makes a run of more than 512
-field reads one step that reads them in turn, so a chain of any length compiles and runs, also on a 512 KiB stack
-(ADR-0017's `stackBytes`); its cost is one read per step, as a shorter chain's. `LongPathChainTest` pins 21 844 and
-10⁵ steps on the test thread and on a 512 KiB thread.
+jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) prints `null` for 21 844 steps of `.a` and for 21 844
+of `[0]`, and rejects one more of either with the bytecode limit of "Long comma chains". jqj lowers a postfix chain
+by a loop and pipes a chain of more than 512 steps balanced; a run of more than 512 steps of one result or none
+(field reads, constant indexes and constant slices) becomes one step that takes them in turn (F-44). Its cost in
+ticks is the nested chain's. `LongPathChainTest` pins 10⁵ steps of each of `.a`, `[0]`, `["k"]`, `[1:2]`,
+`[0]??`, `[]?` and `[]` on a 512 KiB stack (ADR-0017's `stackBytes`), and 21 844 and 10⁵ steps of `.a` on the test
+thread as well. A step whose key or bounds are not constants, such as `[$k]` or `[.a]`, is not fused, and a chain of
+such steps is not pinned here.
+
+## Long definition runs (F-44, issue #70)
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| jq-core `LongDefRunTest` | `def f0: 0; …; def f9992: 9992; [f0, f9992]`, 9 993 definitions, on `null` | rc 3, `jq: error: memory exhausted at <top-level>, line 1, column 167660` | `[0,9992]`, rc 0 |
+
+jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) prints `[0,9991]` for 9 992 such definitions and
+rejects one more, rc 3. jqj compiles past that count: `LongDefRunTest` pins 9 993 and 10⁵ definitions compiling
+and running on a 512 KiB stack.
 
 ## Array length limit (ADR-0035, issue #64)
 
