@@ -41,6 +41,15 @@ class PreludeResolutionTest {
     assertThat(blocks("zz0, flatten(zz1)")).as("blocks of zz0, flatten(zz1)").containsExactly(notDefined("zz0", 1, "zz0, flatten(zz1)"));
   }
 
+  /**
+   * A bytecoded builtin's argument is an inner level, so the main level's error hides it (jq-ref 1.8.2, observed
+   * 2026-11-13 with -nc: rc 3 and only the zz1 block).
+   */
+  @Test
+  void aBytecodedBuiltinsArgumentIsAnInnerLevel() {
+    assertThat(blocks("zz1, last(zz2)")).as("blocks of zz1, last(zz2)").containsExactly(notDefined("zz1", 1, "zz1, last(zz2)"));
+  }
+
   /** GLOSSARY "Unbuilt native": a call binds, and its lowering is a Stub (jq-ref 1.8.2 runs each, rc 0). */
   @Test
   void anUnbuiltNativeIsAStubNotJqsNotDefined() {

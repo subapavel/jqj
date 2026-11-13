@@ -158,6 +158,9 @@ final class Binder {
   /** Whether each id is in a cyclic strongly connected component of the call graph (ADR-0040 "Recursion"). */
   private boolean[] recursive;
 
+  /** The signature of the prelude definition whose body the walk is in, or null in the filter's own text. */
+  private String prelude;
+
   /** The prelude definitions a reference has bound to and whose bodies are not walked yet, each with an id. */
   private final List<Ast.FuncDef> unwalked = new ArrayList<>();
 
@@ -218,7 +221,7 @@ final class Binder {
   /**
    * The body of the prelude definition {@code def}, of id {@code id}, walked as {@link #define} walks a definition's,
    * in a scope of its own: no definition, parameter, variable or label of the filter (ADR-0042 "Lookup order"). Its
-   * level is its own and reports nothing.
+   * level is its own; a binding error in it is not jq's error but the {@link #notDefined} IllegalStateException.
    */
   private void walkPrelude(int id, Ast.FuncDef def) {
     // After the main filter's walk no label is in scope, and the walk is in no definition: only the host variables and
@@ -230,8 +233,9 @@ final class Binder {
     variables = null;
     level = new Level(id);
     owner = id;
+    prelude = def.name() + "/" + def.params().size();
     // The definition itself, which its body may call: a recursive group, which the Resolver stubs.
-    push(def.name() + "/" + def.params().size(), new Library(def));
+    push(prelude, new Library(def));
     for (Ast.Param p : def.params()) {
       push(p.name() + "/0", new Parameter(p));
       if (p.value()) {
@@ -243,6 +247,7 @@ final class Binder {
     variables = outerVariables;
     level = outerLevel;
     owner = MAIN;
+    prelude = null;
   }
 
   /** What {@code reference}, an {@link Ast.Call}, variable reference or {@link Ast.Break} of the filter, binds to. */
@@ -742,8 +747,18 @@ final class Binder {
     }
   }
 
-  /** Collects jq's compile error {@code <shown> is not defined} over {@code error} in the current level. */
+  /**
+   * Collects jq's compile error {@code <shown> is not defined} over {@code error} in the current level.
+   *
+   * @throws IllegalStateException if the walk is in a prelude body, whose {@code error} is in builtin.jq, not the filter:
+   *     a defect of the prelude or the binder, which no filter can cause
+   */
   private void notDefined(String shown, Source error) {
+    if (prelude != null) {
+      throw new IllegalStateException(
+          shown + " is not defined in the prelude's " + prelude + ", bytes " + error.start() + " to " + error.end()
+              + " of builtin.jq");
+    }
     level.errors.add(new Located(text.block(shown + " is not defined", error.start(), error.end()), text.line(error.start()), text.column(error.start())));
   }
 
