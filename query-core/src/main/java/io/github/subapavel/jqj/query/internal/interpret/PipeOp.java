@@ -14,7 +14,7 @@ public final class PipeOp extends Op {
   }
 
   @Override
-  public boolean run(RunState state, Object in, Sink out) {
-    return left.run(state, in, v -> right.run(state, v, out));
+  public boolean run(RunState state, Object[] slots, Object in, Sink out) {
+    return left.run(state, slots, in, v -> right.run(state, slots, v, out));
   }
 }

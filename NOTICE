@@ -29,6 +29,12 @@ licence text ships in the jq-core jar under META-INF/.
   jq 1.8.2's precedence and associativity declarations (src/parser.y) (#62)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/parse/Token.java, translated from
   jq 1.8.2's token names and their aliases (src/parser.y) (#62)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/json/ErrorDump.java, translated from
+  jq 1.8.2's jv_dump_string_trunc (src/jv_print.c) (#63)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Index.java, translated from
+  jq 1.8.2's jv_get (src/jv_aux.c) (#63)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Slice.java, translated from
+  jq 1.8.2's parse_slice and the slice of jv_get (src/jv_aux.c) (#63)
 - jq-core/src/test/resources/jq/builtin.jq, copied byte for byte from jq 1.8.2's src/builtin.jq,
   a test resource; its SHA-256 is in jq-core/src/test/resources/jq/SOURCES.sha256 (#62)
 
