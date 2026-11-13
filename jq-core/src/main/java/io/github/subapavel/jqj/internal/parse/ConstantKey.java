@@ -1,6 +1,6 @@
 /*
- * Translated from jq 1.8.2 (https://github.com/jqlang/jq): check_object_key in src/parser.y, and the folds its
- * block_is_const sees, gen_const_array and gen_const_object in src/compile.c.
+ * Translated from jq 1.8.2 (https://github.com/jqlang/jq): check_object_key and constant_fold in src/parser.y, and the
+ * folds its block_is_const sees, gen_const_array and gen_const_object in src/compile.c.
  *
  * jq is copyright (C) 2012 Stephen Dolan
  *
@@ -25,11 +25,17 @@
  */
 package io.github.subapavel.jqj.internal.parse;
 
+import io.github.subapavel.jqj.internal.op.Arithmetic;
 import io.github.subapavel.jqj.internal.op.ObjectKey;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltObject;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
+import io.github.subapavel.jqj.query.ir.Operation;
+import io.github.subapavel.jqj.query.run.Charges;
+import io.github.subapavel.jqj.query.run.EvaluationException;
+import io.github.subapavel.jqj.query.run.Fn2;
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqString;
@@ -48,7 +54,8 @@ import java.util.Map;
  * constant strings and whose values are constants, folded as a construction is (a repeated key keeps its first place
  * and its last value). Nothing else folds: {@code 1|2}, {@code -1}, {@code 1?}, {@code [.]} and a key whose value or
  * key is a shorthand or a variable are known only at run time. {@code $__loc__} folds in jq too; it is not built yet, so
- * it is no constant here.
+ * it is no constant here. An arithmetic operator on two constants folds to its result (#65, {@link #binary}), which the
+ * resolver lowers to a Const too.
  */
 final class ConstantKey {
   /** What {@code .} alone folds to: a pipe drops it. */
@@ -56,6 +63,21 @@ final class ConstantKey {
 
   /** The calls that are constants, by name and arity (jq's parser). */
   private static final Map<String, JqValue> CONSTANTS = Map.of("true/0", JqBool.TRUE, "false/0", JqBool.FALSE, "null/0", JqNull.NULL);
+
+  /** The arithmetic operators, which jq folds, and their operations. */
+  private static final Map<BinOp, Operation> ARITHMETIC =
+      Map.of(
+          BinOp.ADD, Arithmetic.PLUS,
+          BinOp.SUBTRACT, Arithmetic.MINUS,
+          BinOp.MULTIPLY, Arithmetic.MULTIPLY,
+          BinOp.DIVIDE, Arithmetic.DIVIDE,
+          BinOp.MODULO, Arithmetic.MODULO);
+
+  /**
+   * The bytes a fold may build (ADR-0035 amendment: no value larger than 4 KiB): a string of 4096 bytes with its fixed
+   * charge, so 4096 bytes fold and 4097 do not; any other value is held to the same charges.
+   */
+  static final long FOLD_BYTES = Charges.STRING + 4096;
 
   private ConstantKey() {}
 
@@ -76,8 +98,39 @@ final class ConstantKey {
       case Ast.Call c -> CONSTANTS.get(c.name() + "/" + c.args().size());
       case Ast.ArrayCons a -> array(a.body());
       case Ast.ObjectCons o -> object(o.pairs());
+      case Ast.Binary b -> binary(b);
       default -> null;
     };
+  }
+
+  /** The operation of an arithmetic operator, or null for any other. */
+  static Operation arithmetic(BinOp op) {
+    return ARITHMETIC.get(op);
+  }
+
+  /** The constant {@code ast} folds to, or null when it is none: what the resolver lowers to a Const. */
+  static JqValue constant(Ast ast) {
+    return fold(ast) instanceof JqValue value ? value : null;
+  }
+
+  /**
+   * jq's {@code constant_fold} of {@code + - * / %} (GLOSSARY "Fold"): the operator on two constants, computed now as
+   * the run would, under a bytes-built budget of {@link #FOLD_BYTES} (ADR-0035 amendment). A fold that raises, or
+   * that would build past the budget, is none: the run computes it, raising or building and charging there. The other
+   * operators fold in jq too; comparison is #66's, and {@code and}, {@code or} and {@code //} are not folded.
+   */
+  private static Object binary(Ast.Binary b) {
+    Operation op = ARITHMETIC.get(b.op());
+    if (op == null || !(fold(b.left()) instanceof JqValue left) || !(fold(b.right()) instanceof JqValue right)) {
+      return null;
+    }
+    RunState state = new RunState();
+    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, FOLD_BYTES, Long.MAX_VALUE);
+    try {
+      return ((Fn2) op.form()).apply(state, JqNull.NULL, left, right);
+    } catch (EvaluationException e) {
+      return null;
+    }
   }
 
   /** A pipe of two folds: the other side when one is {@code .} alone, otherwise none. */
