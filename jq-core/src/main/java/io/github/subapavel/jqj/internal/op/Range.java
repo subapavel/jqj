@@ -40,6 +40,9 @@ import io.github.subapavel.jqj.value.JqNumber;
  * no number raises "Range bounds must be numeric" before any result. Its steps are the caller's, one per value; it
  * charges nothing.
  *
+ * <p>A document's number computes its double at each read (ADR-0012), O(its token) for each, so {@link #first} reads
+ * the end's double once and puts it in the arguments' place as a {@link DoubleNumber}, which each later step reads.
+ *
  * <p>The cursor of a later value is that value's double, its bits with every NaN as the one canonical NaN; the first
  * value's is {@link #START}, another NaN's bits, so no double's cursor is it or {@link Many#END}.
  */
@@ -57,14 +60,19 @@ public final class Range implements Many {
     if (!(args[0] instanceof JqNumber start) || !(args[1] instanceof JqNumber end)) {
       throw new FilterException(BuiltString.of("Range bounds must be numeric"));
     }
-    return start.doubleValue() >= end.doubleValue() ? END : START;
+    double last = end.doubleValue();
+    if (start.doubleValue() >= last) {
+      return END;
+    }
+    args[1] = new DoubleNumber(last);
+    return START;
   }
 
-  /** {@link #first} gave a cursor only to two numbers, so only they come here. */
+  /** {@link #first} gave a cursor only to two numbers, the end as its double, so only they come here. */
   @Override
   public long next(RunState state, Object in, Object[] args, long cursor) {
     double v = (cursor == START ? ((JqNumber) args[0]).doubleValue() : Double.longBitsToDouble(cursor)) + 1;
-    return v >= ((JqNumber) args[1]).doubleValue() ? END : Double.doubleToLongBits(v);
+    return v >= ((DoubleNumber) args[1]).doubleValue() ? END : Double.doubleToLongBits(v);
   }
 
   @Override
