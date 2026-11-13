@@ -140,7 +140,7 @@ What every walk of a read object does first: it finds which key entries repeat a
 _Avoid_: dedup, key check.
 
 **Object walk**:
-A read object's members as its key proof gives them, each key at its first place with its last value, valid for that one walk; a walker that skips the proof cannot take the object's members at all (ADR-0044).
+A read object's members as its key proof gives them, each key at its first place with its last value, valid for that one walk. Every walker takes a read object's members through the walk, except the Printer: it enters through `KeyProof.plan`, the proof's pairs without the walk, and no other walker may (ADR-0044 as amended).
 _Avoid_: object cursor, members view.
 
 **Repeated key**:

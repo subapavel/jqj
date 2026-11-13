@@ -97,7 +97,7 @@ public final class Flatten {
           case Members members -> members;
           // Every other value, a scalar or a string, has nothing to iterate; whatever later joins JqValue cannot be
           // iterated unless it is Members or a read object, so one arm covers them all and none is forgotten.
-          default -> throw NavigationErrors.cannotIterate(in);
+          default -> throw NavigationErrors.cannotIterate(state, in);
         };
     Built.Elements out = new Built.Elements(state);
     ArrayDeque<Level> open = new ArrayDeque<>();

@@ -125,10 +125,10 @@ public final class Keys {
     return switch (v) {
       case JqArray array -> indices(state, array);
       case JqObject object -> names(state, KeyProof.members(state, object), sorted);
-      case JqNull _ -> throw Arithmetic.cannot(v, "has no keys");
-      case JqBool _ -> throw Arithmetic.cannot(v, "has no keys");
-      case JqNumber _ -> throw Arithmetic.cannot(v, "has no keys");
-      case JqString _ -> throw Arithmetic.cannot(v, "has no keys");
+      case JqNull _ -> throw Arithmetic.cannot(state, v, "has no keys");
+      case JqBool _ -> throw Arithmetic.cannot(state, v, "has no keys");
+      case JqNumber _ -> throw Arithmetic.cannot(state, v, "has no keys");
+      case JqString _ -> throw Arithmetic.cannot(state, v, "has no keys");
     };
   }
 
@@ -178,10 +178,10 @@ public final class Keys {
         switch (v) {
           case JqArray array -> (Members) array;
           case JqObject object -> KeyProof.members(state, object);
-          case JqNull _ -> throw Arithmetic.cannot(v, "has no keys");
-          case JqBool _ -> throw Arithmetic.cannot(v, "has no keys");
-          case JqNumber _ -> throw Arithmetic.cannot(v, "has no keys");
-          case JqString _ -> throw Arithmetic.cannot(v, "has no keys");
+          case JqNull _ -> throw Arithmetic.cannot(state, v, "has no keys");
+          case JqBool _ -> throw Arithmetic.cannot(state, v, "has no keys");
+          case JqNumber _ -> throw Arithmetic.cannot(state, v, "has no keys");
+          case JqString _ -> throw Arithmetic.cannot(state, v, "has no keys");
         };
     Built.Elements entries = new Built.Elements(state);
     int i = 0;

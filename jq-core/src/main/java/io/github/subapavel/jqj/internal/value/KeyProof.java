@@ -151,14 +151,14 @@ public final class KeyProof {
     boolean repeated = false;
     int ordinal = 0;
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
-      byte[] key = text(tape, bytes, texts,ordinal, k);
-      int from = from(tape,k);
-      int to = to(tape,key, k);
+      byte[] key = text(tape, bytes, texts, ordinal, k);
+      int from = from(tape, k);
+      int to = to(tape, key, k);
       int at = 0;
       while (at < size) {
         int other = pairs[2 * at];
-        byte[] otherKey = text(tape, bytes, texts,pairs[2 * n + at], other);
-        if (Arrays.equals(key, from, to, otherKey, from(tape,other), to(tape,otherKey, other))) {
+        byte[] otherKey = text(tape, bytes, texts, pairs[2 * n + at], other);
+        if (Arrays.equals(key, from, to, otherKey, from(tape, other), to(tape, otherKey, other))) {
           break;
         }
         at++;
@@ -192,9 +192,9 @@ public final class KeyProof {
     boolean repeated = false;
     int ordinal = 0;
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
-      byte[] key = text(tape, bytes, texts,ordinal, k);
-      int from = from(tape,k);
-      int to = to(tape,key, k);
+      byte[] key = text(tape, bytes, texts, ordinal, k);
+      int from = from(tape, k);
+      int to = to(tape, key, k);
       int slot = hash(key, from, to) & mask;
       for (;;) {
         int held = scratch[slot];
@@ -209,9 +209,9 @@ public final class KeyProof {
           break;
         }
         int other = scratch[slots + 2 * held - 2];
-        byte[] otherKey = text(tape, bytes, texts,scratch[ordinals + held - 1], other);
-        int otherFrom = from(tape,other);
-        int otherTo = to(tape,otherKey, other);
+        byte[] otherKey = text(tape, bytes, texts, scratch[ordinals + held - 1], other);
+        int otherFrom = from(tape, other);
+        int otherTo = to(tape, otherKey, other);
         budget -= to - from == otherTo - otherFrom ? Math.max(1, kibibytes(to - from)) : 1;
         if (budget < 0) {
           return OVER;
@@ -247,7 +247,7 @@ public final class KeyProof {
       for (int lo = 0; lo < n; lo += 2 * width) {
         int mid = Math.min(lo + width, n);
         int hi = (int) Math.min((long) lo + 2 * width, n);
-        merge(state, tape, bytes, texts,scratch, from, to, lo, mid, hi, written);
+        merge(state, tape, bytes, texts, scratch, from, to, lo, mid, hi, written);
       }
       int merged = to;
       to = from;
@@ -260,7 +260,7 @@ public final class KeyProof {
     while (start < n) {
       int first = scratch[from + start];
       int next = start + 1;
-      while (next < n && compare(state, tape, bytes, texts,scratch, first, scratch[from + next], written) == 0) {
+      while (next < n && compare(state, tape, bytes, texts, scratch, first, scratch[from + next], written) == 0) {
         next++;
       }
       scratch[to + first] = scratch[scratch[from + next - 1]] + 1;
@@ -293,7 +293,7 @@ public final class KeyProof {
     while (i < mid && j < hi) {
       int left = scratch[from + i];
       int right = scratch[from + j];
-      if (compare(state, tape, bytes, texts,scratch, left, right, written) > 0) {
+      if (compare(state, tape, bytes, texts, scratch, left, right, written) > 0) {
         scratch[to + k++] = right;
         j++;
       } else {
@@ -312,12 +312,12 @@ public final class KeyProof {
   private static int compare(RunState state, long[] tape, byte[] bytes, byte[][] texts, int[] scratch, int a, int b, boolean written) {
     int x = scratch[a];
     int y = scratch[b];
-    byte[] p = text(tape, bytes, texts,a, x);
-    byte[] q = text(tape, bytes, texts,b, y);
-    int pf = from(tape,x);
-    int pt = to(tape,p, x);
-    int qf = from(tape,y);
-    int qt = to(tape,q, y);
+    byte[] p = text(tape, bytes, texts, a, x);
+    byte[] q = text(tape, bytes, texts, b, y);
+    int pf = from(tape, x);
+    int pt = to(tape, p, x);
+    int qf = from(tape, y);
+    int qt = to(tape, q, y);
     int ticks = Math.max(1, kibibytes(Math.min(pt - pf, qt - qf)));
     if (written) {
       state.tickWritten(ticks);

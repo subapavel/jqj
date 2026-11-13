@@ -62,7 +62,7 @@ import io.github.subapavel.jqj.value.JqValue;
  */
 public final class Sort {
   /** {@code sort}. */
-  public static final Operation SORT = new Operation("sort", (Fn0) (state, in) -> sort(state, array(in, "sorted"), false));
+  public static final Operation SORT = new Operation("sort", (Fn0) (state, in) -> sort(state, array(state, in, "sorted"), false));
 
   /** {@code _sort_by_impl(keys)}. */
   public static final Operation SORT_BY = new Operation("_sort_by_impl", (Fn1) (state, in, keys) -> sortBy(state, in, keys, false));
@@ -71,7 +71,7 @@ public final class Sort {
   public static final Operation GROUP_BY = new Operation("_group_by_impl", (Fn1) Sort::groupBy);
 
   /** {@code unique}. */
-  public static final Operation UNIQUE = new Operation("unique", (Fn0) (state, in) -> sort(state, array(in, "sorted"), true));
+  public static final Operation UNIQUE = new Operation("unique", (Fn0) (state, in) -> sort(state, array(state, in, "sorted"), true));
 
   /** {@code _unique_by_impl(keys)}. */
   public static final Operation UNIQUE_BY = new Operation("_unique_by_impl", (Fn1) (state, in, keys) -> sortBy(state, in, keys, true));
@@ -94,11 +94,11 @@ public final class Sort {
   private record Entry(JqValue value, JqValue key) {}
 
   /** jq's {@code f_sort} and {@code f_unique}: the input must be an array. */
-  private static JqArray array(Object in, String what) {
+  private static JqArray array(RunState state, Object in, String what) {
     if (in instanceof JqArray array) {
       return array;
     }
-    throw Arithmetic.cannot((JqValue) in, "cannot be " + what + ", as it is not an array");
+    throw Arithmetic.cannot(state, (JqValue) in, "cannot be " + what + ", as it is not an array");
   }
 
   /** {@code sort} or {@code unique} of {@code array}, each member its own key. */
@@ -142,7 +142,7 @@ public final class Sort {
         return entries(state, values, keyArray, n);
       }
     }
-    throw Arithmetic.cannot(in, keys, "cannot be sorted, as they are not both arrays");
+    throw Arithmetic.cannot(state, in, keys, "cannot be sorted, as they are not both arrays");
   }
 
   /** The sorted members, or with {@code unique} the first of each run of equal keys. */
@@ -219,11 +219,11 @@ public final class Sort {
    */
   private static JqValue extreme(RunState state, JqValue values, JqValue keys, boolean min) {
     if (!(values instanceof JqArray array) || !(keys instanceof JqArray keyArray)) {
-      throw Arithmetic.cannot(values, keys, "cannot be iterated over");
+      throw Arithmetic.cannot(state, values, keys, "cannot be iterated over");
     }
     int n = length(state, array);
     if (n != length(state, keyArray)) {
-      throw Arithmetic.cannot(values, keys, "have wrong length");
+      throw Arithmetic.cannot(state, values, keys, "have wrong length");
     }
     if (n == 0) {
       return JqNull.NULL;

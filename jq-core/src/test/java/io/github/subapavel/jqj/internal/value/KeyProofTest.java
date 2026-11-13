@@ -164,7 +164,7 @@ class KeyProofTest {
     for (int i = 0; i < 16; i++) expected.add(keys.get(i) + "=" + (i == 0 ? 16 : i == 7 ? 17 : i));
     assertThat(members(walk)).as("members of the sorted walk with repeats").containsExactlyElementsOf(expected);
 
-    // A key three times: AaAaBBAa at 3, 16 and 17 keeps its first place with the value of 17. jq-ref 1.8.2, observed
+    // A key three times: BBBBAaAa at 3, 16 and 17 keeps its first place with the value of 17. jq-ref 1.8.2, observed
     // 2026-11-13: {"a":0,"b":1,"a":2,"c":3,"a":4} gives {"a":4,"b":1,"c":3}.
     List<String> thrice = new ArrayList<>(keys);
     thrice.add(keys.get(3));

@@ -94,7 +94,7 @@ public final class Basics {
     JqValue v = (JqValue) in;
     return switch (v) {
       case JqNull _ -> ZERO;
-      case JqBool _ -> throw Arithmetic.cannot(v, "has no length");
+      case JqBool _ -> throw Arithmetic.cannot(state, v, "has no length");
       case JqNumber n -> Numbers.abs(n);
       case JqString s -> new DoubleNumber(codePoints(state, s.utf8()));
       case ArrayView a -> new DoubleNumber(a.length(state));
@@ -147,6 +147,6 @@ public final class Basics {
         return n;
       }
     }
-    throw Arithmetic.cannot(v, "cannot be parsed as a number");
+    throw Arithmetic.cannot(state, v, "cannot be parsed as a number");
   }
 }
