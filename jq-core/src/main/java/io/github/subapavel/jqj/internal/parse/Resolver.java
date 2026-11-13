@@ -74,7 +74,9 @@ import java.util.function.Supplier;
  * no step, a Try, {@code error} and {@code error(f)}, and {@code label $name | ...} and {@code break $name}, a Label
  * and a Break of its slot; and (#69, ADR-0041) {@code reduce} and {@code foreach}, a Reduce or Foreach around its
  * pattern's Binds and the Advance of its state slot, and {@code range(a; b)}, an Intrinsic of Range; and (#70,
- * ADR-0040) {@code def}, which makes no node: a call of a definition is its body, inlined. Every other kind is a Stub.
+ * ADR-0040) {@code def}, which makes no node: a call of a definition is its body, inlined; and (#71, ADR-0042) a call
+ * of a prelude definition, {@code ..} among them, inlined so too, and an unbuilt native, a Stub. Every other kind is a
+ * Stub.
  *
  * <p>A key or bound that is a Const or a Var is the step's argument; any other is bound around the step's target, the
  * key outside the target and {@code a} outside {@code b} (ADR-0034, jq's {@code gen_index} and {@code
@@ -93,6 +95,10 @@ import java.util.function.Supplier;
  * of a recursive definition is a Stub until spec 2b. One compile spends at most {@link #INLINE_CAP} nodes inside
  * expansions, and nests at most {@link #EXPANSIONS} - 1 of them; past either the filter is a Stub (GLOSSARY "Inline
  * cap"), and so is a filter of more than {@link #MAX_IR_DEPTH} levels of IR (F-44). A Stub is thrown at once.
+ *
+ * <p>A prelude definition's body is written in no environment of the filter's, and every node lowered from it takes
+ * the Source of the filter's call that reached the prelude, while a closure argument of the filter keeps its own
+ * (ADR-0042 "Source", amending ADR-0031): {@link #here} gives each new node its Source.
  */
 public final class Resolver {
   /** jq's message for a program with no top-level filter, which is no syntax error (ADR-0032). */
@@ -177,6 +183,12 @@ public final class Resolver {
   private int levels;
 
   /**
+   * The Source of every node the lowering builds now: the filter's call that reached the prelude, while the lowering is
+   * in text of the prelude's; null in the filter's own text, where each node takes its own (ADR-0042 "Source").
+   */
+  private Source site;
+
+  /**
    * A declaration the Binder bound a reference to, in scope where the lowering is: a variable's, label's or value
    * parameter's slot, and a filter parameter's, value parameter's or definition's closure; then the declarations
    * outside it.
@@ -184,10 +196,10 @@ public final class Resolver {
   private record Env(Object declaration, int slot, Closure closure, Env outer) {}
 
   /**
-   * A body and the environment it was written in: a filter argument, lowered in its caller's environment (GLOSSARY
-   * "Closure"), or a definition's body, lowered in its definition's.
+   * A body, the environment it was written in and the {@link #site} it was written at: a filter argument, lowered in
+   * its caller's environment (GLOSSARY "Closure"), or a definition's body, lowered in its definition's.
    */
-  private record Closure(Ast body, Env env) {}
+  private record Closure(Ast body, Env env, Source site) {}
 
   /** A Bind a pattern's match lowers to: its value, its slot, and the part of the pattern it spans. */
   private record Step(Node value, int slot, Source source) {}
@@ -267,7 +279,9 @@ public final class Resolver {
     return switch (ast) {
       case Ast.Paren p -> lower(p.body());
       case Ast.Def d -> definitions(d);
-      case Ast.Call c -> call(c);
+      case Ast.Call c -> call(c, c);
+      // jq's parser.y lowers .. to a call of recurse/0, which the Binder bound (ADR-0042 "Recursion").
+      case Ast.Recurse r -> call(r, new Ast.Call(r.source(), "recurse", List.of()));
       // Every other kind builds a node of its own, which an expansion pays for (ADR-0040 "Inline cap"), one level deeper.
       default -> {
         spend();
@@ -330,7 +344,7 @@ public final class Resolver {
 
   private Node built(Ast ast) {
     return switch (ast) {
-      case Ast.Dot d -> new Identity(d.source());
+      case Ast.Dot d -> new Identity(here(d.source()));
       case Ast.Pipe p -> pipe(lower(p.left()), lower(p.right()));
       case Ast.Comma c -> comma(c);
       case Ast.Field f -> chain(f);
@@ -339,29 +353,37 @@ public final class Resolver {
       case Ast.Each e -> chain(e);
       case Ast.Slice s -> chain(s);
       case Ast.Optional o -> chain(o);
-      case Ast.Num n -> new Const(n.source(), LiteralNumber.ofLexeme(n.lexeme()));
+      case Ast.Num n -> new Const(here(n.source()), LiteralNumber.ofLexeme(n.lexeme()));
       case Ast.Str s -> string(s);
       case Ast.Var v -> variable(v, v.source());
       case Ast.Loc l -> location(l.source());
       case Ast.Bind b -> binding(b);
-      case Ast.Format f when Formats.lookup(f.name()) != null -> new Intrinsic(f.source(), Formats.lookup(f.name()), List.of());
+      case Ast.Format f when Formats.lookup(f.name()) != null -> new Intrinsic(here(f.source()), Formats.lookup(f.name()), List.of());
       case Ast.ArrayCons a -> array(a);
       case Ast.ObjectCons o -> object(o);
       case Ast.Binary b when ConstantKey.arithmetic(b.op()) != null -> binary(b);
       case Ast.Binary b when ConstantKey.comparison(b.op()) != null -> operator(b, ConstantKey.comparison(b.op()));
       case Ast.Binary b when b.op() == BinOp.AND -> and(b);
       case Ast.Binary b when b.op() == BinOp.OR -> or(b);
-      case Ast.Binary b when b.op() == BinOp.ALTERNATIVE -> new Alt(b.source(), lower(b.left()), lower(b.right()), JqTruth.TRUTHY);
-      case Ast.Neg n -> pipe(lower(n.operand()), new Intrinsic(n.source(), Arithmetic.NEGATE, List.of()));
+      case Ast.Binary b when b.op() == BinOp.ALTERNATIVE -> new Alt(here(b.source()), lower(b.left()), lower(b.right()), JqTruth.TRUTHY);
+      case Ast.Neg n -> pipe(lower(n.operand()), new Intrinsic(here(n.source()), Arithmetic.NEGATE, List.of()));
       case Ast.If i -> conditional(i);
-      case Ast.Try t -> attempt(t.source(), t.body(), t.handler());
+      case Ast.Try t -> attempt(here(t.source()), t.body(), t.handler());
       case Ast.Label l -> label(l);
-      case Ast.Break b -> new Break(b.source(), find(binder.binding(b)).slot());
+      case Ast.Break b -> new Break(here(b.source()), find(binder.binding(b)).slot());
       case Ast.Reduce r -> reduce(r);
       case Ast.Foreach f -> foreach(f);
       // Each other kind, and each guarded one outside its guard, belongs to a later ticket (spec 2a and 2b).
-      default -> throw Stub.unbuilt("the " + ast.getClass().getSimpleName() + " at byte " + ast.source().start());
+      default -> throw Stub.unbuilt("the " + ast.getClass().getSimpleName() + " at byte " + here(ast.source()).start());
     };
+  }
+
+  /**
+   * The Source of a node built now for the text at {@code own}: {@code own} in the filter's text, and the {@link #site}
+   * of the call that reached the prelude in text of the prelude's (ADR-0042 "Source").
+   */
+  private Source here(Source own) {
+    return site == null ? own : site;
   }
 
   /** Spends one node of the compile's inline cap when the lowering is inside an expansion; past the cap, a Stub. */
@@ -372,56 +394,60 @@ public final class Resolver {
   }
 
   /**
-   * The call {@code c}, as the Binder bound it: a parse constant, a native, {@code error/1}, the body of a definition,
-   * or a parameter's closure.
+   * The call {@code c}, the {@code reference} the Binder bound: a parse constant, a native, the body of a definition or
+   * of a prelude one, or a parameter's closure; an unbuilt native is a Stub.
    */
-  private Node call(Ast.Call c) {
-    return switch ((Binder.Callee) binder.binding(c)) {
+  private Node call(Ast reference, Ast.Call c) {
+    return switch ((Binder.Callee) binder.binding(reference)) {
       case Binder.Constant k -> {
         spend();
-        yield new Const(c.source(), k.value());
+        yield new Const(here(c.source()), k.value());
       }
       case Binder.Native n -> {
         spend();
         yield natively(n, c);
       }
-      case Binder.ErrorMessage _ -> {
-        spend();
-        // builtin.jq's def error(msg): msg|error; inlined, its nodes at the call's Source (ADR-0040, ADR-0042).
-        yield new Pipe(c.source(), lower(c.args().getFirst()), new Intrinsic(c.source(), Raise.OP, List.of()));
+      case Binder.Unbuilt u -> throw Stub.unbuilt("the native " + u.signature() + " at byte " + here(c.source()).start());
+      case Binder.Defined d -> {
+        Closure body = find(d.def()).closure();
+        yield expand(d.def(), c, body.env(), body.site());
       }
-      case Binder.Defined d -> expand(d.def(), c);
+      // A prelude body is written in no environment of the filter's, and its nodes take the Source of the filter's
+      // call that reached the prelude: this call's, or the one a prelude body that calls it was reached by.
+      case Binder.Library l -> expand(l.def(), c, null, site == null ? c.source() : site);
       case Binder.Parameter p -> closure(find(p.param()).closure());
     };
   }
 
   /** A call of the native {@code n} (ADR-0040's native table, ADR-0041's {@code range/2}). */
   private Node natively(Binder.Native n, Ast.Call c) {
+    Source at = here(c.source());
     return switch (n) {
-      case EMPTY -> new Intrinsic(c.source(), Empty.OP, List.of());
-      case ERROR -> new Intrinsic(c.source(), Raise.OP, List.of());
-      case NOT -> not(c.source());
+      case EMPTY -> new Intrinsic(at, Empty.OP, List.of());
+      case ERROR -> new Intrinsic(at, Raise.OP, List.of());
+      case NOT -> not(at);
       case RANGE -> range(c);
     };
   }
 
   /**
-   * The call {@code c} of {@code def}, inlined (ADR-0040): its body lowered in its definition's environment plus its
-   * parameters, each bound to its argument's closure in the caller's environment, a closure that is a parameter of
-   * the caller passed on as it is; each value parameter's closure is also lowered here, on the call's input, and bound
-   * to a slot of its own around the body, the first parameter outermost. A recursive definition is a Stub until spec
-   * 2b, and so is the expansion nested {@link #EXPANSIONS} deep.
+   * The call {@code c} of {@code def}, inlined (ADR-0040): its body lowered in {@code defining}, its definition's
+   * environment, at {@code bodySite}, plus its parameters, each bound to its argument's closure in the caller's
+   * environment, a closure that is a parameter of the caller passed on as it is; each value parameter's closure is also
+   * lowered here, on the call's input, and bound to a slot of its own around the body, the first parameter outermost.
+   * A recursive definition is a Stub until spec 2b, and so is the expansion nested {@link #EXPANSIONS} deep.
    */
-  private Node expand(Ast.FuncDef def, Ast.Call c) {
+  private Node expand(Ast.FuncDef def, Ast.Call c, Env defining, Source bodySite) {
     if (binder.recursive(def)) {
-      throw Stub.unbuilt("the call of the recursive " + def.name() + "/" + def.params().size() + " at byte " + c.source().start());
+      throw Stub.unbuilt("the call of the recursive " + def.name() + "/" + def.params().size() + " at byte " + here(c.source()).start());
     }
     if (depth + 1 >= EXPANSIONS) {
       throw Stub.unbuilt("a filter that nests " + EXPANSIONS + " expansions");
     }
     depth++;
     Env caller = env;
-    Env inner = find(def).closure().env();
+    Source callerSite = site;
+    Env inner = defining;
     List<Ast.Param> params = def.params();
     Node[] values = new Node[params.size()];
     int[] valueSlots = new int[params.size()];
@@ -441,12 +467,15 @@ public final class Resolver {
     // builds, stops the lowering past MAX_IR_DEPTH as early as its levels do.
     levels += binds;
     env = inner;
+    site = bodySite;
     Node body = lower(def.body());
     env = caller;
     levels -= binds;
+    // The value parameters' Binds are the body's, at its site.
     for (int i = params.size() - 1; i >= 0; i--) {
       body = bind(values[i], valueSlots[i], body);
     }
+    site = callerSite;
     depth--;
     return body;
   }
@@ -456,15 +485,18 @@ public final class Resolver {
     if (binder.binding(arg) instanceof Binder.Parameter p) {
       return find(p.param()).closure();
     }
-    return new Closure(arg, env);
+    return new Closure(arg, env, site);
   }
 
-  /** {@code closure}'s body lowered in its environment. */
+  /** {@code closure}'s body lowered in its environment, at its site. */
   private Node closure(Closure closure) {
     Env at = env;
+    Source outer = site;
     env = closure.env();
+    site = closure.site();
     Node node = lower(closure.body());
     env = at;
+    site = outer;
     return node;
   }
 
@@ -477,7 +509,7 @@ public final class Resolver {
     Env outer = env;
     Ast rest = d;
     while (rest instanceof Ast.Def def) {
-      env = new Env(def.def(), NO_SLOT, new Closure(def.def().body(), env), env);
+      env = new Env(def.def(), NO_SLOT, new Closure(def.def().body(), env, site), env);
       rest = def.body();
     }
     Node node = lower(rest);
@@ -511,25 +543,25 @@ public final class Resolver {
       Ast target =
           switch (node) {
             case Ast.Field f -> {
-              steps.push(read(f.source(), "." + f.name() + (f.optional() ? "?" : ""), new Field(f.name(), f.optional())));
+              steps.push(read(here(f.source()), "." + f.name() + (f.optional() ? "?" : ""), new Field(f.name(), f.optional())));
               yield f.target();
             }
             case Ast.StringField f when plain(f.name()) -> {
               BuiltString name = BuiltString.of(bytes(f.name()));
-              steps.push(read(f.source(), "." + name.toJson() + (f.optional() ? "?" : ""), new Field(name.value(), f.optional())));
+              steps.push(read(here(f.source()), "." + name.toJson() + (f.optional() ? "?" : ""), new Field(name.value(), f.optional())));
               yield f.target();
             }
             case Ast.StringField f -> {
-              steps.push(keyed(f.source(), f.source(), f.name(), f.optional() ? Index.QUIET : Index.PLAIN));
+              steps.push(keyed(here(f.source()), here(f.source()), f.name(), f.optional() ? Index.QUIET : Index.PLAIN));
               yield f.target();
             }
             case Ast.Index i -> {
-              steps.push(keyed(i.source(), dotted(i.target(), i.source()), i.index(), i.optional() ? Index.QUIET : Index.PLAIN));
+              steps.push(keyed(here(i.source()), here(dotted(i.target(), i.source())), i.index(), i.optional() ? Index.QUIET : Index.PLAIN));
               yield i.target();
             }
             case Ast.Each e -> {
               Operation op = e.optional() ? Iterate.QUIET : Iterate.PLAIN;
-              steps.push(new Stage(e.source(), dotted(e.target(), e.source()), op, List.of(), null));
+              steps.push(new Stage(here(e.source()), here(dotted(e.target(), e.source())), op, List.of(), null));
               yield e.target();
             }
             case Ast.Slice s -> {
@@ -537,7 +569,7 @@ public final class Resolver {
               yield s.target();
             }
             case Ast.Optional o -> {
-              steps.push(new Quiet(new Source(o.target().source().start(), o.source().end())));
+              steps.push(new Quiet(here(new Source(o.target().source().start(), o.source().end()))));
               yield o.target();
             }
             // The term the chain starts from, which is no step.
@@ -556,7 +588,7 @@ public final class Resolver {
     }
     // The leading dot of .[...] is the bracket step's own (bracket).
     boolean own = term instanceof Ast.Dot && (innermost instanceof Ast.Index || innermost instanceof Ast.Each || innermost instanceof Ast.Slice);
-    Links links = new Links(text, term == null || own ? null : lower(term));
+    Links links = new Links(term == null || own ? null : lower(term));
     for (Peeled step : steps) {
       switch (step) {
         case Stage s -> links.add(s);
@@ -577,9 +609,7 @@ public final class Resolver {
    * them around the links so far and itself, which then are one node, so each such step nests one Bind deeper, and its
    * depth counts toward {@link #MAX_IR_DEPTH} (F-44).
    */
-  private static final class Links {
-    private final FilterText text;
-
+  private final class Links {
     /** The chain so far, first to last: a node (the term, or a Bind of computed keys) or a step not built yet. */
     private List<Object> links = new ArrayList<>();
 
@@ -588,8 +618,7 @@ public final class Resolver {
 
     private Source quiet;
 
-    Links(FilterText text, Node term) {
-      this.text = text;
+    Links(Node term) {
       if (term != null) {
         links.add(term);
       }
@@ -657,7 +686,7 @@ public final class Resolver {
   }
 
   /** {@code nodes} piped in order: a Pipe chain of at most {@link #PIPE_CHAIN} of them, else balanced. */
-  private static Node pipes(List<Node> nodes) {
+  private Node pipes(List<Node> nodes) {
     if (nodes.size() > PIPE_CHAIN) {
       return pipes(nodes, 0, nodes.size());
     }
@@ -669,7 +698,7 @@ public final class Resolver {
   }
 
   /** {@code nodes[from, to)} piped as a balanced tree, about log2 of their number deep. */
-  private static Node pipes(List<Node> nodes, int from, int to) {
+  private Node pipes(List<Node> nodes, int from, int to) {
     if (to - from == 1) {
       return nodes.get(from);
     }
@@ -710,9 +739,9 @@ public final class Resolver {
    * Const bounds make the step one of one result or none.
    */
   private Peeled slice(Ast.Slice s) {
-    Node from = s.from() == null ? new Const(s.source(), JqNull.NULL) : lower(s.from());
+    Node from = s.from() == null ? new Const(here(s.source()), JqNull.NULL) : lower(s.from());
     int fromSlot = slotFor(from);
-    Node to = s.to() == null ? new Const(s.source(), JqNull.NULL) : lower(s.to());
+    Node to = s.to() == null ? new Const(here(s.source()), JqNull.NULL) : lower(s.to());
     int toSlot = slotFor(to);
     Operation op = s.optional() ? Slice.QUIET : Slice.PLAIN;
     Fn0 read = null;
@@ -722,7 +751,7 @@ public final class Resolver {
       Object last = b.value();
       read = (state, in) -> fn.apply(state, in, first, last);
     }
-    Stage stage = new Stage(s.source(), dotted(s.target(), s.source()), op, List.of(argument(from, fromSlot), argument(to, toSlot)), read);
+    Stage stage = new Stage(here(s.source()), here(dotted(s.target(), s.source())), op, List.of(argument(from, fromSlot), argument(to, toSlot)), read);
     List<Node> values = new ArrayList<>();
     List<Integer> bound = new ArrayList<>();
     if (fromSlot != NO_SLOT) {
@@ -742,7 +771,7 @@ public final class Resolver {
    */
   private Node binary(Ast.Binary b) {
     if (folds.constant(b) instanceof JqValue folded) {
-      return new Const(b.source(), folded);
+      return new Const(here(b.source()), folded);
     }
     return operator(b, ConstantKey.arithmetic(b.op()));
   }
@@ -758,7 +787,7 @@ public final class Resolver {
     Node right = lower(b.right());
     int rightSlot = operandSlot(right);
     int leftSlot = operandSlot(left);
-    Intrinsic op = new Intrinsic(b.source(), operation, List.of(argument(left, leftSlot), argument(right, rightSlot)));
+    Intrinsic op = new Intrinsic(here(b.source()), operation, List.of(argument(left, leftSlot), argument(right, rightSlot)));
     return bind(right, rightSlot, bind(left, leftSlot, op));
   }
 
@@ -771,16 +800,16 @@ public final class Resolver {
   private Node and(Ast.Binary b) {
     Node left = lower(b.left());
     Node right = lower(b.right());
-    Source at = b.source();
-    return when(at, left, when(right.source(), right, bool(at, true), bool(at, false)), bool(at, false));
+    Source at = here(b.source());
+    return when(at, left, when(here(right.source()), right, bool(at, true), bool(at, false)), bool(at, false));
   }
 
   /** {@code l or r} (ADR-0037): {@code if l then true else (if r then true else false)}, the left side outer. */
   private Node or(Ast.Binary b) {
     Node left = lower(b.left());
     Node right = lower(b.right());
-    Source at = b.source();
-    return when(at, left, bool(at, true), when(right.source(), right, bool(at, true), bool(at, false)));
+    Source at = here(b.source());
+    return when(at, left, bool(at, true), when(here(right.source()), right, bool(at, true), bool(at, false)));
   }
 
   /** {@code not} (ADR-0037, design approval C2): {@code if . then false else true}. */
@@ -795,8 +824,8 @@ public final class Resolver {
   private Node conditional(Ast.If i) {
     Node cond = lower(i.cond());
     Node then = lower(i.then());
-    Node otherwise = i.otherwise() == null ? new Identity(i.source()) : lower(i.otherwise());
-    return when(i.source(), cond, then, otherwise);
+    Node otherwise = i.otherwise() == null ? new Identity(here(i.source())) : lower(i.otherwise());
+    return when(here(i.source()), cond, then, otherwise);
   }
 
   /**
@@ -820,7 +849,7 @@ public final class Resolver {
     env = new Env(l, slot, null, outer);
     Node body = lower(l.body());
     env = outer;
-    return new Label(l.source(), slot, body);
+    return new Label(here(l.source()), slot, body);
   }
 
   /**
@@ -834,7 +863,8 @@ public final class Resolver {
     int state = slots++;
     Node source = lower(r.input());
     Node each = bound(r.source(), source, r.patterns(), () -> advance(state, r.update()));
-    return pipe(new Reduce(r.source(), init, state, each), state(r.source()));
+    Source at = here(r.source());
+    return pipe(new Reduce(at, init, state, each), state(at));
   }
 
   /**
@@ -855,12 +885,12 @@ public final class Resolver {
               Node advance = advance(state, f.update());
               return f.extract() == null ? advance : pipe(advance, lower(f.extract()));
             });
-    return new Foreach(f.source(), init, state, each);
+    return new Foreach(here(f.source()), init, state, each);
   }
 
   /** The Advance of the state slot {@code state} on {@code update}, which runs on the slot's value as jq sees it. */
   private Node advance(int state, Ast update) {
-    Source at = update.source();
+    Source at = here(update.source());
     return new Advance(at, state, pipe(state(at), lower(update)));
   }
 
@@ -879,7 +909,7 @@ public final class Resolver {
     Node end = lower(c.args().get(1));
     int startSlot = operandSlot(start);
     int endSlot = operandSlot(end);
-    Intrinsic call = new Intrinsic(c.source(), Range.OP, List.of(argument(start, startSlot), argument(end, endSlot)));
+    Intrinsic call = new Intrinsic(here(c.source()), Range.OP, List.of(argument(start, startSlot), argument(end, endSlot)));
     return bind(start, startSlot, bind(end, endSlot, call));
   }
 
@@ -899,13 +929,13 @@ public final class Resolver {
   }
 
   /** The argument that reads {@code value}: the atomic node itself, or a Var of its slot. */
-  private static Node argument(Node value, int slot) {
-    return slot == NO_SLOT ? value : new Var(value.source(), slot);
+  private Node argument(Node value, int slot) {
+    return slot == NO_SLOT ? value : new Var(here(value.source()), slot);
   }
 
   /** {@code body} with {@code value} bound to {@code slot} around it, or {@code body} alone for an atomic one. */
-  private static Node bind(Node value, int slot, Node body) {
-    return slot == NO_SLOT ? body : new Bind(body.source(), value, slot, body);
+  private Node bind(Node value, int slot, Node body) {
+    return slot == NO_SLOT ? body : new Bind(here(body.source()), value, slot, body);
   }
 
   /**
@@ -915,17 +945,18 @@ public final class Resolver {
   private Node variable(Object reference, Source at) {
     Object declaration = binder.binding(reference);
     if (declaration == Binder.UNSTORED) {
-      return new Const(at, JqNull.NULL);
+      return new Const(here(at), JqNull.NULL);
     }
     if (declaration instanceof Binder.Predefined p) {
       throw Stub.unbuilt("$" + p.name());
     }
-    return new Var(at, find(declaration).slot());
+    return new Var(here(at), find(declaration).slot());
   }
 
   /** {@code $__loc__} at {@code at}: its location, a constant (ADR-0038, jq's {@code gen_loc_object}). */
   private Const location(Source at) {
-    return new Const(at, ConstantKey.location(text.line(at.start())));
+    Source loc = here(at);
+    return new Const(loc, ConstantKey.location(text.line(loc.start())));
   }
 
   /**
@@ -944,7 +975,8 @@ public final class Resolver {
    */
   private Node bound(Source source, Node value, List<Ast.Pattern> patterns, Supplier<Node> body) {
     int slot = slots++;
-    return patterns.size() == 1 ? destructure(source, value, slot, patterns.getFirst(), body) : alternatives(source, value, slot, patterns, body);
+    Source at = here(source);
+    return patterns.size() == 1 ? destructure(at, value, slot, patterns.getFirst(), body) : alternatives(at, value, slot, patterns, body);
   }
 
   /**
@@ -986,7 +1018,7 @@ public final class Resolver {
         }
         from.add(own);
       }
-      alternatives.add(new Alternative(nest(match.steps, new Identity(pattern.source())), from));
+      alternatives.add(new Alternative(nest(match.steps, new Identity(here(pattern.source()))), from));
     }
     List<Integer> groupSlots = new ArrayList<>();
     for (Object group : groups.values()) {
@@ -1013,15 +1045,18 @@ public final class Resolver {
       case Ast.ArrayPattern a -> {
         for (int i = a.elements().size() - 1; i >= 0; i--) {
           Ast.Pattern element = a.elements().get(i);
-          Const at = new Const(element.source(), LiteralNumber.ofLexeme(Integer.toString(i)));
-          match(element, step(index(level, at, element.source()), element.source(), match), match);
+          Source place = here(element.source());
+          Const at = new Const(place, LiteralNumber.ofLexeme(Integer.toString(i)));
+          match(element, step(index(level, at, place), place, match), match);
         }
       }
       case Ast.ObjectPattern o -> {
         for (Ast.ObjPat entry : o.entries()) {
           Node key = key(entry.key());
-          Node read = key instanceof Const || key instanceof Var ? key : new Var(key.source(), step(pipe(new Var(key.source(), level), key), entry.source(), match));
-          int value = step(index(level, read, entry.source()), entry.source(), match);
+          Source place = here(entry.source());
+          Source keyAt = here(key.source());
+          Node read = key instanceof Const || key instanceof Var ? key : new Var(keyAt, step(pipe(new Var(keyAt, level), key), place, match));
+          int value = step(index(level, read, place), place, match);
           if (entry.key() instanceof Ast.VarKey k) {
             store(k.name(), k, value, match);
           }
@@ -1047,7 +1082,7 @@ public final class Resolver {
   }
 
   /** The level's value indexed by the atomic {@code key}, jq's non-quiet {@code INDEX}. */
-  private static Node index(int level, Node key, Source source) {
+  private Node index(int level, Node key, Source source) {
     return pipe(new Var(source, level), new Intrinsic(source, Index.PLAIN, List.of(key)));
   }
 
@@ -1068,10 +1103,10 @@ public final class Resolver {
    */
   private Node string(Ast.Str s) {
     if (plain(s)) {
-      return new Const(s.source(), BuiltString.of(bytes(s)));
+      return new Const(here(s.source()), BuiltString.of(bytes(s)));
     }
     if (s.format() != null && !s.format().equals("text")) {
-      throw Stub.unbuilt("the @" + s.format() + " string at byte " + s.source().start());
+      throw Stub.unbuilt("the @" + s.format() + " string at byte " + here(s.source()).start());
     }
     List<Ast.Part> parts = s.parts();
     Node[] nodes = new Node[parts.size()];
@@ -1080,13 +1115,13 @@ public final class Resolver {
     for (int i = 0; i < parts.size(); i++) {
       nodes[i] =
           switch (parts.get(i)) {
-            case Ast.Text t -> new Const(t.source(), BuiltString.of(t.bytes()));
+            case Ast.Text t -> new Const(here(t.source()), BuiltString.of(t.bytes()));
             case Ast.Interp p -> lower(p.query());
           };
       partSlots[i] = operandSlot(nodes[i]);
       args.add(argument(nodes[i], partSlots[i]));
     }
-    Node body = new Intrinsic(s.source(), Interpolate.OP, args);
+    Node body = new Intrinsic(here(s.source()), Interpolate.OP, args);
     for (int i = 0; i < parts.size(); i++) {
       body = bind(nodes[i], partSlots[i], body);
     }
@@ -1096,9 +1131,9 @@ public final class Resolver {
   /** {@code [body]}: its body's results collected into a built array (ADR-0034 amendment); {@code []} is a constant. */
   private Node array(Ast.ArrayCons a) {
     if (a.body() == null) {
-      return new Const(a.source(), new BuiltArray(new Object[0], 0));
+      return new Const(here(a.source()), new BuiltArray(new Object[0], 0));
     }
-    return new Collect(a.source(), lower(a.body()), BuiltArray::new);
+    return new Collect(here(a.source()), lower(a.body()), BuiltArray::new);
   }
 
   /**
@@ -1128,11 +1163,12 @@ public final class Resolver {
       valueSlots[i] = operandSlot(values[i]);
       shaped &= keySlots[i] == NO_SLOT;
     }
-    Node body = shaped ? shaped(o.source(), keys, values, valueSlots) : new Intrinsic(o.source(), BuildObject.PAIRS, pairArguments(keys, keySlots, values, valueSlots));
+    Source at = here(o.source());
+    Node body = shaped ? shaped(at, keys, values, valueSlots) : new Intrinsic(at, BuildObject.PAIRS, pairArguments(keys, keySlots, values, valueSlots));
     for (int i = n - 1; i >= 0; i--) {
       if (keySlots[i] != NO_SLOT) {
-        Source at = keys[i].source();
-        body = pipe(new Intrinsic(at, ObjectKey.CHECK, List.of(new Var(at, keySlots[i]))), body);
+        Source check = here(keys[i].source());
+        body = pipe(new Intrinsic(check, ObjectKey.CHECK, List.of(new Var(check, keySlots[i]))), body);
       }
       body = bind(keys[i], keySlots[i], bind(values[i], valueSlots[i], body));
     }
@@ -1146,9 +1182,9 @@ public final class Resolver {
    */
   private Node key(Ast.Key key) {
     return switch (key) {
-      case Ast.NameKey k -> new Const(k.source(), BuiltString.of(k.name()));
-      case Ast.VarKey k -> new Const(k.source(), BuiltString.of(k.name()));
-      case Ast.LocKey k -> new Const(k.source(), BuiltString.of("__loc__"));
+      case Ast.NameKey k -> new Const(here(k.source()), BuiltString.of(k.name()));
+      case Ast.VarKey k -> new Const(here(k.source()), BuiltString.of(k.name()));
+      case Ast.LocKey k -> new Const(here(k.source()), BuiltString.of("__loc__"));
       case Ast.StringKey k -> lower(k.string());
       case Ast.QueryKey k -> lower(k.query());
     };
@@ -1174,14 +1210,15 @@ public final class Resolver {
     if (name instanceof Const) {
       return lower(new Ast.StringField(k.source(), null, k.string(), false));
     }
-    return new Intrinsic(k.source(), Index.PLAIN, List.of(new Var(k.source(), slot)));
+    Source at = here(k.source());
+    return new Intrinsic(at, Index.PLAIN, List.of(new Var(at, slot)));
   }
 
   /**
    * The construction of a site whose keys are all Consts of strings: its shape, the distinct keys in their first place,
    * and per key the value of its last pair. Keys compare by their UTF-8 bytes.
    */
-  private static Intrinsic shaped(Source source, Node[] keys, Node[] values, int[] valueSlots) {
+  private Intrinsic shaped(Source source, Node[] keys, Node[] values, int[] valueSlots) {
     List<JqString> shape = new ArrayList<>();
     List<Node> args = new ArrayList<>();
     for (int i = 0; i < keys.length; i++) {
@@ -1202,7 +1239,7 @@ public final class Resolver {
   }
 
   /** The arguments of a site with a computed key: a key and a value per pair. */
-  private static List<Node> pairArguments(Node[] keys, int[] keySlots, Node[] values, int[] valueSlots) {
+  private List<Node> pairArguments(Node[] keys, int[] keySlots, Node[] values, int[] valueSlots) {
     List<Node> args = new ArrayList<>();
     for (int i = 0; i < keys.length; i++) {
       args.add(argument(keys[i], keySlots[i]));
@@ -1228,18 +1265,19 @@ public final class Resolver {
   }
 
   /** The terms {@code [from, to)}, at least one, as a balanced Comma tree; the left half takes the middle term. */
-  private static Node balanced(List<Node> nodes, int from, int to) {
+  private Node balanced(List<Node> nodes, int from, int to) {
     if (to - from == 1) {
       return nodes.get(from);
     }
     int mid = from + (to - from + 1) / 2;
     Node left = balanced(nodes, from, mid);
     Node right = balanced(nodes, mid, to);
-    return new Comma(new Source(left.source().start(), right.source().end()), left, right);
+    return new Comma(here(new Source(left.source().start(), right.source().end())), left, right);
   }
 
-  private static Pipe pipe(Node left, Node right) {
-    return new Pipe(new Source(left.source().start(), right.source().end()), left, right);
+  /** {@code left | right}, spanning both in the filter's text. */
+  private Pipe pipe(Node left, Node right) {
+    return new Pipe(here(new Source(left.source().start(), right.source().end())), left, right);
   }
 
   /** A string with no interpolation, which is a constant whatever its format. */

@@ -22,12 +22,20 @@ import java.util.Set;
  * compile levels, which it throws before any lowering (GLOSSARY "Compile level", "Live definition"). The {@link
  * Resolver} lowers from what it bound.
  *
- * <p>A call binds innermost first: a parse constant ({@code true}, {@code false} and {@code null} with no arguments),
- * then the definitions and parameters in scope, the innermost first, a definition's body seeing its nested definitions,
- * then its parameters, a later one of a name first, then the definition itself, then the outer scopes; then the native
- * table ({@link Native}); then {@code error/1}, which builtin.jq defines (ADR-0042's order, the prelude last). Every
- * argument of a call that binds is a closure of a jq-defined function, a definition's, {@code error/1}'s or a bytecoded
- * native's ({@code range/2}), so it is an inner compile level; the native table holds no C function with arguments yet.
+ * <p>A call binds innermost first (ADR-0042 "Lookup order"): a parse constant ({@code true}, {@code false} and {@code
+ * null} with no arguments), then the definitions and parameters in scope, the innermost first, a definition's body
+ * seeing its nested definitions, then its parameters, a later one of a name first, then the definition itself, then the
+ * outer scopes; then the {@link NativeTable}, a {@link Native} when it is built and an {@link Unbuilt} otherwise; then
+ * the {@link Prelude}. {@code ..} is a call of {@code recurse/0} (jq's parser.y). A prelude body sees no user
+ * definition, variable or label: only its own scopes, the native table and the prelude definitions before it, which
+ * are the whole prelude's it calls, since builtin.jq calls no definition before it is written (PreludeBindTest). The
+ * argument of a C native stays in the caller's compile level; every other argument of a call that binds is a closure
+ * of a jq-defined function, a definition's or a bytecoded native's, so it is an inner compile level (ADR-0040 "Errors").
+ *
+ * <p>A prelude definition is bound only when the main filter reaches it, once per compile: after the main filter's
+ * walk, and only if it reported no error, the bodies of the live prelude definitions are walked until no new one is
+ * live (GLOSSARY "Live definition"). A prelude body has no binding error (PreludeBindTest), so its level reports
+ * nothing.
  *
  * <p>The walk meets the references in the order the Resolver lowers them, which is jq's (ADR-0036, ADR-0038,
  * ADR-0039, ADR-0041), and a level reports them in that order. Its inner levels follow the same order, except that the
@@ -54,27 +62,27 @@ final class Binder {
   private static final int MAIN = 0;
 
   /** What a call binds to. */
-  sealed interface Callee permits Constant, Defined, Parameter, Native, ErrorMessage {}
+  sealed interface Callee permits Constant, Defined, Parameter, Native, Unbuilt, Library {}
 
   /** A parse constant. */
   record Constant(JqValue value) implements Callee {}
 
-  /** A definition. */
+  /** A definition of the filter, or one nested in a prelude body. */
   record Defined(Ast.FuncDef def) implements Callee {}
 
   /** A parameter of a definition, a filter one or the filter of a value one ({@code a} of {@code $a}). */
   record Parameter(Ast.Param param) implements Callee {}
 
-  /**
-   * builtin.jq's {@code def error(msg): msg|error;}: jq-defined, so not in the native table, and looked up after it,
-   * where #71's prelude takes its place (ADR-0040 "Natives", ADR-0042).
-   */
-  record ErrorMessage() implements Callee {}
+  /** An entry of the native table that no ticket has built yet: the Resolver stubs it (GLOSSARY "Unbuilt native"). */
+  record Unbuilt(String signature) implements Callee {}
+
+  /** A top-level definition of the prelude (ADR-0042). */
+  record Library(Ast.FuncDef def) implements Callee {}
 
   /** What a variable jq defines itself binds to: it is not built yet, so the Resolver stubs it. */
   record Predefined(String name) {}
 
-  /** ADR-0040's native table in spec 2a, with ADR-0041's {@code range/2}: looked up after every definition. */
+  /** The built entries of the {@link NativeTable}: ADR-0040's, with ADR-0041's {@code range/2}. */
   enum Native implements Callee {
     EMPTY("empty", 0),
     ERROR("error", 0),
@@ -95,8 +103,6 @@ final class Binder {
       NATIVES.put(n.signature, n);
     }
   }
-
-  private static final ErrorMessage ERROR_MESSAGE = new ErrorMessage();
 
   /** A name in scope, what it binds to, and the names outside it. */
   private record Scope(String name, Object binding, Scope outer) {}
@@ -138,7 +144,7 @@ final class Binder {
   private final List<List<Integer>> edges = new ArrayList<>();
 
   /** The definitions and parameters in scope, by {@code name/arity}, the innermost last. */
-  private final Map<String, ArrayDeque<Callee>> functions = new HashMap<>();
+  private Map<String, ArrayDeque<Callee>> functions = new HashMap<>();
 
   private Scope variables;
 
@@ -151,6 +157,12 @@ final class Binder {
 
   /** Whether each id is in a cyclic strongly connected component of the call graph (ADR-0040 "Recursion"). */
   private boolean[] recursive;
+
+  /** The signature of the prelude definition whose body the walk is in, or null in the filter's own text. */
+  private String prelude;
+
+  /** The prelude definitions a reference has bound to and whose bodies are not walked yet, each with an id. */
+  private final List<Ast.FuncDef> unwalked = new ArrayList<>();
 
   private Binder(FilterText text) {
     this.text = text;
@@ -181,8 +193,61 @@ final class Binder {
       }
       throw new JqCompileException(blocks, errors.getFirst().line(), errors.getFirst().column());
     }
+    while (binder.walkLive(live)) {
+      live = binder.live();
+    }
     binder.recursive = binder.cycles();
     return binder;
+  }
+
+  /**
+   * Walks the body of each prelude definition in {@link #unwalked} that {@code live} marks; whether it walked one. A
+   * body walked here can bind new prelude definitions, with ids past {@code live}, which the next round marks.
+   */
+  private boolean walkLive(boolean[] live) {
+    boolean walked = false;
+    for (int i = 0; i < unwalked.size(); i++) {
+      Ast.FuncDef def = unwalked.get(i);
+      int id = ids.get(def);
+      if (id < live.length && live[id]) {
+        unwalked.remove(i--);
+        walkPrelude(id, def);
+        walked = true;
+      }
+    }
+    return walked;
+  }
+
+  /**
+   * The body of the prelude definition {@code def}, of id {@code id}, walked as {@link #define} walks a definition's,
+   * in a scope of its own: no definition, parameter, variable or label of the filter (ADR-0042 "Lookup order"). Its
+   * level is its own; a binding error in it is not jq's error but the {@link #notDefined} IllegalStateException.
+   */
+  private void walkPrelude(int id, Ast.FuncDef def) {
+    // After the main filter's walk no label is in scope, and the walk is in no definition: only the host variables and
+    // the definitions' emptied entries are left, which the body does not see.
+    Map<String, ArrayDeque<Callee>> outerFunctions = functions;
+    Scope outerVariables = variables;
+    Level outerLevel = level;
+    functions = new HashMap<>();
+    variables = null;
+    level = new Level(id);
+    owner = id;
+    prelude = def.name() + "/" + def.params().size();
+    // The definition itself, which its body may call: a recursive group, which the Resolver stubs.
+    push(prelude, new Library(def));
+    for (Ast.Param p : def.params()) {
+      push(p.name() + "/0", new Parameter(p));
+      if (p.value()) {
+        variables = new Scope(p.name(), p, variables);
+      }
+    }
+    walk(def.body());
+    functions = outerFunctions;
+    variables = outerVariables;
+    level = outerLevel;
+    owner = MAIN;
+    prelude = null;
   }
 
   /** What {@code reference}, an {@link Ast.Call}, variable reference or {@link Ast.Break} of the filter, binds to. */
@@ -259,7 +324,7 @@ final class Binder {
         optional(i.otherwise());
       }
       case Ast.Dot _ -> {}
-      case Ast.Recurse _ -> {}
+      case Ast.Recurse r -> call(r, "recurse", List.of(), r.source());
       case Ast.Field f -> chain(f);
       case Ast.StringField f -> chain(f);
       case Ast.Index i -> chain(i);
@@ -276,7 +341,7 @@ final class Binder {
       // builtin.jq's own $$$$name, which the Resolver stubs: it binds nothing.
       case Ast.LastRead _ -> {}
       case Ast.Loc _ -> {}
-      case Ast.Call c -> call(c);
+      case Ast.Call c -> call(c, c.name(), c.args(), c.source());
       case Ast.Break b -> breakTo(b);
     }
   }
@@ -457,21 +522,37 @@ final class Binder {
   }
 
   /**
-   * {@code name(args)}: its callee, and each argument an inner level; a name and arity nothing binds is jq's compile
-   * error {@code name/arity is not defined} over the name, and jq does not look into its arguments.
+   * {@code name(args)} at {@code source}, or {@code ..}, the call {@code reference} of jq's grammar: its callee, and its
+   * arguments, in this level for a C native's (as {@link #binary} walks an operator's operands) and each an inner level
+   * otherwise; a name and arity nothing binds is jq's compile error {@code name/arity is not defined} over the name, and
+   * jq does not look into its arguments.
    */
-  private void call(Ast.Call c) {
-    Callee callee = callee(c.name(), c.args().size());
+  private void call(Ast reference, String name, List<Ast> args, Source source) {
+    Callee callee = callee(name, args.size());
     if (callee == null) {
-      int start = c.source().start();
-      notDefined(c.name() + "/" + c.args().size(), new Source(start, start + c.name().length()));
+      int start = source.start();
+      notDefined(name + "/" + args.size(), new Source(start, start + name.length()));
       return;
     }
-    bindings.put(c, callee);
+    bindings.put(reference, callee);
     if (callee instanceof Defined d) {
       edges.get(owner).add(ids.get(d.def()));
+    } else if (callee instanceof Library l) {
+      edges.get(owner).add(ids.get(l.def()));
     }
-    for (Ast arg : c.args()) {
+    if (callee instanceof Unbuilt u && NativeTable.kind(u.signature()) == NativeTable.Kind.C) {
+      List<List<Level>> operands = new ArrayList<>();
+      for (Ast arg : args) {
+        int from = level.inner.size();
+        walk(arg);
+        operands.add(cut(from));
+      }
+      for (int i = operands.size() - 1; i >= 0; i--) {
+        level.inner.addAll(operands.get(i));
+      }
+      return;
+    }
+    for (Ast arg : args) {
       inner(arg);
     }
   }
@@ -486,10 +567,25 @@ final class Binder {
     if (defined != null && !defined.isEmpty()) {
       return defined.peekLast();
     }
-    if (NATIVES.containsKey(signature)) {
-      return NATIVES.get(signature);
+    if (NativeTable.kind(signature) != null) {
+      return NATIVES.containsKey(signature) ? NATIVES.get(signature) : new Unbuilt(signature);
     }
-    return signature.equals("error/1") ? ERROR_MESSAGE : null;
+    Ast.FuncDef def = Prelude.definition(signature);
+    if (def == null) {
+      return null;
+    }
+    if (!ids.containsKey(def)) {
+      register(def);
+      unwalked.add(def);
+    }
+    return new Library(def);
+  }
+
+  /** A new id for {@code def}, with no call yet in the call graph. */
+  private void register(Ast.FuncDef def) {
+    ids.put(def, defs.size());
+    defs.add(def);
+    edges.add(new ArrayList<>());
   }
 
   /** {@code arg} walked as an inner compile level of the current one, the next of its inner levels (ADR-0040). */
@@ -526,9 +622,7 @@ final class Binder {
    */
   private String define(Ast.FuncDef def) {
     int id = defs.size();
-    defs.add(def);
-    ids.put(def, id);
-    edges.add(new ArrayList<>());
+    register(def);
     Level outer = level;
     level = new Level(id);
     outer.inner.add(level);
@@ -653,8 +747,18 @@ final class Binder {
     }
   }
 
-  /** Collects jq's compile error {@code <shown> is not defined} over {@code error} in the current level. */
+  /**
+   * Collects jq's compile error {@code <shown> is not defined} over {@code error} in the current level.
+   *
+   * @throws IllegalStateException if the walk is in a prelude body, whose {@code error} is in builtin.jq, not the filter:
+   *     a defect of the prelude or the binder, which no filter can cause
+   */
   private void notDefined(String shown, Source error) {
+    if (prelude != null) {
+      throw new IllegalStateException(
+          shown + " is not defined in the prelude's " + prelude + ", bytes " + error.start() + " to " + error.end()
+              + " of builtin.jq");
+    }
     level.errors.add(new Located(text.block(shown + " is not defined", error.start(), error.end()), text.line(error.start()), text.column(error.start())));
   }
 
