@@ -573,6 +573,75 @@ class ResolverTest {
     assertThat(levels(ir(String.join(" and ", Collections.nCopies(20_000, ".a"))))).as("levels of 20 000 terms of and").isLessThanOrEqualTo(32);
   }
 
+  /**
+   * ADR-0043: {@code BIND_RUN} (64) counts the nested form's Binds, one for each operator's result but the outermost
+   * one's and one for each term that is no Identity, Const or Var. 33 terms of {@code .k+} are 31 + 33 = 64, not past
+   * it, and stay nested Binds; 34 are 32 + 34 = 66 and lower to one Binds; 34 terms whose first is {@code $x} are 32 +
+   * 33 = 65, the first count past it, and lower to one Binds of 65 values.
+   */
+  @Test
+  void aRunOfOneOperatorIsOneBindsJustPast64NestedBinds() {
+    assertThat(ir(fields(33, " + "))).as("IR of 33 terms of .k+, 64 nested Binds").isInstanceOf(Bind.class);
+    Node past = ir(fields(34, " + "));
+    assertThat(past).as("IR of 34 terms of .k+, 66 nested Binds").isInstanceOf(Binds.class);
+    assertThat(((Binds) past).values()).as("values of the Binds of 34 terms of .k+").hasSize(66);
+    Node first = ir("1 as $x | $x + " + fields(34, " + ").substring(".k0 + ".length()));
+    assertThat(((Bind) first).body()).as("body of 1 as $x | $x + .k1 + … + .k33, 65 nested Binds").isInstanceOf(Binds.class);
+    assertThat(((Binds) ((Bind) first).body()).values()).as("values of the Binds of $x + .k1 + … + .k33").hasSize(65);
+  }
+
+  /**
+   * ADR-0043: a run of {@code and} or {@code or} of more than {@code PIPE_CHAIN} (64) terms is balanced. 64 terms are
+   * the left-nested chain of ADR-0037, one level a term and one more, 65 levels; 65 terms are the balanced tree, 13
+   * levels, the left half taking the middle term.
+   */
+  @ParameterizedTest(name = "{0}")
+  @CsvSource({"' and '", "' or '"})
+  void anAndOrRunIsBalancedJustPast64Terms(String operator) {
+    assertThat(levels(ir(fields(64, operator)))).as("levels of 64 terms of%s", operator).isEqualTo(65);
+    assertThat(levels(ir(fields(65, operator)))).as("levels of 65 terms of%s", operator).isEqualTo(13);
+  }
+
+  /**
+   * #94: a run of {@code //} of more than {@code PIPE_CHAIN} (64) terms is a balanced Alt tree. 64 terms nest to the
+   * right as the parser reads them, a level a term; 65 are 8 levels.
+   */
+  @Test
+  void anAlternativeRunIsBalancedJustPast64Terms() {
+    Node nested = ir(fields(64, " // "));
+    assertThat(levels(nested)).as("levels of 64 terms of //").isEqualTo(64);
+    assertThat(((Alt) nested).right()).as("right side of 64 terms of //").isInstanceOf(Alt.class);
+    Node balanced = ir(fields(65, " // "));
+    assertThat(levels(balanced)).as("levels of 65 terms of //").isEqualTo(8);
+    assertThat(((Alt) balanced).left()).as("left side of 65 terms of //").isInstanceOf(Alt.class);
+  }
+
+  /**
+   * ADR-0043 lowers a run of one operator to one Binds: a chain that alternates {@code +} and {@code -} is runs of one
+   * operator each, so it stays nested, two levels an operator, and 400 terms are past the IR bound's 512 levels, its
+   * Stub. A guard of "one operator".
+   */
+  @Test
+  void anAlternatingChainPastTheBoundStaysNestedAndIsTheIrDepthStub() {
+    StringBuilder chain = new StringBuilder(".k0");
+    for (int k = 1; k < 400; k++) {
+      chain.append(k % 2 == 1 ? " + " : " - ").append(".k").append(k);
+    }
+    assertThatExceptionOfType(JqCompileException.class)
+        .as("resolve of 400 terms alternating + and -")
+        .isThrownBy(() -> ir(chain.toString()))
+        .withMessage(ParseAssertions.MARK + "a filter of more than 512 levels of IR is not built yet");
+  }
+
+  /** {@code n} field reads {@code .k0}, {@code .k1}, … joined by {@code separator}. */
+  private static String fields(int n, String separator) {
+    StringJoiner joined = new StringJoiner(separator);
+    for (int k = 0; k < n; k++) {
+      joined.add(".k" + k);
+    }
+    return joined.toString();
+  }
+
   /** {@code shape} with every {@code [s,e)} left out. */
   private static String withoutSources(String shape) {
     return shape.replaceAll("\\[\\d+,\\d+\\)", "");

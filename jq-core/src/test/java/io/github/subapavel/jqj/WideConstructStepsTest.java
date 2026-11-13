@@ -13,8 +13,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * ADR-0043: a wide construct ticks exactly as its nested form does. Each run of n terms ends under the fewest steps
- * {@code a + b·n}, the line of its nested form, at n = 63 and 65, either side of {@code BIND_RUN} (64), and at 20 000,
- * past jq's own limit and far past the F-44 bound under which the nested form was built. The fewest steps are found by
+ * {@code a + b·n}, the line of its nested form, at n = 63 and 65, either side of {@code PIPE_CHAIN} (64 terms), past
+ * which an {@code and}, {@code or} or {@code //} run is balanced, and at 20 000, past jq's own limit and far past the
+ * F-44 bound under which the nested form was built. {@code BIND_RUN} (64) counts the nested form's Binds, not terms:
+ * an arithmetic run of field reads is past it from 34 terms (66 Binds), so at 63 and 65 it is one Binds, except a run
+ * of variables, which binds only its operators' results (63 and 65 terms are 61 and 63 Binds, nested; ResolverTest
+ * pins the boundary). The fewest steps are found by
  * bisection on the step budget, and each input is a view, which charges the entries a step reads (ADR-0034), so every
  * read of a term ticks.
  *
