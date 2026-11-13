@@ -1,6 +1,6 @@
 # Definitions are inlined by the resolver in spec 2a; names bind per jq compile level; one inline cap per compile
 
-Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #70; designer draft; finding F-41); amends ADR-0006 (passes and lifting, for spec 2a only) and ADR-0038 (which binding errors are reported)
+Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #70; designer draft; finding F-41); amends ADR-0006 (passes and lifting, for spec 2a only) and ADR-0038 (which binding errors are reported); Binder order amended by ADR-0042 (native table before the prelude, #71)
 
 Spec 2a compiles no recursion, so every call that compiles is inlined, as ADR-0006 requires. jq 1.8.2 drops unreferenced definitions (`block_bind_referenced`). It checks an inner compile level only when the outer level had no error (`compile`: `if (bc->nsubfunctions && !errors)`). The jq facts were read from jq-1.8.2 source; #70's red records them on jq-ref, and jq-ref wins.
 
