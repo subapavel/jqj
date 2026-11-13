@@ -4,8 +4,8 @@
 #
 #   scripts/gate-spec.sh <spec>
 #
-# Steps: 1 clean-verify   ./mvnw -B clean verify -Pbench,compile-oracle (the compile-mode oracle runs here and after
-#                         every merge, never in the ticket gate: F-27, ADR-0020 amendment for #60)
+# Steps: 1 clean-verify   ./mvnw -B clean verify -Pbench,compile-oracle (the compile-mode oracle runs here, after
+#                         every merge, and in the ticket gate since #89: F-46, ADR-0020 amendment for #60)
 #          record         scripts/oracle-record.sh --verify on every tracked oracle .rec file
 #        2 pit            PIT on the whole class-C modules of quality/floors.tsv, on oracle and on jq-cli (crossModule)
 #        3 jmh            benchmarks.jar -prof gc -rf json (JMH_JAR overrides bench/jmh/target/benchmarks.jar)

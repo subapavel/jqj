@@ -1,15 +1,18 @@
 // The ratchet (ADR-0020, ADR-0014): what passes, per oracle and per module. Single-file source launcher, no
 // dependencies:
 //
-//   java scripts/ratchet.java check                  ticket gate: exit 1 if a ratcheted case or percentage fails
+//   java scripts/ratchet.java check                  CI build: exit 1 if a ratcheted case or percentage fails
+//   java scripts/ratchet.java check --require-compile  ticket gate: check, and the compile report is required (F-46)
 //   java scripts/ratchet.java regen --oracles        after every merge: the oracle pass lists only
 //   java scripts/ratchet.java regen --all            spec gate: every report required, no drop allowed
 //   java scripts/ratchet.java floor-mutation <m>...  PIT score of the modules against quality/floors.tsv
 //   java scripts/ratchet.java drop compile <file>    an owner-approved drop of the listed compile.txt ids (F-46)
 //
-// The compile-mode oracle runs only under -Pcompile-oracle: in the ticket gate (F-46), after a merge and in the spec
-// gate, not in the CI build. check prints it NOT_RUN when it wrote no report, and regen refuses any report row that is a Disagreement (F-29, ADR-0020 amendment for #60). drop removes only the ids
-// its file lists, each only while its compile report row is FAIL stub:, and writes nothing if any listed id is not.
+// The compile-mode oracle runs only under -Pcompile-oracle: in the ticket gate since #89 (F-46), after a merge and in
+// the spec gate, not in the CI build. check prints it NOT_RUN when it wrote no report, unless --require-compile is
+// given; then each listed id without a report row fails like any other oracle's. regen refuses any report row that is
+// a Disagreement (F-29, ADR-0020 amendment for #60). drop removes only the ids its file lists, each only while its
+// compile report row is FAIL stub:, and writes nothing if any listed id is not.
 //
 // Environment: RATCHET_ROOT (default: the current directory), RATCHET_JMH (JMH json result, default
 // bench/jmh/target/jmh-result.json), RATCHET_MACHINE (the machine label of bench.tsv lines).
@@ -79,7 +82,8 @@ public class ratchet {
     String cmd = args.length == 0 ? "" : args[0];
     int rc;
     switch (cmd) {
-      case "check" -> rc = args.length == 1 ? check() : usage();
+      case "check" -> rc = args.length == 1 ? check(false)
+          : args.length == 2 && args[1].equals("--require-compile") ? check(true) : usage();
       case "regen" -> rc = args.length == 2 && args[1].equals("--oracles") ? regen(false)
           : args.length == 2 && args[1].equals("--all") ? regen(true) : usage();
       case "floor-mutation" -> rc = args.length >= 2 ? floorMutation(List.of(args).subList(1, args.length)) : usage();
@@ -91,7 +95,7 @@ public class ratchet {
 
   static int usage() {
     System.err.println(
-        "usage: java scripts/ratchet.java check | regen --oracles | regen --all | floor-mutation <module>... | drop compile <file>");
+        "usage: java scripts/ratchet.java check [--require-compile] | regen --oracles | regen --all | floor-mutation <module>... | drop compile <file>");
     return 2;
   }
 
@@ -112,18 +116,22 @@ public class ratchet {
   // ---------------------------------------------------------------- check
 
   /**
-   * The oracles that run only under a Maven profile (compile-oracle: the ticket gate since F-46, after a merge, the spec
-   * gate; not the CI build): check reports them NOT_RUN when they wrote no report (ADR-0020 amendment for #60).
+   * The oracles that run only under a Maven profile (compile-oracle: the ticket gate since #89, after a merge, the spec
+   * gate; not the CI build): check reports them NOT_RUN when they wrote no report (ADR-0020 amendment for #60), unless
+   * the caller requires their report (F-46).
    */
   static final Set<String> ONLY_UNDER_PROFILE = Set.of("compile");
 
   /** The detail prefix of the compile-mode oracle's Disagreement, which regen refuses (F-29). */
   static final String DISAGREE = "disagree:";
 
-  static int check() throws IOException {
+  static int check(boolean requireCompile) throws IOException {
     for (Oracle o : ORACLES) {
-      if (ONLY_UNDER_PROFILE.contains(o.name()) && reportFiles(o).isEmpty()) System.out.println("NOT_RUN " + o.name() + ": no report");
-      else checkOracle(o);
+      if (!requireCompile && ONLY_UNDER_PROFILE.contains(o.name()) && reportFiles(o).isEmpty()) {
+        System.out.println("NOT_RUN " + o.name() + ": no report");
+      } else {
+        checkOracle(o);
+      }
     }
     List<Floor> floors = floors();
     Map<String, int[]> cov = coverageOf(floors);
