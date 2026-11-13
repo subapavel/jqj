@@ -7,10 +7,10 @@ jq 1.8.2's `builtins_bind` binds builtin.jq's definitions, then the bytecoded bu
 ## Decision
 
 - **Source**: jq 1.8.2's `builtin.jq`, verbatim, moves to `jq-core/src/main/resources/io/github/subapavel/jqj/internal/parse/builtin.jq`. Its SHA-256 is checked against `SOURCES.sha256`, and NOTICE names the main path. The MIT text stays in `META-INF/LICENSE-jq`.
-- **Cache**: a holder-class `Prelude` parses the file once per JVM, with fixed settings independent of any Engine, and indexes the definitions by `name/arity`. The AST is shared read-only. A filter that needs no prelude definition never triggers the parse.
+- **Cache**: a holder-class `Prelude` parses the file once per JVM, with fixed settings independent of any Engine, and indexes the definitions by `name/arity`. The AST is shared read-only. A filter whose every call binds before the prelude (nested defs, params, user defs, the native table) never triggers the parse; a name that binds nowhere does parse it, to know the name is undefined (amended at #71).
 - **Lookup order**:
   - A user reference looks in nested defs, params, the def, outer user scopes, then the native table, then the prelude.
-  - A prelude body looks in nested defs, params, the def, the native table, then only the prelude definitions before it.
+  - A prelude body looks in nested defs, params, the def, the native table, then only the whole prelude index. That equals "the prelude definitions before it" because `PreludeBindTest.builtinJqHasNoForwardReference` fails on any forward call in the SHA-pinned file (amended at #71).
   - ADR-0040's order is amended to match.
 - **Live definitions**: a prelude definition is bound, checked and lowered only when a live reference reaches it.
 - **Native table**: every jq-1.8.2 builtin signature (`function_list`, libm, the bytecoded builtins and `builtins/0`), plus F-31's replacing natives. An entry not built yet binds, and lowering it is a Stub. So an unbuilt native gives a Stub, while an unknown name gives jq's "not defined". The table is translated from builtin.c and libm.h and gets a NOTICE line.
