@@ -4,6 +4,44 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Bench recording G2, G3, G4 and the tick-loop diagnostic (ticket #74, ADR-0019, F-33), 2026-11-13
+
+- Machine: `claude-cloud-4vcpu` (4 × Intel Xeon @ 2.10 GHz, Linux 6.18.44-fc-v445), Java 25.0.5.0.3,
+  jq-ref jq-1.8.2. Commit measured: `45a4978` (scores), `eddb639` plus `Ticks` (diagnostic; no
+  measured code changed). JMH with the class annotations, 2 GiB heap. Load average 1.4–4.0
+  (scores) and 3.9–7.0 (diagnostic): other writers ran, so the errors are wide. Logs (implementer
+  worktree of #74): `.logs/74-jmh.log`/`.json`, `.logs/74-jq-ref.log`, `.logs/74-ticks*.log`.
+- jq-ref per document from `bench/jq-ref.sh` in the same session (K copies; start-up 2.04–2.43 ms).
+
+| scenario | jqj (± 99.9 %) | B/op | jq-ref per doc (K) | ratio |
+| --- | --- | --- | --- | --- |
+| G2.1k | 4.871 ± 0.854 us/op | 4 920 | 34.911 us (10000) | 0.140 |
+| G2.100k | 461.512 ± 70.814 us/op | 444 127 | 3737.030 us (100) | 0.123 |
+| G2.10m | 47096.244 ± 9634.524 us/op | 42 792 122 | 548171 us (1) | 0.086 |
+| G3.100k | 3085.177 ± 359.099 us/op | 3 677 606 | 10046.310 us (100) | 0.307 |
+| G3.10m | 1780700.734 ± 251428.130 us/op | 505 813 593 | 2901609 us (1) | 0.614 |
+| G4.1e4 | 318281.415 ± 36281.656 us/op | 201 482 326 | 5640.850 us (100) | 56.4 |
+
+- G4.1e4 is over 1.0× (reported to the owner at 2a's end): `. + [$x]` copies the array each step
+  until spec 3's in-place updates; its 5.0×10⁷ ticks match ADR-0017's slot-copy estimate.
+- G2 `-c` at 10 MB in a 64 MiB fork (`-Xms64m -Xmx64m`, the `G2_10m` method): completes,
+  49454.588 ± 4299.078 us/op, 42 792 136 B/op, 630 GCs over 714 ms.
+- Tick-loop diagnostic (ADR-0019), mean per tick (ticks counted by bisecting the step budget,
+  `bench/.../Ticks.java`; JMH re-run in the same session):
+
+| scenario | ticks/op | us/op | ns/tick |
+| --- | --- | --- | --- |
+| G2.1k | 131 | 4.685 ± 0.473 | 35.8 |
+| G2.100k | 12 166 | 433.318 ± 46.040 | 35.6 |
+| G2.10m | 1 173 032 | 43863.410 ± 5170.671 | 37.4 |
+| G3.100k | 134 665 | 3026.556 ± 637.036 | 22.5 |
+| G3.10m | 19 504 189 | 2084021.741 ± 525378.997 | 106.9 |
+| G4.1e4 | 50 015 096 | 273786.876 ± 65717.589 | 5.5 |
+
+- A 4096-tick refuel window lasts 22 us (G4) to 438 us (G3.10m), under ADR-0019's 16 ms.
+  NOT_RUN: the longest gap between two ticks at one site and the 1 % refuel-cost bound (both need
+  a hook in query-core's `RunState`; carried to spec 6).
+
 ## Cold parse of the prelude, `builtin.jq` (ticket #71, ADR-0042), 2026-11-13
 
 - Machine: `claude-cloud-4vcpu` (4 vCPU, Linux 6.18.44-fc-v445), JDK 25.0.5.0.3 (HotSpot 64-Bit
