@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
@@ -33,8 +34,8 @@ import org.junit.jupiter.params.provider.MethodSource;
  * <p>#70's probe at f7670a7, one fresh JVM per depth and no bound: such Collects compiled and ran on a cold 512 KiB
  * thread at 625 levels and overflowed at 650; warmed first, at 4 096 and not at 8 192. A warm or instrumented JVM can
  * need more stack than 512 KiB for 512 levels (F-44, measured at 4e9f444 and 025adcf): under JaCoCo a warmed JVM ran
- * out of it about 500 levels down. So the 512 KiB edges are pinned in one fresh child JVM with no agent, the case a host
- * meets; this JVM pins the bound's logic on a 16 MiB thread.
+ * out of it about 500 levels down. So the 512 KiB edges are pinned in fresh child JVMs with no agent, the case a host
+ * meets: one with the default JIT, one with C1 alone and one stopped at tier 3; this JVM pins the bound's logic on a 16 MiB thread.
  */
 class IrDepthTest {
 
@@ -65,11 +66,37 @@ class IrDepthTest {
    */
   @Test
   void onA512KiBThreadInAFreshJvm512LevelsRunAndDeeperFiltersAreStubs() throws IOException, InterruptedException {
+    assertChildPrintsTheEdges();
+  }
+
+  /**
+   * The same child JVM with C1 only and compiles in the foreground, the state of a loaded machine whose C2 compiles
+   * lag (#86): the 512 levels the child runs first get the Resolver C1-compiled, and the descent of 513 levels ran out
+   * of 512 KiB about 500 levels down, before the bound's Stub (#86, 5 of 5 runs before the lowering's frames were made small).
+   */
+  @Test
+  void onA512KiBThreadInAFreshC1OnlyJvm512LevelsRunAndDeeperFiltersAreStubs() throws IOException, InterruptedException {
+    assertChildPrintsTheEdges("-Xbatch", "-XX:TieredStopAtLevel=1");
+  }
+
+  /**
+   * The same child JVM stopped at tier 3, C1 with full profiling, the code a loaded machine runs while C2 compiles
+   * lag: its frames are as large as tier 1's (#86, measured: 512 levels fit 472 KiB and 500 value parameters 488 KiB
+   * under either tier).
+   */
+  @Test
+  void onA512KiBThreadInAFreshProfilingC1Jvm512LevelsRunAndDeeperFiltersAreStubs() throws IOException, InterruptedException {
+    assertChildPrintsTheEdges("-Xbatch", "-XX:TieredStopAtLevel=3");
+  }
+
+  /** Runs {@link Child} in a fresh JVM with {@code flags} and asserts it prints {@link #EDGES}. */
+  private void assertChildPrintsTheEdges(String... flags) throws IOException, InterruptedException {
     File out = dir.resolve("out").toFile();
-    ProcessBuilder launch =
-        new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", System.getProperty("java.class.path"), Child.class.getName())
-            .redirectErrorStream(true)
-            .redirectOutput(out);
+    List<String> command = new ArrayList<>();
+    command.add(Path.of(System.getProperty("java.home"), "bin", "java").toString());
+    command.addAll(List.of(flags));
+    command.addAll(List.of("-cp", System.getProperty("java.class.path"), Child.class.getName()));
+    ProcessBuilder launch = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(out);
     // Each would reach the child's command line, and an agent there would make it the instrumented case.
     launch.environment().remove("JAVA_TOOL_OPTIONS");
     launch.environment().remove("JDK_JAVA_OPTIONS");
