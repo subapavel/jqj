@@ -175,6 +175,13 @@ final class ConstantKey {
    * The constant {@code ast} folds to, {@link #DOT} for {@code .} alone, or null when it is none, computed once and
    * kept: a fold that raises, or that would build or step past the compile's budget, is none, and so is each fold
    * around it.
+   *
+   * <p>An operator jq folds is folded by a loop down its left operands that are such operators (#86): the parser
+   * builds a left-associative chain in a loop, as long as the filter. The term the chain starts from is folded first,
+   * then each operator from the innermost out, each kept as its own fold would keep it: every one of them starts its
+   * fold where the outermost does. None of those operators is kept yet, since an operator's fold is asked for before
+   * its operands' (a computed key's by the parser, an operator's by the resolver, outermost first), and a fold keeps
+   * the whole chain below it.
    */
   private Object fold(Ast ast) {
     Kept known = kept.get(ast);
@@ -184,13 +191,28 @@ final class ConstantKey {
     }
     long builtBefore = built;
     long reusedBefore = reused;
-    Object value;
-    try {
-      value = compute(ast);
-    } catch (EvaluationException e) {
-      value = null;
+    List<Ast.Binary> chain = new ArrayList<>();
+    Ast left = ast;
+    while (left instanceof Ast.Binary b && operation(b.op()) != null) {
+      chain.add(b);
+      left = b.left();
     }
-    kept.put(ast, new Kept(value, built - builtBefore + reused - reusedBefore));
+    if (chain.isEmpty()) {
+      Object value;
+      try {
+        value = compute(ast);
+      } catch (EvaluationException e) {
+        value = null;
+      }
+      kept.put(ast, new Kept(value, built - builtBefore + reused - reusedBefore));
+      return value;
+    }
+    Object value = fold(left);
+    for (int i = chain.size() - 1; i >= 0; i--) {
+      Ast.Binary b = chain.get(i);
+      value = value instanceof JqValue l ? binary(b, l) : null;
+      kept.put(b, new Kept(value, built - builtBefore + reused - reusedBefore));
+    }
     return value;
   }
 
@@ -205,7 +227,7 @@ final class ConstantKey {
       case Ast.Call c -> CONSTANTS.get(c.name() + "/" + c.args().size());
       case Ast.ArrayCons a -> array(a.body());
       case Ast.ObjectCons o -> object(o.pairs());
-      case Ast.Binary b -> binary(b);
+      // An operator jq folds is folded by fold's loop; any other Binary is none, as the default.
       case Ast.Loc l -> location(l.source());
       default -> null;
     };
@@ -235,17 +257,27 @@ final class ConstantKey {
    * on two constants, computed now as the run would, charging the compile's budget, the bytes it builds counted for
    * {@link #constant}'s cap; a comparison builds none. A fold that raises, or that would build or step past the budget,
    * is none ({@link #fold}): the run computes it, raising or building and charging there. {@code and}, {@code or} and
-   * {@code //} are not folded (ADR-0037).
+   * {@code //} are not folded (ADR-0037). {@code b}'s left operand has folded to {@code left}; its right one is folded
+   * now.
    */
-  private Object binary(Ast.Binary b) {
-    Operation op = ARITHMETIC.getOrDefault(b.op(), COMPARISON.get(b.op()));
-    if (op == null || !(fold(b.left()) instanceof JqValue left) || !(fold(b.right()) instanceof JqValue right)) {
+  private Object binary(Ast.Binary b, JqValue left) {
+    if (!(fold(b.right()) instanceof JqValue right)) {
       return null;
     }
     long before = state.built();
-    Object value = ((Fn2) op.form()).apply(state, JqNull.NULL, left, right);
+    Object value;
+    try {
+      value = ((Fn2) operation(b.op()).form()).apply(state, JqNull.NULL, left, right);
+    } catch (EvaluationException e) {
+      return null;
+    }
     built += state.built() - before;
     return value;
+  }
+
+  /** The operation of an operator jq folds, arithmetic or comparison, or null for any other. */
+  private static Operation operation(BinOp op) {
+    return ARITHMETIC.getOrDefault(op, COMPARISON.get(op));
   }
 
   /** A pipe of two folds: the other side when one is {@code .} alone, otherwise none. */
