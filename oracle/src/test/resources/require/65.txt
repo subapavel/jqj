@@ -538,3 +538,4 @@ constant-key-cap/split-in-parentheses
 constant-key-cap/split-then-index
 constant-key-cap/string-plus
 constant-key-cap/string-repeat
+constant-key-cap/unreached-huge-key
