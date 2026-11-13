@@ -77,13 +77,13 @@ class ParserEdgesTest {
             "import \"a\" as $x; .",
             "import \"a\" as x {a: 1}; .",
             // .a."b"? left with its Stub: #63 lowers it (ResolverTest.navigationAndCommaLowerToTheirIr). #67 lowers
-            // as and its patterns, so those entries end with | .., which still stubs.
+            // as and its patterns, and #68 if and elif, so those entries end with | .., which still stubs.
             ". as $x | 1 | ..",
             ". as {\"a\": $b} | 1 | ..",
             ". as {(1|tostring): $e} | 1",
             ". as {$a: [$b]} | 1 | ..",
             "foreach . as $x (0; 1; 2)",
-            "if 1 then 2 elif 3 then 4 else 5 end")) {
+            "if 1 then 2 elif 3 then 4 else 5 end | ..")) {
       parsesToAStub(text);
     }
     // A module directive or an import before definitions alone: no top-level filter either.
@@ -141,17 +141,17 @@ class ParserEdgesTest {
   @Test
   void aLeadingDotIsATermBeforeEachKeywordThatFollowsOne() {
     // One case per word of KEYWORDS_AFTER_A_TERM, each rc 0 on jq-ref; any other keyword is '.' error's (". if" above).
-    // #66 lowers and and or, and #67 as, so their entries end with | .., which still stubs.
+    // #66 lowers and and or, #67 as, and #68 if, elif, else and try, so their entries end with | .., which still stubs.
     for (String text :
         List.of(
             ". as $x | 1 | ..",
-            "if . then 1 else 2 end",
-            "if 1 then . elif 2 then 3 else 4 end",
-            "if 1 then . else 2 end",
-            "if 1 then 2 else . end",
+            "if . then 1 else 2 end | ..",
+            "if 1 then . elif 2 then 3 else 4 end | ..",
+            "if 1 then . else 2 end | ..",
+            "if 1 then 2 else . end | ..",
             ". and true | ..",
             ". or true | ..",
-            "try . catch 1")) {
+            "try . catch 1 | ..")) {
       parsesToAStub(text);
     }
   }

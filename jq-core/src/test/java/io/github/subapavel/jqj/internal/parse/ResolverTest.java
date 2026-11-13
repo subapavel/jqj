@@ -25,7 +25,8 @@ class ResolverTest {
    * #62 does not lower, so each parses and resolves to the Stub; the recording is the owning ticket's red. A filter
    * whose kinds a later ticket lowers (#64 constructions, #65 arithmetic and negation, #66 comparison, {@code and},
    * {@code or}, {@code not} and {@code //}, #67 {@code as}, patterns, {@code ?//}, variables, {@code $__loc__} and
-   * format strings) ends with {@code | ..}, which still stubs, here and in {@link #GRAMMAR}.
+   * format strings, #68 {@code if}, {@code try}, {@code ?}, {@code error}, {@code label} and {@code break}) ends with
+   * {@code | ..}, which still stubs, here and in {@link #GRAMMAR}.
    */
   private static final List<String> PRECEDENCE =
       List.of(
@@ -33,7 +34,7 @@ class ResolverTest {
           "1 | def f: 2; f",
           "1 as $x | 2 | $x | ..",
           "\"x\" as $x | \"y\" as $y | $x + $y | ..",
-          "label $out | 1, break $out, 2",
+          "label $out | 1, break $out, 2 | ..",
           "1, 2 | . + 10 | ..",
           "1, null // 2 | ..",
           ".a = null // 2",
@@ -46,7 +47,7 @@ class ResolverTest {
           "- \"a\" * 2 | ..",
           "- 1 + 2 | ..",
           "- 1 | . + 1 | ..",
-          "[- \"a\"?]",
+          "[- \"a\"?] | ..",
           "1 - 2 - 3 | ..",
           "1 - 2 + 3 | ..",
           "8 / 4 / 2 | ..",
@@ -56,13 +57,13 @@ class ResolverTest {
           "[1, 2 as $x | $x, 3] | ..",
           "reduce 1 + 2 as $x (0; . + $x)",
           "foreach 1 + 2 as $x (0; . + $x)",
-          "try 1 catch 2 + 3",
-          "try 1 + error(\"x\")",
+          "try 1 catch 2 + 3 | ..",
+          "try 1 + error(\"x\") | ..",
           "{a: 1 | . + 1} | ..",
           "[5,6] [1] | ..",
-          "if true then 1 else 2 end + 1",
+          "if true then 1 else 2 end + 1 | ..",
           "reduce (1,2) as $x (0; . + $x) * 2",
-          "error(\"x\")? // 1");
+          "error(\"x\")? // 1 | ..");
 
   /**
    * One filter per other construct of the grammar. jq-ref 1.8.2, observed 2026-11-12 (.logs/62-jqref-accept.log of
@@ -99,11 +100,11 @@ class ResolverTest {
           "def f: 1; .",
           "[foreach (1,2,3) as $x (0; . + $x; [$x, .])]",
           "reduce empty as $x (0; .)",
-          "if false then 1 elif true then 2 else 3 end",
-          "if false then 1 end",
-          "try error(\"x\") catch .",
-          "try error(\"x\")",
-          "label $f | break $f",
+          "if false then 1 elif true then 2 else 3 end | ..",
+          "if false then 1 end | ..",
+          "try error(\"x\") catch . | ..",
+          "try error(\"x\") | ..",
+          "label $f | break $f | ..",
           ".[] as [$a, $b] | $a + $b | ..",
           ". as {a: {b: $c}} | $c | ..",
           ". as {$a} | $a | ..",

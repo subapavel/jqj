@@ -49,6 +49,23 @@ man.test#ed511ef408fb
 jq.test#5f103bd8e523
 jq.test#eeb224a1461b
 
+# jqtest: #65's hand-over (comment on #68, 2026-11-13): .[] | (1 / .)? needs Try; removed from require/65.txt.
+man.test#795c6f448225
+
+# differential: #66's hand-over (comment on #68, 2026-11-13): cases that need error/1 or try, in diff/alternative.cases,
+# logic.cases and compare-depth.cases.
+alternative/error-builtin
+alternative/error-builtin-before-a-truthy-result
+alternative/error-builtin-after-a-truthy-result
+alternative/error-builtin-after-a-falsy-result
+alternative/error-builtin-on-the-right
+alternative/error-builtin-right-skipped
+logic/and-false-skips-error-builtin
+logic/or-true-skips-error-builtin
+logic/and-true-runs-error-builtin
+logic/and-left-error-builtin
+compare-depth/arrays-10001-caught
+
 # differential: diff/control.cases, except the cases that need several documents on stdin (spec 5:
 # control/error-each-input, control/error-second-input, control/label-each-input) and -n (control/error-no-input).
 
