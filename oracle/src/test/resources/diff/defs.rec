@@ -314,3 +314,52 @@ rc 0
 stdout null\n
 stderr
 end
+
+case defs/def-shadows-native-not
+def d517d3951d16
+rc 0
+stdout [5,false]\n
+stderr
+end
+
+case defs/def-shadows-native-range
+def 506b59e83075
+rc 0
+stdout [7,1,2]\n
+stderr
+end
+
+case defs/main-variable-error-hides-error-argument
+def 5e99625ffdca
+rc 3
+stdout
+stderr jq: error: $a is not defined at <top-level>, line 1, column 1:\n    $a, error($b)\n    ^^\njq: 1 compile error\n
+end
+
+case defs/operator-operands-inner-levels-right-first
+def c0505796ef35
+rc 3
+stdout
+stderr jq: error: zz2/0 is not defined at <top-level>, line 1, column 25:\n    def f(g): g; f(zz1) + f(zz2)\n                            ^^^\njq: error: zz1/0 is not defined at <top-level>, line 1, column 16:\n    def f(g): g; f(zz1) + f(zz2)\n                   ^^^\njq: 2 compile errors\n
+end
+
+case defs/interpolation-inner-levels-last-first
+def 6a47217b0e09
+rc 3
+stdout
+stderr jq: error: zz2/0 is not defined at <top-level>, line 1, column 28:\n    def f(g): g; "\\(f(zz1))\\(f(zz2))"\n                               ^^^\njq: error: zz1/0 is not defined at <top-level>, line 1, column 19:\n    def f(g): g; "\\(f(zz1))\\(f(zz2))"\n                      ^^^\njq: 2 compile errors\n
+end
+
+case defs/update-operands-are-inner-levels
+def 066b788d99dc
+rc 3
+stdout
+stderr jq: error: zz1/0 is not defined at <top-level>, line 1, column 1:\n    zz1, (zz2 |= zz3)\n    ^^^\njq: 1 compile error\n
+end
+
+case defs/arithmetic-update-value-is-in-the-level
+def 75986d8ed223
+rc 3
+stdout
+stderr jq: error: zz1/0 is not defined at <top-level>, line 1, column 1:\n    zz1, (zz3 += zz2)\n    ^^^\njq: error: zz2/0 is not defined at <top-level>, line 1, column 14:\n    zz1, (zz3 += zz2)\n                 ^^^\njq: 2 compile errors\n
+end

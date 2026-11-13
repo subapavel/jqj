@@ -302,3 +302,52 @@ arg -c
 filter def f(g): g; f(f(.))
 stdin null\n
 end
+
+# added by #70's implementer: the hand-overs of #69 and of the approval, and the Binder's level order
+
+# needs #66 (not)
+case defs/def-shadows-native-not
+arg -c
+filter [(def not: 5; not), (true | not)]
+stdin null\n
+end
+
+# needs #69 (range/2)
+case defs/def-shadows-native-range
+arg -c
+filter [(def range(a;b): 7; range(1;2)), range(1;3)]
+stdin null\n
+end
+
+# needs #67 ($a) and #68 (error/1)
+case defs/main-variable-error-hides-error-argument
+arg -c
+filter $a, error($b)
+stdin null\n
+end
+
+# needs #65 (+)
+case defs/operator-operands-inner-levels-right-first
+arg -c
+filter def f(g): g; f(zz1) + f(zz2)
+stdin null\n
+end
+
+# needs #67 (interpolation)
+case defs/interpolation-inner-levels-last-first
+arg -c
+filter def f(g): g; "\\(f(zz1))\\(f(zz2))"
+stdin null\n
+end
+
+case defs/update-operands-are-inner-levels
+arg -c
+filter zz1, (zz2 |= zz3)
+stdin null\n
+end
+
+case defs/arithmetic-update-value-is-in-the-level
+arg -c
+filter zz1, (zz3 += zz2)
+stdin null\n
+end
