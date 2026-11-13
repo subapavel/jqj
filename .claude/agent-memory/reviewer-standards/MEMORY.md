@@ -44,3 +44,6 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#65) A shape check that repeats what a fold does can be hidden by the fold fallback: pick a case where only the shape decides. A parse-time fold has no step budget unless one is given: check compile-time arithmetic for O(n*m) work, and that each compile shares one fold budget.
 
 - (#65) A resolver that folds top-down calls the fold at every level of a Binary chain: uncharged literal building multiplies by the chain depth. `min(cap, left)` where cap equals the total is an equivalent mutant. Number arithmetic charges no tick, so `1 + 2` is no "left to the run" witness.
+- (#65) In every builder loop, check the collection call and where the charge sits: `addFirst` in a loop is O(n²), and a charge after the loop bounds nothing.
+- (#65) `chargeBuilt` does not add the bytes when a charge fails, so a later, smaller fold can still fit; changing the fold order changes which nodes fold at the edge.
+- (#65) A mutant argued but not run counts as killed if it under-charges more than a mutant already killed at the same check.
