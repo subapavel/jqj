@@ -85,13 +85,13 @@ final class ParseAssertions {
    * [s,e)}, an Intrinsic its Operation's name, its arguments in parentheses when it has any, and {@code [s,e)}; a Pipe
    * {@code (left | right)}, a Comma {@code (left, right)}, a Bind {@code (value as $i | body)} and a Var {@code $i},
    * where i counts the Binds in the order they are met, so the text names which Bind a Var reads and not the slot's
-   * number; an If {@code (if cond then t else e)} and an Alt {@code (left // right)} (#66); an AltBind (#67) {@code
+   * number; a Binds (ADR-0043) as the chain of nested Binds it means, {@code (v1 as $i | (v2 as $j | body))}; an If {@code (if cond then t else e)} and an Alt {@code (left // right)} (#66); an AltBind (#67) {@code
    * (value as $i | m1 -> [f, ...] ?// m2 -> [f, ...] as [$g, ...] | body)}, its value slot, then each alternative's
    * match and its from slots by their names at the match's leaf, then its group slots, each named as a Bind is; a Try
    * (#68) {@code (try body catch handler)}, a Label {@code (label $i | body)}, its slot named as a Bind's is, and a
    * Break {@code break $i} and {@code [s,e)}, naming its Label; a Reduce (#69) {@code (reduce $i = init | each)} and a
    * Foreach {@code (foreach $i = init | each)}, the state slot named as a Bind's is, and an Advance {@code (advance $i |
-   * update)}, naming its loop's state slot. An argument is printed without its Source; a Pipe, Comma, Bind, If, Alt,
+   * update)}, naming its loop's state slot. An argument is printed without its Source; a Pipe, Comma, Bind, Binds, If, Alt,
    * AltBind, Try, Label, Reduce, Foreach or Advance's own Source is left out (no design fixes it). A Var with no
    * enclosing Bind of its slot, a Break with no enclosing Label of its slot, an Advance with no enclosing loop of its
    * slot, and a from slot no Bind of the match holds, is {@code $?}.
@@ -115,8 +115,16 @@ final class ParseAssertions {
         inner.put(b.slot(), name);
         yield "(" + value + " as " + name + " | " + shape(b.body(), inner, met) + ")";
       }
-      // Scaffold of the #92 test-author: no lowering builds a Binds yet, so no shape is fixed for it.
-      case Binds _ -> throw new UnsupportedOperationException("scaffold #92: no shape for a Binds yet");
+      case Binds b -> {
+        StringBuilder chain = new StringBuilder();
+        Map<Integer, String> inner = new HashMap<>(scope);
+        for (int k = 0; k < b.values().size(); k++) {
+          String name = "$" + met[0]++;
+          chain.append('(').append(shape(b.values().get(k), inner, met)).append(" as ").append(name).append(" | ");
+          inner.put(b.slots().get(k), name);
+        }
+        yield chain + shape(b.body(), inner, met) + ")".repeat(b.values().size());
+      }
       case Var v -> scope.getOrDefault(v.slot(), "$?");
       case Collect c -> "[" + shape(c.body(), scope, met) + "]" + chars(c.source());
       case If i -> "(if " + shape(i.cond(), scope, met) + " then " + shape(i.then(), scope, met) + " else " + shape(i.otherwise(), scope, met) + ")";

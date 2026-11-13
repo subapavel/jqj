@@ -6,17 +6,23 @@ import io.github.subapavel.jqj.query.run.Truth;
 
 /**
  * {@code if c then t else e end} (ADR-0037): each result of the condition runs one branch on the If's input, {@code t}
- * when the truth holds for it and {@code e} when it does not, and a stop in a branch ends the condition too. No step of
- * its own.
+ * when the truth holds for it and {@code e} when it does not, and a stop in a branch ends the condition too. A tail
+ * condition (ADR-0043) runs into a {@link Holder} first, and its one result, if any, runs the branch after the
+ * condition returned; any other condition runs the branch inside its emit. No step of its own.
  */
 public final class IfOp extends Op {
   private final Op cond;
+
+  /** Whether the condition is a tail emitter: one result at most, and it never breaks out (ADR-0043). */
+  private final boolean tail;
+
   private final Op then;
   private final Op otherwise;
   private final Truth truth;
 
-  public IfOp(Op cond, Op then, Op otherwise, Truth truth) {
+  public IfOp(Op cond, boolean tail, Op then, Op otherwise, Truth truth) {
     this.cond = cond;
+    this.tail = tail;
     this.then = then;
     this.otherwise = otherwise;
     this.truth = truth;
@@ -24,6 +30,17 @@ public final class IfOp extends Op {
 
   @Override
   public boolean run(RunState state, Object[] slots, Object in, Sink out) {
-    return cond.run(state, slots, in, v -> (truth.test(v) ? then : otherwise).run(state, slots, in, out));
+    if (!tail) {
+      return cond.run(state, slots, in, v -> branch(v).run(state, slots, in, out));
+    }
+    Holder holder = new Holder();
+    // The holder never stops and a tail emitter never breaks out, so this run's answer is always true.
+    cond.run(state, slots, in, holder);
+    Object v = holder.take();
+    return v == Holder.EMPTY || branch(v).run(state, slots, in, out);
+  }
+
+  private Op branch(Object v) {
+    return truth.test(v) ? then : otherwise;
   }
 }
