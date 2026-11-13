@@ -28,3 +28,8 @@ Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; desig
 - `CallForm` also permits **`FnN(RunState, Object in, Object[] args)`**, ADR-0009's form, with #64's object construction as its first user. The args array is new for each call and the operation may keep it (a shape site keeps it as its values array).
 - **`Collect(source, body, collector)`** runs `body` and hands each result to the collector; `[e]` lowers to it. It charges no tick of its own: every result after the first has already paid one (Comma's right branch, or a Many per element).
 - **Object construction** lowers key-outer, as `t[e]` does: each key binds outside its own value, each pair outside the next; constant keys and Identity or Const values are passed as arguments without a Bind.
+
+## Amendment (2026-11-13, ticket #65)
+
+- **A binary arithmetic operator** `l op r` (`+ - * / %`) lowers to `Bind(r, s_r, Bind(l, s_l, Intrinsic(op, [Var s_l, Var s_r])))`: the right operand is the outer loop, as jq 1.8.2 runs a C function's arguments last-first (`expand_call_arglist`). An Identity or Const operand is passed as an argument without a Bind. `-t` lowers to `Pipe(t, Intrinsic(NEGATE, []))`. The order is pinned by a differential case (`[(1,2)+(10,20)]`) recorded on jq-ref.
+- Considered: the left operand outer (not jq's order); a binary IR node (hides the binds, as `Index` would).

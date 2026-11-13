@@ -16,3 +16,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#62) DiffRunner compares no stderr when an expected line is a syntax error; recovery-message text is checked only by unit tests and jqtest's last-block rule.
 - (#63) An ADR's list of tape walks can omit a walk the ticket adds (object `.[]`'s duplicate check): grep the views' loops in new paths.
 - (#63) Binding decisions sometimes live only in commits or the brief; ask that the evidence comment records them.
+- (#64) A constant measured after red leaves only relative tests: check an absolute pin was added after the measurement commit. Every "moves to #N" in an approval needs a hand-over comment on #N.
+- (#64) Compare the resolver's new built-ins against the spec's natives table (`empty` was #72's).

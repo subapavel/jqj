@@ -1,6 +1,6 @@
 # Equality, ordering and object merge stop at jq's depth limits
 
-Status: accepted (2026-11-12, owner, spec 2 grilling round 1, Q8)
+Status: accepted (2026-11-12, owner, spec 2 grilling round 1, Q8); completed by ADR-0037 for ordering (#66)
 
 jq 1.8.2 limits three recursive operations to a fixed depth: `jv_equal` (`MAX_EQUAL_DEPTH`, 10 000,
 `src/jv.c`), `jv_cmp` (`MAX_CMP_DEPTH`, 10 000, `src/jv_aux.c`) and the deep object merge `*`
