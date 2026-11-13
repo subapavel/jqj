@@ -152,7 +152,29 @@ control/break-unknown
 control/break-out-of-scope
 control/break-and-var-unknown
 
-# DEVIATIONS.md "A break is not an error", rows 1, 2 and 4 (deviation break-not-error)
+# DEVIATIONS.md "A break is not an error", rows 1 to 4 (deviation break-not-error); row 3, a break through ?//, is the
+# review's ruling 1 (comment on #68).
 control/deviation-try-break
 control/deviation-postfix-break
+control/deviation-altbind-break
 control/deviation-forged-break
+
+# Review ruling 4 (comment on #68): the precedence cases #68 owns, in diff/precedence.cases.
+precedence/catch-takes-a-postfix-term
+precedence/if-is-a-term
+precedence/label-scopes-the-comma
+precedence/negation-below-optional
+precedence/optional-binds-the-term
+precedence/try-takes-a-postfix-term
+
+# Review ruling 4: census rows that need only S2a.11 to S2a.18 but are credited to S2a.20, as census.java lacks the
+# #67 -> #68 edge (a carry): jq.test lines 315, 319, 323, 1499, 2363, 2367 and man.test lines 337, 341, 867.
+jq.test#89a1f7b1b067
+jq.test#a271da33fe01
+jq.test#40e3b3689ad6
+jq.test#05d1a0b3f21a
+jq.test#9610a98460b6
+jq.test#e3fec0b48f1b
+man.test#a6f9b7d20aa6
+man.test#05d1a0b3f21a
+man.test#cb71a15b95ff
