@@ -4,6 +4,59 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## #85: the walk-side key proof against 2fe9654 and jq-ref (ADR-0044, ADR-0019 bar 10 %), 2026-11-13
+
+- Machine: `claude-cloud-4vcpu` (4 × Intel Xeon Processor @ 2.10 GHz, Linux 6.18.44-fc-v445), JDK
+  25.0.5.0.3 (Java HotSpot 64-Bit Server VM), JMH 1.37, jq-ref jq-1.8.2. Load average 2.08 before,
+  2.61 between and 5.39 after the two runs: other worktrees ran, so the errors are wide.
+- #85: `d83af2d`. Baseline: `2fe9654` exported with `git archive`, with the branch's `bench/jmh`
+  sources and pom. Each built with `./mvnw -o -B -Pbench -pl bench/jmh -am package -DskipTests`.
+- Command: `java -jar <jar> KeyProofCost -foe true -prof gc -rf json -rff <json>`, ADR-0019's
+  operation and settings (2 forks, 3 x 1 s warm-up, 5 x 1 s, `-Xms2g -Xmx2g`, compact output); the
+  branch first, then the baseline; then G1.10m twice more on each, alternately. Logs
+  `.logs/85-jmh3-{branch,base}.{log,json}`, `.logs/85-jmh3-g1-{branch,base}-{1,2}.log`,
+  `.logs/85-jmh3-jqref.log`.
+- `KeyProofCost`: G1 `.a.b.c`, G2 and G6's `-c .` on `Inputs.orders` at each size; `recs20` is an
+  array of 20-key records (`KeyProofCost.recs20`, padded to the size); `wide` is ReaderCost's flat
+  78 841-key object (#82) and an LF. jq-ref per document: best of 5 minus the best of 5 on
+  `/dev/null`, one document (K = 1).
+
+| µs/op (± 99.9 %) | #85 | 2fe9654 | change | B/op #85 / 2fe9654 |
+| --- | --- | --- | --- | --- |
+| G1.1k | 2.245 ± 0.161 | 2.264 ± 0.157 | −0.8 % | 368 / 368 |
+| G1.100k | 214.005 ± 13.138 | 210.440 ± 13.590 | +1.7 % | 369 / 369 |
+| G1.10m | 20 268.381 ± 3 023.874 | 19 270.525 ± 1 790.882 | +5.2 % | 621 / 613 |
+| G1.10m, pair 2 | 19 646.403 ± 972.016 | 20 823.424 ± 1 601.337 | −5.7 % | 616 / 624 |
+| G1.10m, pair 3 | 19 881.885 ± 2 294.841 | 20 492.129 ± 2 017.598 | −3.0 % | 618 / 621 |
+| G2.1k | 4.739 ± 0.539 | 4.647 ± 0.487 | +2.0 % | 4 696 / 4 920 |
+| G2.100k | 476.548 ± 71.160 | 436.782 ± 61.144 | +9.1 % | 418 448 / 444 137 |
+| G2.10m | 45 321.492 ± 5 734.008 | 46 271.393 ± 4 383.439 | −2.1 % | 40 311 400 / 42 792 117 |
+| G6 `-c .` 1k | 4.907 ± 0.454 | 5.118 ± 0.419 | −4.1 % | 192 / 212 |
+| G6 `-c .` 100k | 438.063 ± 37.986 | 496.562 ± 55.217 | −11.8 % | 195 / 208 |
+| G6 `-c .` 10m | 41 627.509 ± 2 748.468 | 46 528.887 ± 3 290.923 | −10.5 % | 629 / 702 |
+| recs20 `-c .` 1k | 5.354 ± 0.420 | 19.904 ± 2.143 | −73.1 % | 192 / 192 |
+| recs20 `-c .` 100k | 477.470 ± 48.761 | 1 680.599 ± 90.391 | −71.6 % | 195 / 356 |
+| recs20 `-c .` 10m | 43 346.612 ± 1 930.151 | 144 720.413 ± 11 386.679 | −70.0 % | 639 / 1 279 |
+| recs20 `.[]\|.[]` 1k | 7.579 ± 1.013 | 21.714 ± 2.542 | −65.1 % | 3 088 / 2 792 |
+| recs20 `.[]\|.[]` 100k | 673.387 ± 63.676 | 1 878.497 ± 152.024 | −64.2 % | 240 546 / 216 605 |
+| recs20 `.[]\|.[]` 10m | 59 950.808 ± 4 471.934 | 167 809.499 ± 21 354.755 | −64.3 % | 21 154 249 / 19 039 542 |
+
+| wide (78 841 keys) | #85 µs/op | jq-ref µs per document | #85 / jq-ref |
+| --- | --- | --- | --- |
+| `.[]` | 9 026.280 ± 1 522.706 | 51 065 | 0.18 |
+| `-c .` | 6 835.715 ± 471.581 | 46 876 | 0.15 |
+
+- No cell is over the 10 % bar. G2.100k is the highest at +9.1 %, inside both errors; it was −8.0 %
+  and +6.3 % in this ticket's two earlier rounds (`.logs/85-jmh-*.log` at `fd81c29`,
+  `.logs/85-jmh2-*.log` at `e152ad0`), and G2 walks no read object. G1.10m over its three pairs:
+  −1.3 % (means 19 932 against 20 195).
+- 2fe9654's wide cells are n² and were not run here: `-c .` took 39.9 s on `25ef36c` (ADR-0044).
+- recs20 `.[]|.[]` allocates the walk `.[]` holds for each record (+11 % B/op); the Printer keeps
+  no walk object. Round 1 found the Printer making one per object (G6.10m 9 923 691 B/op against
+  668), removed by `e152ad0`; round 2 a record per proof (recs20 `-c .` 10m 907 225 B/op), removed
+  by `d83af2d`. Their times were within the bar, so only the B/op moved.
+- recs20 jq-ref at 10m, same session: `-c .` 444 269 µs, `.[]|.[]` 414 664 µs per document.
+
 ## #82: the distinct-key proof's reader cost (ADR-0002 as amended by F-40), 2026-11-13
 
 Ported unchanged by #85 from `t/82-distinct-keys` at `a01fda2`, which is deleted at #85's merge
