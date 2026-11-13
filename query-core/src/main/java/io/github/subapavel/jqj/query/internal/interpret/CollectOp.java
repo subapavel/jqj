@@ -4,6 +4,7 @@ import io.github.subapavel.jqj.query.run.Charges;
 import io.github.subapavel.jqj.query.run.Collector;
 import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.query.run.Sink;
+import io.github.subapavel.jqj.query.run.Termination;
 import java.util.Arrays;
 
 /**
@@ -14,6 +15,12 @@ import java.util.Arrays;
 public final class CollectOp extends Op {
   /** The capacity of the first array, allocated with the first result. */
   private static final int FIRST = 4;
+
+  /**
+   * The longest array a collector grows to: the JDK's own ceiling for growing arrays,
+   * {@code jdk.internal.util.ArraysSupport.SOFT_MAX_ARRAY_LENGTH}, which it keeps below the VMs' limits.
+   */
+  static final int MAX_LENGTH = Integer.MAX_VALUE - 8;
 
   /** The results of a body that gave none: an empty array has nothing to write, so the collectors share it. */
   private static final Object[] NONE = {};
@@ -35,6 +42,19 @@ public final class CollectOp extends Op {
     return out.emit(collector.collect(elements.values, elements.length));
   }
 
+  /**
+   * The capacity after {@code length} results filled the array: twice {@code length}, at least {@link #FIRST} and at
+   * most {@link #MAX_LENGTH}.
+   *
+   * @throws Termination over the bytes-built budget when {@code length} is {@link #MAX_LENGTH} already
+   */
+  static int grown(RunState state, int length) {
+    if (length >= MAX_LENGTH) {
+      throw state.overBuilt();
+    }
+    return (int) Math.min(MAX_LENGTH, Math.max(FIRST, 2L * length));
+  }
+
   /** The results so far, {@code [0, length)} of {@code values}. */
   private static final class Elements implements Sink {
     private final RunState state;
@@ -49,7 +69,7 @@ public final class CollectOp extends Op {
     public boolean emit(Object v) {
       state.chargeBuilt(Charges.ELEMENT);
       if (length == values.length) {
-        values = Arrays.copyOf(values, Math.max(FIRST, length << 1));
+        values = Arrays.copyOf(values, grown(state, length));
       }
       values[length++] = v;
       return true;
