@@ -50,3 +50,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#66) `NumberView.doubleValue` re-scans its token on every call, while `LiteralNumber` caches its double. A "charges nothing" test built on a filter literal says nothing about a document literal.
 - (#66) Under ADR-0014, required oracle cases count toward jq-core's mutation score (PIT crossModule), so a mutant killed only by such a case counts as killed.
 - (#66) DiffRunner compares stderr unless the expected output has `jq: error: syntax error`.
+- (#67) A Stub-list entry that gains ` | ..` loses its only check: find a positive witness for each construct the ticket lowers. Each new arm in `ConstantKey.fold` is a new charge and needs its own N/N+1 pair.
+- (#67) When a Const lowering gives the same output as the general path, the oracle sees the difference only while that path is a Stub. The lasting check is a run under `bytesBuilt(0)`.
