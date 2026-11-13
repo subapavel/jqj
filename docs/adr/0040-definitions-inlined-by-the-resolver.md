@@ -25,7 +25,8 @@ Spec 2a compiles no recursion, so every call that compiles is inlined, as ADR-00
 - **Natives**: `empty`, `error/0` and `not` move into one native table, looked up after every def, so a user def can shadow them. `error/1` is jq-defined (`def error(msg): msg|error;`), so its argument is an inner compile level (jq-ref: `zz1, error(zz2)` reports zz1 only).
 - **Inline cap**: `Resolver.INLINE_CAP = 65 536`, an internal constant. Each node lowered inside an expansion spends one; past the cap, or with an expansion nested 512 deep, the filter is a Stub. The red measures the census's S2a.20 maximum, and the cap is kept if that maximum is at most 10⁴.
   - **IR depth** (F-44): the cap also bounds depth. Past `Resolver.MAX_IR_DEPTH = 512` levels of built IR, the filter is a Stub, because node count alone lets nested expansions stack depth (about 30 000 levels under both caps). 512 is the parse depth (#81); a cold 512 KiB thread ran 625 levels and overflowed at 650 (#70 probe). The red shows 512 compiling and running on the 512 KiB stack of ADR-0017 and 513 a Stub, and no ratcheted case becomes a Stub.
-  - **Chains** (F-44): every step kind of a postfix chain lowers without linear IR depth, not only field reads (`FieldRun`), and ticks as the nested form does.
+  - **Chains** (F-44): every step kind of a postfix chain with constant keys and bounds lowers without linear IR depth, not only field reads, and ticks as the nested form does. Computed-key steps count toward the IR-depth bound.
+  - **What counts** (F-44): the depth of the built IR wherever the Resolver builds a node, `expand`'s value-parameter Binds and chain Binds included.
 - **Cost**: an inlined call, closure or value parameter ticks nothing and builds nothing.
 - **query-core gains nothing** in 2a. `Call` and the IR function list arrive with their first user (2b), which re-checks ADR-0006's pass order.
 
