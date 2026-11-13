@@ -96,3 +96,8 @@ distinct/to-entries-repeat
 distinct/repeat-length
 distinct/repeat-plus
 distinct/repeat-equal
+
+# differential: #85's review round 1, the recs20 diagnostic's 1 KB cases of diff/bench.cases (ADR-0019), recorded on
+# jq-ref 1.8.2 (bench.rec, rc 0).
+bench/recs20-print.1k
+bench/recs20-iterate.1k
