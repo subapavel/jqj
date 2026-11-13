@@ -28,7 +28,9 @@ man.test#05d1a0b3f21a
 man.test#a6f9b7d20aa6
 man.test#cb71a15b95ff
 
-# differential: every case of diff/defs.cases.
+# differential: #62's recordings of a definition's scope (diff/precedence.cases), then every case of diff/defs.cases.
+precedence/def-scopes-the-pipe
+precedence/def-after-a-pipe
 defs/closure-runs-once-per-use
 defs/closure-unused-never-runs
 defs/closure-runs-on-callee-input
