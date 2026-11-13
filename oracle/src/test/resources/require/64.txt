@@ -44,10 +44,14 @@ construct/array-empty-body
 construct/array-index-and-slice
 construct/array-of-commas
 construct/key-after-a-string-key
+construct/key-array-commas-then-dot
 construct/key-array-constant
+construct/key-array-dot-then-commas
+construct/key-array-dot-then-commas-on-the-left
 construct/key-array-empty
 construct/key-array-left-nested-commas
 construct/key-array-of-dot
+construct/key-array-pipe-of-constants
 construct/key-array-right-nested-commas
 construct/key-array-two-constants
 construct/key-computed-repeated
@@ -67,6 +71,7 @@ construct/key-number-then-dots
 construct/key-object-constant
 construct/key-object-nested-constants
 construct/key-object-shorthand
+construct/key-object-variable-shorthand-then-constant-key
 construct/key-parentheses-pipe-dot
 construct/key-string-computed
 construct/key-true-computed

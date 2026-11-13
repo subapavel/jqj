@@ -278,6 +278,36 @@ filter {("a\\(1)"):1} | {(1):2}
 stdin null\n
 end
 
+case construct/key-array-dot-then-commas
+arg -c
+filter {([.|(1,2)]):1}
+stdin null\n
+end
+
+case construct/key-array-commas-then-dot
+arg -c
+filter {([(1,2)|.]):1}
+stdin null\n
+end
+
+case construct/key-array-dot-then-commas-on-the-left
+arg -c
+filter {([(.|(1,2)),3]):1}
+stdin null\n
+end
+
+case construct/key-array-pipe-of-constants
+arg -c
+filter {([1|2]):1}
+stdin null\n
+end
+
+case construct/key-object-variable-shorthand-then-constant-key
+arg -c
+filter . as $x | {({$x}):1} | {(1):2}
+stdin null\n
+end
+
 # built objects with computed keys, and navigation on built objects
 
 case construct/key-computed-repeated
