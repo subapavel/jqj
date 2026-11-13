@@ -15,7 +15,8 @@
 #        1 verify       ./mvnw -B -Pbench,compile-oracle verify (the whole reactor; the oracle needs every module; the
 #                       compile-mode oracle runs here too, so step 4 sees a compile.txt regression before the merge, F-46)
 #        3 lf, trailers, word, record   LF check, trailer check, word check, oracle recordings changed since <ref>
-#        4 ratchet      java scripts/ratchet.java check
+#        4 ratchet      java scripts/ratchet.java check --require-compile (step 1 ran the compile-mode oracle, so its
+#                       report is required, F-46)
 # Environment: ORACLE_REQUIRE, a file of the ticket's required case ids, becomes -Doracle.require=<file> (ADR-0020).
 set -uo pipefail
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
@@ -59,5 +60,5 @@ if [ ${#recordings[@]} -gt 0 ]; then
   step record 0 scripts/oracle-record.sh --verify "${recordings[@]}"
 fi
 
-step ratchet 1 java scripts/ratchet.java check
+step ratchet 1 java scripts/ratchet.java check --require-compile
 echo "gate-ticket: $ticket passed"

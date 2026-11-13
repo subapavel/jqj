@@ -95,7 +95,8 @@
   </build>
 
   <profiles>
-    <!-- ./mvnw -B -Pbench,compile-oracle verify: scripts/after-merge.sh and the spec gate's clean verify. -->
+    <!-- ./mvnw -B -Pbench,compile-oracle verify: scripts/after-merge.sh, the spec gate's clean verify and, since #89,
+         the ticket gate's step 1 (F-46). -->
     <profile>
       <id>compile-oracle</id>
       <properties>
