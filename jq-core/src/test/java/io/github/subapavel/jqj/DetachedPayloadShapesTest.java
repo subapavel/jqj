@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import io.github.subapavel.jqj.RunBudgets.Results;
 import io.github.subapavel.jqj.value.JqArray;
+import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqString;
@@ -83,6 +84,35 @@ class DetachedPayloadShapesTest {
     JqObject payload = (JqObject) e.value();
     assertThat(payload.size()).as("size of the payload").isEqualTo(count);
     assertThat(((JqNumber) payload.get("BB".repeat(15))).longValue()).as("payload of the last key").isEqualTo(count - 1L);
+  }
+
+  @Test
+  void aSharedBuiltContainerIsCopiedOnce() {
+    // Third review of #68: [.,.] 32 times on null builds 32 arrays of two references to the one below, a value of 2^32
+    // paths. A detach that copies a container once per reference walks all of them after the run (a time witness).
+    JqEngine engine = unlimited();
+    Workspace workspace = engine.newWorkspace();
+    JqFilter filter = engine.compile("[.,.]|".repeat(32) + "error");
+    JqFilterException e =
+        assertTimeoutPreemptively(
+            Duration.ofSeconds(5),
+            () -> assertThatExceptionOfType(JqFilterException.class).isThrownBy(() -> filter.run(JqNull.NULL, NONE, new Results(), workspace)).actual(),
+            "[.,.]| 32 times, then error, on null");
+    JqValue level = e.value();
+    for (int depth = 0; depth < 32; depth++) {
+      JqArray pair = (JqArray) level;
+      assertThat(pair.length()).as("length at depth %d", depth).isEqualTo(2);
+      assertThat(pair.get(1)).as("the second element at depth %d is the first's copy", depth).isSameAs(pair.get(0));
+      level = pair.get(0);
+    }
+    assertThat(level).as("the leaf").isEqualTo(JqNull.NULL);
+  }
+
+  @Test
+  void aKeyRepeatedThreeTimesTakesItsLastValue() {
+    // jq-ref: .a | error on {"a":{"a":1,"b":2,"a":3,"a":4}} prints {"a":4,"b":2}.
+    JqValue payload = payloadAfterTheNextRead(".a | error", "{\"a\":{\"a\":1,\"b\":2,\"a\":3,\"a\":4}}");
+    assertThat(payload.toJson()).as("the payload's text").isEqualTo("{\"a\":4,\"b\":2}");
   }
 
   @Test
