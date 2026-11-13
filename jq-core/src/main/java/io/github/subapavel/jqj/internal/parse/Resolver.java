@@ -9,16 +9,19 @@ import io.github.subapavel.jqj.internal.op.Field;
 import io.github.subapavel.jqj.internal.op.Formats;
 import io.github.subapavel.jqj.internal.op.Index;
 import io.github.subapavel.jqj.internal.op.Iterate;
+import io.github.subapavel.jqj.internal.op.JqTruth;
 import io.github.subapavel.jqj.internal.op.ObjectKey;
 import io.github.subapavel.jqj.internal.op.Slice;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
+import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.Bind;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Operation;
@@ -41,7 +44,8 @@ import java.util.Map;
  * which make no node; a number or plain string literal, and {@code true}, {@code false} and {@code null}, each a Const;
  * a bare {@code @text}; {@code empty}; and (#64) {@code [e]}, a Collect, and {@code {k: v, ...}}, its pairs bound
  * key-outer around one construction; and (#65) {@code + - * / %}, right operand outer, and {@code -t}, each result of
- * {@code t} negated. Every other kind is a Stub.
+ * {@code t} negated; and (#66) {@code == != < > <= >=}, right operand outer, {@code and}, {@code or} and {@code not},
+ * each an If, and {@code //}, an Alt, both on jq's truth (ADR-0037). Every other kind is a Stub.
  *
  * <p>A key or bound that is a Const is the step's argument; any other is bound around the step's target, the key
  * outside the target and {@code a} outside {@code b} (ADR-0034, jq's {@code gen_index} and {@code gen_slice_index}).
@@ -105,6 +109,11 @@ public final class Resolver {
       case Ast.ArrayCons a -> array(a);
       case Ast.ObjectCons o -> object(o);
       case Ast.Binary b when ConstantKey.arithmetic(b.op()) != null -> binary(b);
+      case Ast.Binary b when ConstantKey.comparison(b.op()) != null -> operator(b, ConstantKey.comparison(b.op()));
+      case Ast.Binary b when b.op() == BinOp.AND -> and(b);
+      case Ast.Binary b when b.op() == BinOp.OR -> or(b);
+      case Ast.Binary b when b.op() == BinOp.ALTERNATIVE -> new Alt(b.source(), lower(b.left()), lower(b.right()), JqTruth.TRUTHY);
+      case Ast.Call c when c.args().isEmpty() && c.name().equals("not") -> not(c.source());
       case Ast.Neg n -> pipe(lower(n.operand()), new Intrinsic(n.source(), Arithmetic.NEGATE, List.of()));
       // Each other kind, and each guarded one outside its guard, belongs to a later ticket (spec 2a and 2b).
       default -> throw Stub.unbuilt("the " + ast.getClass().getSimpleName() + " at byte " + ast.source().start());
@@ -153,19 +162,59 @@ public final class Resolver {
 
   /**
    * {@code l op r} for {@code + - * / %} (#65): the constant it folds to, when both sides are constants and the fold
-   * succeeds ({@link ConstantKey#constant}); otherwise {@code r} bound outside {@code l}, so the right operand is the
-   * outer loop, as jq's {@code gen_binop} runs it, an Identity or Const operand passed as an argument without a Bind.
+   * succeeds ({@link ConstantKey#constant}); otherwise {@link #operator}.
    */
   private Node binary(Ast.Binary b) {
     if (folds.constant(b) instanceof JqValue folded) {
       return new Const(b.source(), folded);
     }
+    return operator(b, ConstantKey.arithmetic(b.op()));
+  }
+
+  /**
+   * {@code l op r} as the call of {@code operation} on its operands: {@code r} bound outside {@code l}, so the right
+   * operand is the outer loop, as jq's {@code gen_binop} runs it, an Identity or Const operand passed as an argument
+   * without a Bind (ADR-0034 amendment for #65, ADR-0037). A comparison is lowered so even when both sides are
+   * constants (design approval O6 of #66).
+   */
+  private Node operator(Ast.Binary b, Operation operation) {
     Node right = lower(b.right());
     int rightSlot = right instanceof Identity ? NO_SLOT : slotFor(right);
     Node left = lower(b.left());
     int leftSlot = left instanceof Identity ? NO_SLOT : slotFor(left);
-    Intrinsic op = new Intrinsic(b.source(), ConstantKey.arithmetic(b.op()), List.of(argument(left, leftSlot), argument(right, rightSlot)));
+    Intrinsic op = new Intrinsic(b.source(), operation, List.of(argument(left, leftSlot), argument(right, rightSlot)));
     return bind(right, rightSlot, bind(left, leftSlot, op));
+  }
+
+  /** {@code l and r} (ADR-0037): {@code if l then (if r then true else false) else false}, the left side outer. */
+  private Node and(Ast.Binary b) {
+    Node left = lower(b.left());
+    Node right = lower(b.right());
+    Source at = b.source();
+    return when(at, left, when(right.source(), right, bool(at, true), bool(at, false)), bool(at, false));
+  }
+
+  /** {@code l or r} (ADR-0037): {@code if l then true else (if r then true else false)}, the left side outer. */
+  private Node or(Ast.Binary b) {
+    Node left = lower(b.left());
+    Node right = lower(b.right());
+    Source at = b.source();
+    return when(at, left, bool(at, true), when(right.source(), right, bool(at, true), bool(at, false)));
+  }
+
+  /** {@code not} (ADR-0037, design approval C2): {@code if . then false else true}. */
+  private static Node not(Source at) {
+    return when(at, new Identity(at), bool(at, false), bool(at, true));
+  }
+
+  /** {@code if cond then then else otherwise} on jq's truth, spanning {@code at}. */
+  private static If when(Source at, Node cond, Node then, Node otherwise) {
+    return new If(at, cond, then, otherwise, JqTruth.TRUTHY);
+  }
+
+  /** A new constant {@code true} or {@code false}: the IR is a tree, so no node is shared. */
+  private static Const bool(Source at, boolean value) {
+    return new Const(at, value ? JqBool.TRUE : JqBool.FALSE);
   }
 
   /** A new slot for a computed key or bound, or {@link #NO_SLOT} for a Const. */
