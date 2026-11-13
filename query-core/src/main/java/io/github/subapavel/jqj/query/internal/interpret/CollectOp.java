@@ -10,7 +10,8 @@ import java.util.Arrays;
 /**
  * Gathers its body's results and emits what the collector makes of them (ADR-0034 amendment). It charges the
  * container before its first allocation and each element before it stores it (ADR-0035): a collector charges per
- * element, never the capacity it grows to, and its growth copies charge no step.
+ * element, never the capacity it grows to, and its growth copies charge no step. After a break in its body it emits
+ * nothing and passes the false on (ADR-0039).
  */
 public final class CollectOp extends Op {
   /** The capacity of the first array, allocated with the first result. */
@@ -37,8 +38,10 @@ public final class CollectOp extends Op {
   public boolean run(RunState state, Object[] slots, Object in, Sink out) {
     state.chargeBuilt(Charges.CONTAINER);
     Elements elements = new Elements(state);
-    // The body's sink never stops, so the body always runs out.
-    body.run(state, slots, in, elements);
+    // The body's sink never stops, so a false from the body is a break.
+    if (!body.run(state, slots, in, elements)) {
+      return false;
+    }
     return out.emit(collector.collect(elements.values, elements.length));
   }
 

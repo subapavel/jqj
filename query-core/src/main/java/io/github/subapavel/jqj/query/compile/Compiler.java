@@ -1,27 +1,46 @@
 package io.github.subapavel.jqj.query.compile;
 
+import io.github.subapavel.jqj.query.internal.interpret.AdvanceOp;
+import io.github.subapavel.jqj.query.internal.interpret.AltBindOp;
+import io.github.subapavel.jqj.query.internal.interpret.AltOp;
 import io.github.subapavel.jqj.query.internal.interpret.Argument;
 import io.github.subapavel.jqj.query.internal.interpret.BindOp;
+import io.github.subapavel.jqj.query.internal.interpret.BreakOp;
 import io.github.subapavel.jqj.query.internal.interpret.CollectOp;
 import io.github.subapavel.jqj.query.internal.interpret.CommaOp;
 import io.github.subapavel.jqj.query.internal.interpret.ConstOp;
+import io.github.subapavel.jqj.query.internal.interpret.ForeachOp;
 import io.github.subapavel.jqj.query.internal.interpret.IdentityOp;
+import io.github.subapavel.jqj.query.internal.interpret.IfOp;
 import io.github.subapavel.jqj.query.internal.interpret.Intrinsic1Op;
 import io.github.subapavel.jqj.query.internal.interpret.Intrinsic2Op;
 import io.github.subapavel.jqj.query.internal.interpret.IntrinsicManyOp;
 import io.github.subapavel.jqj.query.internal.interpret.IntrinsicNOp;
 import io.github.subapavel.jqj.query.internal.interpret.IntrinsicOp;
+import io.github.subapavel.jqj.query.internal.interpret.LabelOp;
 import io.github.subapavel.jqj.query.internal.interpret.Op;
 import io.github.subapavel.jqj.query.internal.interpret.PipeOp;
+import io.github.subapavel.jqj.query.internal.interpret.ReduceOp;
+import io.github.subapavel.jqj.query.internal.interpret.TryOp;
 import io.github.subapavel.jqj.query.internal.interpret.VarOp;
+import io.github.subapavel.jqj.query.ir.Advance;
+import io.github.subapavel.jqj.query.ir.Alt;
+import io.github.subapavel.jqj.query.ir.AltBind;
+import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
+import io.github.subapavel.jqj.query.ir.Foreach;
 import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
+import io.github.subapavel.jqj.query.ir.Label;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
+import io.github.subapavel.jqj.query.ir.Reduce;
+import io.github.subapavel.jqj.query.ir.Try;
 import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.query.run.Fn0;
 import io.github.subapavel.jqj.query.run.Fn1;
@@ -35,13 +54,25 @@ public final class Compiler {
   private Compiler() {}
 
   /**
-   * Compiles {@code root} in {@code mode}. There is no analysis yet, so both modes build the same tree (ADR-0030).
+   * Compiles {@code root}, which has no parameter slot, in {@code mode}: {@link #compile(Node, int, CompileMode)} with
+   * none.
    *
    * @throws IllegalStateException when the tree breaks a rule of the IR
    */
   public static Executable compile(Node root, CompileMode mode) {
-    int slots = IrVerifier.verify(root);
-    return new Executable(interpreter(root), slots);
+    return compile(root, 0, mode);
+  }
+
+  /**
+   * Compiles {@code root} in {@code mode}, with slots {@code 0 .. parameters - 1} its parameter slots (ADR-0038): in
+   * scope everywhere, bound by no node, and set by each run from its parameters. There is no analysis yet, so both
+   * modes build the same tree (ADR-0030).
+   *
+   * @throws IllegalStateException when the tree breaks a rule of the IR
+   */
+  public static Executable compile(Node root, int parameters, CompileMode mode) {
+    int slots = IrVerifier.verify(root, parameters);
+    return new Executable(interpreter(root), slots, parameters);
   }
 
   private static Op interpreter(Node node) {
@@ -54,7 +85,36 @@ public final class Compiler {
       case Var v -> new VarOp(v.slot());
       case Intrinsic i -> intrinsic(i);
       case Collect c -> new CollectOp(interpreter(c.body()), c.collector());
+      case If i -> new IfOp(interpreter(i.cond()), interpreter(i.then()), interpreter(i.otherwise()), i.truth());
+      case Alt a -> new AltOp(interpreter(a.left()), interpreter(a.right()), a.truth());
+      case AltBind a -> altBind(a);
+      case Try t -> new TryOp(interpreter(t.body()), interpreter(t.handler()));
+      case Label l -> new LabelOp(l.slot(), interpreter(l.body()));
+      case Break b -> new BreakOp(b.slot());
+      case Reduce r -> new ReduceOp(interpreter(r.init()), r.slot(), interpreter(r.each()));
+      case Foreach f -> new ForeachOp(interpreter(f.init()), f.slot(), interpreter(f.each()));
+      case Advance a -> new AdvanceOp(a.slot(), interpreter(a.update()));
     };
+  }
+
+  /** The chain {@code a}, its lists as the arrays the run reads. */
+  private static Op altBind(AltBind a) {
+    List<Alternative> alternatives = a.alternatives();
+    Op[] matches = new Op[alternatives.size()];
+    int[][] from = new int[matches.length][];
+    for (int k = 0; k < matches.length; k++) {
+      matches[k] = interpreter(alternatives.get(k).match());
+      from[k] = ints(alternatives.get(k).from());
+    }
+    return new AltBindOp(interpreter(a.value()), a.slot(), matches, from, ints(a.slots()), interpreter(a.body()));
+  }
+
+  private static int[] ints(List<Integer> list) {
+    int[] ints = new int[list.size()];
+    for (int i = 0; i < ints.length; i++) {
+      ints[i] = list.get(i);
+    }
+    return ints;
   }
 
   /** The call of {@code i} in its form, with the arity and the atomic arguments the verifier checked. */

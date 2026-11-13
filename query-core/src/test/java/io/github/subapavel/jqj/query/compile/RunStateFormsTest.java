@@ -7,7 +7,10 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** ADR-0030 (#78): the forms without a run state are gone, so no caller can run outside a run. */
+/**
+ * ADR-0030 (#78): the forms without a run state are gone, so no caller can run outside a run. ADR-0038 (#67) adds the
+ * forms with parameter slots, which take a run state and a mode too.
+ */
 class RunStateFormsTest {
   private static List<String> parameterLists(Class<?> type, String name) {
     return Arrays.stream(type.getMethods())
@@ -23,11 +26,13 @@ class RunStateFormsTest {
 
   @Test
   void executableRunsOnlyWithARunState() {
-    assertThat(parameterLists(Executable.class, "run")).as("Executable.run forms").containsExactly("[RunState, Object, Sink]");
+    assertThat(parameterLists(Executable.class, "run"))
+        .as("Executable.run forms")
+        .containsExactlyInAnyOrder("[RunState, Object, Sink]", "[RunState, Object[], Object, Sink]");
   }
 
   @Test
   void compilerCompilesOnlyWithAMode() {
-    assertThat(parameterLists(Compiler.class, "compile")).as("Compiler.compile forms").containsExactly("[Node, CompileMode]");
+    assertThat(parameterLists(Compiler.class, "compile")).as("Compiler.compile forms").containsExactlyInAnyOrder("[Node, CompileMode]", "[Node, int, CompileMode]");
   }
 }

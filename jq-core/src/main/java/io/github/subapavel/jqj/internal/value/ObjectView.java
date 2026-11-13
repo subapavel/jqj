@@ -106,6 +106,12 @@ public record ObjectView(Document doc, int index) implements JqObject, Members, 
     return -1;
   }
 
+  /** The key at tape index {@code k}, a cursor of {@link #first} and {@link #next}. */
+  @Override
+  public StringView key(int k) {
+    return new StringView(doc, k);
+  }
+
   /**
    * The last value of the key at tape index {@code k}, found by {@link #lastValueOf}'s scan, which charges one tick per
    * later key it compares (ADR-0008, ADR-0034).
