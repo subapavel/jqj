@@ -83,6 +83,10 @@ licence text ships in the jq-core jar under META-INF/.
   jq 1.8.2's _flatten/1, flatten/1 and flatten/0 (src/builtin.jq) (#72)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Last.java, translated from
   jq 1.8.2's gen_last_1 (src/builtin.c) (#72)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Sort.java, translated from
+  jq 1.8.2's f_sort, f_sort_by_impl, f_group_by_impl, f_unique, f_unique_by_impl, minmax_by,
+  f_min, f_max, f_min_by_impl and f_max_by_impl (src/builtin.c) and sort_items, jv_sort,
+  jv_group and jv_unique (src/jv_aux.c) (#73)
 
 jq's man.test and manonig.test are generated from the examples of the jq manual
 (https://jqlang.org), Creative Commons Attribution 3.0 Unported

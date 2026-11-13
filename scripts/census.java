@@ -24,7 +24,9 @@
 //   STORE_GLOBAL; both are spec 7's. The operator builtins are not needs of the closure: jq calls them for its own
 //   lowering too (string interpolation calls _plus, label calls _equal), and the operators come from the tokens.
 // - the tokens of the program (lex): the constructs of spec 2a by ticket, and the module directives (spec 7). jq
-//   folds constants (1 + 2 is LOADK 3), so the constructs cannot come from the disassembly.
+//   folds constants (1 + 2 is LOADK 3), so the constructs cannot come from the disassembly. A comma between an
+//   object's pairs is construction's, any other the comma's; a '?' after a parenthesis or a construction is a try,
+//   any other optional navigation (#64's carries, #75).
 //
 // A case needing nothing beyond `.`, field access, `|` and parentheses is spec 1's. A spec-2a case's ticket is the
 // earliest S2a ticket (TICKETS order) that is, or transitively follows in BLOCKED_BY, every ticket the case needs;
@@ -99,7 +101,8 @@ public class census {
           Map.entry("S2a.11", List.of("S2a.10")), // #61 <- #59
           Map.entry("S2a.12", List.of("S2a.11")), // #62 <- #61
           Map.entry("S2a.13", List.of("S2a.12")), // #63 <- #62
-          Map.entry("S2a.14", List.of("S2a.12")), // #64 <- #62
+          // #64 <- #62; #63 added 2026-11-13 from the #64 design approval (C6: #64 merged after #63), carried to #75
+          Map.entry("S2a.14", List.of("S2a.12", "S2a.13")),
           Map.entry("S2a.15", List.of("S2a.13", "S2a.14")), // #65 <- #63, #64
           Map.entry("S2a.16", List.of("S2a.14")), // #66 <- #64
           // #67 <- #63, #64; #65, #66 added 2026-11-12 from the census
@@ -161,7 +164,8 @@ public class census {
         "modulemeta", "debug", "stderr", "now", "input_filename", "input_line_number")) {
       BUILTINS.put(n, new Need("7", null, n));
     }
-    for (String n : List.of("empty/0", "not/0", "last/1", "flatten/0", "flatten/1")) NATIVES.put(n, t("S2a.22", n));
+    for (String n : List.of("not/0", "last/1", "flatten/0", "flatten/1")) NATIVES.put(n, t("S2a.22", n));
+    NATIVES.put("empty/0", t("S2a.14", "empty/0")); // built by #64 (#75)
     NATIVES.put("range/2", t("S2a.19", "range/2"));
     NATIVES.put("path/1", new Need("3", null, "path/1"));
     NATIVES.put("inputs/0", new Need("5", null, "inputs/0"));
@@ -628,8 +632,27 @@ public class census {
     new Lexer(program, toks).code(false);
     List<Need> needs = new ArrayList<>();
     Set<String> defs = new HashSet<>();
+    // The open brackets around each token, innermost first: "(", "{", "[" (an array), ".[" (a postfix bracket), "\(" (an
+    // interpolation) and "if" (until its end). A comma whose innermost is "{" separates an object's pairs.
+    Deque<String> open = new ArrayDeque<>();
+    // What each closing token closed: a '?' after the ']' of an array is a try, after an index navigation.
+    String[] closed = new String[toks.size()];
     for (int k = 0; k < toks.size(); k++) {
       Tok tok = toks.get(k), prev = k > 0 ? toks.get(k - 1) : null, next = k + 1 < toks.size() ? toks.get(k + 1) : null;
+      boolean key = new Tok("op", ":").equals(next);
+      switch (tok.kind() + " " + tok.text()) {
+        case "op (", "op {" -> open.push(tok.text());
+        case "op [" -> open.push(postfix(prev) ? ".[" : "[");
+        case "interp \\(" -> open.push("\\(");
+        case "kw if" -> {
+          if (!key) open.push("if");
+        }
+        case "op )", "op ]", "op }", "interp-end )" -> closed[k] = open.poll();
+        case "kw end" -> {
+          if (!key) open.poll();
+        }
+        default -> {}
+      }
       switch (tok.kind()) {
         case "num", "str" -> needs.add(t("S2a.11", "literal"));
         // ADR-0005 lowers interpolation to nested Binds, which S2a.17 brings (F-35); bare @text stays S2a.11's.
@@ -655,13 +678,14 @@ public class census {
         }
         case "op" -> {
           switch (tok.text()) {
-            case "," -> needs.add(t("S2a.13", ","));
-            case "?" -> needs.add(t("S2a.13", "?"));
-            case "[" -> {
-              // After a term (jq's Term '[' …) it indexes, iterates or slices; otherwise it builds an array.
-              boolean postfix = prev != null && (TERM_KINDS.contains(prev.kind()) || prev.kind().equals("op") && TERM_ENDS.contains(prev.text()));
-              needs.add(postfix ? t("S2a.13", ".[]") : t("S2a.14", "[]"));
+            case "," -> needs.add("{".equals(open.peek()) ? t("S2a.14", "{}") : t("S2a.13", ","));
+            case "?" -> {
+              // After a parenthesis or a construction it is a try (jq's Term '?'); after navigation, optional navigation.
+              boolean term = prev != null && prev.kind().equals("op")
+                  && (prev.text().equals(")") || prev.text().equals("}") || "[".equals(closed[k - 1]));
+              needs.add(term ? t("S2a.18", "term?") : t("S2a.13", "?"));
             }
+            case "[" -> needs.add(postfix(prev) ? t("S2a.13", ".[]") : t("S2a.14", "[]"));
             case "{" -> needs.add(t("S2a.14", "{}"));
             case "+", "-", "*", "/", "%" -> needs.add(t("S2a.15", tok.text()));
             case "==", "!=", "<", "<=", ">", ">=", "//" -> needs.add(t("S2a.16", tok.text()));
@@ -673,6 +697,11 @@ public class census {
       }
     }
     return new Lexed(needs, defs);
+  }
+
+  /** A '[' after a term (jq's Term '[' …) indexes, iterates or slices; otherwise it builds an array. */
+  static boolean postfix(Tok prev) {
+    return prev != null && (TERM_KINDS.contains(prev.kind()) || prev.kind().equals("op") && TERM_ENDS.contains(prev.text()));
   }
 
   /** jq's lexer, as far as the census needs it: strings with interpolation, comments, fields, numbers, words. */
@@ -699,7 +728,10 @@ public class census {
         i = m.end();
         String kind = TOKEN_KINDS.stream().filter(k -> m.group(k) != null).findFirst().orElseThrow();
         String text = m.group(kind);
-        if (interp && text.equals(")") && depth-- == 0) return;
+        if (interp && text.equals(")") && depth-- == 0) {
+          out.add(new Tok("interp-end", ")"));
+          return;
+        }
         if (text.equals("(")) depth++;
         switch (kind) {
           case "space", "comment" -> {}
@@ -710,7 +742,7 @@ public class census {
       }
     }
 
-    /** A string literal; each interpolation's tokens come before the string's own token. */
+    /** A string literal; each interpolation's tokens, ended by an interp-end token, come before the string's own token. */
     void string() {
       Matcher m = STRING_PART.matcher(s);
       i++;
