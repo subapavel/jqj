@@ -80,6 +80,13 @@ class PreludeResolutionTest {
     assertThat(outside).as("Sources outside the filter's text").isEmpty();
   }
 
+  /** The filter's own nodes after a prelude call keep their own Sources: {@code .b} of {@code map(.a) | .b} is [10,12). */
+  @Test
+  void aNodeAfterAPreludeCallKeepsItsOwnSource() {
+    List<Source> all = PreludeInlineTest.sources(ir("map(.a) | .b"));
+    assertThat(all).as("Sources of map(.a) | .b in pre-order").last().isEqualTo(new Source(10, 12));
+  }
+
   private static Binder binder(String filter) {
     Program p = Parser.parse(filter);
     return Binder.bind(p.main(), List.of(), p.text());
