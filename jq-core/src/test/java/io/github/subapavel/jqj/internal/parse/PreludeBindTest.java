@@ -24,7 +24,8 @@ import org.junit.jupiter.api.Test;
  * distinct, and no body refers to a definition after it (a prelude body sees only the definitions before it, then
  * itself, its params and nested defs, and the native table). {@link Prelude#signatures()} is the holder's index, in
  * file order. The binding is observed through the exported API: each definition's call makes its body live (ADR-0040),
- * so any binding error inside it would end the compile with jq's "is not defined" instead of a result or a Stub.
+ * so any binding error inside it would end the compile with the Binder's IllegalStateException, which names the
+ * undefined name and the prelude definition, instead of a result or a Stub.
  */
 class PreludeBindTest {
   private static final String MARK = "jqj stub: ";
@@ -41,8 +42,10 @@ class PreludeBindTest {
 
   /**
    * Each definition but the three a native replaces (their bodies are never live) compiles or is a Stub: no binding
-   * error. A binder that does not look in the native table from a prelude body fails at error/1 ({@code error/0}); one
-   * that does not see earlier definitions fails at add/0 ({@code add/1}).
+   * error. A binding error in a prelude body is the Binder's IllegalStateException, which this test does not catch, so
+   * it fails with that exception: a binder that does not look in the native table from a prelude body fails at the
+   * first definition, halt_error/0 ({@code halt_error/1 is not defined in the prelude's halt_error/0, bytes 16 to 26 of
+   * builtin.jq}); one that does not see earlier definitions fails at add/0 ({@code add/1}).
    */
   @Test
   void everyDefinitionBindsWithNoError() {
