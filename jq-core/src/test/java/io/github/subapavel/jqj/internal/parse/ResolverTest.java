@@ -4,9 +4,18 @@ import static io.github.subapavel.jqj.internal.parse.ParseAssertions.ir;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.parsesToAStub;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.shape;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import io.github.subapavel.jqj.JqCompileException;
+import io.github.subapavel.jqj.internal.op.StepRun;
+import io.github.subapavel.jqj.query.ir.Bind;
 import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.Intrinsic;
+import io.github.subapavel.jqj.query.ir.Node;
+import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
+import io.github.subapavel.jqj.query.ir.Try;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -26,12 +35,13 @@ class ResolverTest {
    * whose kinds a later ticket lowers (#64 constructions, #65 arithmetic and negation, #66 comparison, {@code and},
    * {@code or}, {@code not} and {@code //}, #67 {@code as}, patterns, {@code ?//}, variables, {@code $__loc__} and
    * format strings, #68 {@code if}, {@code try}, {@code ?}, {@code error}, {@code label} and {@code break}, #69
-   * {@code reduce} and {@code foreach}) ends with {@code | ..}, which still stubs, here and in {@link #GRAMMAR}.
+   * {@code reduce} and {@code foreach}, #70 {@code def}) ends with {@code | ..}, which still stubs, here and in
+   * {@link #GRAMMAR}.
    */
   private static final List<String> PRECEDENCE =
       List.of(
-          "def f: 1; 2 | f",
-          "1 | def f: 2; f",
+          "def f: 1; 2 | f | ..",
+          "1 | def f: 2; f | ..",
           "1 as $x | 2 | $x | ..",
           "\"x\" as $x | \"y\" as $y | $x + $y | ..",
           "label $out | 1, break $out, 2 | ..",
@@ -68,8 +78,10 @@ class ResolverTest {
   /**
    * One filter per other construct of the grammar. jq-ref 1.8.2, observed 2026-11-12 (.logs/62-jqref-accept.log of
    * the test-author's run): none is a syntax error; each gives rc 0 or 5, or rc 3 with a resolution error (module not
-   * found for import and include, "true/1 is not defined", "foo/0 is not defined", "$x is not defined"). The
-   * {@code $$$$v} form is builtin.jq's {@code _modify}.
+   * found for import and include). The {@code $$$$v} form is builtin.jq's {@code _modify}. #70 binds every call: the
+   * entries that bound nowhere are jq's compile error ({@link #referencesThatBindNowhereAreJqsCompileError}), and a call
+   * of a jq builtin #71 binds is wrapped in a user definition of the same arity whose body is {@code ..}, which still
+   * stubs (jq-ref 1.8.2, observed 2026-11-13 with -nc: each wrapped entry gives rc 0 or 5).
    */
   private static final List<String> GRAMMAR =
       List.of(
@@ -81,8 +93,10 @@ class ResolverTest {
           ".a |= .b",
           ".a |= 1 | .b += 2 | .d *= 2 | .e /= 1 | .g //= 3 | .h = 4",
           ".f %= 1 | .c -= 1",
-          "getpath([\"a\"]) |= 1",
-          "{if: 1, and: 2, a: 3, \"b\": 4, @base64 \"k\": 5, \"x\\(1)\": 6, (1|tostring): 7, $__loc__, c}",
+          // unwrap at #71 (ADR-0042 native table)
+          "def getpath(p): ..; getpath([\"a\"]) |= 1",
+          // unwrap at #71 (ADR-0042 native table)
+          "def tostring: ..; {if: 1, and: 2, a: 3, \"b\": 4, @base64 \"k\": 5, \"x\\(1)\": 6, (1|tostring): 7, $__loc__, c}",
           "1 as $x | {$x: 2} | ..",
           "{a: -1, b: 1 | . + 1} | ..",
           "[] | ..",
@@ -91,13 +105,10 @@ class ResolverTest {
           "-1 | ..",
           "-(1 + 2) | ..",
           "not | ..",
-          "true(1)",
-          "foo",
-          "$x | ..",
-          "def f(g; $x): g + $x; f(1; 2)",
-          "def f: def g: 3; g; f",
-          "def f: .; def g: f; g",
-          "def f: 1; .",
+          "def f(g; $x): g + $x; f(1; 2) | ..",
+          "def f: def g: 3; g; f | ..",
+          "def f: .; def g: f; g | ..",
+          "def f: 1; . | ..",
           "[foreach (1,2,3) as $x (0; . + $x; [$x, .])] | ..",
           "reduce empty as $x (0; .) | ..",
           "if false then 1 elif true then 2 else 3 end | ..",
@@ -120,14 +131,38 @@ class ResolverTest {
           "@text \"a\" | ..",
           "@json",
           "1 # c\n+ 2 | ..",
-          "[limit(2; 1, 2, 3)]");
+          // unwrap at #71 (ADR-0042 native table)
+          "def limit(n; f): ..; [limit(2; 1, 2, 3)]");
+
+  /**
+   * The GRAMMAR entries that bound nowhere, moved here when #70 bound every reference (ADR-0040): a constant called
+   * with arguments, another name and a variable no {@code as} binds are jq's compile error, thrown before any lowering,
+   * so the {@code ..} after one never stubs. jq-ref 1.8.2, observed 2026-11-13 with -n: rc 3 and exactly these blocks.
+   */
+  @Test
+  void referencesThatBindNowhereAreJqsCompileError() {
+    Map<String, String> blocks =
+        Map.of(
+            "true(1)", "jq: error: true/1 is not defined at <top-level>, line 1, column 1:\n    true(1)\n    ^^^^",
+            "foo", "jq: error: foo/0 is not defined at <top-level>, line 1, column 1:\n    foo\n    ^^^",
+            "$x | ..", "jq: error: $x is not defined at <top-level>, line 1, column 1:\n    $x | ..\n    ^^");
+    for (Map.Entry<String, String> e : blocks.entrySet()) {
+      assertThatCode(() -> Parser.parse(e.getKey())).as("parse of %s", e.getKey()).doesNotThrowAnyException();
+      JqCompileException error =
+          assertThatExceptionOfType(JqCompileException.class).as("resolve of %s", e.getKey()).isThrownBy(() -> ir(e.getKey())).actual();
+      assertThat(error.blocks()).as("blocks of %s", e.getKey()).containsExactly(e.getValue());
+    }
+  }
 
   @Test
   void rangeWithOtherThanTwoBoundsIsAStub() {
     // #69 lowers range/2 only; range/1 and range/3 are builtin.jq's, from #71's prelude (ADR-0041). jq-ref 1.8.2,
-    // observed 2026-11-13 with -nc: range(5) gives 0 to 4 and range(0; 10; 3) gives 0, 3, 6, 9 (rc 0).
-    parsesToAStub("range(5)");
-    parsesToAStub("range(0; 10; 3)");
+    // observed 2026-11-13 with -nc: range(5) gives 0 to 4 and range(0; 10; 3) gives 0, 3, 6, 9 (rc 0); wrapped, each
+    // gives null (the body .. on null).
+    // unwrap at #71 (ADR-0042 native table)
+    parsesToAStub("def range(n): ..; range(5)");
+    // unwrap at #71 (ADR-0042 native table)
+    parsesToAStub("def range(a; b; c): ..; range(0; 10; 3)");
     // Witness: two bounds lower.
     assertThat(shape(ir("range(0; 5)"))).as("IR of range(0; 5)").isEqualTo("range(0; 5)[0,11)");
   }
@@ -321,5 +356,96 @@ class ResolverTest {
     for (Map.Entry<String, String> e : shapes.entrySet()) {
       assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
     }
+  }
+
+  /**
+   * #70's lowerings (ADR-0040), the positive witnesses of the entries that left the Stub lists above: a definition
+   * makes no node, and a call of it is its body, inlined, at the body's Sources; a filter parameter's call is its
+   * argument lowered where the call is written, a parameter passed on as it is; a value parameter's argument is
+   * lowered once and bound around the body, its name also callable; a definition sees the definitions before it; a
+   * user definition hides the native of its name; a label is seen through a definition; a definition the main filter
+   * never calls is not lowered. jq-ref 1.8.2, observed 2026-11-13 with -c, in order: 1 on null, 5 on {"a":{"a":5}}, 2
+   * and 2 on null, 1 on {"a":1,"b":2}, 3 on {"a":3}, then on null 5, 7, [] for the label one inside [...], 3, 2, 1 and
+   * null. The shadowing of {@code not} and {@code range/2} is also recorded (diff/defs.rec).
+   */
+  @Test
+  void definitionsLowerToTheirIr() {
+    Map<String, String> shapes =
+        Map.ofEntries(
+            Map.entry("def f: 1; f", "1[7,8)"),
+            Map.entry("def f(g): g | g; f(.a)", "(.a[19,21) | .a[19,21))"),
+            Map.entry("def f($x): $x + $x; f(1)", "(1[22,23) as $0 | _plus($0; $0)[11,18))"),
+            Map.entry("def f(g): 1 as $x | g; 2 as $x | f($x)", "(2[23,24) as $0 | (1[10,11) as $1 | $0))"),
+            Map.entry("def f: .a; def g: f; def f: .b; g", ".a[7,9)"),
+            Map.entry("def f(g): g; def h(g): f(g); h(.a)", ".a[31,33)"),
+            Map.entry("def not: 5; not", "5[9,10)"),
+            Map.entry("def range(a; b): 7; range(1; 2)", "7[17,18)"),
+            Map.entry("label $l | def f: break $l; f", "(label $0 | break $0[18,26))"),
+            Map.entry("def f: def g: 3; g; f", "3[14,15)"),
+            Map.entry("def f($a): a + $a; f(1)", "(1[21,22) as $0 | _plus(1; $0)[11,17))"),
+            Map.entry("def f: ..; 1", "1[11,12)"),
+            Map.entry(".?", "(try .[0,1) catch empty[0,2))"));
+    for (Map.Entry<String, String> e : shapes.entrySet()) {
+      assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
+    }
+  }
+
+  /**
+   * F-42, F-44: a run of {@link Resolver#STEP_RUN} steps of one result or none stays a Pipe of its steps; one more is
+   * one StepRun, named by and spanning the steps' text. Field reads, constant indexes and constant slices make such a
+   * run; an iterate ends it. LongPathChainTest runs the fused runs.
+   */
+  @Test
+  void aRunOfStepsOfOneResultPastTheParseDepthIsOneStep() {
+    assertThat(Resolver.STEP_RUN).as("the longest run kept, the parser's nesting bound").isEqualTo(512);
+    String kept = ".a".repeat(Resolver.STEP_RUN);
+    assertThat(ir(kept)).as("IR of %d reads", Resolver.STEP_RUN).isInstanceOf(Pipe.class);
+    String fused = ".a".repeat(Resolver.STEP_RUN + 1);
+    Node run = ir(fused);
+    assertThat(run).as("IR of %d reads", Resolver.STEP_RUN + 1).isInstanceOf(Intrinsic.class);
+    assertThat(shape(run)).as("shape of %d reads", Resolver.STEP_RUN + 1).isEqualTo(fused + "[0," + fused.length() + ")");
+    assertThat(((Intrinsic) run).op().form()).as("step of %d reads", Resolver.STEP_RUN + 1).isInstanceOf(StepRun.class);
+    // Constant indexes and slices on the leading dot, which the run's span takes.
+    String mixed = "." + "[0][1:2][\"k\"]".repeat(171);
+    assertThat(shape(ir(mixed))).as("shape of 513 constant indexes and slices").isEqualTo(mixed + "[0," + mixed.length() + ")");
+    // An iterate has many results, so it ends the run.
+    assertThat(shape(ir(fused + "[]"))).as("shape of %d reads and an iterate", Resolver.STEP_RUN + 1).isEqualTo("(" + fused + "[0," + fused.length() + ") | .[][" + fused.length() + "," + (fused.length() + 2) + "))");
+  }
+
+  /**
+   * F-44: a chain of {@link Resolver#PIPE_CHAIN} nodes stays a Pipe chain, as deep as it is long; one more is piped
+   * balanced, about log2 of its length deep. Each iterate is a node of its own, and so is an index by a variable.
+   */
+  @Test
+  void aChainOfMoreNodesThanThePipeChainIsPipedBalanced() {
+    assertThat(Resolver.PIPE_CHAIN).as("the most nodes kept a Pipe chain, an eighth of the IR depth bound").isEqualTo(64);
+    assertThat(depth(ir("." + "[]".repeat(Resolver.PIPE_CHAIN)))).as("depth of %d iterates", Resolver.PIPE_CHAIN).isEqualTo(Resolver.PIPE_CHAIN);
+    assertThat(depth(ir("." + "[]".repeat(Resolver.PIPE_CHAIN + 1)))).as("depth of %d iterates", Resolver.PIPE_CHAIN + 1).isEqualTo(8);
+    assertThat(depth(ir("." + "[]".repeat(513)))).as("depth of 513 iterates").isEqualTo(11);
+    assertThat(depth(ir("1 as $k | ." + "[$k]".repeat(100_000)))).as("depth of 10⁵ indexes by a variable").isEqualTo(19);
+  }
+
+  /**
+   * F-44: a {@code ?} after another covers the first's Try, so only the last Try is built, around both;
+   * LongPathChainTest runs both filters, and {@code [1 | .[0]?? | .a]}, against jq-ref's results.
+   */
+  @Test
+  void aQuietStepAfterAnotherBuildsOneTry() {
+    assertThat(shape(ir(".[0]??[0]??"))).as("IR of .[0]??[0]??").isEqualTo("(try (.[k]?(0)[0,5) | .[k]?(0)[6,10)) catch empty[6,11))");
+    // A computed key between them binds around the first Try, as the nested form does.
+    assertThat(shape(ir(".[0]??[.a]??")))
+        .as("IR of .[0]??[.a]??")
+        .isEqualTo("(try (.a[7,9) as $0 | ((try .[k]?(0)[0,5) catch empty[1,6)) | .[k]?($0)[6,11))) catch empty[6,12))");
+  }
+
+  /** The depth of {@code node}: the most nodes on a path from it to a leaf, an Intrinsic's arguments not counted. */
+  private static int depth(Node node) {
+    return 1
+        + switch (node) {
+          case Pipe p -> Math.max(depth(p.left()), depth(p.right()));
+          case Bind b -> Math.max(depth(b.value()), depth(b.body()));
+          case Try t -> Math.max(depth(t.body()), depth(t.handler()));
+          default -> 0;
+        };
   }
 }
