@@ -24,14 +24,15 @@ class ResolverTest {
    * The precedence/* filters (diff/precedence.rec, recorded on jq-ref 1.8.2: each runs, rc 0 or 5). Each needs a kind
    * #62 does not lower, so each parses and resolves to the Stub; the recording is the owning ticket's red. A filter
    * whose kinds a later ticket lowers (#64 constructions, #65 arithmetic and negation, #66 comparison, {@code and},
-   * {@code or}, {@code not} and {@code //}) ends with {@code | ..}, which still stubs, here and in {@link #GRAMMAR}.
+   * {@code or}, {@code not} and {@code //}, #67 {@code as}, patterns, {@code ?//}, variables, {@code $__loc__} and
+   * format strings) ends with {@code | ..}, which still stubs, here and in {@link #GRAMMAR}.
    */
   private static final List<String> PRECEDENCE =
       List.of(
           "def f: 1; 2 | f",
           "1 | def f: 2; f",
-          "1 as $x | 2 | $x",
-          "\"x\" as $x | \"y\" as $y | $x + $y",
+          "1 as $x | 2 | $x | ..",
+          "\"x\" as $x | \"y\" as $y | $x + $y | ..",
           "label $out | 1, break $out, 2",
           "1, 2 | . + 10 | ..",
           "1, null // 2 | ..",
@@ -50,9 +51,9 @@ class ResolverTest {
           "1 - 2 + 3 | ..",
           "8 / 4 / 2 | ..",
           "7 % 4 * 2 | ..",
-          "2 * 3 as $x | $x + 1",
-          "1 // 2 as $x | $x + 10",
-          "[1, 2 as $x | $x, 3]",
+          "2 * 3 as $x | $x + 1 | ..",
+          "1 // 2 as $x | $x + 10 | ..",
+          "[1, 2 as $x | $x, 3] | ..",
           "reduce 1 + 2 as $x (0; . + $x)",
           "foreach 1 + 2 as $x (0; . + $x)",
           "try 1 catch 2 + 3",
@@ -73,7 +74,7 @@ class ResolverTest {
       List.of(
           "..",
           "..?",
-          "$__loc__",
+          "$__loc__ | ..",
           ".a and .b | ..",
           ".a // .b | ..",
           ".a |= .b",
@@ -81,7 +82,7 @@ class ResolverTest {
           ".f %= 1 | .c -= 1",
           "getpath([\"a\"]) |= 1",
           "{if: 1, and: 2, a: 3, \"b\": 4, @base64 \"k\": 5, \"x\\(1)\": 6, (1|tostring): 7, $__loc__, c}",
-          "1 as $x | {$x: 2}",
+          "1 as $x | {$x: 2} | ..",
           "{a: -1, b: 1 | . + 1} | ..",
           "[] | ..",
           "{} | ..",
@@ -91,7 +92,7 @@ class ResolverTest {
           "not | ..",
           "true(1)",
           "foo",
-          "$x",
+          "$x | ..",
           "def f(g; $x): g + $x; f(1; 2)",
           "def f: def g: 3; g; f",
           "def f: .; def g: f; g",
@@ -103,19 +104,19 @@ class ResolverTest {
           "try error(\"x\") catch .",
           "try error(\"x\")",
           "label $f | break $f",
-          ".[] as [$a, $b] | $a + $b",
-          ". as {a: {b: $c}} | $c",
-          ". as {$a} | $a",
-          ". as [$a, {b: $c}] | $c",
-          ".[] as [$a] ?// $a | $a",
-          ". as [$a] ?// {$a} ?// $a | $a",
+          ".[] as [$a, $b] | $a + $b | ..",
+          ". as {a: {b: $c}} | $c | ..",
+          ". as {$a} | $a | ..",
+          ". as [$a, {b: $c}] | $c | ..",
+          ".[] as [$a] ?// $a | $a | ..",
+          ". as [$a] ?// {$a} ?// $a | $a | ..",
           "reduce .[] as [$a, $b] (0; . + $a * $b)",
           "1 as $v | $$$$v",
           "module {a:1}; .",
           "import \"nosuch\" as n; .",
           "include \"nosuch\"; .",
           ".. .a",
-          "@text \"a\"",
+          "@text \"a\" | ..",
           "@json",
           "1 # c\n+ 2 | ..",
           "[limit(2; 1, 2, 3)]");
@@ -133,8 +134,10 @@ class ResolverTest {
   @Test
   void anInterpolationParsesAndItsLoweringIsAStub() {
     // jq-ref 1.8.2, observed 2026-11-12 on null: "a1b", "1", "xbnVsbA==", {"a1":2}, null, "3" and "xnull" (rc 0).
-    // The string parts are parsed in #62 (jq's QQSTRING split); lowering an interpolation is #67's (F-35).
-    for (String text : List.of("\"a\\(1)b\"", "\"\\(\"\\(1)\")\"", "@base64 \"x\\(.)\"", "{\"a\\(1)\": 2}", ".\"a\\(1)\"", "\"\\(1 + 2)\"", "@json \"x\\(.)\"")) {
+    // The string parts are parsed in #62 (jq's QQSTRING split); lowering an interpolation is #67's (F-35). #67 lowers
+    // one with no format, so those entries end with | .., which still stubs; one with another format than @text stays
+    // a Stub.
+    for (String text : List.of("\"a\\(1)b\" | ..", "\"\\(\"\\(1)\")\" | ..", "@base64 \"x\\(.)\"", "{\"a\\(1)\": 2} | ..", ".\"a\\(1)\" | ..", "\"\\(1 + 2)\" | ..", "@json \"x\\(.)\"")) {
       parsesToAStub(text);
     }
     // Witness: an escaped backslash before ( is no interpolation (jq-ref -c '"a\\(1)b"' on null -> "a\\(1)b"), so the

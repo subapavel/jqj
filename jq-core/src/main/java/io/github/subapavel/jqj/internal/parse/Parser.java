@@ -63,7 +63,8 @@ import java.util.function.Supplier;
  * an object pattern), as no recorded input needs it; jqj's blocks are then a prefix of jq's. A parser-action error
  * is added when jq's action runs, and the parse goes on (ADR-0036): a constant object key that is no string
  * ({@link ConstantKey}), checked once its pair is parsed, so {@code {(1): 2 3}} reports the key before the syntax
- * error. The key of an object pattern is not checked yet, as patterns are not lowered.
+ * error, and the computed key of an object pattern by the same rule, once its entry's pattern is parsed (#64's
+ * hand-over to #67).
  *
  * <p>A filter nested deeper than {@link #MAX_DEPTH} levels ends the parse with jq's {@code memory exhausted} block
  * (DEVIATIONS "Parse depth"), so a recursion of the parse never overflows the stack.
@@ -143,12 +144,13 @@ public final class Parser {
   private int depth;
 
   /** The compile's fold budget, which the key checks share and the program carries on to the resolver (ADR-0035). */
-  private final ConstantKey folds = new ConstantKey();
+  private final ConstantKey folds;
 
   private Parser(String filter) {
     Lexer lexer = new Lexer(filter);
     this.text = lexer.text();
     this.b = text.bytes();
+    this.folds = new ConstantKey(text);
     do {
       tokens.add(lexer.next());
     } while (tokens.getLast().kind() != Token.Kind.END);
@@ -198,7 +200,7 @@ public final class Parser {
       }
       defs.clear();
     }
-    return new Program(module, List.copyOf(imports), List.copyOf(defs), main, folds);
+    return new Program(module, List.copyOf(imports), List.copyOf(defs), main, folds, text);
   }
 
   /** {@code import path as name metadata? ;}, {@code import path as $name metadata? ;} or {@code include path metadata? ;}. */
@@ -802,10 +804,15 @@ public final class Parser {
     }
   }
 
-  /** {@code $name}, or a key then {@code : pattern}: {@code $name}, a name or keyword, a string, or {@code (query)}. */
+  /**
+   * {@code $name}, or a key then {@code : pattern}: {@code $name}, a name or keyword, a string, or {@code (query)}. Once
+   * a computed key's entry is parsed, jq's action checks the key as {@link #pair} does (ADR-0036, jq-ref:
+   * bind/key-constant-number).
+   */
   private Ast.ObjPat objPat() {
     Token first = token;
     Ast.Key key;
+    Ast computed = null;
     switch (token.kind()) {
       case BINDING -> {
         key = new Ast.VarKey(source(first), variable(advance()));
@@ -823,11 +830,18 @@ public final class Parser {
         Ast query = query();
         Token close = expect(Token.Kind.RPAREN);
         key = new Ast.QueryKey(new Source(first.start(), close.end()), query);
+        computed = query;
       }
       default -> throw syntaxError();
     }
     expect(Token.Kind.COLON);
     Ast.Pattern value = pattern();
+    if (computed != null) {
+      String error = folds.error(computed);
+      if (error != null) {
+        fail(error, computed.source().start(), computed.source().end());
+      }
+    }
     return new Ast.ObjPat(new Source(first.start(), value.source().end()), key, value);
   }
 
