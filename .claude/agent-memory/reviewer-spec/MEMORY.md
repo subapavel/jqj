@@ -20,3 +20,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#64) Compare the resolver's new built-ins against the spec's natives table (`empty` was #72's).
 
 - (#65) Count the ids in a .cases file against every "N cases" in hand-over comments. Check ADR tick-rate prose against the pinned test deltas.
+- (#66) For a case left out "for #N", check that #N has a hand-over comment and that the id is in its require/N.txt; the .cases file may not exist on #N's branch yet.
+- (#66) If a unit test runs the same filter as a differential case left out of the require file, that case is already green: ask why it was left out.

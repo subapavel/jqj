@@ -144,3 +144,4 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 
 - (#65) A resolver that folds top-down calls the fold at every level of a Binary chain: uncharged literal building multiplies by the chain depth. `min(cap, left)` where cap equals the total is an equivalent mutant. Number arithmetic charges no tick, so `1 + 2` is no "left to the run" witness.
 - (#65) For a time-bound guard, take the green margin from the per-test time in surefire's TEST-*.xml, and take the red location from the timed-out stack in the red log.
+- (#66) Adding an IR kind breaks the exhaustive switch in ParseAssertions.shape; add its arm. Lowering a construct breaks the Stub lists (ResolverTest PRECEDENCE/GRAMMAR, ParserTest, ParserEdgesTest); append ` | ..` (the #65 ruling).
