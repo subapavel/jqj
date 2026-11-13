@@ -1,8 +1,8 @@
-# A computed object key whose fold goes past the 4 KiB fold cap (ADR-0035 amendment), #65 standards review: jq folds
-# without a cap, so a key that folds to an array or an object is jq's compile error (rc 3) however large it is; jqj
-# folds such a key again without the cap, for the check only. A key that folds to a long string is valid, and a pipe
-# whose sides are not . alone is no fold, so both run (rc 0), as do a remainder of a string and a merge of an array,
-# to their errors (rc 5).
+# A computed object key whose fold goes past the 4 KiB cap of a Const (ADR-0035 amendments, #65 standards reviews):
+# jq folds without a cap, so a key that folds to an array or an object is jq's compile error (rc 3) however large it
+# is; jqj's check takes the fold whatever its size, within the compile's budget. A key that folds to a long string is
+# valid, and a pipe whose sides are not . alone is no fold, so both run (rc 0), as do a remainder of a string and a
+# merge of an array, to their errors (rc 5).
 # jq's -n is not built in jqj's command line yet, so
 # every case runs on stdin null. Format: oracle/src/main/java/io/github/subapavel/jqj/oracle/diff/DiffCase.java.
 # Expected outputs live in constant-key-cap.rec, written by scripts/oracle-record.sh only. Ids are immutable.
@@ -114,11 +114,12 @@ filter {([(. | 1) | 2]):1}
 stdin null\n
 end
 
-# The 1 MiB edge: ("x"*N)/"x" builds 40 + N, then 64 + 48 x (N + 1): 1048556 bytes for N = 21396, under the bound
+# The 1 MiB edge: ("x"*N)/"x" builds its two literals "x", 41 bytes each, 40 + N, then 64 + 48 x (N + 1): 1048540
+# bytes for N = 21394, under the bound
 
 case constant-key-cap/check-edge-under
 arg -c
-filter {(("x"*21396)/"x"):1}
+filter {(("x"*21394)/"x"):1}
 stdin null\n
 end
 
@@ -156,7 +157,7 @@ filter {((("x"*5000)/"x") * {}):1}
 stdin null\n
 end
 
-# Deviation: past the check's own 1 MiB bound jqj leaves the key to the run, rc 5 (DEVIATIONS "Huge constant keys")
+# Deviation: past the compile's 1 MiB budget jqj leaves the key to the run, rc 5 (DEVIATIONS "Huge constant keys")
 
 case constant-key-cap/huge-split
 deviation huge-constant-keys
@@ -167,12 +168,12 @@ jqj-rc 5
 jqj-stderr jq: error (at <stdin>:1): Cannot use array (["","","","","","","","",...]) as object key\n
 end
 
-# N = 21397 builds 1048605 bytes, 29 past the bound
+# N = 21395 builds 1048589 bytes, 13 past the bound
 
 case constant-key-cap/check-edge-over
 deviation huge-constant-keys
 arg -c
-filter {(("x"*21397)/"x"):1}
+filter {(("x"*21395)/"x"):1}
 stdin null\n
 jqj-rc 5
 jqj-stderr jq: error (at <stdin>:1): Cannot use array (["","","","","","","","",...]) as object key\n
@@ -198,8 +199,8 @@ filter [("x"*4000),("x"*4000)] + []
 stdin null\n
 end
 
-# A key whose spine is a pipe of dots piped to a split: container() alone tells it is an array, so the check folds it
-# again (the dot() arms of a parenthesised pipe of dots)
+# A key that is a pipe of dots piped to a split: the parenthesised pipe of dots folds to . alone, so the check folds
+# the split
 
 case constant-key-cap/pipe-of-dots-to-a-split
 arg -c
@@ -217,13 +218,26 @@ stdin null\n
 end
 
 # Deviation: every fold of a compile shares 1 MiB of bytes built (ADR-0035, bd34167). The first key's check builds
-# 1048556 bytes, so the second key is left to the run; the compile still fails on the first, with one error, not two
+# 1048540 bytes, so the second key is left to the run; the compile still fails on the first, with one error, not two
 
 case constant-key-cap/check-after-the-compile-budget
 deviation huge-constant-keys
 arg -c
-filter {(("x"*21396)/"x"):1},{(("x"*5000)/"x"):1}
+filter {(("x"*21394)/"x"):1},{(("x"*5000)/"x"):1}
 stdin null\n
 jqj-rc 3
-jqj-stderr jq: error: Cannot use array (["","","","","","","","",...]) as object key at <top-level>, line 1, column 3:\n    {(("x"*21396)/"x"):1},{(("x"*5000)/"x"):1}\n      ^^^^^^^^^^^^^^^\njq: 1 compile error\n
+jqj-stderr jq: error: Cannot use array (["","","","","","","","",...]) as object key at <top-level>, line 1, column 3:\n    {(("x"*21394)/"x"):1},{(("x"*5000)/"x"):1}\n      ^^^^^^^^^^^^^^^\njq: 1 compile error\n
+end
+
+# Deviation: jq checks a key at parse time wherever it stands; past the compile budget jqj leaves it to the run, which
+# never reaches a key behind empty, so the filter gives its other output, rc 0 (DEVIATIONS "Huge constant keys")
+
+case constant-key-cap/unreached-huge-key
+deviation huge-constant-keys
+arg -c
+filter 1, (empty | {(("x"*2000000)/"x"):1})
+stdin null\n
+jqj-rc 0
+jqj-stdout 1\n
+jqj-stderr
 end
