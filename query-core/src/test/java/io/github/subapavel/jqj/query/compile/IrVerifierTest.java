@@ -235,6 +235,24 @@ class IrVerifierTest {
     assertThat(results(compile(two(a, b), 0), new Object[0], new Object())).as("results of a as $4 | b as $6 | list($4; $6)").containsExactly(List.of(a, b));
   }
 
+  /**
+   * ADR-0043: a Binds has one slot per value, the value k sets slot k; values and slots of different lengths are
+   * rejected, more values than slots and more slots than values, whatever the verifier walks the Binds by.
+   */
+  @Test
+  void aBindsOfValuesAndSlotsOfDifferentLengthsIsRejected() {
+    Object a = new Object();
+    Object b = new Object();
+    // A third value with no slot of its own.
+    Binds values = binds(List.of(constant(a), constant(b), constant(a)), List.of(4, 6), list(var(4), var(6)));
+    assertThatIllegalStateException().as("compile of a Binds of three values and two slots").isThrownBy(() -> compile(values, 0));
+    // A third slot with no value; the body does not read it, so only the lengths are wrong.
+    Binds slots = binds(List.of(constant(a), constant(b)), List.of(4, 6, 8), list(var(4), var(6)));
+    assertThatIllegalStateException().as("compile of a Binds of two values and three slots").isThrownBy(() -> compile(slots, 0));
+    // Witness: two values and two slots, the same body, run.
+    assertThat(results(compile(two(a, b), 0), new Object[0], new Object())).as("results of a as $4 | b as $6 | list($4; $6)").containsExactly(List.of(a, b));
+  }
+
   /** ADR-0034's rule holds for a Binds slot as for a Bind's: a slot is bound by one node of the tree, or is a parameter. */
   @Test
   void aBindsSlotIsBoundOnceInTheTree() {

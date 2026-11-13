@@ -332,8 +332,11 @@ public final class Resolver {
       case If i -> List.of(i.cond(), i.then(), i.otherwise());
       case Alt a -> List.of(a.left(), a.right());
       case Bind b -> List.of(b.value(), b.body());
-      // Scaffold of the #92 test-author, for the implementer to replace: no lowering builds a Binds yet.
-      case Binds _ -> throw new UnsupportedOperationException("scaffold #92: no Binds arm yet");
+      case Binds b -> {
+        List<Node> parts = new ArrayList<>(b.values());
+        parts.add(b.body());
+        yield parts;
+      }
       case AltBind a -> {
         List<Node> parts = new ArrayList<>();
         parts.add(a.value());

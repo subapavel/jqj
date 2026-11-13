@@ -10,6 +10,7 @@ public abstract sealed class Op
         PipeOp,
         CommaOp,
         BindOp,
+        BindsOp,
         VarOp,
         IntrinsicOp,
         Intrinsic1Op,
