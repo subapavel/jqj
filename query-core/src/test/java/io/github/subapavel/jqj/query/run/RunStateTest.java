@@ -292,7 +292,7 @@ class RunStateTest {
     RunState state = new RunState();
     state.begin(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
     assertThat(state.label()).as("first token of the run").isEqualTo(1);
-    int inner = state.label();
+    long inner = state.label();
     assertThat(inner).as("second token of the run").isEqualTo(2);
     assertThat(state.breakTo(1)).as("what a Break returns").isFalse();
     assertThat(state.caught(inner)).as("the inner Label of token 2 after a break to 1").isFalse();
@@ -304,9 +304,25 @@ class RunStateTest {
     state.breakTo(1);
     state.end();
     state.begin(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
-    int first = state.label();
+    long first = state.label();
     assertThat(first).as("first token of the next run").isEqualTo(1);
     assertThat(state.caught(first)).as("its Label after a stop").isFalse();
+  }
+
+  @Test
+  void labelTokensDoNotWrapPastTwoToThe32Activations() {
+    // ADR-0039: a token is never 0, the mark of no break, and no two activations of a run share one. A counter of 32
+    // bits gives 0 after 2^32 - 1 activations, so that Label would take a stop for its break (review of #68).
+    RunState state = new RunState();
+    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
+    state.labelsAfter(0xFFFF_FFFFL);
+    long token = state.label();
+    assertThat(state.caught(token)).as("the Label of the token after 2^32 - 1, after a stop").isFalse();
+    assertThat(token).as("the token after 2^32 - 1").isEqualTo(0x1_0000_0000L);
+    long next = state.label();
+    state.breakTo(next);
+    assertThat(state.caught(token)).as("the outer Label after a break to the next token").isFalse();
+    assertThat(state.caught(next)).as("the Label of the next token after its break").isTrue();
   }
 
   /** Asserts that {@code call} ends the run with {@code Termination(BUDGET, budget)} and the budget's message. */

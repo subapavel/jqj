@@ -16,6 +16,6 @@ public final class BreakOp extends Op {
 
   @Override
   public boolean run(RunState state, Object[] slots, Object in, Sink out) {
-    return state.breakTo((Integer) slots[slot]);
+    return state.breakTo((Long) slots[slot]);
   }
 }
