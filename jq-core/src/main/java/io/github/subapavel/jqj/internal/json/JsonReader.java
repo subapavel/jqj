@@ -17,6 +17,11 @@ import java.util.Arrays;
  * <p>Until spec 5, a lenient token and a second top-level value are malformed, and a malformed document ends in the
  * Stub with the line and column of its detecting byte (#22, ADR-0024). A limit is jq's own error. Numbers get
  * ADR-0012's FITS_LONG and CANONICAL flags; strings are classified by ADR-0015's tag 5 and tag 6.
+ *
+ * <p>At an object's close the reader tries to prove its keys distinct (ADR-0002 as amended by F-40): an object of more
+ * than 8 keys, all of them tag 5, none repeated, is tag 10; every other object is tag 9. The proof puts each key into a
+ * reused hash table, probing linearly from its home slot, and gives up (tag 9) at a key that needs more than 8 probes,
+ * so hostile keys cost at most 8 compares each.
  */
 public final class JsonReader {
   /** jq's parse depth (ADR-0015, ADR-0026, F-22), a constant until spec 2 wires {@code Limits.nestingDepth}. */
@@ -25,11 +30,23 @@ public final class JsonReader {
   /** What {@link #peek} gives at the end of the bytes. */
   private static final int EOF = -1;
 
-  /** The stack slot of an object key whose value is open; a container's slot is its tape index, never negative. */
-  private static final int KEY = -1;
-
   /** The magnitude of {@link Long#MIN_VALUE}, the largest 19-digit integer a long holds (negated). */
   private static final String LONG_MIN_MAGNITUDE = "9223372036854775808";
+
+  /** Only an object of more keys than this is proved distinct (ADR-0002 as amended by F-40, O2 of #82's approval). */
+  private static final int PROVED = 8;
+
+  /** The slots a key may probe, its home slot first; a key that needs more ends the proof (ADR-0002 as amended). */
+  private static final int PROBES = 8;
+
+  /**
+   * The proof's table slots per key, rounded up to a power of two: with 4, one object of 78 841 random keys in nine
+   * needed more than {@link #PROBES} probes somewhere, with 8 none of 200 did (bench/RESULTS.md, "#82").
+   */
+  private static final int SLOTS_PER_KEY = 8;
+
+  /** The proof's largest table: an object of more than 2^17 keys has a load above 1/8. */
+  private static final int MAX_SLOTS = 1 << 20;
 
   private final TapeLimits limits;
 
@@ -37,10 +54,16 @@ public final class JsonReader {
   private long[] tape = new long[256];
 
   /**
-   * jq's parser stack (F-22): the tape index of each open container, and above an object the {@link #KEY} slot
-   * while one of its keys has its value open.
+   * jq's parser stack (F-22): the tape index of each open container, and above an object, while one of its keys has
+   * its value open, the number of keys read so far, negated. A container's slot is never negative.
    */
   private int[] stack = new int[16];
+
+  /**
+   * The proof's hash table, reused by every object: a slot holds the tape index of a key, or 0 for none, since a key
+   * is never the root. It is empty between proofs, and grows to the largest table a proof has needed.
+   */
+  private int[] slots = new int[0];
 
   private Document last;
 
@@ -108,7 +131,8 @@ public final class JsonReader {
           // The span and the closing bracket's offset are written when it closes.
           put(t++, Tape.entry(kind, 0, 0));
           if (kind == Tape.OBJECT) {
-            sp = push(sp, KEY);
+            // Its first key.
+            sp = push(sp, -1);
             p = key(b, base, end, p, t++);
           }
           continue;
@@ -141,13 +165,15 @@ public final class JsonReader {
           }
           return;
         }
-        // The top slot is KEY when an object member's value ended, otherwise the index of an open array: an object
-        // never reaches this loop before its first key, and an empty one is closed above.
-        boolean member = stack[sp - 1] == KEY;
+        // The top slot is an object's keys so far, negated, when one of its members' value ended, otherwise the index
+        // of an open array: an object never reaches this loop before its first key, and an empty one is closed above.
+        int top = stack[sp - 1];
+        boolean member = top < 0;
         c = peek(b, p, end);
         if (c == ',') {
           p = skip(b, p + 1, end);
           if (member) {
+            stack[sp - 1] = top - 1;
             p = key(b, base, end, p, t++);
           }
           continue value;
@@ -163,7 +189,9 @@ public final class JsonReader {
         if (span > limits.container()) {
           throw overLimit("container size", b, base, end, p);
         }
-        tape[open] = Tape.entry(Tape.tag(tape[open]), span, p);
+        // An array's top slot is its tape index, never negative, so only an object of more than PROVED keys is tried.
+        int tag = -top > PROVED && distinct(b, open, t, -top) ? Tape.DISTINCT : Tape.tag(tape[open]);
+        tape[open] = Tape.entry(tag, span, p);
         p++;
       }
     }
@@ -176,6 +204,74 @@ public final class JsonReader {
     }
     stack[sp] = slot;
     return sp + 1;
+  }
+
+  /**
+   * Whether the {@code keys} keys of the object at tape index {@code object}, whose entries end before {@code end}, are
+   * all tag 5 and none repeats (ADR-0002 as amended by F-40). The table has 8 slots per key, rounded up to a power of
+   * two, at most {@link #MAX_SLOTS}; it grows when that is more than it has, and is empty again afterwards.
+   */
+  private boolean distinct(byte[] b, int object, int end, int keys) {
+    int capacity = Math.min(MAX_SLOTS, Integer.highestOneBit(keys * SLOTS_PER_KEY - 1) << 1);
+    if (slots.length < capacity) {
+      slots = new int[capacity];
+    }
+    boolean distinct = insertAll(b, object, end, capacity - 1);
+    Arrays.fill(slots, 0, capacity, 0);
+    return distinct;
+  }
+
+  /**
+   * Puts each key of the object at tape index {@code object} into the table of {@code mask + 1} slots, in source order;
+   * false at the first key that is not tag 5 or not {@link #insert}ed.
+   */
+  private boolean insertAll(byte[] b, int object, int end, int mask) {
+    for (int k = object + 1; k < end; k = Tape.next(tape, k + 1)) {
+      if (Tape.tag(tape[k]) != Tape.STRING || !insert(b, k, mask)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Puts the tag-5 key at tape index {@code k} into the first free slot from its home slot, {@code keyHash & mask};
+   * false when a slot on the way holds a key of the same bytes, a repeat, or when {@link #PROBES} slots are all taken.
+   */
+  private boolean insert(byte[] b, int k, int mask) {
+    long key = tape[k];
+    int slot = keyHash(b, key);
+    for (int probe = 0; probe < PROBES; probe++, slot++) {
+      int other = slots[slot & mask];
+      if (other == 0) {
+        slots[slot & mask] = k;
+        return true;
+      }
+      long held = tape[other];
+      int from = Tape.off(key);
+      int at = Tape.off(held);
+      if (Arrays.equals(b, from, from + Tape.span(key), b, at, at + Tape.span(held))) {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * The proof's hash of the tag-5 key {@code entry} over {@code bytes}: a function of its bytes alone, quotes included,
+   * wherever they lie. MurmurHash3's finaliser (public domain) spreads the polynomial's high bits into the low ones,
+   * which make the home slot.
+   */
+  static int keyHash(byte[] bytes, long entry) {
+    int from = Tape.off(entry);
+    int to = from + Tape.span(entry);
+    int h = 0;
+    for (int i = from; i < to; i++) {
+      h = 31 * h + bytes[i];
+    }
+    h = (h ^ (h >>> 16)) * 0x85EB_CA6B;
+    h = (h ^ (h >>> 13)) * 0xC2B2_AE35;
+    return h ^ (h >>> 16);
   }
 
   /** Reads the key at p into tape index t, then its colon; returns where the key's value must start. */

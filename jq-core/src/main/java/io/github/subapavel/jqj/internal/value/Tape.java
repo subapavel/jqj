@@ -4,7 +4,7 @@ package io.github.subapavel.jqj.internal.value;
  * The tape entry of ADR-0002: one {@code long} per JSON value, object keys included, holding a 4-bit tag, a 28-bit
  * span and a 32-bit offset into the document's bytes. A scalar's span is its byte length (a string's includes its
  * quotes) and its offset its first byte; a container's span is the number of entries inside it and its offset its
- * closing bracket. Tags 0 (invalid), 7 (skipped value) and 10 to 15 are reserved; no reader writes them yet.
+ * closing bracket. Tags 0 (invalid), 7 (skipped value) and 11 to 15 are reserved; no reader writes them yet.
  */
 public final class Tape {
   public static final int NULL = 1;
@@ -19,7 +19,12 @@ public final class Tape {
   public static final int STRING_REENCODE = 6;
 
   public static final int ARRAY = 8;
+
+  /** An object not proved to have distinct keys: it may repeat one. */
   public static final int OBJECT = 9;
+
+  /** A distinct-key object: the reader proved that no key repeats (ADR-0002 as amended by F-40). */
+  public static final int DISTINCT = 10;
 
   /** ADR-0012: a number's span flag for an integer token, not {@code -0}, inside the long range. */
   public static final int FITS_LONG = 1 << 27;

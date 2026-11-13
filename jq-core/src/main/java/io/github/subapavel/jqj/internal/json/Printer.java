@@ -14,6 +14,7 @@ import io.github.subapavel.jqj.internal.value.NumberView;
 import io.github.subapavel.jqj.internal.value.ObjectView;
 import io.github.subapavel.jqj.internal.value.StringView;
 import io.github.subapavel.jqj.internal.value.Tape;
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqString;
@@ -30,7 +31,9 @@ import java.util.Arrays;
  * <p>null, the booleans and tag-5 strings are their bytes. A number is copied when it is CANONICAL (ADR-0012) and is
  * written in its canonical form otherwise (#36); a filter's literal number is its canonical form (#61); a tag-6 string,
  * a tag-6 key and a built string are re-escaped as jq's {@code jvp_dump_string} (#35). A document's object prints each
- * key at its first position with its last value (ADR-0002); a built object prints its key list (#64). A value inside
+ * key at its first position with its last value (ADR-0002): a distinct-key object (tag 10, ADR-0002 as amended by
+ * F-40) each key once with its own value, any other object after the scans of {@code .[]}, which charge the printer's
+ * run state one tick per key compared as the writer's ticks; a built object prints its key list (#64). A value inside
  * more than {@link #MAX_DEPTH} containers prints as {@code <skipped: too deep>}, as jq's does (jq-ref 1.8.2, observed:
  * DeepBuiltArrayTest), so the stack never holds more than {@code MAX_DEPTH + 1} containers. A target's exception, or a
  * document found stale after a drain, in the middle of a value leaves what was drained before it written.
@@ -67,6 +70,9 @@ public final class Printer implements CanonicalForm.Out {
 
   private final byte[] buffer = new byte[CAPACITY];
 
+  /** What the key scans of an object not proved distinct charge, through {@link RunState#tickWritten}. */
+  private final RunState state;
+
   /**
    * Where a tag-6 string's escape pass goes before it is re-escaped. It grows to at most {@link #CAPACITY}; a longer
    * string decodes into an array of its own, dropped after it (architect's answer to #35 Open 3: bounded memory).
@@ -96,6 +102,16 @@ public final class Printer implements CanonicalForm.Out {
    * one of its entries is a view, then that view's document.
    */
   private Document doc;
+
+  /** A printer whose key scans charge an idle run state, which nothing reads: a view's text, an error's head. */
+  public Printer() {
+    this(new RunState());
+  }
+
+  /** A printer whose key scans charge {@code state}, its Workspace's (ADR-0008, ADR-0030). */
+  public Printer(RunState state) {
+    this.state = state;
+  }
 
   /** Prints {@code v}, pretty or compact, and one LF, then drains everything into {@code target} (ADR-0027). */
   public void line(JqValue v, boolean pretty, Target target) {
@@ -208,7 +224,8 @@ public final class Printer implements CanonicalForm.Out {
           long[] tape = d.live();
           int index = cursors[2 * depth - 2];
           int end = Tape.end(tape, index);
-          boolean array = Tape.tag(tape[index]) == Tape.ARRAY;
+          int tag = Tape.tag(tape[index]);
+          boolean array = tag == Tape.ARRAY;
           if (array) {
             if (next < end) {
               separate(next > index + 1, depth);
@@ -219,8 +236,11 @@ public final class Printer implements CanonicalForm.Out {
             }
           } else {
             byte[] bytes = d.bytes();
-            while (next < end && !ObjectView.isFirst(tape, bytes, index, next)) {
-              next = Tape.next(tape, next + 1);
+            // Every key of a distinct-key object prints, with its own value. Of another object, the first key prints
+            // and needs no scan; a later key prints at its first position only, with its last value.
+            boolean scan = tag == Tape.OBJECT;
+            if (scan && next > index + 1) {
+              next = firstPosition(tape, bytes, index, next, end);
             }
             if (next < end) {
               // The first key of an object is always printed, so any later printed key follows a comma.
@@ -229,7 +249,7 @@ public final class Printer implements CanonicalForm.Out {
               colon();
               cursors[2 * depth - 1] = Tape.next(tape, next + 1);
               from = d;
-              at = ObjectView.lastValueOf(tape, bytes, next, end);
+              at = scan ? lastValue(tape, bytes, next, end) : next + 1;
               break;
             }
           }
@@ -259,6 +279,31 @@ public final class Printer implements CanonicalForm.Out {
         }
       }
     }
+  }
+
+  /**
+   * The first key from tape index {@code k} on, before {@code end}, that is at its first position in the object at
+   * {@code object}, or {@code end}: each key's {@link ObjectView#firstScan} charges one tick per key it compares.
+   */
+  private int firstPosition(long[] tape, byte[] bytes, int object, int k, int end) {
+    for (; k < end; k = Tape.next(tape, k + 1)) {
+      int compared = ObjectView.firstScan(tape, bytes, object, k);
+      state.tickWritten(Math.abs(compared));
+      if (compared > 0) {
+        break;
+      }
+    }
+    return k;
+  }
+
+  /**
+   * The tape index of the last value of the key at {@code k}, whose object ends before {@code end}: its
+   * {@link ObjectView#lastScan} charges one tick per later key it compares.
+   */
+  private int lastValue(long[] tape, byte[] bytes, int k, int end) {
+    long scan = ObjectView.lastScan(tape, bytes, k, end);
+    state.tickWritten((int) (scan >>> 32));
+    return (int) scan;
   }
 
   /**
@@ -296,7 +341,8 @@ public final class Printer implements CanonicalForm.Out {
     doc = d;
     long entry = tape[at];
     int tag = Tape.tag(entry);
-    if (tag == Tape.ARRAY || tag == Tape.OBJECT) {
+    // A tag from 8 is a container (ADR-0002): an array, an object or a distinct-key object.
+    if (tag >= Tape.ARRAY) {
       put(tag == Tape.ARRAY ? '[' : '{');
       return push(d, at, at + 1, depth);
     }

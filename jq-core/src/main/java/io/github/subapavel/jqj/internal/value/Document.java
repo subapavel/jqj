@@ -62,7 +62,7 @@ public final class Document {
       case Tape.NUMBER -> new NumberView(this, i);
       case Tape.STRING, Tape.STRING_REENCODE -> new StringView(this, i);
       case Tape.ARRAY -> new ArrayView(this, i);
-      // Tape.OBJECT: the reader writes no other tag.
+      // Tape.OBJECT and Tape.DISTINCT: the reader writes no other tag.
       default -> new ObjectView(this, i);
     };
   }
