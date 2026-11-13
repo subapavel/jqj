@@ -11,18 +11,35 @@ import io.github.subapavel.jqj.Bindings;
 import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.JqEngine;
 import io.github.subapavel.jqj.internal.op.StepRun;
+import io.github.subapavel.jqj.query.ir.Advance;
+import io.github.subapavel.jqj.query.ir.Alt;
+import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Binds;
+import io.github.subapavel.jqj.query.ir.Break;
+import io.github.subapavel.jqj.query.ir.Collect;
+import io.github.subapavel.jqj.query.ir.Comma;
+import io.github.subapavel.jqj.query.ir.Const;
+import io.github.subapavel.jqj.query.ir.Foreach;
 import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
+import io.github.subapavel.jqj.query.ir.Label;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
+import io.github.subapavel.jqj.query.ir.Reduce;
 import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.ir.Try;
+import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.value.JqNull;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * The parser builds an AST for every construct of jq 1.8.2's grammar, and the resolver lowers only what is built,
@@ -470,6 +487,134 @@ class ResolverTest {
     assertThat(shape(ir(".[0]??[.a]??")))
         .as("IR of .[0]??[.a]??")
         .isEqualTo("(try (.a[7,9) as $0 | ((try .[k]?(0)[0,5) catch empty[1,6)) | .[k]?($0)[6,11))) catch empty[6,12))");
+  }
+
+  /**
+   * #94 (ADR-0043): past {@code BIND_RUN} nested Binds, a run of one left-associative operator lowers to one Binds,
+   * with its values in the order its nested form runs them: the right operands from the top operator down, then the
+   * leftmost term, then each operator's result from the bottom up, and the top operator as the body. 70 terms of field
+   * reads are 69 operators, 138 nested Binds until #94. The Binds prints as the nested Bind chain it means, so the
+   * text gives the order and the slots each operator reads; Sources are left out.
+   */
+  @ParameterizedTest(name = "{0}")
+  @CsvSource({"+, _plus", "-, _minus", "*, _multiply", "/, _divide", "%, _mod"})
+  void aRunOfOneOperatorLowersToOneBindsInTheNestedFormsOrder(String operator, String operation) {
+    int ops = 69;
+    StringJoiner filter = new StringJoiner(" " + operator + " ");
+    for (int k = 0; k <= ops; k++) {
+      filter.add(".k" + k);
+    }
+    Node root = ir(filter.toString());
+    assertThat(root).as("IR of 70 terms of %s", operator).isInstanceOf(Binds.class);
+    assertThat(((Binds) root).values()).as("values of the Binds of 70 terms of %s", operator).hasSize(2 * ops).allSatisfy(v -> assertThat(v).isInstanceOf(Intrinsic.class));
+    StringBuilder expected = new StringBuilder();
+    // The right operands, from the top operator down: .k69 as $0, …, .k1 as $68.
+    for (int k = ops; k >= 1; k--) {
+      expected.append("(.k").append(k).append(" as $").append(ops - k).append(" | ");
+    }
+    // The leftmost term, $69.
+    expected.append("(.k0 as $").append(ops).append(" | ");
+    // Each operator's result from the bottom up: the first on $69 and $68, the m-th on the one before it and .km.
+    for (int m = 1; m < ops; m++) {
+      int left = m == 1 ? ops : ops + m - 1;
+      expected.append('(').append(operation).append("($").append(left).append("; $").append(ops - m).append(") as $").append(ops + m).append(" | ");
+    }
+    // The top operator: the last result and .k69.
+    expected.append(operation).append("($").append(2 * ops - 1).append("; $0)").append(")".repeat(2 * ops));
+    assertThat(withoutSources(shape(root))).as("IR of 70 terms of %s, Sources left out", operator).isEqualTo(expected.toString());
+  }
+
+  /**
+   * #94 (ADR-0043, ADR-0034): a variable operand is an argument, so a run of {@code $x+} binds no term, only each
+   * operator's result but the top one's: 100 terms are 99 operators, 98 nested Binds until #94, and one Binds of 98.
+   */
+  @Test
+  void aRunOfVariablesBindsOnlyTheOperatorsResults() {
+    Node root = ir("1 as $x | " + String.join(" + ", Collections.nCopies(100, "$x")));
+    assertThat(root).as("IR of 1 as $x | 100 terms of $x+").isInstanceOf(Bind.class);
+    Node run = ((Bind) root).body();
+    assertThat(run).as("body of the Bind of $x").isInstanceOf(Binds.class);
+    assertThat(((Binds) run).values()).as("values of the Binds of 100 terms of $x+").hasSize(98);
+    StringBuilder expected = new StringBuilder("(1 as $0 | (_plus($0; $0) as $1 | ");
+    for (int m = 2; m <= 98; m++) {
+      expected.append("(_plus($").append(m - 1).append("; $0) as $").append(m).append(" | ");
+    }
+    expected.append("_plus($98; $0)").append(")".repeat(99));
+    assertThat(withoutSources(shape(root))).as("IR of 1 as $x | 100 terms of $x+, Sources left out").isEqualTo(expected.toString());
+  }
+
+  /**
+   * ADR-0043 "Below BIND_RUN nothing changes": a short run stays the nested Binds of ADR-0034, the right operand bound
+   * outside the left one. A guard: #94 leaves it as it is.
+   */
+  @Test
+  void aShortRunOfOneOperatorStaysNestedBinds() {
+    Node root = ir(".k0 + .k1 + .k2");
+    assertThat(root).as("IR of .k0 + .k1 + .k2").isInstanceOf(Bind.class);
+    assertThat(withoutSources(shape(root))).as("IR of .k0 + .k1 + .k2, Sources left out").isEqualTo("(.k2 as $0 | ((.k1 as $2 | (.k0 as $3 | _plus($3; $2))) as $1 | _plus($1; $0)))");
+  }
+
+  /**
+   * #94 (ADR-0043): a run of more than {@code PIPE_CHAIN} terms of {@code or} is built balanced from ADR-0037's
+   * lowering, about 2·log2 of its length deep: 20 000 terms, a Stub past the IR bound until #94, are at most 32 levels.
+   * A level is counted as IrVerifier recurses: a leaf is one, an Intrinsic with arguments two; {@code .a or .a} has
+   * three, the witness that the count counts.
+   */
+  @Test
+  void anOrRunOf20000TermsIsAtMost32LevelsDeep() {
+    assertThat(levels(ir(".a or .a"))).as("levels of .a or .a").isEqualTo(3);
+    assertThat(levels(ir(String.join(" or ", Collections.nCopies(20_000, ".a"))))).as("levels of 20 000 terms of or").isLessThanOrEqualTo(32);
+  }
+
+  /** The same for {@code and}. */
+  @Test
+  void anAndRunOf20000TermsIsAtMost32LevelsDeep() {
+    assertThat(levels(ir(".a and .a"))).as("levels of .a and .a").isEqualTo(3);
+    assertThat(levels(ir(String.join(" and ", Collections.nCopies(20_000, ".a"))))).as("levels of 20 000 terms of and").isLessThanOrEqualTo(32);
+  }
+
+  /** {@code shape} with every {@code [s,e)} left out. */
+  private static String withoutSources(String shape) {
+    return shape.replaceAll("\\[\\d+,\\d+\\)", "");
+  }
+
+  /** The levels of {@code node} as IrVerifier recurses on it: a leaf is one, and an Intrinsic's arguments count. */
+  private static int levels(Node node) {
+    List<Node> parts =
+        switch (node) {
+          case Identity _ -> List.of();
+          case Const _ -> List.of();
+          case Var _ -> List.of();
+          case Break _ -> List.of();
+          case Intrinsic i -> i.args();
+          case Pipe p -> List.of(p.left(), p.right());
+          case Comma c -> List.of(c.left(), c.right());
+          case Collect c -> List.of(c.body());
+          case If i -> List.of(i.cond(), i.then(), i.otherwise());
+          case Alt a -> List.of(a.left(), a.right());
+          case Bind b -> List.of(b.value(), b.body());
+          case Binds b -> {
+            List<Node> all = new ArrayList<>(b.values());
+            all.add(b.body());
+            yield all;
+          }
+          case AltBind a -> {
+            List<Node> all = new ArrayList<>(List.of(a.value()));
+            a.alternatives().forEach(alternative -> all.add(alternative.match()));
+            all.add(a.body());
+            yield all;
+          }
+          case Try t -> List.of(t.body(), t.handler());
+          case Label l -> List.of(l.body());
+          case Reduce r -> List.of(r.init(), r.each());
+          case Foreach f -> List.of(f.init(), f.each());
+          case Advance a -> List.of(a.update());
+        };
+    int deepest = 0;
+    for (Node part : parts) {
+      deepest = Math.max(deepest, levels(part));
+    }
+    return 1 + deepest;
   }
 
   /** The depth of {@code node}: the most nodes on a path from it to a leaf, an Intrinsic's arguments not counted. */

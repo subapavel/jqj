@@ -7,13 +7,18 @@ import static io.github.subapavel.jqj.query.compile.RandomParts.outcome;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.subapavel.jqj.query.compile.RandomParts.Both;
+import io.github.subapavel.jqj.query.compile.RandomParts.Con;
 import io.github.subapavel.jqj.query.compile.RandomParts.Cond;
 import io.github.subapavel.jqj.query.compile.RandomParts.Fence;
 import io.github.subapavel.jqj.query.compile.RandomParts.Form;
 import io.github.subapavel.jqj.query.compile.RandomParts.Generator;
 import io.github.subapavel.jqj.query.compile.RandomParts.Let;
+import io.github.subapavel.jqj.query.compile.RandomParts.Nothing;
 import io.github.subapavel.jqj.query.compile.RandomParts.Outcome;
+import io.github.subapavel.jqj.query.compile.RandomParts.Over;
 import io.github.subapavel.jqj.query.compile.RandomParts.Part;
+import io.github.subapavel.jqj.query.compile.RandomParts.Raise;
+import io.github.subapavel.jqj.query.compile.RandomParts.Tag;
 import io.github.subapavel.jqj.query.ir.Bind;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.If;
@@ -24,6 +29,7 @@ import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.query.run.Fn0;
 import io.github.subapavel.jqj.query.run.RunState;
+import io.github.subapavel.jqj.query.run.Truth;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -117,6 +123,128 @@ class IfTailPropertyTest {
     for (String kind : List.of("results", "none", "stop", "error", "termination")) {
       assertThat(kinds.getOrDefault(kind, 0)).as("seeds whose tail form ends in %s, of %s", kind, kinds).isGreaterThanOrEqualTo(least);
     }
+  }
+
+  /** The toy null: false to {@link #AND_OR} as {@link RandomParts#NO} is. */
+  private static final Object NIL = "nil";
+
+  /** The truth of the and/or property: every value but {@link RandomParts#NO} and {@link #NIL} holds. */
+  private static final Truth AND_OR = v -> !NO.equals(v) && !NIL.equals(v);
+
+  /**
+   * One and/or run of one seed: its terms, whether they are joined by {@code and} (else {@code or}), whether a balanced
+   * half of an odd number of terms gives its middle term to the left half, its step budget and the result its sink
+   * stops at.
+   */
+  record AndOr(List<Part> terms, boolean and, boolean leftTakesTheMiddle, long steps, int stopAt) {}
+
+  /**
+   * Two to 40 random terms: true (a constant or a one-result call giving a list), false, the toy null, raising, or
+   * generating (a Comma of two of the three truth values, a Many of zero to three of them that may raise after its
+   * last, or a call with no result).
+   */
+  static AndOr andOr(long seed) {
+    Generator g = new Generator(seed);
+    List<Part> terms = new ArrayList<>();
+    for (int k = 2 + g.below(39); k > 0; k--) {
+      int pick = g.below(20);
+      if (pick < 3) {
+        terms.add(new Con(YES));
+      } else if (pick < 5) {
+        terms.add(new Tag("t" + g.below(3), -1));
+      } else if (pick < 9) {
+        terms.add(new Con(NO));
+      } else if (pick < 12) {
+        terms.add(new Con(NIL));
+      } else if (pick < 14) {
+        terms.add(new Raise("e" + g.below(3), -1));
+      } else if (pick < 16) {
+        terms.add(new Both(new Con(truth(g)), new Con(truth(g))));
+      } else if (pick < 19) {
+        List<Object> values = new ArrayList<>();
+        for (int v = g.below(4); v > 0; v--) {
+          values.add(truth(g));
+        }
+        terms.add(new Over(List.copyOf(values), g.below(4) == 0));
+      } else {
+        terms.add(new Nothing());
+      }
+    }
+    boolean and = g.below(2) == 0;
+    boolean leftTakesTheMiddle = g.below(2) == 0;
+    long steps = g.below(3) == 0 ? g.below(8) : Long.MAX_VALUE;
+    int stopAt = g.below(3) == 0 ? Integer.MAX_VALUE : 1 + g.below(6);
+    return new AndOr(List.copyOf(terms), and, leftTakesTheMiddle, steps, stopAt);
+  }
+
+  private static Object truth(Generator g) {
+    return switch (g.below(3)) {
+      case 0 -> YES;
+      case 1 -> NO;
+      default -> NIL;
+    };
+  }
+
+  /** {@code l and r} or {@code l or r} as ADR-0037 lowers it, on {@link #AND_OR}. */
+  private static Node joined(boolean and, Node l, Node r) {
+    Node bool = new If(AT, r, new Const(AT, YES), new Const(AT, NO), AND_OR);
+    return and ? new If(AT, l, bool, new Const(AT, NO), AND_OR) : new If(AT, l, new Const(AT, YES), bool, AND_OR);
+  }
+
+  /** The left-nested chain of the parser's left-associative run: {@code ((t0 op t1) op t2) op …}. */
+  static Node chain(AndOr run) {
+    Form form = Form.tail(ROOT + 1);
+    Node chain = run.terms().getFirst().build(form);
+    for (Part term : run.terms().subList(1, run.terms().size())) {
+      chain = joined(run.and(), chain, term.build(form));
+    }
+    return chain;
+  }
+
+  /** The terms {@code [from, to)} of {@code run} joined balanced, each half lowered as one operand (ADR-0043). */
+  static Node balanced(AndOr run, int from, int to) {
+    if (to - from == 1) {
+      return run.terms().get(from).build(Form.tail(ROOT + 1));
+    }
+    int middle = run.leftTakesTheMiddle() ? from + (to - from + 1) / 2 : (from + to) >>> 1;
+    return joined(run.and(), balanced(run, from, middle), balanced(run, middle, to));
+  }
+
+  /**
+   * ADR-0043: a run of {@code and} or {@code or} built balanced from ADR-0037's lowering runs as the parser's
+   * left-nested chain does, both being associative under it: the same results in the same order, the same error or
+   * termination, the same answer to a sink that stops, and the same steps and bytes built, in both compile modes. Both
+   * trees are built here; the seed picks the terms, the operator, the split of an odd half, the step budget and the
+   * result at which the sink stops.
+   */
+  @ParameterizedTest(name = "seed {0}")
+  @MethodSource("seeds")
+  void aBalancedAndOrTreeRunsAsTheLeftNestedChain(long seed) {
+    AndOr run = andOr(seed);
+    for (CompileMode mode : CompileMode.values()) {
+      Outcome chain = outcome(chain(run), mode, run.steps(), run.stopAt());
+      assertThat(chain.crashed()).as("seed %d, %s: whether the left-nested chain crashed (%s) on %s", seed, mode, chain, run).isFalse();
+      Outcome balanced = outcome(balanced(run, 0, run.terms().size()), mode, run.steps(), run.stopAt());
+      assertThat(balanced).as("seed %d, %s: outcome of the balanced tree of %s", seed, mode, run).isEqualTo(chain);
+    }
+  }
+
+  /**
+   * Witness that the and/or property is not vacuous: over the seeds, the left-nested chain runs out with two results or
+   * more, with one, with none, stops at the sink, raises and ends at the step budget, each in 5 % of the seeds at least,
+   * and gives both truth values among its results; no seed crashes.
+   */
+  @Test
+  void theAndOrSeedsReachEveryOutcome() {
+    List<Outcome> outcomes = new ArrayList<>();
+    seeds().forEach(seed -> outcomes.add(outcome(chain(andOr(seed)), CompileMode.OPTIMISED, andOr(seed).steps(), andOr(seed).stopAt())));
+    Map<String, Integer> kinds = RandomParts.kinds(outcomes);
+    int least = outcomes.size() / 20;
+    assertThat(kinds).as("outcomes of the chains by kind over %d seeds", outcomes.size()).doesNotContainKey("crash");
+    for (String kind : List.of("results", "one", "none", "stop", "error", "termination")) {
+      assertThat(kinds.getOrDefault(kind, 0)).as("seeds whose chain ends in %s, of %s", kind, kinds).isGreaterThanOrEqualTo(least);
+    }
+    assertThat(outcomes.stream().flatMap(o -> o.results().stream()).distinct()).as("the results of every chain").containsExactlyInAnyOrder(YES, NO);
   }
 
   /**

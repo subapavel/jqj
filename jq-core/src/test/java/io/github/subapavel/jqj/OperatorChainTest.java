@@ -8,10 +8,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
+import io.github.subapavel.jqj.value.JqNull;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
@@ -24,8 +26,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 /**
  * #86 (F-44 "Not changed here"): the parser builds a left-associative operator chain ({@code +}, {@code and}, {@code
  * or}, a comparison inside one) in a loop, so the Binder and the Resolver meet a chain as long as the filter. They walk
- * it without a Java frame per term, so a chain past {@code Resolver.MAX_IR_DEPTH} is a Stub (DEVIATIONS "IR depth",
- * which #87 lifts), not a StackOverflowError, and a chain of constants folds to its Const.
+ * it without a Java frame per term, and a chain of constants folds to its Const. Since #94 (ADR-0043) a chain of one
+ * operator is one Binds, and one of {@code and} or {@code or} is balanced, so a chain of any length runs.
  *
  * <p>jq-ref 1.8.2 (observed 2026-11-13, the filter read with -nc -f): {@code .a+…} runs 6 554 terms and {@code .a and
  * …} and {@code .a or …} 3 277, {@code .a == .a and …} and {@code .a // …} 2 185; one more term is its bytecode limit
@@ -52,15 +54,21 @@ class OperatorChainTest {
   /** Terms of this JVM's chains: a Java frame or more per term would overflow {@link #LARGE}. */
   private static final int TERMS = 200_000;
 
-  /** What {@link Child} prints for its chains, in its order. */
+  /**
+   * What {@link Child} prints for its chains, in its order. #94 (ADR-0043) ended the Stubs of the first four and the
+   * parse-depth compile error of {@code .a //}, entries that ended with their Stub: past jq-ref's limits each chain
+   * gives what jq-ref 1.8.2 gives at its limit, every term being the same (observed 2026-11-13, -nc -f,
+   * .logs/94-jqref-edges.log of the test-author's run): null for 6 554 terms of {@code .a+}, false for 3 277 of {@code
+   * .a and} and of {@code .a or}, true for 2 185 of {@code .a == .a and}, null for 2 185 of {@code .a //}.
+   */
   private static final String EDGES =
-      "20000 terms of .a+: a Stub\n"
-          + "20000 terms of .a and: a Stub\n"
-          + "20000 terms of .a or: a Stub\n"
-          + "20000 terms of .a == .a and: a Stub\n"
+      "20000 terms of .a+: null\n"
+          + "20000 terms of .a and: false\n"
+          + "20000 terms of .a or: false\n"
+          + "20000 terms of .a == .a and: true\n"
           + "20000 terms of 1+: 20000\n"
           + "20000 terms of 1+ and a last +.a: 20000\n"
-          + "20000 terms of .a //: a compile error\n"
+          + "20000 terms of .a //: null\n"
           + "600 chains, then 30001 levels: a Stub\n";
 
   @TempDir Path dir;
@@ -70,7 +78,7 @@ class OperatorChainTest {
    * stack claim of every test here.
    */
   @Test
-  void onA512KiBThreadInAFreshJvmLongOperatorChainsAreStubsOrFold() throws IOException, InterruptedException {
+  void onA512KiBThreadInAFreshJvmLongOperatorChainsRunOrFold() throws IOException, InterruptedException {
     File out = dir.resolve("out").toFile();
     ProcessBuilder launch =
         new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", System.getProperty("java.class.path"), Child.class.getName())
@@ -90,14 +98,53 @@ class OperatorChainTest {
     }
   }
 
-  /** A chain past the IR bound is the bound's Stub, however long; its 512 KiB claim is pinned by the child JVM. */
+  /**
+   * #94 (ADR-0043): a chain of one operator is one Binds, or a balanced {@code and} or {@code or}, so a chain of any
+   * length compiles and runs; until #94 it was the IR bound's Stub, an entry that ended with its Stub. Each gives on
+   * null what jq-ref 1.8.2 gives at its limit, every term being the same (observed 2026-11-13, -nc -f,
+   * .logs/94-jqref-pins.log of the test-author's run, 6 500 terms of each arithmetic operator in {@code try (…) catch
+   * .}): null for {@code +}, and its error for the others, raised by the first operator, as one term more is past
+   * jq-ref's bytecode limit. Its 512 KiB claim is pinned by the child JVM.
+   */
   @ParameterizedTest(name = "{0}")
-  @CsvSource(delimiter = '|', value = {"'+' | .a", "' and ' | .a", "' or ' | .a", "' and ' | .a == .a", "'-' | .a", "'*' | .a", "'/' | .a", "'%' | .a"})
-  void aLongOperatorChainIsAStub(String operator, String term) throws InterruptedException {
+  @CsvSource(
+      delimiter = '|',
+      value = {
+        "'+' | .a | null",
+        "' and ' | .a | false",
+        "' or ' | .a | false",
+        "' and ' | .a == .a | true",
+        "'-' | .a | error \"null (null) and null (null) cannot be subtracted\"",
+        "'*' | .a | error \"null (null) and null (null) cannot be multiplied\"",
+        "'/' | .a | error \"null (null) and null (null) cannot be divided\"",
+        "'%' | .a | error \"null (null) and null (null) cannot be divided (remainder)\""
+      })
+  void aLongOperatorChainRuns(String operator, String term, String outcome) throws InterruptedException {
     String filter = terms(TERMS, operator, term);
-    Throwable thrown = on(LARGE, () -> Inlining.ENGINE.compile(filter));
-    assertThat(thrown).as("what compiling %s threw on a 16 MiB thread", shown(filter)).isInstanceOf(JqCompileException.class);
-    assertThat(thrown.getMessage()).as("message of the compile error of %s", shown(filter)).startsWith(MARK);
+    AtomicReference<List<String>> got = new AtomicReference<>();
+    Throwable thrown = on(LARGE, () -> got.set(outcome(filter)));
+    assertThat(thrown).as("what running %s threw on a 16 MiB thread", shown(filter)).isNull();
+    assertThat(got.get()).as("outcome of %s on null", shown(filter)).isEqualTo(List.of(outcome));
+  }
+
+  /** The results of {@code filter} on null as compact JSON, then {@code error <value>} if the run raised. */
+  private static List<String> outcome(String filter) {
+    List<String> outcome = new ArrayList<>();
+    try {
+      Inlining.ENGINE
+          .compile(filter)
+          .run(
+              JqNull.NULL,
+              RunBudgets.NONE,
+              v -> {
+                outcome.add(v.toJson());
+                return true;
+              },
+              Inlining.ENGINE.newWorkspace());
+    } catch (JqFilterException e) {
+      outcome.add("error " + e.value().toJson());
+    }
+    return outcome;
   }
 
   /**
@@ -126,15 +173,16 @@ class OperatorChainTest {
   }
 
   /**
-   * A chain counts its operators' levels as it walks down them, so inside a definition a chain past the IR bound is
-   * the bound's Stub before it spends the inline cap, which 40 000 terms would pass (ADR-0040 "Inline cap").
+   * #94 (ADR-0043): a chain is one Binds, a few levels however long, so inside a definition 40 000 terms are no IR
+   * depth Stub, as they were until #94, but the inline cap's: each term and each operator spend a node, 79 999 in all,
+   * past the cap of 65 536 (ADR-0040 "Inline cap", {@link #eachOperatorOfAChainSpendsANode}).
    */
   @Test
-  void aLongChainInADefinitionIsTheIrDepthStub() throws InterruptedException {
+  void aLongChainInADefinitionIsTheInlineCapStub() throws InterruptedException {
     String filter = "def f: " + terms(40_000, " + ", "length") + "; f";
     Throwable thrown = on(LARGE, () -> Inlining.ENGINE.compile(filter));
     assertThat(thrown).as("what compiling %s threw on a 16 MiB thread", shown(filter)).isInstanceOf(JqCompileException.class);
-    assertThat(thrown.getMessage()).as("message of the compile error of %s", shown(filter)).startsWith(MARK + "a filter of more than 512 levels of IR");
+    assertThat(thrown.getMessage()).as("message of the compile error of %s", shown(filter)).startsWith(MARK + "a filter that inlines more than 65536 nodes");
   }
 
   /**
