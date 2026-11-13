@@ -67,7 +67,7 @@ A compile error jq adds after a syntax error at a known place, such as "May need
 object key expression"; its text matches jq.
 
 **Slot**:
-The place a `Bind`, an `AltBind` or a parameter keeps a value while its scope runs; each has its own (ADR-0034, ADR-0038).
+The place a `Bind`, an `AltBind`, a `Reduce` or `Foreach` (its state slot) or a parameter keeps a value while its scope runs; each has its own (ADR-0034, ADR-0038, ADR-0041).
 
 **Downstream error**:
 An error raised by what runs on a Try's result after its body emitted it. That Try lets it through; an outer Try, or an AltBind inside the body, may still catch it (ADR-0039).
@@ -90,6 +90,13 @@ How many nodes one compile may lower from definition bodies and closures; past i
 **Value parameter**:
 A `$name` parameter: it wraps the body in `name as $name | …` and binds per result, and `name` stays a filter parameter (ADR-0040).
 _Avoid_: variable parameter.
+
+**Loop state**:
+The value a `reduce` or `foreach` carries from one source binding to the next: an init result, then each update result in turn, or null after an update that gave none (ADR-0041).
+_Avoid_: accumulator (a kind of Hold), fold (that is parse-time).
+
+**State slot**:
+The slot a Reduce or Foreach keeps its loop state in. Its one Advance takes the value out, leaving null, and stores each update result back (ADR-0041).
 
 **Pattern**:
 The left side of `as`, which takes a value apart into variables: `$name`, an array pattern or an object pattern. An absent part is null; a non-container part raises (ADR-0038).

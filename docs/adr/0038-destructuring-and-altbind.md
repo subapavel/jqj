@@ -1,6 +1,6 @@
 # Destructuring lowers to Binds; `?//` is an AltBind over group slots; host variables take the leading slots
 
-Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #67; designer draft); completes ADR-0005 (AltBind's fields); amends ADR-0034 (the slot rule); AltBind's rethrow amended by ADR-0039 (#68); which binding errors are reported amended by ADR-0040 (#70)
+Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #67; designer draft); completes ADR-0005 (AltBind's fields); amends ADR-0034 (the slot rule); AltBind's rethrow amended by ADR-0039 (#68); which binding errors are reported amended by ADR-0040 (#70); state slots by ADR-0041 (#69)
 
 jq 1.8.2 shares one variable per name across a `?//` chain (`bind_alternation_matchers`). ADR-0034's rule of one Bind per slot cannot express that without copying the body. Every behaviour below that was read from jq's source is recorded on jq-ref by #67's red. Where jq-ref differs, jq-ref wins and only the resolver changes.
 
