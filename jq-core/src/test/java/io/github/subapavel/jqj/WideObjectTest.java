@@ -153,6 +153,23 @@ class WideObjectTest {
 
   @Test
   @Timeout(value = 5, unit = SECONDS, threadMode = ThreadMode.SEPARATE_THREAD)
+  void equalsItselfTenToTheFiveKeys() {
+    // ADR-0044: Equality proves its left side, 10^5 ticks, then finds the right side the same view, jq's pointer check
+    // (ADR-0029), and compares no member: 1 444 + 10^5 = 101 444 complete and 101 443 end. jq-ref 1.8.2, observed
+    // 2026-11-13: . == . on the object [range(100000) | {key: "k\(.)", value: .}] | from_entries gives true.
+    JqEngine exact = steps(101_444);
+    Workspace whole = exact.newWorkspace();
+    JqValue root = read(whole, WIDE_OBJECT).root();
+    Results all = new Results();
+    boolean[] answer = new boolean[1];
+    assertThatCode(() -> answer[0] = exact.compile(". == .").run(root, NONE, all, whole)).as("run of . == . over 10^5 keys with 101 444 steps").doesNotThrowAnyException();
+    assertThat(answer[0]).as("run's answer for . == . over 10^5 keys").isTrue();
+    assertThat(all.values.stream().map(JqValue::toJson).toList()).as("result of . == . over 10^5 keys").containsExactly("true");
+    assertEnds(". == .", false, WIDE_OBJECT, 101_443, "10^5 keys");
+  }
+
+  @Test
+  @Timeout(value = 5, unit = SECONDS, threadMode = ThreadMode.SEPARATE_THREAD)
   void collidingKeys() {
     // ADR-0044: the probe budget of 4 n runs out on keys that share a hash, and the proof sorts them, one tick per
     // compare (each key under 1 KiB). Read: 1 266 843 bytes, 1 238 ticks. Bound: read + 2 n + n * ceil(log2 n) =

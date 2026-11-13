@@ -155,8 +155,18 @@ public final class Printer implements CanonicalForm.Out {
    * @throws io.github.subapavel.jqj.JqTermination with cause {@code STALE_VIEW} when an entry's document is dropped
    */
   public static String json(JqValue v) {
+    return json(new RunState(), v);
+  }
+
+  /**
+   * The compact text of {@code v}, read or built, whose read objects' key proofs charge {@code state}: a run's print of
+   * a value into a string, {@code tojson}, {@code tostring}, {@code @text} and interpolation (ADR-0044 as amended).
+   *
+   * @throws io.github.subapavel.jqj.JqTermination with cause {@code STALE_VIEW} when an entry's document is dropped
+   */
+  public static String json(RunState state, JqValue v) {
     ByteArrayOutputStream text = new ByteArrayOutputStream();
-    Printer printer = new Printer();
+    Printer printer = new Printer(state);
     printer.target = (buffer, length) -> text.write(buffer, 0, length);
     printer.walk(v, null, 0);
     printer.drain();

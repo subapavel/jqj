@@ -20,8 +20,8 @@ import org.junit.jupiter.api.Timeout.ThreadMode;
 
 /**
  * ADR-0044's key proof at its seam, {@link KeyProof#walk}, on a run state of the test's own: which proof runs, what its
- * scratch takes and what it charges. Up to 8 key entries compare pairwise in a scratch of 2 n ints; past 8, the table
- * takes the least power of two of at least 4 n slots, at most 2^20, plus 2 n ints; a proof that probes past 4 n slots
+ * scratch takes and what it charges. Up to 8 key entries compare pairwise in a scratch of 3 n ints; past 8, the table
+ * takes the least power of two of at least 4 n slots, at most 2^20, plus 3 n ints; a proof that probes past 4 n slots
  * sorts the key entries instead, one tick per compare. The colliding keys are found against the proof's own
  * {@link KeyProof#hash}: in a table of 64 slots, a cluster of c keys of one home slot takes 1 + 2 + … + c probes, and
  * every other key one, when no other key's home slot lies in the cluster or just after it. The objects lay their keys
@@ -163,6 +163,17 @@ class KeyProofTest {
     List<String> expected = new ArrayList<>();
     for (int i = 0; i < 16; i++) expected.add(keys.get(i) + "=" + (i == 0 ? 16 : i == 7 ? 17 : i));
     assertThat(members(walk)).as("members of the sorted walk with repeats").containsExactlyElementsOf(expected);
+
+    // A key three times: AaAaBBAa at 3, 16 and 17 keeps its first place with the value of 17. jq-ref 1.8.2, observed
+    // 2026-11-13: {"a":0,"b":1,"a":2,"c":3,"a":4} gives {"a":4,"b":1,"c":3}.
+    List<String> thrice = new ArrayList<>(keys);
+    thrice.add(keys.get(3));
+    thrice.add(keys.get(3));
+    ObjectWalk three = KeyProof.walk(new RunState(), object(json(thrice)), false);
+    assertThat(three.size()).as("size of 18 entries with one key three times").isEqualTo(16);
+    List<String> last = new ArrayList<>();
+    for (int i = 0; i < 16; i++) last.add(keys.get(i) + "=" + (i == 3 ? 17 : i));
+    assertThat(members(three)).as("members of the sorted walk with a key three times").containsExactlyElementsOf(last);
   }
 
   @Test
@@ -184,11 +195,15 @@ class KeyProofTest {
 
   @Test
   void eightKeysComparePairwiseAndNineTakeATable() {
-    // The scratch a proof asks of a new run state: 2 n ints pairwise, the table's slots and 2 n past 8. 9 keys: 64 slots
-    // (the least power of two of 36); 300 000 keys: 2^20, under 4 * 300 000.
-    assertThat(scratchAfter(8)).as("scratch after a proof of 8 keys").isEqualTo(16);
-    assertThat(scratchAfter(9)).as("scratch after a proof of 9 keys").isEqualTo(64 + 18);
-    assertThat(scratchAfter(300_000)).as("scratch after a proof of 300 000 keys").isEqualTo((1 << 20) + 600_000);
+    // The scratch a proof asks of a new run state: 3 n ints pairwise (the pairs, then each first place's ordinal, #85
+    // review), the table's slots and 3 n past 8. 9 keys: 64 slots (the least power of two of 36). 300 000 keys: 2^20
+    // slots, under 4 * 300 000; with 900 000 more ints that passes the 2^20 the run state keeps, so the proof's scratch
+    // is its own and the run state keeps none (RunStateTest).
+    assertThat(scratchAfter(8)).as("scratch after a proof of 8 keys").isEqualTo(24);
+    assertThat(scratchAfter(9)).as("scratch after a proof of 9 keys").isEqualTo(64 + 27);
+    assertThat(KeyProof.slots(300_000)).as("table slots for 300 000 keys").isEqualTo(1 << 20);
+    assertThat(KeyProof.slots(1 << 16)).as("table slots for 2^16 keys, 4 n a power of two").isEqualTo(1 << 18);
+    assertThat(scratchAfter(300_000)).as("scratch kept after a proof of 300 000 keys").isZero();
   }
 
   /** The length of a new run state's scratch after the proof of {@code n} keys {@code k0} to {@code kn-1}. */
