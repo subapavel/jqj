@@ -219,6 +219,7 @@ index/array-key-on-array-nan
 index/array-key-on-empty-array
 index/array-key-on-array-quiet
 index/array-key-on-built-array
+index/array-key-on-array-deep-after-unequal
 slice/key-array-one-on-array
 slice/key-array-empty-on-array
 slice/nan-bounds-on-array

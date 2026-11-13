@@ -594,3 +594,10 @@ rc 0
 stdout [1,3]\n
 stderr
 end
+
+case index/array-key-on-array-deep-after-unequal
+def 7edf5d1fc3f6
+rc 0
+stdout "Equality check too deep"\n
+stderr
+end
