@@ -108,7 +108,9 @@ public class census {
           Map.entry("S2a.18", List.of("S2a.13", "S2a.15", "S2a.16")),
           Map.entry("S2a.19", List.of("S2a.17")), // #69 <- #67
           Map.entry("S2a.20", List.of("S2a.17", "S2a.18")), // #70 <- #67, #68
-          Map.entry("S2a.21", List.of("S2a.20")), // #71 <- #70
+          // #71 <- #70; #69 added 2026-11-13 from the #71 design approval (C2: add, limit, skip and range/1 need
+          // reduce, foreach and range/2)
+          Map.entry("S2a.21", List.of("S2a.19", "S2a.20")),
           // #72 <- #71; #69 added 2026-11-12 from the census
           Map.entry("S2a.22", List.of("S2a.19", "S2a.21")),
           Map.entry("S2a.23", List.of("S2a.16", "S2a.21")), // #73 <- #66, #71
