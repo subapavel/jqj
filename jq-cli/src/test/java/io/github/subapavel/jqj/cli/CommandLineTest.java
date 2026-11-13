@@ -169,11 +169,16 @@ class CommandLineTest {
   @Test
   void aDashWithoutALetterIsTheFilter() {
     // observed 2026-11-11: jq-ref -_ .a in.json -> rc 3, "_/0 is not defined"; printf '{"a":1}\n' | jq-ref -c -1 -> -1.
-    // Each is the filter. jqj does not compile the call yet: exit code 3, not 2.
+    // Each is the filter. Since #70 jqj binds the call (ADR-0040), and jq's message, a column-2 caret under the
+    // name after the minus, shows -_ was read as the filter. Observed 2026-11-13: jq-ref -_ in.json on {"a":1} -> rc 3,
+    // stdout empty and exactly this stderr.
     List<String> call = List.of("-_", "in.json");
-    Outcome stub = run(call, "{\"a\":1}\n");
-    assertThat(stub.rc()).as("exit code of %s", call).isEqualTo(3);
-    assertThat(stub.err()).as("stderr of %s", call).startsWith(MARK);
+    Outcome undefined = run(call, "{\"a\":1}\n");
+    assertThat(undefined.rc()).as("exit code of %s", call).isEqualTo(3);
+    assertThat(undefined.out()).as("stdout of %s", call).isEmpty();
+    assertThat(undefined.err())
+        .as("stderr of %s", call)
+        .isEqualTo("jq: error: _/0 is not defined at <top-level>, line 1, column 2:\n    -_\n     ^\njq: 1 compile error\n");
     // #65 builds the negation. Observed 2026-11-13: printf '{"a":1}\n' | jq-ref -c -1 -> "-1" and an LF, rc 0.
     List<String> negation = List.of("-c", "-1");
     Outcome n = run(negation, "{\"a\":1}\n");
