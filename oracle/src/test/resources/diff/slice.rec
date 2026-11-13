@@ -1588,3 +1588,31 @@ rc 5
 stdout
 stderr jq: error (at <stdin>:1): Array/string slice indices must be integers\n
 end
+
+case slice/nan-bounds-on-array
+def 46ea9bd7a238
+rc 0
+stdout [0,1,2]\n[0,1,2]\n[0,1,2]\n[0]\n[1,2]\n
+stderr
+end
+
+case slice/nan-bounds-on-built-array
+def 7c115c65b242
+rc 0
+stdout [0,1,2]\n[0]\n
+stderr
+end
+
+case slice/nan-bounds-on-string
+def 36dbf0358459
+rc 0
+stdout "abc"\n"abc"\n"abc"\n"ab"\n"bc"\n
+stderr
+end
+
+case slice/nan-bounds-on-null
+def 383ff0ed50da
+rc 0
+stdout null\nnull\n
+stderr
+end

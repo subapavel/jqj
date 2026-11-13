@@ -457,3 +457,81 @@ filter .a[.k]
 stdin {"a":null,"k":[1]}\n
 end
 
+# #72 (the #63 hand-over): a NaN key from the filter's nan/0, which a document cannot give until spec 5 (#63's
+# index/key-nan stays a reader Stub): null on an array, quiet or not; jq's error on a string or an object.
+
+case index/nan-key-on-array
+arg -c
+filter .[nan], .[nan]?
+stdin [1,2,3]\n
+end
+
+case index/nan-key-on-built-array
+arg -c
+filter [1,2,3] | .[nan]
+stdin null\n
+end
+
+case index/nan-key-on-null
+arg -c
+filter .[nan]
+stdin null\n
+end
+
+case index/nan-key-on-string
+arg -c
+filter try .[nan] catch .
+stdin "abc"\n
+end
+
+case index/nan-key-on-object
+arg -c
+filter .[nan]
+stdin {"a":1}\n
+end
+
+# #72 (the #63 hand-over): an array key on an array, jq's jv_array_indexes: the index of each place where the key's
+# elements start a run of equal elements, in order and overlapping; none for an empty key.
+
+case index/array-key-on-array-runs
+arg -c
+filter .[[1,2]], .[[1]], .[[1,2,1]], .[[2,1,2]], .[[3]], .[[]], .[[1,2,1,2,1,2]]
+stdin [1,2,1,2,1]\n
+end
+
+case index/array-key-on-array-overlap
+arg -c
+filter .[[1,1]]
+stdin [1,1,1]\n
+end
+
+case index/array-key-on-array-containers
+arg -c
+filter .[[[1]]], .[[{"a":1}]], .[["a"]]
+stdin [[1],{"a":1},[1]]\n
+end
+
+case index/array-key-on-array-nan
+arg -c
+filter [1, nan] | .[[nan]]
+stdin null\n
+end
+
+case index/array-key-on-empty-array
+arg -c
+filter .[[1]], ([] | .[[]])
+stdin []\n
+end
+
+case index/array-key-on-array-quiet
+arg -c
+filter .[[2]]?
+stdin [1,2]\n
+end
+
+case index/array-key-on-built-array
+arg -c
+filter [.[] | . * 2] | .[[4, 6]]
+stdin [1,2,3,2,3]\n
+end
+

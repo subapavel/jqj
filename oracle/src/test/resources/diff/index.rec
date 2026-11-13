@@ -510,3 +510,87 @@ rc 5
 stdout
 stderr jq: error (at <stdin>:1): Cannot index null with array ([1])\n
 end
+
+case index/nan-key-on-array
+def c987ccebcfdd
+rc 0
+stdout null\nnull\n
+stderr
+end
+
+case index/nan-key-on-built-array
+def 75c867996c40
+rc 0
+stdout null\n
+stderr
+end
+
+case index/nan-key-on-null
+def 0515cdfb8f3b
+rc 0
+stdout null\n
+stderr
+end
+
+case index/nan-key-on-string
+def 38d72617ce04
+rc 0
+stdout "Cannot index string with number (null)"\n
+stderr
+end
+
+case index/nan-key-on-object
+def 90e515040986
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot index object with number (null)\n
+end
+
+case index/array-key-on-array-runs
+def ec6aaaa9c46c
+rc 0
+stdout [0,2]\n[0,2,4]\n[0,2]\n[1]\n[]\n[]\n[]\n
+stderr
+end
+
+case index/array-key-on-array-overlap
+def dc8d9ee667a0
+rc 0
+stdout [0,1]\n
+stderr
+end
+
+case index/array-key-on-array-containers
+def 5a7eedf1b21e
+rc 0
+stdout [0,2]\n[1]\n[]\n
+stderr
+end
+
+case index/array-key-on-array-nan
+def f2f1ac977dee
+rc 0
+stdout []\n
+stderr
+end
+
+case index/array-key-on-empty-array
+def 772883167550
+rc 0
+stdout []\n[]\n
+stderr
+end
+
+case index/array-key-on-array-quiet
+def e81f3a582998
+rc 0
+stdout [1]\n
+stderr
+end
+
+case index/array-key-on-built-array
+def d92bb097f646
+rc 0
+stdout [1,3]\n
+stderr
+end
