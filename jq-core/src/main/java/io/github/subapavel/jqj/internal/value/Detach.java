@@ -112,18 +112,23 @@ public final class Detach {
 
     /** The copy of {@code container} made before, or null. */
     JqValue get(Members container) {
-      return switch (container) {
-        case ArrayView v -> of(v.doc()).get(v.index());
-        case ObjectView v -> of(v.doc()).get(v.index());
-        case BuiltArray _, BuiltObject _ -> built.get(container);
-      };
+      if (container instanceof ArrayView v) {
+        return of(v.doc()).get(v.index());
+      }
+      if (container instanceof ObjectView v) {
+        return of(v.doc()).get(v.index());
+      }
+      // A built array or object.
+      return built.get(container);
     }
 
     void put(Members container, JqValue copy) {
-      switch (container) {
-        case ArrayView v -> of(v.doc()).put(v.index(), copy);
-        case ObjectView v -> of(v.doc()).put(v.index(), copy);
-        case BuiltArray _, BuiltObject _ -> built.put(container, copy);
+      if (container instanceof ArrayView v) {
+        of(v.doc()).put(v.index(), copy);
+      } else if (container instanceof ObjectView v) {
+        of(v.doc()).put(v.index(), copy);
+      } else {
+        built.put(container, copy);
       }
     }
 
