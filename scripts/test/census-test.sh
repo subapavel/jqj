@@ -13,6 +13,8 @@ check() { if [ "$2" != "$3" ]; then echo "FAIL $1: expected '$3' got '$2'"; fail
 has() { if grep -q -- "$2" "$3"; then echo "ok   $1"; else echo "FAIL $1: no '$2' in $3:"; sed 's/^/     /' "$3"; fails=1; fi; }
 # The spec and ticket of the case at <file>:<line> of a census list.
 at() { awk -F'\t' -v l="$2" '!/^#/ && $4 == l { print $2 " " $3 }' "$1"; }
+# The tickets column of the case at <file>:<line>.
+tix() { awk -F'\t' -v l="$2" '!/^#/ && $4 == l { print $5 }' "$1"; }
 
 # --- the rules, on cases with a known closure ---
 fx=$tmp/tests
@@ -191,6 +193,61 @@ length, sort
 [1]
 1
 [1]
+
+{a: 1, b: 2}
+null
+{"a":1,"b":2}
+
+{a: (1, 2)}
+null
+{"a":1}
+{"a":2}
+
+{a: "\(1, 2)"}
+null
+{"a":"1"}
+{"a":"2"}
+
+{a: "\(1)", b: 2}
+null
+{"a":"1","b":2}
+
+{a: if . then 1, 2 else 3 end}
+null
+{"a":3}
+
+{a: if . then 1 else 2 end, b: 3}
+null
+{"a":2,"b":3}
+
+{if: 1, end: 2, b: 3}
+null
+{"if":1,"end":2,"b":3}
+
+(.a, .a)?
+null
+null
+null
+
+[.a]?
+null
+[null]
+
+{a: 1}?
+null
+{"a":1}
+
+.[0]?
+null
+null
+
+.a?
+null
+null
+
+empty
+null
+
 CASES
 out=$tmp/fixture.tsv
 CENSUS_TESTS=$fx java "$tool" write "$out" > "$tmp/write.log" 2>&1
@@ -201,7 +258,7 @@ check "construction, iteration, arithmetic: the arithmetic ticket" "$(at "$out" 
 check "a folded 1 + 2 still needs arithmetic" "$(at "$out" x.test:13)" "2a S2a.15"
 check "interpolation is not arithmetic; the comma after it counts" "$(at "$out" x.test:17)" "2a S2a.17"
 check "map: the prelude" "$(at "$out" x.test:21)" "2a S2a.21"
-check "select reaches the native empty" "$(at "$out" x.test:25)" "2a S2a.22"
+check "select reaches the native empty, construction's since #64 (#75): the prelude" "$(at "$out" x.test:25)" "2a S2a.21"
 check "sort_by reaches _sort_by_impl" "$(at "$out" x.test:29)" "2a S2a.23"
 check "flatten is a native: its recursive _flatten is not reached" "$(at "$out" x.test:33)" "2a S2a.22"
 check "error/1 belongs to control flow" "$(at "$out" x.test:37)" "2a S2a.18"
@@ -225,8 +282,8 @@ check "%%FAIL unknown label: variables and control flow meet at definitions" "$(
 check "%%FAIL module directive" "$(at "$out" x.test:107)" "7 -"
 check "a computed format name" "$(at "$out" x.test:111)" "4 -"
 check "a definition shadowing a builtin is the program's" "$(at "$out" x.test:115)" "2a S2a.20"
-check "a shadowed name's builtin before another builtin is the prelude's; with range/2 it is .22, blocked by .19 since 2026-11-12" \
-  "$(at "$out" x.test:119)" "2a S2a.22"
+check "a shadowed name's builtin before another builtin is the prelude's; with range/2 it is .21, blocked by .19 since 2026-11-13" \
+  "$(at "$out" x.test:119)" "2a S2a.21"
 check "... and its native range/2 is needed" "$(awk -F'\t' '$4 == "x.test:119" { print $5 }' "$out")" \
   "S2a.11,S2a.14,S2a.19,S2a.20,S2a.21"
 check "%%FAIL IGNORE MSG: the parser" "$(at "$out" x.test:123)" "2a S2a.12"
@@ -237,12 +294,26 @@ check "[ after a parenthesis indexes" "$(at "$out" x.test:139)" "2a S2a.13"
 check "[ after ? indexes" "$(at "$out" x.test:143)" "2a S2a.13"
 check "mutual recursion" "$(at "$out" x.test:147)" "2b -"
 check "a definition named like a native is the program's" "$(at "$out" x.test:151)" "2a S2a.20"
-check "needs .13 and .14: the earliest ticket blocked by both, .15" "$(at "$out" x.test:155)" "2a S2a.15"
-check "... and why names both" "$(awk -F'\t' '$4 == "x.test:155" { print $6 }' "$out")" ".[] []"
+check "needs .13 and .14: .14, blocked by .13 since #64 (#75)" "$(at "$out" x.test:155)" "2a S2a.14"
+check "... and why names only .14's need" "$(awk -F'\t' '$4 == "x.test:155" { print $6 }' "$out")" "[]"
 check "needs .15 and .16: S2a.17, blocked by both since 2026-11-12" "$(at "$out" x.test:159)" "2a S2a.17"
 check "needs .11 and .13: .13 follows .11, unchanged" "$(at "$out" x.test:163)" "2a S2a.13"
 check "needs .22 and .23: neither follows the other, the sweep" "$(at "$out" x.test:168)" "2a S2a.25"
-check "every fixture case has a line" "$(grep -vc '^#' "$out")" 43
+check "an object's pair comma is construction's" "$(at "$out" x.test:173)" "2a S2a.14"
+check "... and needs no comma" "$(tix "$out" x.test:173)" "S2a.11,S2a.14"
+check "a comma in parentheses in an object is the comma" "$(tix "$out" x.test:177)" "S2a.11,S2a.13,S2a.14"
+check "a comma in an interpolation in an object is the comma" "$(tix "$out" x.test:182)" "S2a.11,S2a.13,S2a.14,S2a.17"
+check "an interpolation ends before the next pair comma" "$(tix "$out" x.test:187)" "S2a.11,S2a.14,S2a.17"
+check "a comma in an if in an object is the comma" "$(tix "$out" x.test:191)" "S2a.11,S2a.13,S2a.14,S2a.18"
+check "an if ends at its end, before the next pair comma" "$(tix "$out" x.test:195)" "S2a.11,S2a.14,S2a.18"
+check "if and end as object keys open and close nothing" "$(tix "$out" x.test:199)" "S2a.11,S2a.14"
+check "? after a parenthesis is a try" "$(at "$out" x.test:203)" "2a S2a.18"
+check "? after an array construction is a try" "$(at "$out" x.test:208)" "2a S2a.18"
+check "? after an object construction is a try" "$(at "$out" x.test:212)" "2a S2a.18"
+check "? after an index is navigation" "$(at "$out" x.test:216)" "2a S2a.13"
+check "? after a field is navigation" "$(at "$out" x.test:220)" "2a S2a.13"
+check "empty is construction's, built by #64 (#75)" "$(at "$out" x.test:224)" "2a S2a.14"
+check "every fixture case has a line" "$(grep -vc '^#' "$out")" 56
 has "why names the deciding builtin" "_match_impl" "$out"
 CENSUS_TESTS=$fx java "$tool" verify "$out" > "$tmp/verify.log" 2>&1
 check "fixture: the list is reproduced" "$?" 0
@@ -268,6 +339,8 @@ check "every case has an owning spec" "$(awk -F'\t' '!/^#/ && $2 !~ /^(1|2a|2b|3
 check "every 2a case has a ticket" "$(awk -F'\t' '!/^#/ && $2 == "2a" && $3 !~ /^S2a\.[0-9]+$/' "$list" | wc -l)" 0
 check "jq.test's bad escape is the lexer's (#61)" "$(at "$list" jq.test:62)" "2a S2a.11"
 check "jq.test's BOM case is spec 1's" "$(awk -F'\t' '$1 == "jq.test#1ce903e38afb" { print $2 }' "$list")" 1
+check "jq.test's (.a, .a)? needs try (#64, #75)" "$(at "$list" jq.test:1452)" "2a S2a.18"
+check "jq.test's [[…]]? needs try (#64, #75)" "$(at "$list" jq.test:1456)" "2a S2a.18"
 missing=0
 while IFS=$'\t' read -r id _; do
   case "$id" in '#'*|'') continue ;; esac
