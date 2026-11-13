@@ -356,6 +356,35 @@ class NavigationBudgetTest {
     assertBudget(() -> under.compile(".").run(cutRoot, NONE, writer(cut, new RecordingTarget()), cut), Budget.STEPS, "printing " + json + " with " + (steps - 1) + " steps");
   }
 
+  /** {@code json} as a JSON string: what {@code tojson} gives for a value whose compact text it is. */
+  private static String quoted(String json) {
+    return "\"" + json.replace("\"", "\\\"") + "\"";
+  }
+
+  @Test
+  void printingInARunChargesTheProofToTheRun() {
+    // ADR-0044 as amended at abb12ef: tojson, tostring, @text and interpolation print a read object through its proof on
+    // the run's state, as -c . does: 1 read tick, 20 proof ticks and 1 for the started KiB of the text (TextFormat,
+    // Interpolate), so 22 complete and 21 end (2 at 752f5a0: the proof charged a throwaway state). The colliding object
+    // (RunBudgets.colliding) sorts: 17 entry ticks, 48 merge and 16 neighbour compares, so 1 + 81 + 1 = 83, the same
+    // as -c . prints it. jq-ref 1.8.2, observed 2026-11-13: the four give the compact text as a string, tojson on the
+    // colliding object too, and -c . prints that object unchanged.
+    String colliding = RunBudgets.colliding();
+    assertAll(
+        Stream.concat(
+            Stream.of("tojson", "tostring", "@text", "\"\\(.)\"").<Executable>map(filter -> () -> assertExactSteps(filter, TWENTY_KEYS, 22, quoted(TWENTY_KEYS))),
+            Stream.<Executable>of(() -> assertExactSteps("tojson", colliding, 83, quoted(colliding)), () -> assertExactPrinted(colliding, 83, colliding))));
+  }
+
+  @Test
+  void anEmptyKeyCostsOneTickToEnterAndToCompare() {
+    // ADR-0044: a key entry ticks max(1, started KiB), a sort compare max(1, started KiB of the shorter key); the empty
+    // key has 0 KiB. {"":0}: 1 read tick and 1 entry tick. The colliding object: 1 + 17 entries + 64 compares, of which
+    // the 6 with the empty key (one per merge level, and its neighbour) cost 1 each. jq-ref 1.8.2, observed 2026-11-13:
+    // length gives 1 and 17.
+    assertAll(() -> assertExactSteps("length", "{\"\":0}", 2, "1"), () -> assertExactSteps("length", RunBudgets.colliding(), 82, "17"));
+  }
+
   @Test
   void iterateAfterAReadInTheSinkIsAStaleView() {
     // ADR-0026: an iteration that calls host code checks its document again after every call; the sink reads another

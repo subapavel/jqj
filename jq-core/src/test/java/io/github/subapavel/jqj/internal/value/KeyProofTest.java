@@ -1,6 +1,8 @@
 package io.github.subapavel.jqj.internal.value;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.subapavel.jqj.JqEngine;
@@ -13,6 +15,8 @@ import java.util.List;
 import java.util.StringJoiner;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.Timeout.ThreadMode;
 
 /**
  * ADR-0044's key proof at its seam, {@link KeyProof#walk}, on a run state of the test's own: which proof runs, what its
@@ -194,6 +198,57 @@ class KeyProofTest {
     RunState state = new RunState();
     KeyProof.walk(state, object(json(keys)), false);
     return state.ints(0).length;
+  }
+
+  /** 174 763 escapes {@code \\u00e9} or {@code \\u00ff}: a tag-6 key of 1 MiB in the document, 349 526 bytes decoded. */
+  private static final int ESCAPES = 174_763;
+
+  /** The key text of {@link #ESCAPES} escapes of {@code hex}, as the document holds it. */
+  private static String escaped(String hex) {
+    return ("\\u00" + hex).repeat(ESCAPES);
+  }
+
+  @Test
+  @Timeout(value = 5, unit = SECONDS, threadMode = ThreadMode.SEPARATE_THREAD)
+  void theTableDecodesAnEscapedKeyOnce() {
+    // #85 review: a tag-6 key was decoded again on every probe that met it. 2^15 key entries: the 1 MiB escaped key, then
+    // one short key h whose home slot in the table of 2^17 slots is the escaped key's, 2^15 - 1 times. Each h after the
+    // first probes the escaped key's slot, then finds itself in the next: 2 probes, 2^16 in all, under the budget of
+    // 2^17, so the table proves them. Decoded once, the proof reads about 1 MiB; decoded per probe, 32 GiB.
+    int n = 1 << 15;
+    int mask = (1 << 17) - 1;
+    byte[] big = "é".repeat(ESCAPES).getBytes(UTF_8);
+    int home = KeyProof.hash(big, 0, big.length) & mask;
+    String h = null;
+    for (int i = 0; h == null; i++) {
+      byte[] candidate = ("h" + i).getBytes(US_ASCII);
+      if ((KeyProof.hash(candidate, 0, candidate.length) & mask) == home) h = "h" + i;
+    }
+    StringBuilder json = new StringBuilder(8 << 20).append("{\"").append(escaped("e9")).append("\":0");
+    for (int i = 1; i < n; i++) json.append(",\"").append(h).append("\":").append(i);
+    ObjectWalk walk = KeyProof.walk(new RunState(), object(json.append('}').toString()), false);
+    assertThat(walk.size()).as("size of the escaped key and one key repeated").isEqualTo(2);
+    assertThat(walk.member(new RunState(), walk.next(new RunState(), walk.first())).toJson()).as("h's last value").isEqualTo(Integer.toString(n - 1));
+  }
+
+  @Test
+  @Timeout(value = 5, unit = SECONDS, threadMode = ThreadMode.SEPARATE_THREAD)
+  void theSortDecodesAnEscapedKeyOnce() {
+    // #85 review: a tag-6 key was decoded again on every sort compare. The 1 MiB escaped key of U+00FF sorts after the
+    // 2^15 keys of 15 Aa/BB blocks, which share one hash, so the proof sorts. The blocks go high bit first, so those keys
+    // ascend in the source; the escaped key, first, is the last of its left run at every merge level, and meets each
+    // key of the right run: 2^15 - 1 compares in all. Decoded once, the proof reads about 2 MiB; per compare, 32 GiB.
+    int n = 1 << 15;
+    StringBuilder json = new StringBuilder(4 << 20).append("{\"").append(escaped("ff")).append("\":0");
+    for (int i = 0; i < n; i++) {
+      json.append(",\"");
+      for (int b = 14; b >= 0; b--) json.append((i >> b & 1) == 1 ? "BB" : "Aa");
+      json.append("\":").append(i + 1);
+    }
+    ObjectWalk walk = KeyProof.walk(new RunState(), object(json.append('}').toString()), false);
+    assertThat(walk.size()).as("size of the escaped key and 2^15 colliding keys").isEqualTo(n + 1);
+    assertThat(walk.plan()).as("plan of distinct keys after the sort").isNull();
+    assertThat(walk.key(walk.first()).value()).as("the escaped key, decoded").isEqualTo("ÿ".repeat(ESCAPES));
   }
 
   @Test

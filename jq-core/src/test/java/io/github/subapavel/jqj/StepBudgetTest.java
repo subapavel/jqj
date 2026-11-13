@@ -211,6 +211,36 @@ class StepBudgetTest {
   }
 
   /**
+   * The writer's key proof outside a run (ADR-0044, #85) is the writer's: its ticks count, but the next run does not
+   * keep them, as a drain's. {@code {"k0":0,…,"k19":19}} reads in 1 tick, and its print proves 20 key entries; the 17
+   * colliding keys of {@link RunBudgets#colliding()} read in 1 and their print's proof sorts them, 17 entry ticks and 64
+   * compares. Either way the run of {@code .} after the print takes 1 step; a proof charged as a run's tick would end it.
+   */
+  @Test
+  void theWritersKeyProofOutsideARunIsNotChargedToTheNextRun() {
+    StringBuilder twenty = new StringBuilder("{");
+    for (int i = 0; i < 20; i++) twenty.append(i == 0 ? "" : ",").append("\"k").append(i).append("\":").append(i);
+    for (String json : new String[] {twenty.append('}').toString(), RunBudgets.colliding()}) {
+      JqEngine one = steps(1);
+      Workspace workspace = one.newWorkspace();
+      JqValue root = read(workspace, json.getBytes(US_ASCII)).root();
+      RecordingTarget outside = new RecordingTarget();
+      assertThat(writer(workspace, outside).emit(root)).as("emit's answer for %s printed outside a run", json).isTrue();
+      assertThat(outside.text()).as("text of %s printed outside a run", json).isEqualTo(json + "\n");
+      Results results = new Results();
+      assertThat(one.compile(".").run(root, NONE, results, workspace)).as("run's answer after %s read and printed, with 1 step", json).isTrue();
+      assertThat(results.values).as("results after %s read and printed", json).hasSize(1);
+
+      // Witness: the read's tick still counts, so 0 steps end the same sequence at the run's begin.
+      JqEngine zero = steps(0);
+      Workspace cut = zero.newWorkspace();
+      JqValue cutRoot = read(cut, json.getBytes(US_ASCII)).root();
+      assertThat(writer(cut, new RecordingTarget()).emit(cutRoot)).as("emit's answer for %s printed outside a run on the cut", json).isTrue();
+      assertBudget(() -> zero.compile(".").run(cutRoot, NONE, new Results(), cut), Budget.STEPS, "run after " + json + " read and printed, with 0 steps");
+    }
+  }
+
+  /**
    * A target that reads a main document during a drain outside a run primes the run state anew (ADR-0030, #77): the
    * next run keeps that read's one tick, not the 64 ticks of the drain that charges after its write. The document
    * {@code ["a…a",1]} prints one full 64 KiB buffer before the comma, so the print then finds it stale
