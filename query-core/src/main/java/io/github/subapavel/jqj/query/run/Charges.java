@@ -14,9 +14,12 @@ public final class Charges {
   /** One entry of a built object: a key and a value. */
   public static final long ENTRY = 16;
 
-  /** Each built array or object, whatever it holds. */
-  public static final long CONTAINER = 48;
+  /**
+   * Each built array or object, whatever it holds: the largest of an empty array (40 B), an object of a shaped site
+   * (48 B) and a growable object (64 B), measured 2026-11-13 (bench/RESULTS.md).
+   */
+  public static final long CONTAINER = 64;
 
-  /** Each built string, on top of its UTF-8 length. */
+  /** Each built string, on top of its UTF-8 length: an empty string, 40 B, measured 2026-11-13 (bench/RESULTS.md). */
   public static final long STRING = 40;
 }
