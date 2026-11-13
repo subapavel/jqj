@@ -160,6 +160,7 @@ natives/tonumber-built
 natives/tonumber-kinds
 natives/tonumber-error
 natives/tonumber-nul
+natives/tonumber-minus-zero-arithmetic
 natives/has-object
 natives/has-object-duplicate-key
 natives/has-array
