@@ -106,6 +106,15 @@ class DetachedPayloadShapesTest {
   }
 
   @Test
+  void aBuiltObjectWithADocumentsKeyDetachesTheKey() {
+    // jq-ref: ({x: 1} + .a) | error on {"a":{"k":"v"}} prints {"x":1,"k":"v"}. The merge keeps the document's key, so
+    // the built object's walk copies a view key.
+    JqObject payload = (JqObject) payloadAfterTheNextRead("({x: 1} + .a) | error", "{\"a\":{\"k\":\"v\"}}");
+    assertThat(((JqString) payload.get("k")).value()).as("payload.k").isEqualTo("v");
+    assertThat(payload.toJson()).as("the payload's text").isEqualTo("{\"x\":1,\"k\":\"v\"}");
+  }
+
+  @Test
   void aDocumentMinusZeroKeepsItsSignAndFitsNoLong() {
     // Witness: the document's -0 fits no long as a view (ADR-0012 FITS_LONG); the detached copy keeps that flag.
     JqEngine engine = unlimited();
