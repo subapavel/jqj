@@ -52,3 +52,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#66) DiffRunner compares stderr unless the expected output has `jq: error: syntax error`.
 - (#67) A Stub-list entry that gains ` | ..` loses its only check: find a positive witness for each construct the ticket lowers. Each new arm in `ConstantKey.fold` is a new charge and needs its own N/N+1 pair.
 - (#67) When a Const lowering gives the same output as the general path, the oracle sees the difference only while that path is a Stub. The lasting check is a run under `bytesBuilt(0)`.
+- (#68) For any walk that runs after the run (Detach), check four ways the cost can exceed what was charged: colliding keys (a HashMap keyed by ByteBuffer is not Comparable to its own class), shared built containers (`[.,.]` chains), repeated views of one document node, and leaf views and keys. Each needs a memo plus a time-bound red.
+- (#68) An `int` counter whose "none" value is 0 collides once it wraps; grep RunState for int tokens.
