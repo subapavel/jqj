@@ -253,6 +253,49 @@ class IrVerifierTest {
     assertThat(results(compile(two(a, b), 0), new Object[0], new Object())).as("results of a as $4 | b as $6 | list($4; $6)").containsExactly(List.of(a, b));
   }
 
+  /**
+   * ADR-0043 (#93, the #92 hand-over): each alternative's match of a wide pattern is {@code Binds(steps, Identity)}, so
+   * the leaf of a match is the innermost body of its chain of Bind and Binds nodes, where every slot of that chain is in
+   * scope and a from-slot may name it.
+   */
+  @Test
+  void anAlternativeWhoseMatchIsABindsReadsItsSlotsAtItsLeaf() {
+    Object in = new Object();
+    Object b = new Object();
+    Object c = new Object();
+    // . as $0 ?// (id($0) as $4 | b as $6 | .) -> [$4, $6] as [$2, $3] | list($2; $3)
+    Binds steps = binds(List.of(id(var(0)), constant(b)), List.of(4, 6), new Identity(AT));
+    AltBind wide = new AltBind(AT, new Identity(AT), 0, List.of(new Alternative(steps, List.of(4, 6))), List.of(2, 3), list(var(2), var(3)));
+    assertThat(results(compile(wide, 0), new Object[0], in)).as("results of a chain whose match is Binds(steps, Identity)").containsExactly(List.of(in, b));
+    // A Bind inside the Binds: (id($0) as $4 | b as $6 | c as $8 | .) -> [$4, $8].
+    Binds outer = binds(List.of(id(var(0)), constant(b)), List.of(4, 6), new Bind(AT, constant(c), 8, new Identity(AT)));
+    AltBind bindInside = new AltBind(AT, new Identity(AT), 0, List.of(new Alternative(outer, List.of(4, 8))), List.of(2, 3), list(var(2), var(3)));
+    assertThat(results(compile(bindInside, 0), new Object[0], in)).as("results of a chain whose match is a Binds around a Bind").containsExactly(List.of(in, c));
+    // A Binds inside a Bind: (id($0) as $4 | (b as $6 | c as $8 | .)) -> [$4, $8].
+    Bind around = new Bind(AT, id(var(0)), 4, binds(List.of(constant(b), constant(c)), List.of(6, 8), new Identity(AT)));
+    AltBind bindsInside = new AltBind(AT, new Identity(AT), 0, List.of(new Alternative(around, List.of(4, 8))), List.of(2, 3), list(var(2), var(3)));
+    assertThat(results(compile(bindsInside, 0), new Object[0], in)).as("results of a chain whose match is a Bind around a Binds").containsExactly(List.of(in, c));
+  }
+
+  /**
+   * The twin of {@link #anAlternativeWhoseMatchIsABindsReadsItsSlotsAtItsLeaf}: a slot bound inside a value of the
+   * match's Binds, by that value's own Bind, is in scope in that Bind's body only, not at the leaf, so a from-slot that
+   * names it is rejected, as a from-slot no Bind of the match holds is.
+   */
+  @Test
+  void rejectsAFromSlotBoundOnlyInsideAValueOfTheMatchsBinds() {
+    Object a = new Object();
+    Object b = new Object();
+    // ((a as $9 | id($9)) as $4 | b as $6 | .) -> [$9, $6]
+    Binds steps = binds(List.of(new Bind(AT, constant(a), 9, id(var(9))), constant(b)), List.of(4, 6), new Identity(AT));
+    AltBind inner = new AltBind(AT, new Identity(AT), 0, List.of(new Alternative(steps, List.of(9, 6))), List.of(2, 3), list(var(2), var(3)));
+    assertThatIllegalStateException().as("compile of a match whose from-slot 9 is bound inside a value of its Binds").isThrownBy(() -> compile(inner, 0)).withMessageContaining("from-slot 9");
+    // Witness: the same match from the Binds' own slot 4 runs, $4 the inner Bind's result.
+    Binds same = binds(List.of(new Bind(AT, constant(a), 9, id(var(9))), constant(b)), List.of(4, 6), new Identity(AT));
+    AltBind own = new AltBind(AT, new Identity(AT), 0, List.of(new Alternative(same, List.of(4, 6))), List.of(2, 3), list(var(2), var(3)));
+    assertThat(results(compile(own, 0), new Object[0], new Object())).as("results of the same match from its Binds' slots 4 and 6").containsExactly(List.of(a, b));
+  }
+
   /** ADR-0034's rule holds for a Binds slot as for a Bind's: a slot is bound by one node of the tree, or is a parameter. */
   @Test
   void aBindsSlotIsBoundOnceInTheTree() {
