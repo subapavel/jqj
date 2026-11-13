@@ -5,6 +5,7 @@ import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Binds;
 import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
@@ -32,10 +33,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Checks the rules of the IR (ADR-0005, ADR-0034, ADR-0038, ADR-0039, ADR-0041) before a backend sees a tree; a broken
- * rule is an IllegalStateException. The tree uses no node object twice. A slot is bound by one Bind, by one AltBind
- * (its value slot and its group slots), by one Label, by one Reduce or Foreach (its state slot), or is a parameter,
- * which no node binds and every node may read; a Var reads its slot only inside its Bind's body, an AltBind's value
+ * Checks the rules of the IR (ADR-0005, ADR-0034, ADR-0038, ADR-0039, ADR-0041, ADR-0043) before a backend sees a tree; a
+ * broken rule is an IllegalStateException. The tree uses no node object twice. A slot is bound by one Bind, by one
+ * Binds (one slot per value, two values at least), by one AltBind (its value slot and its group slots), by one Label,
+ * by one Reduce or Foreach (its state slot), or is a parameter, which no node binds and every node may read; a Var
+ * reads its slot only inside its Bind's body, a Binds slot only in the later values and the body, an AltBind's value
  * slot only in its alternatives and its body, and a group slot only in its AltBind's body. A Label's slot is read by no
  * Var, only by a Break inside the Label's body, and a Break names no other slot. A state slot is read by no Var and
  * named by one Advance at most, inside its loop's each, never in its init. An AltBind has an alternative at least, each with one from entry per group slot, and each from-slot,
@@ -135,6 +137,7 @@ final class IrVerifier {
         visit(b.body());
         scope.remove(b.slot());
       }
+      case Binds b -> binds(b);
       case AltBind a -> altBind(a);
       case Try t -> {
         visit(t.body());
@@ -173,6 +176,33 @@ final class IrVerifier {
     loops.add(slot);
     visit(each);
     loops.remove(slot);
+  }
+
+  /**
+   * The Binds {@code b} (ADR-0043), as the chain of nested Bind nodes it means: two values at least and one slot per value,
+   * each slot taken before
+   * its value is walked, and each value sees the slots of the values before it, the body all of them. The walk loops
+   * over the values, so it does not go deeper with their number.
+   */
+  private void binds(Binds b) {
+    List<Node> values = b.values();
+    if (values.size() < 2) {
+      throw new IllegalStateException("the Binds at bytes " + b.source() + " has " + values.size() + " values; it needs two at least");
+    }
+    List<Integer> slots = b.slots();
+    if (slots.size() != values.size()) {
+      throw new IllegalStateException("the Binds at bytes " + b.source() + " has " + values.size() + " values and " + slots.size() + " slots; it needs one slot per value");
+    }
+    for (int k = 0; k < values.size(); k++) {
+      take(slots.get(k), b);
+      visit(values.get(k));
+      scope.add(slots.get(k));
+    }
+    visit(b.body());
+    // One slot at a time: removeAll on a list as long as the set scans the list for each slot.
+    for (int slot : slots) {
+      scope.remove(slot);
+    }
   }
 
   /**
