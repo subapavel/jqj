@@ -96,6 +96,39 @@ report compile-conservative "w${T}FAIL\nx${T}PASS${T}${T}d1\ny${T}FAIL${T}left o
 check "regen writes compile.txt" "$(run regen --oracles)" 0
 check "compile.txt holds the conservative line of every passing case" "$(printf 'x\td1\tconservative\n' | cmp - "$root/ratchet/oracle/compile.txt"; echo $?)" 0
 
+# --- drop compile <file> (F-46, #88): only listed ids leave, and only as FAIL stub: rows; else nothing is written ---
+fresh
+mkdir -p "$root/docs/findings"; echo finding > "$root/docs/findings/F-9.md"
+listed=$'# jq-ref 1.8.2 sha256 00\na\td1\tconservative\nb\td2\tconservative\nc\td3\tconservative\nd\td4\tconservative\n'
+listed+=$'e\td5\tconservative\nf\td6\tconservative\ng\td7\tconservative\nh\td8\tconservative\n'
+printf '%s' "$listed" > "$root/ratchet/oracle/compile.txt"
+report compile-conservative "a${T}FAIL${T}stub: the optimised run reached a Stub: s${T}d1\nb${T}FAIL${T}stub: the conservative run reached a Stub: s${T}d2\nc${T}FAIL${T}stub: s${T}d3\nd${T}PASS${T}${T}d4\ne${T}FAIL${T}left out: x${T}d5\nf${T}CRASH${T}stub: s${T}d6\ng${T}FAIL\n"
+unchanged() { check "$1 leaves compile.txt" "$(printf '%s' "$listed" | cmp - "$root/ratchet/oracle/compile.txt"; echo $?)" 0; }
+# refuse <name> <expected message> <drop file lines…>: a refused drop exits 1, names why, and writes nothing
+refuse() { local name=$1 why=$2; shift 2; printf '%s\n' "$@" > "$root/drop.txt"
+  check "drop refuses $name" "$(run drop compile drop.txt)" 1; has "$name named" "$why"; has "$name: nothing written" 'drop refused: nothing written'; unchanged "$name"; }
+refuse "an id not in compile.txt" 'FAIL compile: x is not in compile.txt' '# finding F-9 the owner allowed it' a x
+refuse "a PASS row" 'FAIL compile: d conservative is PASS, not FAIL stub:' '# finding F-9' a d
+refuse "a FAIL row that is no Stub" 'FAIL compile: e conservative is FAIL, not FAIL stub:' '# finding F-9' a e
+refuse "a stub: detail that is no FAIL" 'FAIL compile: f conservative is CRASH, not FAIL stub:' '# finding F-9' a f
+refuse "a FAIL row without a detail" 'FAIL compile: g conservative is FAIL, not FAIL stub:' '# finding F-9' a g
+refuse "an id missing from the report" 'FAIL compile: h conservative is missing from the report' '# finding F-9' a h
+refuse "a drop file without a finding header" 'the first line of drop.txt must be' a b
+refuse "a header that names no finding file" 'docs/findings/F-10.md does not exist' '# finding F-10' a
+: > "$root/drop.txt"
+check "drop refuses an empty drop file" "$(run drop compile drop.txt)" 1
+has "empty drop file named" 'the first line of drop.txt must be'
+unchanged "an empty drop file"
+printf '# finding F-9: the owner allowed it\na\nb\n' > "$root/drop.txt"
+check "drop of listed FAIL stub: ids" "$(run drop compile drop.txt)" 0
+has "drop prints a dropped id" 'dropped compile: a conservative'
+has "drop prints the other dropped id" 'dropped compile: b conservative'
+has "drop prints the count and the finding" 'drop compile: 2 dropped (F-9)'
+check "only the listed ids leave; an unlisted FAIL stub: id and the headers stay" \
+  "$(printf '# jq-ref 1.8.2 sha256 00\nc\td3\tconservative\nd\td4\tconservative\ne\td5\tconservative\nf\td6\tconservative\ng\td7\tconservative\nh\td8\tconservative\n' | cmp - "$root/ratchet/oracle/compile.txt"; echo $?)" 0
+check "drop names only compile" "$(run drop jqtest drop.txt)" 2
+check "drop needs a file" "$(run drop compile)" 2
+
 # --- coverage and floors ---
 fresh
 printf 'module\tlines %%\tbranches %%\nquery-core\t92\t85\n' > "$root/ratchet/coverage.tsv"
