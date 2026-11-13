@@ -9,6 +9,7 @@ import io.github.subapavel.jqj.internal.value.BuiltObject;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.CanonicalForm;
 import io.github.subapavel.jqj.internal.value.Document;
+import io.github.subapavel.jqj.internal.value.DoubleNumber;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
 import io.github.subapavel.jqj.internal.value.NumberView;
 import io.github.subapavel.jqj.internal.value.ObjectView;
@@ -28,7 +29,8 @@ import java.util.Arrays;
  * thread-safe.
  *
  * <p>null, the booleans and tag-5 strings are their bytes. A number is copied when it is CANONICAL (ADR-0012) and is
- * written in its canonical form otherwise (#36); a filter's literal number is its canonical form (#61); a tag-6 string,
+ * written in its canonical form otherwise (#36); a filter's literal number is its canonical form (#61); a computed
+ * number is jq's {@code jvp_dtoa_fmt} layout of its double (#65, ADR-0012); a tag-6 string,
  * a tag-6 key and a built string are re-escaped as jq's {@code jvp_dump_string} (#35). A document's object prints each
  * key at its first position with its last value (ADR-0002); a built object prints its key list (#64). A value inside
  * more than {@link #MAX_DEPTH} containers prints as {@code <skipped: too deep>}, as jq's does (jq-ref 1.8.2, observed:
@@ -270,6 +272,7 @@ public final class Printer implements CanonicalForm.Out {
       case JqNull _ -> put(NULL);
       case JqBool b -> put(b.value() ? TRUE : FALSE);
       case LiteralNumber n -> put(n.canonical());
+      case DoubleNumber n -> put(n.toJson().getBytes(US_ASCII));
       case BuiltString s -> built(s);
       case NumberView n -> depth = entry(n.doc(), n.index(), depth);
       case StringView s -> depth = entry(s.doc(), s.index(), depth);

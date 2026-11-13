@@ -170,10 +170,12 @@ class SyntaxErrorTest {
         new SyntaxError("\"\\(1 +)\"", "QQSTRING_INTERP_END", 1, 7, "    \"\\(1 +)\"\n          ^"),
         new SyntaxError("\"\\(1]\"", "INVALID_CHARACTER", 1, 5, "    \"\\(1]\"\n        ^"),
         new SyntaxError("\"a\\(1 < 2 < 3)\"", "'<'", 1, 11, "    \"a\\(1 < 2 < 3)\"\n              ^"));
-    // Witness: lowering an interpolation stays a Stub until #67 (F-35); jq-ref -c '"a\(1)b"' on null -> "a1b".
+    // Witness: lowering an interpolation stayed a Stub until #67 (F-35); jq-ref -c '"a\(1)b"' on null -> "a1b". #67
+    // lowers it, so the witness ends with | .., which still stubs: without the syntax error the text reaches the
+    // resolver.
     assertThatExceptionOfType(JqCompileException.class)
-        .as("compile of \"a\\(1)b\"")
-        .isThrownBy(() -> ENGINE.compile("\"a\\(1)b\""))
+        .as("compile of \"a\\(1)b\" | ..")
+        .isThrownBy(() -> ENGINE.compile("\"a\\(1)b\" | .."))
         .withMessageStartingWith(MARK);
   }
 
