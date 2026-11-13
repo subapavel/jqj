@@ -120,7 +120,7 @@ public final class Index implements Fn1 {
     if (quiet) {
       return CallForm.NONE;
     }
-    throw NavigationErrors.cannotIndex(t, k);
+    throw NavigationErrors.cannotIndex(state, t, k);
   }
 
   /**

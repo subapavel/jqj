@@ -46,10 +46,10 @@ public final class Iterate implements Many {
     return switch (v) {
       case ObjectView object -> start(args, KeyProof.walk(state, object, false));
       case Members members -> start(args, members);
-      case JqNull _ -> none(v);
-      case JqBool _ -> none(v);
-      case JqNumber _ -> none(v);
-      case JqString _ -> none(v);
+      case JqNull _ -> none(state, v);
+      case JqBool _ -> none(state, v);
+      case JqNumber _ -> none(state, v);
+      case JqString _ -> none(state, v);
     };
   }
 
@@ -60,11 +60,11 @@ public final class Iterate implements Many {
   }
 
   /** No cursor for {@code v}, which has no members: jq's error, or none for {@code .[]?}. */
-  private long none(JqValue v) {
+  private long none(RunState state, JqValue v) {
     if (quiet) {
       return END;
     }
-    throw NavigationErrors.cannotIterate(v);
+    throw NavigationErrors.cannotIterate(state, v);
   }
 
   /** {@link #first} gives a cursor only after it set the loop slot. */

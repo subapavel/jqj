@@ -47,45 +47,45 @@ final class Divide implements Fn2 {
     return switch (new Operands(l, r)) {
       case Operands(JqNumber a, JqNumber b) -> {
         if (b.doubleValue() == 0) {
-          throw Arithmetic.cannot(a, b, "cannot be divided because the divisor is zero");
+          throw Arithmetic.cannot(state, a, b, "cannot be divided because the divisor is zero");
         }
         yield new DoubleNumber(a.doubleValue() / b.doubleValue());
       }
       case Operands(JqString a, JqString b) -> Strings.split(state, a, b);
-      case Operands(JqNull a, JqNull b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqNull a, JqBool b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqNull a, JqNumber b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqNull a, JqString b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqNull a, JqArray b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqNull a, JqObject b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqBool a, JqNull b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqBool a, JqBool b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqBool a, JqNumber b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqBool a, JqString b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqBool a, JqArray b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqBool a, JqObject b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqNumber a, JqNull b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqNumber a, JqBool b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqNumber a, JqString b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqNumber a, JqArray b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqNumber a, JqObject b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqString a, JqNull b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqString a, JqBool b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqString a, JqNumber b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqString a, JqArray b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqString a, JqObject b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqArray a, JqNull b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqArray a, JqBool b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqArray a, JqNumber b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqArray a, JqString b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqArray a, JqArray b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqArray a, JqObject b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqObject a, JqNull b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqObject a, JqBool b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqObject a, JqNumber b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqObject a, JqString b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqObject a, JqArray b) -> throw Arithmetic.cannot(a, b, ERROR);
-      case Operands(JqObject a, JqObject b) -> throw Arithmetic.cannot(a, b, ERROR);
+      case Operands(JqNull a, JqNull b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqNull a, JqBool b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqNull a, JqNumber b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqNull a, JqString b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqNull a, JqArray b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqNull a, JqObject b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqBool a, JqNull b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqBool a, JqBool b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqBool a, JqNumber b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqBool a, JqString b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqBool a, JqArray b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqBool a, JqObject b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqNumber a, JqNull b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqNumber a, JqBool b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqNumber a, JqString b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqNumber a, JqArray b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqNumber a, JqObject b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqString a, JqNull b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqString a, JqBool b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqString a, JqNumber b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqString a, JqArray b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqString a, JqObject b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqArray a, JqNull b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqArray a, JqBool b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqArray a, JqNumber b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqArray a, JqString b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqArray a, JqArray b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqArray a, JqObject b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqObject a, JqNull b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqObject a, JqBool b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqObject a, JqNumber b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqObject a, JqString b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqObject a, JqArray b) -> throw Arithmetic.cannot(state, a, b, ERROR);
+      case Operands(JqObject a, JqObject b) -> throw Arithmetic.cannot(state, a, b, ERROR);
     };
   }
 }

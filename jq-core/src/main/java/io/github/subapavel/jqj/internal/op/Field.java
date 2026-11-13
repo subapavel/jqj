@@ -35,7 +35,8 @@ public final class Field implements Fn0 {
   public Field(String name, boolean quiet) {
     this.name = name;
     this.quiet = quiet;
-    this.shown = ErrorDump.of(BuiltString.of(name));
+    // Outside a run, at compile time: a built string has no key proof, so the idle state is never charged.
+    this.shown = ErrorDump.of(new RunState(), BuiltString.of(name));
   }
 
   @Override

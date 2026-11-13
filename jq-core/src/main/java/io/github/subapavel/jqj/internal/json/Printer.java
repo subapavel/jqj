@@ -99,7 +99,7 @@ public final class Printer implements CanonicalForm.Out {
   /** What the key proofs of a document's objects charge, through {@link RunState#tickWritten} (ADR-0044). */
   private final RunState state;
 
-  /** A printer whose key proofs charge a run state of its own, which no run reads: a view's text, an error's head. */
+  /** A printer whose key proofs charge a run state of its own, which no run reads: a view's text outside a run. */
   public Printer() {
     this(new RunState());
   }
@@ -177,12 +177,13 @@ public final class Printer implements CanonicalForm.Out {
 
   /**
    * The first {@code n} bytes of {@code v}'s compact text, or all of it when it is shorter: what an error shows of a
-   * value (ErrorDump). It prints no more than the first drain, a buffer at most, so a long value costs no more.
+   * value (ErrorDump). It prints no more than the first drain, a buffer at most, so a long value costs no more; the
+   * key proofs of its read objects charge {@code state}, the run's (ADR-0044 as amended).
    */
-  public static byte[] head(JqValue v, int n) {
+  public static byte[] head(RunState state, JqValue v, int n) {
     byte[][] first = new byte[1][];
     try {
-      new Printer()
+      new Printer(state)
           .line(
               v,
               false,
@@ -260,6 +261,7 @@ public final class Printer implements CanonicalForm.Out {
           // A document's object with a repeated key: its plan's pairs, each key at its first place with its last value.
           // Only that document's entries print inside it, so the document is the one the last entry set.
           long[] tape = doc.live();
+          assert planned(tape, cursors[2 * depth - 2], plan) : "a plan prints in its object's document";
           if (next < plan.length) {
             separate(next > 0, depth);
             string(doc.bytes(), tape[plan[next]]);
@@ -374,6 +376,11 @@ public final class Printer implements CanonicalForm.Out {
     if (pretty) {
       put(' ');
     }
+  }
+
+  /** Whether {@code tape} has an object at {@code object} whose entries hold {@code plan}'s last value. */
+  private static boolean planned(long[] tape, int object, int[] plan) {
+    return Tape.tag(tape[object]) == Tape.OBJECT && plan[plan.length - 1] < Tape.end(tape, object);
   }
 
   /** A built object's key: a built string, or a document's string, its document checked first (ADR-0026). */

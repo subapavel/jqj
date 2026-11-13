@@ -23,11 +23,11 @@ final class Negate implements Fn0 {
     JqValue v = (JqValue) in;
     return switch (v) {
       case JqNumber n -> Numbers.negate(n);
-      case JqNull _ -> throw Arithmetic.cannot(v, ERROR);
-      case JqBool _ -> throw Arithmetic.cannot(v, ERROR);
-      case JqString _ -> throw Arithmetic.cannot(v, ERROR);
-      case JqArray _ -> throw Arithmetic.cannot(v, ERROR);
-      case JqObject _ -> throw Arithmetic.cannot(v, ERROR);
+      case JqNull _ -> throw Arithmetic.cannot(state, v, ERROR);
+      case JqBool _ -> throw Arithmetic.cannot(state, v, ERROR);
+      case JqString _ -> throw Arithmetic.cannot(state, v, ERROR);
+      case JqArray _ -> throw Arithmetic.cannot(state, v, ERROR);
+      case JqObject _ -> throw Arithmetic.cannot(state, v, ERROR);
     };
   }
 }
