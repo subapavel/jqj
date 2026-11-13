@@ -50,12 +50,17 @@ class PreludeResolutionTest {
     assertThat(blocks("zz1, last(zz2)")).as("blocks of zz1, last(zz2)").containsExactly(notDefined("zz1", 1, "zz1, last(zz2)"));
   }
 
-  /** GLOSSARY "Unbuilt native": a call binds, and its lowering is a Stub (jq-ref 1.8.2 runs each, rc 0). */
+  /**
+   * GLOSSARY "Unbuilt native": a call binds, and its lowering is a Stub. jq-ref 1.8.2 compiles each, so none is "not
+   * defined" (observed 2026-11-13 with -nc on null: utf8bytelength and .a | utf8bytelength raise "null (null) only
+   * strings have UTF-8 byte length", rc 5; [.[]? | explode] gives [], rc 0). #72 built length and tostring, so the
+   * natives here are spec 4's, still unbuilt.
+   */
   @Test
   void anUnbuiltNativeIsAStubNotJqsNotDefined() {
-    parsesToAStub("length");
-    parsesToAStub(".a | length");
-    parsesToAStub("[.[]? | tostring]");
+    parsesToAStub("utf8bytelength");
+    parsesToAStub(".a | utf8bytelength");
+    parsesToAStub("[.[]? | explode]");
   }
 
   /**

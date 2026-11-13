@@ -3,15 +3,20 @@ package io.github.subapavel.jqj.internal.parse;
 import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.internal.Stub;
 import io.github.subapavel.jqj.internal.op.Arithmetic;
+import io.github.subapavel.jqj.internal.op.Basics;
 import io.github.subapavel.jqj.internal.op.BuildObject;
 import io.github.subapavel.jqj.internal.op.Empty;
 import io.github.subapavel.jqj.internal.op.Field;
+import io.github.subapavel.jqj.internal.op.Flatten;
 import io.github.subapavel.jqj.internal.op.Formats;
 import io.github.subapavel.jqj.internal.op.Index;
 import io.github.subapavel.jqj.internal.op.Interpolate;
 import io.github.subapavel.jqj.internal.op.Iterate;
 import io.github.subapavel.jqj.internal.op.JqTruth;
+import io.github.subapavel.jqj.internal.op.Keys;
+import io.github.subapavel.jqj.internal.op.Last;
 import io.github.subapavel.jqj.internal.op.LoopState;
+import io.github.subapavel.jqj.internal.op.NumberTests;
 import io.github.subapavel.jqj.internal.op.ObjectKey;
 import io.github.subapavel.jqj.internal.op.Raise;
 import io.github.subapavel.jqj.internal.op.Range;
@@ -75,8 +80,8 @@ import java.util.function.Supplier;
  * and a Break of its slot; and (#69, ADR-0041) {@code reduce} and {@code foreach}, a Reduce or Foreach around its
  * pattern's Binds and the Advance of its state slot, and {@code range(a; b)}, an Intrinsic of Range; and (#70,
  * ADR-0040) {@code def}, which makes no node: a call of a definition is its body, inlined; and (#71, ADR-0042) a call
- * of a prelude definition, {@code ..} among them, inlined so too, and an unbuilt native, a Stub. Every other kind is a
- * Stub.
+ * of a prelude definition, {@code ..} among them, inlined so too, and an unbuilt native, a Stub; and (#72) the language
+ * natives, each an Intrinsic of its operation, {@code last(f)} a Reduce over f. Every other kind is a Stub.
  *
  * <p>A key or bound that is a Const or a Var is the step's argument; any other is bound around the step's target, the
  * key outside the target and {@code a} outside {@code b} (ADR-0034, jq's {@code gen_index} and {@code
@@ -419,7 +424,10 @@ public final class Resolver {
     };
   }
 
-  /** A call of the native {@code n} (ADR-0040's native table, ADR-0041's {@code range/2}). */
+  /**
+   * A call of the native {@code n} (ADR-0040's native table, ADR-0041's {@code range/2}, #72's language natives), one
+   * arm a line: an operation on the input, or on one argument ({@link #withArgument}), or {@link #last}.
+   */
   private Node natively(Binder.Native n, Ast.Call c) {
     Source at = here(c.source());
     return switch (n) {
@@ -427,7 +435,50 @@ public final class Resolver {
       case ERROR -> new Intrinsic(at, Raise.OP, List.of());
       case NOT -> not(at);
       case RANGE -> range(c);
+      case LENGTH -> new Intrinsic(at, Basics.LENGTH, List.of());
+      case TYPE -> new Intrinsic(at, Basics.TYPE, List.of());
+      case TOSTRING -> new Intrinsic(at, Basics.TOSTRING, List.of());
+      case TOJSON -> new Intrinsic(at, Basics.TOJSON, List.of());
+      case TONUMBER -> new Intrinsic(at, Basics.TONUMBER, List.of());
+      case LAST -> last(c);
+      case HAS -> withArgument(c, Keys.HAS);
+      case KEYS -> new Intrinsic(at, Keys.KEYS, List.of());
+      case KEYS_UNSORTED -> new Intrinsic(at, Keys.KEYS_UNSORTED, List.of());
+      case FLATTEN -> new Intrinsic(at, Flatten.ALL, List.of());
+      case FLATTEN_DEPTH -> withArgument(c, Flatten.DEPTH);
+      case NAN -> new Intrinsic(at, NumberTests.NAN, List.of());
+      case INFINITE -> new Intrinsic(at, NumberTests.INFINITE, List.of());
+      case ISNAN -> new Intrinsic(at, NumberTests.ISNAN, List.of());
+      case ISINFINITE -> new Intrinsic(at, NumberTests.ISINFINITE, List.of());
+      case ISNORMAL -> new Intrinsic(at, NumberTests.ISNORMAL, List.of());
+      case HAVE_DECNUM -> new Intrinsic(at, NumberTests.HAVE_DECNUM, List.of());
+      case HAVE_LITERAL_NUMBERS -> new Intrinsic(at, NumberTests.HAVE_LITERAL_NUMBERS, List.of());
     };
+  }
+
+  /**
+   * The call {@code c} of a native of one argument, the Fn1 {@code op} on each result of it: an Identity, Const or Var
+   * argument passed as it is, any other bound around the call, as an operator's operand is (ADR-0034 amendment for
+   * #65). {@code has(k)}'s key and {@code flatten($x)}'s depth lower so.
+   */
+  private Node withArgument(Ast.Call c, Operation op) {
+    Node arg = lower(c.args().getFirst());
+    int slot = operandSlot(arg);
+    return bind(arg, slot, new Intrinsic(here(c.source()), op, List.of(argument(arg, slot))));
+  }
+
+  /**
+   * {@code last(f)}, jq's bytecoded {@code gen_last_1} (#72): {@code Reduce(UNSET, s, Bind(f, v, Advance(s, $v)))}
+   * piped into {@link Last}, so the state slot holds f's last result, or {@link Last#UNSET} when f gave none, which
+   * {@link Last} drops (ADR-0041's Reduce and Advance).
+   */
+  private Node last(Ast.Call c) {
+    Source at = here(c.source());
+    int state = slots++;
+    Node values = lower(c.args().getFirst());
+    int value = slots++;
+    Node each = new Bind(at, values, value, new Advance(at, state, new Var(at, value)));
+    return pipe(new Reduce(at, new Const(at, Last.UNSET), state, each), new Intrinsic(at, Last.OP, List.of()));
   }
 
   /**
