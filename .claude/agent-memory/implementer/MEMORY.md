@@ -135,3 +135,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#83) A lazily built cache on a shared value must be published through final fields; its charge then depends on history (who built it first), which a review should hear about.
 
 - (#65) When t/NN is checked out in another worktree, branch impl/NN from origin/t/NN and push HEAD:t/NN. The worktree guard refuses `-m $'..'` and compound or piped git commands: use `commit -F file -s`, one git command per call. Pass `-Doracle.require` as an absolute path. Record-pattern switches leave one null-component branch per nested type-switch for JaCoCo; a null-operand test covers them. The CLI reads non-ASCII args as U+FFFD with no locale; probe through stdin.
+
+- (#65) A constant-operand row (`1 + 2`) in a run-budget test is folded at parse time: check every filter in a budget test for a fold. An ADR rate list covers only the loops it names: grep each new loop over Members for a tick and match it to a rate. Diff NOTICE against `git grep -l "Translated from jq"` on every ticket.
