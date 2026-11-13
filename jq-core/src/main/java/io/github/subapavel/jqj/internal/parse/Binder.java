@@ -438,21 +438,55 @@ final class Binder {
    */
   private void binary(Ast.Binary b) {
     BinOp op = b.op();
-    if (ConstantKey.arithmetic(op) != null || ConstantKey.comparison(op) != null) {
-      int from = level.inner.size();
-      walk(b.left());
-      List<Level> left = cut(from);
-      walk(b.right());
-      level.inner.addAll(left);
-    } else if (op == BinOp.AND || op == BinOp.OR || op == BinOp.ALTERNATIVE) {
-      walk(b.left());
-      walk(b.right());
+    if (inLevel(op)) {
+      operands(b);
     } else if (op == BinOp.ASSIGN || op == BinOp.UPDATE) {
       inner(b.left());
       inner(b.right());
     } else {
       walk(b.right());
       inner(b.left());
+    }
+  }
+
+  /**
+   * Whether both operands of {@code op} are in this level, left first: an arithmetic or comparison operator, {@code
+   * and}, {@code or} or {@code //}.
+   */
+  private static boolean inLevel(BinOp op) {
+    return rightFirst(op) || op == BinOp.AND || op == BinOp.OR || op == BinOp.ALTERNATIVE;
+  }
+
+  /** Whether {@code op} is jq's call of a C function, whose operands' inner levels come right first. */
+  private static boolean rightFirst(BinOp op) {
+    return ConstantKey.arithmetic(op) != null || ConstantKey.comparison(op) != null;
+  }
+
+  /**
+   * The operands of {@code chain}, an operator of {@link #inLevel}, by a loop down the left operands that are such
+   * operators too (#86): the parser builds a left-associative chain in a loop, as long as the filter. The term the chain
+   * starts from is walked first, then each operator's right operand from the innermost operator out. All of them start
+   * at the same place among the level's inner levels, so before a {@link #rightFirst} operator's right operand the
+   * inner levels of its left one are cut and put back after it, as walking each operator on its own would.
+   */
+  private void operands(Ast.Binary chain) {
+    List<Ast.Binary> spine = new ArrayList<>();
+    Ast left = chain;
+    while (left instanceof Ast.Binary b && inLevel(b.op())) {
+      spine.add(b);
+      left = b.left();
+    }
+    int from = level.inner.size();
+    walk(left);
+    for (int i = spine.size() - 1; i >= 0; i--) {
+      Ast.Binary b = spine.get(i);
+      if (rightFirst(b.op())) {
+        List<Level> before = cut(from);
+        walk(b.right());
+        level.inner.addAll(before);
+      } else {
+        walk(b.right());
+      }
     }
   }
 

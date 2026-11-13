@@ -366,11 +366,7 @@ public final class Resolver {
       case Ast.Format f when Formats.lookup(f.name()) != null -> new Intrinsic(here(f.source()), Formats.lookup(f.name()), List.of());
       case Ast.ArrayCons a -> array(a);
       case Ast.ObjectCons o -> object(o);
-      case Ast.Binary b when ConstantKey.arithmetic(b.op()) != null -> binary(b);
-      case Ast.Binary b when ConstantKey.comparison(b.op()) != null -> operator(b, ConstantKey.comparison(b.op()));
-      case Ast.Binary b when b.op() == BinOp.AND -> and(b);
-      case Ast.Binary b when b.op() == BinOp.OR -> or(b);
-      case Ast.Binary b when b.op() == BinOp.ALTERNATIVE -> new Alt(here(b.source()), lower(b.left()), lower(b.right()), JqTruth.TRUTHY);
+      case Ast.Binary b when chained(b.op()) -> operators(b);
       case Ast.Neg n -> pipe(lower(n.operand()), new Intrinsic(here(n.source()), Arithmetic.NEGATE, List.of()));
       case Ast.If i -> conditional(i);
       case Ast.Try t -> attempt(here(t.source()), t.body(), t.handler());
@@ -817,50 +813,91 @@ public final class Resolver {
   }
 
   /**
-   * {@code l op r} for {@code + - * / %} (#65): the constant it folds to, when both sides are constants and the fold
-   * succeeds ({@link ConstantKey#constant}); otherwise {@link #operator}.
+   * Whether {@code op} is lowered by {@link #operators}: {@code + - * / %} (#65), {@code == != < > <= >=}, {@code
+   * and}, {@code or} and {@code //} (#66).
    */
-  private Node binary(Ast.Binary b) {
-    if (folds.constant(b) instanceof JqValue folded) {
-      return new Const(here(b.source()), folded);
-    }
-    return operator(b, ConstantKey.arithmetic(b.op()));
+  private static boolean chained(BinOp op) {
+    return ConstantKey.arithmetic(op) != null || ConstantKey.comparison(op) != null || op == BinOp.AND || op == BinOp.OR || op == BinOp.ALTERNATIVE;
   }
 
   /**
-   * {@code l op r} as the call of {@code operation} on its operands: {@code r} bound outside {@code l}, so the right
-   * operand is the outer loop, as jq's {@code gen_binop} runs it, an Identity, Const or Var operand passed as an
-   * argument without a Bind (ADR-0034 amendment for #65, ADR-0037, ADR-0038). The left operand is lowered first, as
-   * the Binder walks it. A comparison is lowered so even when both sides are constants (design approval O6 of #66).
+   * {@code top}, a {@link #chained} operator, and the chained operators down its left operands, by a loop (#86): the
+   * parser builds a left-associative chain in a loop, as long as the filter. Each operator lowers as its own {@link
+   * #lower} would, outermost first: it spends a node and a level, and an arithmetic one whose operands fold
+   * ({@link ConstantKey#constant}) is that Const and ends the chain there. The term the chain starts from is lowered
+   * next, then each operator's right operand from the innermost operator out, each inside the levels of the operators
+   * around it, so the IR, its slots and its ticks are those of the operators lowered one by one. {@link #lower} has
+   * spent {@code top}'s node and level.
    */
-  private Node operator(Ast.Binary b, Operation operation) {
-    Node left = lower(b.left());
-    Node right = lower(b.right());
+  private Node operators(Ast.Binary top) {
+    List<Ast.Binary> chain = new ArrayList<>();
+    Node first = null;
+    Ast.Binary b = top;
+    while (true) {
+      if (ConstantKey.arithmetic(b.op()) != null && folds.constant(b) instanceof JqValue folded) {
+        first = new Const(here(b.source()), folded);
+        break;
+      }
+      chain.add(b);
+      if (!(b.left() instanceof Ast.Binary next && chained(next.op()))) {
+        break;
+      }
+      spend();
+      if (++levels > MAX_IR_DEPTH) {
+        throw TOO_DEEP;
+      }
+      b = next;
+    }
+    if (chain.isEmpty()) {
+      return first;
+    }
+    Node node;
+    if (first == null) {
+      node = lower(chain.getLast().left());
+    } else {
+      // The folded operator's level ends with its Const.
+      levels--;
+      node = first;
+    }
+    for (int i = chain.size() - 1; i >= 0; i--) {
+      node = operator(chain.get(i), node, lower(chain.get(i).right()));
+      if (i > 0) {
+        levels--;
+      }
+    }
+    return node;
+  }
+
+  /** {@code b} on its lowered operands, {@code l op r}: the call of its operation, an If or an Alt. */
+  private Node operator(Ast.Binary b, Node left, Node right) {
+    Source at = here(b.source());
+    return switch (b.op()) {
+      // {@code l and r} (ADR-0037): {@code if l then (if r then true else false) else false}, the left side outer.
+      case AND -> when(at, left, when(here(right.source()), right, bool(at, true), bool(at, false)), bool(at, false));
+      // {@code l or r} (ADR-0037): {@code if l then true else (if r then true else false)}, the left side outer.
+      case OR -> when(at, left, bool(at, true), when(here(right.source()), right, bool(at, true), bool(at, false)));
+      case ALTERNATIVE -> new Alt(at, left, right, JqTruth.TRUTHY);
+      default -> applied(at, ConstantKey.arithmetic(b.op()) != null ? ConstantKey.arithmetic(b.op()) : ConstantKey.comparison(b.op()), left, right);
+    };
+  }
+
+  /**
+   * {@code l op r} at {@code at} as the call of {@code operation} on its operands: {@code r} bound outside {@code l},
+   * so the right operand is the outer loop, as jq's {@code gen_binop} runs it, an Identity, Const or Var operand passed
+   * as an argument without a Bind (ADR-0034 amendment for #65, ADR-0037, ADR-0038). The left operand was lowered
+   * first, as the Binder walks it. A comparison is lowered so even when both sides are constants (design approval O6
+   * of #66).
+   */
+  private Node applied(Source at, Operation operation, Node left, Node right) {
     int rightSlot = operandSlot(right);
     int leftSlot = operandSlot(left);
-    Intrinsic op = new Intrinsic(here(b.source()), operation, List.of(argument(left, leftSlot), argument(right, rightSlot)));
+    Intrinsic op = new Intrinsic(at, operation, List.of(argument(left, leftSlot), argument(right, rightSlot)));
     return bind(right, rightSlot, bind(left, leftSlot, op));
   }
 
   /** A new slot for an operand, or {@link #NO_SLOT} for an Identity, a Const or a Var, each passed as it is. */
   private int operandSlot(Node operand) {
     return operand instanceof Identity ? NO_SLOT : slotFor(operand);
-  }
-
-  /** {@code l and r} (ADR-0037): {@code if l then (if r then true else false) else false}, the left side outer. */
-  private Node and(Ast.Binary b) {
-    Node left = lower(b.left());
-    Node right = lower(b.right());
-    Source at = here(b.source());
-    return when(at, left, when(here(right.source()), right, bool(at, true), bool(at, false)), bool(at, false));
-  }
-
-  /** {@code l or r} (ADR-0037): {@code if l then true else (if r then true else false)}, the left side outer. */
-  private Node or(Ast.Binary b) {
-    Node left = lower(b.left());
-    Node right = lower(b.right());
-    Source at = here(b.source());
-    return when(at, left, bool(at, true), when(here(right.source()), right, bool(at, true), bool(at, false)));
   }
 
   /** {@code not} (ADR-0037, design approval C2): {@code if . then false else true}. */
