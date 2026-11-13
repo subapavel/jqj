@@ -400,3 +400,9 @@ arg -c
 filter flatten(zz2)
 stdin null\n
 end
+
+case natives/tonumber-minus-zero-arithmetic
+arg -c
+filter "-0" | tonumber | [. * 1, -., . - 0, . * 2]
+stdin null\n
+end

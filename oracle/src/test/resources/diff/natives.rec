@@ -433,3 +433,10 @@ rc 3
 stdout
 stderr jq: error: zz2/0 is not defined at <top-level>, line 1, column 9:\n    flatten(zz2)\n            ^^^\njq: 1 compile error\n
 end
+
+case natives/tonumber-minus-zero-arithmetic
+def 2b96721fc278
+rc 0
+stdout [-0,0,-0,-0]\n
+stderr
+end
