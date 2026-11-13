@@ -85,7 +85,7 @@ final class ParseAssertions {
    * [s,e)}, an Intrinsic its Operation's name, its arguments in parentheses when it has any, and {@code [s,e)}; a Pipe
    * {@code (left | right)}, a Comma {@code (left, right)}, a Bind {@code (value as $i | body)} and a Var {@code $i},
    * where i counts the Binds in the order they are met, so the text names which Bind a Var reads and not the slot's
-   * number; a Binds (ADR-0043) as the chain of nested Binds it means, {@code (v1 as $i | (v2 as $j | body))}; an If {@code (if cond then t else e)} and an Alt {@code (left // right)} (#66); an AltBind (#67) {@code
+   * number; a Binds (ADR-0043) as the chain of nested Bind nodes it means, {@code (v1 as $i | (v2 as $j | body))}; an If {@code (if cond then t else e)} and an Alt {@code (left // right)} (#66); an AltBind (#67) {@code
    * (value as $i | m1 -> [f, ...] ?// m2 -> [f, ...] as [$g, ...] | body)}, its value slot, then each alternative's
    * match and its from slots by their names at the match's leaf, then its group slots, each named as a Bind is; a Try
    * (#68) {@code (try body catch handler)}, a Label {@code (label $i | body)}, its slot named as a Bind's is, and a
