@@ -1,6 +1,6 @@
 # Build, CI and gates
 
-Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15); amended by ADR-0023 (issue #17: the fallbacks fire at any spec gate); amended by F-19 (spec 1 grilling: who measures the gate steps); amended by F-27 (PIT leaves the ticket gate); amended by F-28 (owner at PR #48: step-1 target, spec-gate PIT target, trailer waiver); amended by F-46 (#89: the ticket gate's step 1 adds `-Pcompile-oracle`)
+Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15); amended by ADR-0023 (issue #17: the fallbacks fire at any spec gate); amended by F-19 (spec 1 grilling: who measures the gate steps); amended by F-27 (PIT leaves the ticket gate); amended by F-28 (owner at PR #48: step-1 target, spec-gate PIT target, trailer waiver); amended by F-46 (#89: the ticket gate's step 1 adds `-Pcompile-oracle`); F-38 require path amended by #84
 
 - **Toolchain:**
   - Maven wrapper 3.3.4 (`only-script`) with Maven 3.9.x, `--release 25`, `-Xlint:all -Werror`, no
@@ -80,7 +80,8 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
 
 ## Amendment (ADR-0020, issue #15)
 
-- Ticket gate: `gate-ticket.sh` writes the ticket's required case ids to `-Doracle.require`, runs
+- Ticket gate: `gate-ticket.sh` passes the ticket's required case ids to `-Doracle.require` from
+  `ORACLE_REQUIRE`, its only require path (F-38 as amended by #84), runs
   `oracle-record.sh --verify` on the `.rec` files the ticket changed, and reads the floors from
   `quality/floors.tsv`.
 - CI `build` adds `java scripts/ratchet.java check` and `oracle-record.sh --verify` on all

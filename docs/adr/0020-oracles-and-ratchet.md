@@ -136,7 +136,7 @@ errors`); such text is jqj's own. The jqtest runner reads the last block from a 
 
 - Each oracle is a `@TestFactory` of DynamicTests: one per required case and backend, sorted by id.
 - **A required case** is either in the ratchet or named by the ticket at its gate
-  (`-Doracle.require=<file>`, written by `gate-ticket.sh` from the ticket body).
+  (`-Doracle.require=<file>`, the `ORACLE_REQUIRE` file `gate-ticket.sh` is given; F-38, #84).
 - **The oracle report** `oracle/target/oracle-reports/<oracle>-<backend>.tsv` (`id`, PASS, FAIL,
   STALE or CRASH, detail) holds every case: required cases write their verdict when asserted.
 - **A Survey test** runs every case that is not required and adds it to the report. It fails only
