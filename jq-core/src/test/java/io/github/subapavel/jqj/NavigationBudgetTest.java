@@ -3,6 +3,7 @@ package io.github.subapavel.jqj;
 import static io.github.subapavel.jqj.RunBudgets.NONE;
 import static io.github.subapavel.jqj.RunBudgets.assertBudget;
 import static io.github.subapavel.jqj.RunBudgets.steps;
+import static io.github.subapavel.jqj.RunBudgets.writer;
 import static io.github.subapavel.jqj.TestDocuments.assertStale;
 import static io.github.subapavel.jqj.TestDocuments.kind;
 import static io.github.subapavel.jqj.TestDocuments.read;
@@ -16,6 +17,7 @@ import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqValue;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.StringJoiner;
 import org.junit.jupiter.api.Test;
@@ -23,12 +25,18 @@ import org.junit.jupiter.api.Test;
 /**
  * The tick sites #63 adds, at the public API (ADR-0008, F-32, ADR-0034, the #63 approval's decision 3): a comma charges
  * one step on entering its right branch; a Many loop ({@code .[]}) one step per element, before its emit, and over an
- * object one more per key its scans compare; a tape walk
+ * object that is not a distinct-key object one more per key its scans compare; a tape walk
  * charges the entries it steps, once per walk: a field's key scan, {@code .[n]}, a view's length and a view's slice; a
  * built array's slice charges the elements it copies, a string's slice one step per started KiB. A run may take exactly
  * its budget of ticks and the next one ends it with {@code JqTermination(BUDGET, STEPS)} (ADR-0030): each site has an
  * adjacent pair, N steps complete and N - 1 end. A document under 1 KiB reads in one tick, one tick per started KiB
- * above (ADR-0015, StepBudgetTest); a run on a value no read made has no read tick. The sinks neither write nor tick.
+ * above (ADR-0015, StepBudgetTest); a run on a value no read made has no read tick. The sinks neither write nor tick,
+ * except the compact writer of the print pairs, one step per started KiB of each drain (F-23).
+ *
+ * <p>#82 (ADR-0002 as amended by F-40) re-pins the object pairs: the reader tags an object of more than 8 keys, all tag
+ * 5, none repeated, as a distinct-key object (tag 10). There {@code .[]} charges only its loop's step per member, a
+ * field's scan stops at its match and the writer compares no keys; any other object (tag 9) keeps #63's scans, and the
+ * writer's key walk on it is ticked the same way.
  */
 class NavigationBudgetTest {
 
@@ -102,33 +110,43 @@ class NavigationBudgetTest {
     assertThat(some.values).as("results of .[] over 20 elements with 20 steps").hasSize(19);
   }
 
-  /** {@code {"k0":0,…,"k19":19}}: 20 keys, under 1 KiB. */
-  private static final String TWENTY_KEYS = twentyKeys();
-
-  private static String twentyKeys() {
+  /** {@code {"k0":b,…,"k<n-1>":b+n-1}}: n distinct keys, all tag 5, the value of k<i> being b + i; under 1 KiB here. */
+  private static String keys(int n, int b) {
     StringJoiner object = new StringJoiner(",", "{", "}");
-    for (int i = 0; i < 20; i++) object.add("\"k" + i + "\":" + i);
+    for (int i = 0; i < n; i++) object.add("\"k" + i + "\":" + (b + i));
     return object.toString();
   }
 
-  @Test
-  void fieldChargesForTheKeysItScans() {
-    // Decision 3 of the #63 approval: a field's key scan charges tick(keys). The last value of a key wins (ADR-0002), so
-    // the scan reads all 20 keys for the first key as for a missing one: 1 read tick and 20 scan ticks.
-    for (String[] c : new String[][] {{".k0", "0"}, {".zz", "null"}}) {
-      JqEngine exact = steps(21);
-      Workspace whole = exact.newWorkspace();
-      JqValue root = read(whole, TWENTY_KEYS).root();
-      Results results = new Results();
-      assertThat(exact.compile(c[0]).run(root, NONE, results, whole)).as("run's answer for %s over 20 keys with 21 steps", c[0]).isTrue();
-      assertThat(results.values).as("results of %s over 20 keys", c[0]).hasSize(1);
-      assertThat(results.values.getFirst().toJson()).as("the result of %s over 20 keys", c[0]).isEqualTo(c[1]);
+  /** {@code {"k0":0,…,"k<n-1>":n-1}}. */
+  private static String keys(int n) {
+    return keys(n, 0);
+  }
 
-      JqEngine under = steps(20);
-      Workspace cut = under.newWorkspace();
-      JqValue cutRoot = read(cut, TWENTY_KEYS).root();
-      assertBudget(() -> under.compile(c[0]).run(cutRoot, NONE, new Results(), cut), Budget.STEPS, c[0] + " over 20 keys with 20 steps");
-    }
+  /** The texts {@code 0} to {@code n - 1}. */
+  private static String[] texts(int n) {
+    String[] texts = new String[n];
+    for (int i = 0; i < n; i++) texts[i] = Integer.toString(i);
+    return texts;
+  }
+
+  /** {@code {"k0":0,…,"k19":19}}: 20 distinct keys, a distinct-key object (#82). */
+  private static final String TWENTY_KEYS = keys(20);
+
+  /** {@link #TWENTY_KEYS} and then {@code "k0":20}: 21 keys, 20 of them distinct, so not proved (tag 9). */
+  private static final String REPEATED = TWENTY_KEYS.substring(0, TWENTY_KEYS.length() - 1) + ",\"k0\":20}";
+
+  @Test
+  void fieldOnADistinctObjectStopsAtItsMatch() {
+    // ADR-0002 as amended for #82: on a distinct-key object a field's key scan stops at its match, one tick per key
+    // scanned (ADR-0034). .k0 scans 1 key, 2 with the read; .k19 scans all 20, 21; .zz matches none of the 20, 21. On
+    // REPEATED (tag 9) the last k0 wins, so .k0 scans all 21 keys: 22. This replaces #63's fieldChargesForTheKeysItScans,
+    // whose .k0 took 21 on TWENTY_KEYS (every key, since the last one wins): the rate change is #82's purpose; its .zz
+    // pair is kept unchanged. jq-ref 1.8.2, observed 2026-11-13: .k0, .k19, .zz on TWENTY_KEYS give 0, 19 and null, and
+    // .k0 on REPEATED gives 20.
+    assertExactSteps(".k0", TWENTY_KEYS, 2, "0");
+    assertExactSteps(".k19", TWENTY_KEYS, 21, "19");
+    assertExactSteps(".zz", TWENTY_KEYS, 21, "null");
+    assertExactSteps(".k0", REPEATED, 22, "20");
   }
 
   @Test
@@ -219,18 +237,82 @@ class NavigationBudgetTest {
   }
 
   @Test
-  void iterateOverAnObjectChargesEachKeyComparison() {
-    // .[] over an object charges one tick per key each of its scans compares (ObjectView on 8d6bab2: a key's first
-    // position and its last value, ADR-0002), and the loop one per value: n distinct keys cost n * n + n - 1 ticks, the
-    // rate the architect accepted for #63 (a linear walk is a later ticket). 20 keys: 1 read tick and 419, so 420
-    // complete and 419 end. With k0 repeated the object has 20 keys and 21 entries: 441 and 440. jq-ref 1.8.2, observed
-    // 2026-11-12: [.[]] over {"k0":0,…,"k19":19,"k0":20} gives [20,1,…,19].
-    String[] values = new String[20];
-    for (int i = 0; i < 20; i++) values[i] = Integer.toString(i);
-    assertExactSteps(".[]", TWENTY_KEYS, 420, values);
-    String repeated = TWENTY_KEYS.substring(0, TWENTY_KEYS.length() - 1) + ",\"k0\":20}";
+  void iterateOverADistinctObjectChargesOneStepPerMember() {
+    // ADR-0002 as amended for #82 (F-40): the reader proves TWENTY_KEYS a distinct-key object (more than 8 keys, all tag
+    // 5, none repeated), so .[] takes each member once and charges only its loop's tick per member (ADR-0034): 1 read
+    // tick and 20, so 21 complete and 20 end before the 20th emit. This replaces the 20-key pair of #63's
+    // iterateOverAnObjectChargesEachKeyComparison, 420 and 419 (n * n + n - 1 ticks and the read): the rate change is
+    // #82's purpose. jq-ref 1.8.2, observed 2026-11-13: [.[]] over TWENTY_KEYS gives [0,1,…,19].
+    assertExactSteps(".[]", TWENTY_KEYS, 21, texts(20));
+  }
+
+  @Test
+  void iterateOverAnObjectWithARepeatedKeyKeepsTheScanRate() {
+    // A repeated key leaves the object unproved (tag 9), so .[] keeps #63's scans, one tick per key compared (ObjectView
+    // on 5ab4aa7): k0's last value compares the 20 later keys; each of k1…k19 (at i) compares i + 1 keys for its first
+    // position and 20 - i for its last value, 21; the second k0 compares 1 and is skipped. 20 + 19 * 21 + 1 = 420 scan
+    // ticks, 20 loop ticks and the read: 441 complete and 440 end, #63's pair unchanged. jq-ref 1.8.2, observed
+    // 2026-11-13: [.[]] over REPEATED gives [20,1,…,19].
+    String[] values = texts(20);
     values[0] = "20";
-    assertExactSteps(".[]", repeated, 441, values);
+    assertExactSteps(".[]", REPEATED, 441, values);
+  }
+
+  @Test
+  void iterateOverEightKeysKeepsTheScanRateAndNineDoNot() {
+    // Only an object of more than 8 keys is proved (ADR-0002 as amended; O2 of #82's approval). 8 distinct keys stay tag
+    // 9 and keep #63's n * n + n - 1 = 71 ticks, with the read 72 and 71; 9 distinct keys are tag 10, 9 loop ticks and
+    // the read, 10 and 9. jq-ref 1.8.2, observed 2026-11-13: [.[]] gives [0,…,7] and [0,…,8].
+    assertExactSteps(".[]", keys(8), 72, texts(8));
+    assertExactSteps(".[]", keys(9), 10, texts(9));
+  }
+
+  @Test
+  void iterateWithAnEscapedKeyKeepsTheScanRate() {
+    // The proof takes only objects whose keys are all tag 5: an escape sequence makes a key tag 6 (ADR-0015), so
+    // k0…k18 and "\u006b20" (k20) stay tag 9 although no key repeats. 20 keys: 419 scan and loop ticks and the read, 420
+    // and 419. jq-ref 1.8.2, observed 2026-11-13: [.[]] gives [0,…,18,20], and keys_unsorted ends with "k20".
+    String nineteen = keys(19);
+    String escaped = nineteen.substring(0, nineteen.length() - 1) + ",\"\\u006b20\":20}";
+    String[] values = Arrays.copyOf(texts(19), 20);
+    values[19] = "20";
+    assertExactSteps(".[]", escaped, 420, values);
+  }
+
+  /**
+   * The writer's pair at the public API: {@code .} on the document {@code json}, printed by the compact writer, completes
+   * with {@code steps} steps and prints {@code printed}, and ends with {@code JqTermination(BUDGET, STEPS)} with
+   * {@code steps - 1}.
+   */
+  private static void assertPrintSteps(String json, long steps, String printed) {
+    JqEngine exact = steps(steps);
+    Workspace whole = exact.newWorkspace();
+    JqValue root = read(whole, json).root();
+    RecordingTarget target = new RecordingTarget();
+    assertThat(exact.compile(".").run(root, NONE, writer(whole, target), whole)).as("run's answer printing %s with %s steps", json, steps).isTrue();
+    assertThat(target.text()).as("output printing %s with %s steps", json, steps).isEqualTo(printed);
+    JqEngine under = steps(steps - 1);
+    Workspace cut = under.newWorkspace();
+    JqValue cutRoot = read(cut, json).root();
+    assertBudget(
+        () -> under.compile(".").run(cutRoot, NONE, writer(cut, new RecordingTarget()), cut), Budget.STEPS, "printing " + json + " with " + (steps - 1) + " steps");
+  }
+
+  @Test
+  void printingAnObjectWithARepeatedKeyChargesItsKeyComparisons() {
+    // ADR-0002 as amended for #82 (F-40): the writer's key walk on a tag-9 object, untimed before #82, is ticked as .[]'s
+    // scans are: the 420 comparisons of iterateOverAnObjectWithARepeatedKeyKeepsTheScanRate (the first key's own first
+    // position needs none, as ObjectView.first), the read tick and one tick for the drain of under 1 KiB (F-23): 422
+    // complete and 421 end. jq-ref 1.8.2, observed 2026-11-13: -c . on REPEATED prints {"k0":20,"k1":1,…,"k19":19}.
+    assertPrintSteps(REPEATED, 422, TWENTY_KEYS.replaceFirst("\"k0\":0,", "\"k0\":20,") + "\n");
+  }
+
+  @Test
+  void printingADistinctObjectChargesNoKeyComparison() {
+    // On a distinct-key object the writer takes each member once and compares no key: the read tick and the drain's, 2
+    // complete and 1 ends. With the comparisons of a scan it would take 401 (19 + 19 * 20 and the two). jq-ref 1.8.2,
+    // observed 2026-11-13: -c . on TWENTY_KEYS prints it unchanged.
+    assertPrintSteps(TWENTY_KEYS, 2, TWENTY_KEYS + "\n");
   }
 
   @Test
@@ -264,5 +346,35 @@ class NavigationBudgetTest {
         assertThat(kind(JqNumber.class, kind(JqObject.class, later, "{x,y,z}").get("y"), ".y").longValue()).as(".y of {x,y,z}").isEqualTo(8L);
       }
     }
+  }
+
+  @Test
+  void iterateOverADistinctObjectAfterAReadInTheSinkIsAStaleView() {
+    // The wide variant of iterateAfterAReadInTheSinkIsAStaleView: the distinct walk takes each member once, and its next
+    // step after the sink's read must still be STALE_VIEW (ADR-0026), never a member of the later document, which has
+    // the same 20 keys on the same reused tape. Under 10 steps: the distinct walk reaches its first emit with 2 (the read
+    // and one loop tick) and the sink's read is the run's, 1 more (ADR-0030); the scan walk needs 21 before that emit
+    // (19 for k0's last value), so the sink is reached only on the distinct walk. The later calls touch no view.
+    JqEngine engine = steps(10);
+    Workspace workspace = engine.newWorkspace();
+    JqValue root = read(workspace, TWENTY_KEYS).root();
+    String laterJson = keys(20, 100);
+    List<String> calls = new ArrayList<>();
+    List<JsonDoc> readInside = new ArrayList<>();
+    JqSink reading =
+        v -> {
+          if (readInside.isEmpty()) {
+            calls.add(v.toJson());
+            readInside.add(read(workspace, laterJson));
+          } else {
+            calls.add("a later call");
+          }
+          return true;
+        };
+    assertStale(() -> engine.compile(".[]").run(root, NONE, reading, workspace), ".[] over TWENTY_KEYS after its sink read " + laterJson);
+    assertThat(calls).as("sink calls for .[] over TWENTY_KEYS: the first member only").containsExactly("0");
+    // Witness: the document read inside the sink is current and reads.
+    JqValue later = readInside.getFirst().root();
+    assertThat(kind(JqNumber.class, kind(JqObject.class, later, "the later document").get("k1"), ".k1").longValue()).as(".k1 of the later document").isEqualTo(101L);
   }
 }
