@@ -40,3 +40,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#63, #64) Class-C red tests take more than 80 turns: expect one resume.
 - (#82) A test that calls a method the ticket adds stops the module's whole test compile: observe the behaviour reds with a scratch stand-in for that one method, and name the assumed signature in the hand-back.
 - (#82) A random-input property must not demand more than the design guarantees (a probe limit can legitimately leave an object unproved); pin safety, and completeness only where the bound makes it certain.
+- (#64) Targeted PIT (`-DtargetClasses/-DtargetTests`) leaves `<module>/target/pit-reports`, which `ratchet check` then reads and fails on: delete it first. PIT skips under `-DskipTests`; use `test-compile org.pitest:pitest-maven:mutationCoverage`.
+- (#64) `DeviationsTest` reads DEVIATIONS.md: re-verify after merging a DEVIATIONS change.
