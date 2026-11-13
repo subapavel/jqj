@@ -1,6 +1,6 @@
 # Definitions are inlined by the resolver in spec 2a; names bind per jq compile level; one inline cap per compile
 
-Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #70; designer draft; finding F-41); amends ADR-0006 (passes and lifting, for spec 2a only) and ADR-0038 (which binding errors are reported); Binder order amended by ADR-0042 (native table before the prelude, #71)
+Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #70; designer draft; finding F-41); amends ADR-0006 (passes and lifting, for spec 2a only) and ADR-0038 (which binding errors are reported); Binder order amended by ADR-0042 (native table before the prelude, #71); inline cap amended by F-44 (IR depth, #70)
 
 Spec 2a compiles no recursion, so every call that compiles is inlined, as ADR-0006 requires. jq 1.8.2 drops unreferenced definitions (`block_bind_referenced`). It checks an inner compile level only when the outer level had no error (`compile`: `if (bc->nsubfunctions && !errors)`). The jq facts were read from jq-1.8.2 source; #70's red records them on jq-ref, and jq-ref wins.
 
@@ -24,6 +24,8 @@ Spec 2a compiles no recursion, so every call that compiles is inlined, as ADR-00
 - **Recursion**: recursive groups are the call graph's cyclic SCCs. A param call is not an edge. Lowering a call into a recursive group is a Stub. A live recursive def that is never expanded compiles.
 - **Natives**: `empty`, `error/0` and `not` move into one native table, looked up after every def, so a user def can shadow them. `error/1` is jq-defined (`def error(msg): msg|error;`), so its argument is an inner compile level (jq-ref: `zz1, error(zz2)` reports zz1 only).
 - **Inline cap**: `Resolver.INLINE_CAP = 65 536`, an internal constant. Each node lowered inside an expansion spends one; past the cap, or with an expansion nested 512 deep, the filter is a Stub. The red measures the census's S2a.20 maximum, and the cap is kept if that maximum is at most 10⁴.
+  - **IR depth** (F-44): the cap also bounds depth. Past `Resolver.MAX_IR_DEPTH = 4 096` levels of built IR, the filter is a Stub, because node count alone lets nested expansions stack depth (about 30 000 levels under both caps). The red shows 4 096 compiling and running on the 512 KiB stack of ADR-0017 and 4 097 a Stub.
+  - **Chains** (F-44): every step kind of a postfix chain lowers without linear IR depth, not only field reads (`FieldRun`), and ticks as the nested form does.
 - **Cost**: an inlined call, closure or value parameter ticks nothing and builds nothing.
 - **query-core gains nothing** in 2a. `Call` and the IR function list arrive with their first user (2b), which re-checks ADR-0006's pass order.
 
