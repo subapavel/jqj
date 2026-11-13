@@ -2,17 +2,20 @@ package io.github.subapavel.jqj.query.compile;
 
 import io.github.subapavel.jqj.query.internal.interpret.Argument;
 import io.github.subapavel.jqj.query.internal.interpret.BindOp;
+import io.github.subapavel.jqj.query.internal.interpret.CollectOp;
 import io.github.subapavel.jqj.query.internal.interpret.CommaOp;
 import io.github.subapavel.jqj.query.internal.interpret.ConstOp;
 import io.github.subapavel.jqj.query.internal.interpret.IdentityOp;
 import io.github.subapavel.jqj.query.internal.interpret.Intrinsic1Op;
 import io.github.subapavel.jqj.query.internal.interpret.Intrinsic2Op;
 import io.github.subapavel.jqj.query.internal.interpret.IntrinsicManyOp;
+import io.github.subapavel.jqj.query.internal.interpret.IntrinsicNOp;
 import io.github.subapavel.jqj.query.internal.interpret.IntrinsicOp;
 import io.github.subapavel.jqj.query.internal.interpret.Op;
 import io.github.subapavel.jqj.query.internal.interpret.PipeOp;
 import io.github.subapavel.jqj.query.internal.interpret.VarOp;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
@@ -23,6 +26,7 @@ import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.query.run.Fn0;
 import io.github.subapavel.jqj.query.run.Fn1;
 import io.github.subapavel.jqj.query.run.Fn2;
+import io.github.subapavel.jqj.query.run.FnN;
 import io.github.subapavel.jqj.query.run.Many;
 import java.util.List;
 
@@ -49,6 +53,7 @@ public final class Compiler {
       case Bind b -> new BindOp(interpreter(b.value()), b.slot(), interpreter(b.body()));
       case Var v -> new VarOp(v.slot());
       case Intrinsic i -> intrinsic(i);
+      case Collect c -> new CollectOp(interpreter(c.body()), c.collector());
     };
   }
 
@@ -63,6 +68,7 @@ public final class Compiler {
       case Fn0 fn -> new IntrinsicOp(fn);
       case Fn1 fn -> new Intrinsic1Op(fn, args[0]);
       case Fn2 fn -> new Intrinsic2Op(fn, args[0], args[1]);
+      case FnN fn -> new IntrinsicNOp(fn, args);
       case Many many -> new IntrinsicManyOp(many, args);
     };
   }

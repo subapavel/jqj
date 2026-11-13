@@ -2,14 +2,19 @@ package io.github.subapavel.jqj.internal.parse;
 
 import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.internal.Stub;
+import io.github.subapavel.jqj.internal.op.BuildObject;
+import io.github.subapavel.jqj.internal.op.Empty;
 import io.github.subapavel.jqj.internal.op.Field;
 import io.github.subapavel.jqj.internal.op.Formats;
 import io.github.subapavel.jqj.internal.op.Index;
 import io.github.subapavel.jqj.internal.op.Iterate;
+import io.github.subapavel.jqj.internal.op.ObjectKey;
 import io.github.subapavel.jqj.internal.op.Slice;
+import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
@@ -21,6 +26,7 @@ import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
+import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -32,7 +38,8 @@ import java.util.Map;
  * by name or by a plain string, {@code .[k]}, {@code .[a:b]} and {@code .[]}, each with its quiet variant {@code ?}
  * (ADR-0034), and a chain of them and {@code |}, which nest as {@code Pipe(term, Intrinsic)}; {@code ,}; parentheses,
  * which make no node; a number or plain string literal, and {@code true}, {@code false} and {@code null}, each a Const;
- * and a bare {@code @text}. Every other kind is a Stub.
+ * a bare {@code @text}; {@code empty}; and (#64) {@code [e]}, a Collect, and {@code {k: v, ...}}, its pairs bound
+ * key-outer around one construction. Every other kind is a Stub.
  *
  * <p>A key or bound that is a Const is the step's argument; any other is bound around the step's target, the key
  * outside the target and {@code a} outside {@code b} (ADR-0034, jq's {@code gen_index} and {@code gen_slice_index}).
@@ -86,7 +93,10 @@ public final class Resolver {
       case Ast.Num n -> new Const(n.source(), LiteralNumber.ofLexeme(n.lexeme()));
       case Ast.Str s when plain(s) -> new Const(s.source(), BuiltString.of(bytes(s)));
       case Ast.Call c when c.args().isEmpty() && CONSTANTS.containsKey(c.name()) -> new Const(c.source(), CONSTANTS.get(c.name()));
+      case Ast.Call c when c.args().isEmpty() && c.name().equals("empty") -> new Intrinsic(c.source(), Empty.OP, List.of());
       case Ast.Format f when Formats.lookup(f.name()) != null -> new Intrinsic(f.source(), Formats.lookup(f.name()), List.of());
+      case Ast.ArrayCons a -> array(a);
+      case Ast.ObjectCons o -> object(o);
       // Each other kind, and each guarded one outside its guard, belongs to a later ticket (spec 2a and 2b).
       default -> throw Stub.unbuilt("the " + ast.getClass().getSimpleName() + " at byte " + ast.source().start());
     };
@@ -145,6 +155,106 @@ public final class Resolver {
   /** {@code body} with {@code value} bound to {@code slot} around it, or {@code body} alone for a Const. */
   private static Node bind(Node value, int slot, Node body) {
     return slot == NO_SLOT ? body : new Bind(body.source(), value, slot, body);
+  }
+
+  /** {@code [body]}: its body's results collected into a built array (ADR-0034 amendment); {@code []} is a constant. */
+  private Node array(Ast.ArrayCons a) {
+    if (a.body() == null) {
+      return new Const(a.source(), new BuiltArray(new Object[0], 0));
+    }
+    return new Collect(a.source(), lower(a.body()), BuiltArray::new);
+  }
+
+  /**
+   * {@code {k: v, ...}} (ADR-0034 amendment): each key bound outside its own value, each pair outside the next, a
+   * constant key and an Identity or Const value passed as arguments without a Bind. A computed key is checked once its
+   * pair has its value, before the next pair runs. A site whose keys are all constant builds on its shape, the distinct
+   * keys in their first place, with one argument per key, the value of its last pair; an earlier pair of a repeated key
+   * still runs, for its results. Any other site passes a key and a value per pair. A shorthand {@code {a}} or
+   * {@code {"a b"}} is the field of its key.
+   */
+  private Node object(Ast.ObjectCons o) {
+    List<Ast.Pair> pairs = o.pairs();
+    int n = pairs.size();
+    Node[] keys = new Node[n];
+    int[] keySlots = new int[n];
+    Node[] values = new Node[n];
+    int[] valueSlots = new int[n];
+    boolean shaped = true;
+    for (int i = 0; i < n; i++) {
+      Ast.Pair pair = pairs.get(i);
+      keys[i] = key(pair.key());
+      keySlots[i] = slotFor(keys[i]);
+      values[i] = pair.value() == null ? shorthand(pair.key()) : lower(pair.value());
+      valueSlots[i] = values[i] instanceof Identity ? NO_SLOT : slotFor(values[i]);
+      shaped &= keySlots[i] == NO_SLOT;
+    }
+    Node body = shaped ? shaped(o.source(), keys, values, valueSlots) : new Intrinsic(o.source(), BuildObject.PAIRS, pairArguments(keys, keySlots, values, valueSlots));
+    for (int i = n - 1; i >= 0; i--) {
+      if (keySlots[i] != NO_SLOT) {
+        Source at = keys[i].source();
+        body = pipe(new Intrinsic(at, ObjectKey.CHECK, List.of(new Var(at, keySlots[i]))), body);
+      }
+      body = bind(keys[i], keySlots[i], bind(values[i], valueSlots[i], body));
+    }
+    return body;
+  }
+
+  /**
+   * A pair's key: a name is a constant string; a string or {@code (query)} is lowered, so a plain string is a Const,
+   * which the parser found a string (ADR-0036).
+   */
+  private Node key(Ast.Key key) {
+    return switch (key) {
+      case Ast.NameKey k -> new Const(k.source(), BuiltString.of(k.name()));
+      case Ast.StringKey k -> lower(k.string());
+      case Ast.QueryKey k -> lower(k.query());
+      // $name and $__loc__ need variables (S2a.17) and $__loc__ itself.
+      default -> throw Stub.unbuilt("the object key at byte " + key.source().start());
+    };
+  }
+
+  /** The value of a shorthand pair, whose key {@link #key} lowered: a name or a string, read as a field. */
+  private Node shorthand(Ast.Key key) {
+    if (key instanceof Ast.NameKey k) {
+      return lower(new Ast.Field(k.source(), null, k.name(), false));
+    }
+    Ast.StringKey k = (Ast.StringKey) key;
+    return lower(new Ast.StringField(k.source(), null, k.string(), false));
+  }
+
+  /**
+   * The construction of a site whose keys are all Consts of strings: its shape, the distinct keys in their first place,
+   * and per key the value of its last pair. Keys compare by their UTF-8 bytes.
+   */
+  private static Intrinsic shaped(Source source, Node[] keys, Node[] values, int[] valueSlots) {
+    List<JqString> shape = new ArrayList<>();
+    List<Node> args = new ArrayList<>();
+    for (int i = 0; i < keys.length; i++) {
+      JqString key = (JqString) ((Const) keys[i]).value();
+      Node value = argument(values[i], valueSlots[i]);
+      int at = 0;
+      while (at < shape.size() && shape.get(at).utf8().mismatch(key.utf8()) != -1) {
+        at++;
+      }
+      if (at == shape.size()) {
+        shape.add(key);
+        args.add(value);
+      } else {
+        args.set(at, value);
+      }
+    }
+    return new Intrinsic(source, BuildObject.shaped(shape.toArray(JqString[]::new)), args);
+  }
+
+  /** The arguments of a site with a computed key: a key and a value per pair. */
+  private static List<Node> pairArguments(Node[] keys, int[] keySlots, Node[] values, int[] valueSlots) {
+    List<Node> args = new ArrayList<>();
+    for (int i = 0; i < keys.length; i++) {
+      args.add(argument(keys[i], keySlots[i]));
+      args.add(argument(values[i], valueSlots[i]));
+    }
+    return args;
   }
 
   /** A comma chain: its terms flattened by a loop, left to right, then built as a balanced tree. */

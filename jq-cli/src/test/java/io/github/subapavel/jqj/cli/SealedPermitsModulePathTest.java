@@ -47,7 +47,8 @@ class SealedPermitsModulePathTest {
           // #63 (decision 1 of its approval): an array a slice builds, man.test .[2:4], is a BuiltArray.
           Set.of("io.github.subapavel.jqj.internal.value.ArrayView", "io.github.subapavel.jqj.internal.value.BuiltArray"),
           "io.github.subapavel.jqj.value.JqObject",
-          Set.of("io.github.subapavel.jqj.internal.value.ObjectView"),
+          // #64 (ADR-0003): an object a construction builds, jq.test {a: 1}, is a BuiltObject.
+          Set.of("io.github.subapavel.jqj.internal.value.ObjectView", "io.github.subapavel.jqj.internal.value.BuiltObject"),
           "io.github.subapavel.jqj.JqException",
           Set.of(
               "io.github.subapavel.jqj.JqCompileException",

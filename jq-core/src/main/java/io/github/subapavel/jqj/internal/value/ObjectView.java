@@ -19,7 +19,7 @@ import java.util.function.BiConsumer;
  * ticks with the loop's one per member (ADR-0008, ADR-0034): a linear walk needs a set of the keys seen, an array the
  * filter does not ask for.
  */
-public record ObjectView(Document doc, int index) implements JqObject, Members {
+public record ObjectView(Document doc, int index) implements JqObject, Members, Keyed {
 
   /** jq's compact text (ADR-0015). */
   @Override
@@ -51,6 +51,7 @@ public record ObjectView(Document doc, int index) implements JqObject, Members {
    * {@link #get(String)} for a filter: one tick per key scanned, which is every key, since the last one wins (ADR-0034,
    * decision 3 of #63's approval).
    */
+  @Override
   public JqValue get(RunState state, String key) {
     long found = find(key);
     state.tick((int) (found >>> 32));
@@ -193,7 +194,7 @@ public record ObjectView(Document doc, int index) implements JqObject, Members {
    * Whether the key {@code entry} spells {@code key}: a tag-5 key over the document's bytes, a tag-6 key over its
    * decoded bytes.
    */
-  private static boolean spells(byte[] bytes, long entry, String key) {
+  static boolean spells(byte[] bytes, long entry, String key) {
     if (Tape.tag(entry) == Tape.STRING) {
       return spells(bytes, Tape.off(entry) + 1, Tape.off(entry) + Tape.span(entry) - 1, key);
     }
@@ -206,7 +207,7 @@ public record ObjectView(Document doc, int index) implements JqObject, Members {
    * point, so a key holding one never matches; encoding {@code key} with a charset instead would turn it into {@code ?}
    * and find the key {@code "?"}.
    */
-  private static boolean spells(byte[] bytes, int p, int end, String key) {
+  static boolean spells(byte[] bytes, int p, int end, String key) {
     int n = key.length();
     for (int i = 0; i < n; i++) {
       char c = key.charAt(i);
