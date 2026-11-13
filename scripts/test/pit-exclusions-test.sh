@@ -19,7 +19,7 @@ done
 # --- each module's effective list ---
 # jq-cli: the module-path tests and the launcher test need surefire executions PIT does not run (jq-cli/pom.xml, #38).
 # oracle: the Survey tests fail only on CRASH and stay out of PIT (ADR-0020); so does the compile-mode oracle, which
-# never runs in the ticket gate (F-27, ADR-0020 amendment for #60).
+# runs in the ticket gate since #89 but never under PIT (F-46, ADR-0020 amendment for #60).
 expected() {
   case $1 in
     query-core | jq-core) echo "" ;;

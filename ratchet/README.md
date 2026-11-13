@@ -37,9 +37,12 @@ benchmark baseline moves only on a gain beyond its tolerance; lowering one takes
 
 ## Commands
 
-- `java scripts/ratchet.java check` (ticket gate): exit 1 if a listed case fails, is skipped or
-  is missing, or a percentage is below its line or its floor. A module the gate did not build
-  prints `NOT_RUN`.
+- `java scripts/ratchet.java check [--require-compile]` (ticket gate, CI build): exit 1 if a
+  listed case fails, is skipped or is missing, or a percentage is below its line or its floor. A
+  module the gate did not build prints `NOT_RUN`. The ticket gate passes `--require-compile`: its
+  step 1 runs `-Pcompile-oracle`, so a listed `compile.txt` id without a report row fails (F-46,
+  #89). CI's Ratchet step builds without that profile and does not pass it, so a missing compile
+  report prints `NOT_RUN compile`.
 - `java scripts/ratchet.java regen --oracles` (after every merge): the oracle pass lists only.
 - `java scripts/ratchet.java regen --all` (spec gate): requires every report, refuses any drop,
   writes the files, prints the diff.
