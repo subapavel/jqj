@@ -17,6 +17,9 @@ public final class Detach {
   /** The capacity of a container's first array of copies. */
   private static final int FIRST = 4;
 
+  /** The cursor {@link Members} gives when there is no member (left). */
+  private static final int END = -1;
+
   private static final Object[] NONE = {};
 
   private Detach() {}
@@ -36,7 +39,7 @@ public final class Detach {
       if (next instanceof Members container) {
         Frame frame = new Frame(container, top);
         int first = container.first();
-        if (first >= 0) {
+        if (first != END) {
           frame.cursor = first;
           top = frame;
           next = container.member(free, first);
@@ -53,7 +56,7 @@ public final class Detach {
         }
         top.add(copied);
         int cursor = top.container.next(free, top.cursor);
-        if (cursor >= 0) {
+        if (cursor != END) {
           top.cursor = cursor;
           next = top.container.member(free, cursor);
           break;
