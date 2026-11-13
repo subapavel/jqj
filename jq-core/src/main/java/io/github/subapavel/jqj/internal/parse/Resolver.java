@@ -317,7 +317,8 @@ public final class Resolver {
     if (++levels > MAX_IR_DEPTH) {
       throw TOO_DEEP;
     }
-    // Unnamed patterns and casts: javac gives each named binding of a switch a local slot of its own, and every one of
+    // Unnamed patterns and casts: javac 25 gives each named binding of a switch a local slot of its own (javap -v: a
+    // switch of four named record patterns has 7 locals, of four unnamed ones 3; this method has 5), and every one of
     // them is in each interpreted frame of this method.
     Node node =
         switch (ast) {
@@ -377,7 +378,7 @@ public final class Resolver {
 
   /**
    * The Stub of {@code what}, its parts joined. Every Stub of the lowering is made here, by a loop, so this method is
-   * too large for C1 to inline (35 bytes of bytecode, MaxInlineSize): a string concatenation's linked call site, or
+   * too large for C1 to inline (35 bytes of bytecode, C1MaxInlineSize): a string concatenation's linked call site, or
    * {@link Stub#unbuilt}'s, inlined into a method the lowering recurses through put its force-inlined code into that
    * method's frame, and the 500 nested value parameters of IrDepthTest past a C1-compiled 512 KiB stack (#86).
    */

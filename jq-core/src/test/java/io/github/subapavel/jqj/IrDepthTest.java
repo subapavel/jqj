@@ -34,8 +34,8 @@ import org.junit.jupiter.params.provider.MethodSource;
  * <p>#70's probe at f7670a7, one fresh JVM per depth and no bound: such Collects compiled and ran on a cold 512 KiB
  * thread at 625 levels and overflowed at 650; warmed first, at 4 096 and not at 8 192. A warm or instrumented JVM can
  * need more stack than 512 KiB for 512 levels (F-44, measured at 4e9f444 and 025adcf): under JaCoCo a warmed JVM ran
- * out of it about 500 levels down. So the 512 KiB edges are pinned in one fresh child JVM with no agent, the case a host
- * meets; this JVM pins the bound's logic on a 16 MiB thread.
+ * out of it about 500 levels down. So the 512 KiB edges are pinned in fresh child JVMs with no agent, the case a host
+ * meets: one with the default JIT, one with C1 alone and one stopped at tier 3; this JVM pins the bound's logic on a 16 MiB thread.
  */
 class IrDepthTest {
 
@@ -77,6 +77,16 @@ class IrDepthTest {
   @Test
   void onA512KiBThreadInAFreshC1OnlyJvm512LevelsRunAndDeeperFiltersAreStubs() throws IOException, InterruptedException {
     assertChildPrintsTheEdges("-Xbatch", "-XX:TieredStopAtLevel=1");
+  }
+
+  /**
+   * The same child JVM stopped at tier 3, C1 with full profiling, the code a loaded machine runs while C2 compiles
+   * lag: its frames are as large as tier 1's (#86, measured: 512 levels fit 472 KiB and 500 value parameters 488 KiB
+   * under either tier).
+   */
+  @Test
+  void onA512KiBThreadInAFreshProfilingC1Jvm512LevelsRunAndDeeperFiltersAreStubs() throws IOException, InterruptedException {
+    assertChildPrintsTheEdges("-Xbatch", "-XX:TieredStopAtLevel=3");
   }
 
   /** Runs {@link Child} in a fresh JVM with {@code flags} and asserts it prints {@link #EDGES}. */
