@@ -280,24 +280,112 @@ public final class Resolver {
     }
   }
 
+  /**
+   * The IR of {@code ast}. Every level of the lowering's recursion has a frame of this method, so it only tests and
+   * passes {@code ast} on, and its frame stays small in any JIT state; {@link #built} and {@link #stub} keep their
+   * frames small too (#86: a C1-compiled lowering ran past a 512 KiB stack before the bound's 513th level could stub,
+   * IrDepthTest).
+   */
   private Node lower(Ast ast) {
-    return switch (ast) {
-      case Ast.Paren p -> lower(p.body());
-      case Ast.Def d -> definitions(d);
-      case Ast.Call c -> call(c, c);
-      // jq's parser.y lowers .. to a call of recurse/0, which the Binder bound (ADR-0042 "Recursion").
-      case Ast.Recurse r -> call(r, new Ast.Call(r.source(), "recurse", List.of()));
-      // Every other kind builds a node of its own, which an expansion pays for (ADR-0040 "Inline cap"), one level deeper.
-      default -> {
-        spend();
-        if (++levels > MAX_IR_DEPTH) {
-          throw TOO_DEEP;
-        }
-        Node node = built(ast);
-        levels--;
-        yield node;
-      }
-    };
+    if (ast instanceof Ast.Paren) {
+      return lower(((Ast.Paren) ast).body());
+    }
+    if (ast instanceof Ast.Def) {
+      return definitions((Ast.Def) ast);
+    }
+    if (ast instanceof Ast.Call) {
+      return call(ast, (Ast.Call) ast);
+    }
+    if (ast instanceof Ast.Recurse) {
+      return recurse(ast);
+    }
+    return built(ast);
+  }
+
+  /** {@code ..}: jq's parser.y lowers it to a call of recurse/0, which the Binder bound (ADR-0042 "Recursion"). */
+  private Node recurse(Ast dots) {
+    return call(dots, new Ast.Call(dots.source(), "recurse", List.of()));
+  }
+
+  /**
+   * The node of its own that {@code ast}, of a kind {@link #lower} does not pass on, builds: an expansion pays for it
+   * (ADR-0040 "Inline cap"), and it is one level deeper.
+   */
+  private Node built(Ast ast) {
+    spend();
+    if (++levels > MAX_IR_DEPTH) {
+      throw TOO_DEEP;
+    }
+    // Unnamed patterns and casts: javac gives each named binding of a switch a local slot of its own, and every one of
+    // them is in each interpreted frame of this method.
+    Node node =
+        switch (ast) {
+          case Ast.Dot _ -> new Identity(here(ast.source()));
+          case Ast.Pipe _ -> pipe(lower(((Ast.Pipe) ast).left()), lower(((Ast.Pipe) ast).right()));
+          case Ast.Comma _ -> comma((Ast.Comma) ast);
+          // One arm per kind, as in parts.
+          case Ast.Field _ -> chain(ast);
+          case Ast.StringField _ -> chain(ast);
+          case Ast.Index _ -> chain(ast);
+          case Ast.Each _ -> chain(ast);
+          case Ast.Slice _ -> chain(ast);
+          case Ast.Optional _ -> chain(ast);
+          case Ast.Num _ -> new Const(here(ast.source()), LiteralNumber.ofLexeme(((Ast.Num) ast).lexeme()));
+          case Ast.Str _ -> string((Ast.Str) ast);
+          case Ast.Var _ -> variable(ast, ast.source());
+          case Ast.Loc _ -> location(ast.source());
+          case Ast.Bind _ -> binding((Ast.Bind) ast);
+          case Ast.Format _ -> format((Ast.Format) ast);
+          case Ast.ArrayCons _ -> array((Ast.ArrayCons) ast);
+          case Ast.ObjectCons _ -> object((Ast.ObjectCons) ast);
+          case Ast.Binary _ -> binary((Ast.Binary) ast);
+          case Ast.Neg _ -> pipe(lower(((Ast.Neg) ast).operand()), new Intrinsic(here(ast.source()), Arithmetic.NEGATE, List.of()));
+          case Ast.If _ -> conditional((Ast.If) ast);
+          case Ast.Try _ -> attempt(here(ast.source()), ((Ast.Try) ast).body(), ((Ast.Try) ast).handler());
+          case Ast.Label _ -> label((Ast.Label) ast);
+          case Ast.Break _ -> new Break(here(ast.source()), find(binder.binding(ast)).slot());
+          case Ast.Reduce _ -> reduce((Ast.Reduce) ast);
+          case Ast.Foreach _ -> foreach((Ast.Foreach) ast);
+          // Each other kind belongs to a later ticket (spec 2a and 2b).
+          default -> throw unbuilt(ast);
+        };
+    levels--;
+    return node;
+  }
+
+  /** A bare {@code @name}: an Intrinsic of its format when it is built, else a Stub. */
+  private Node format(Ast.Format f) {
+    if (Formats.lookup(f.name()) == null) {
+      throw unbuilt(f);
+    }
+    return new Intrinsic(here(f.source()), Formats.lookup(f.name()), List.of());
+  }
+
+  /** A {@link #chained} operator, else a Stub. */
+  private Node binary(Ast.Binary b) {
+    if (!chained(b.op())) {
+      throw unbuilt(b);
+    }
+    return operators(b);
+  }
+
+  /** The Stub of a kind, or of a format or an operator, that belongs to a later ticket (spec 2a and 2b). */
+  private JqCompileException unbuilt(Ast ast) {
+    return stub("the ", ast.getClass().getSimpleName(), " at byte ", here(ast.source()).start());
+  }
+
+  /**
+   * The Stub of {@code what}, its parts joined. Every Stub of the lowering is made here, by a loop, so this method is
+   * too large for C1 to inline (35 bytes of bytecode, MaxInlineSize): a string concatenation's linked call site, or
+   * {@link Stub#unbuilt}'s, inlined into a method the lowering recurses through put its force-inlined code into that
+   * method's frame, and the 500 nested value parameters of IrDepthTest past a C1-compiled 512 KiB stack (#86).
+   */
+  private static JqCompileException stub(Object... what) {
+    StringBuilder message = new StringBuilder();
+    for (Object part : what) {
+      message.append(part);
+    }
+    return Stub.unbuilt(message.toString());
   }
 
   /**
@@ -347,38 +435,6 @@ public final class Resolver {
     };
   }
 
-  private Node built(Ast ast) {
-    return switch (ast) {
-      case Ast.Dot d -> new Identity(here(d.source()));
-      case Ast.Pipe p -> pipe(lower(p.left()), lower(p.right()));
-      case Ast.Comma c -> comma(c);
-      case Ast.Field f -> chain(f);
-      case Ast.StringField f -> chain(f);
-      case Ast.Index i -> chain(i);
-      case Ast.Each e -> chain(e);
-      case Ast.Slice s -> chain(s);
-      case Ast.Optional o -> chain(o);
-      case Ast.Num n -> new Const(here(n.source()), LiteralNumber.ofLexeme(n.lexeme()));
-      case Ast.Str s -> string(s);
-      case Ast.Var v -> variable(v, v.source());
-      case Ast.Loc l -> location(l.source());
-      case Ast.Bind b -> binding(b);
-      case Ast.Format f when Formats.lookup(f.name()) != null -> new Intrinsic(here(f.source()), Formats.lookup(f.name()), List.of());
-      case Ast.ArrayCons a -> array(a);
-      case Ast.ObjectCons o -> object(o);
-      case Ast.Binary b when chained(b.op()) -> operators(b);
-      case Ast.Neg n -> pipe(lower(n.operand()), new Intrinsic(here(n.source()), Arithmetic.NEGATE, List.of()));
-      case Ast.If i -> conditional(i);
-      case Ast.Try t -> attempt(here(t.source()), t.body(), t.handler());
-      case Ast.Label l -> label(l);
-      case Ast.Break b -> new Break(here(b.source()), find(binder.binding(b)).slot());
-      case Ast.Reduce r -> reduce(r);
-      case Ast.Foreach f -> foreach(f);
-      // Each other kind, and each guarded one outside its guard, belongs to a later ticket (spec 2a and 2b).
-      default -> throw Stub.unbuilt("the " + ast.getClass().getSimpleName() + " at byte " + here(ast.source()).start());
-    };
-  }
-
   /**
    * The Source of a node built now for the text at {@code own}: {@code own} in the filter's text, and the {@link #site}
    * of the call that reached the prelude in text of the prelude's (ADR-0042 "Source").
@@ -390,7 +446,7 @@ public final class Resolver {
   /** Spends one node of the compile's inline cap when the lowering is inside an expansion; past the cap, a Stub. */
   private void spend() {
     if (depth > 0 && ++inlined > INLINE_CAP) {
-      throw Stub.unbuilt("a filter that inlines more than " + INLINE_CAP + " nodes");
+      throw stub("a filter that inlines more than ", INLINE_CAP, " nodes");
     }
   }
 
@@ -408,7 +464,7 @@ public final class Resolver {
         spend();
         yield natively(n, c);
       }
-      case Binder.Unbuilt u -> throw Stub.unbuilt("the native " + u.signature() + " at byte " + here(c.source()).start());
+      case Binder.Unbuilt u -> throw stub("the native ", u.signature(), " at byte ", here(c.source()).start());
       case Binder.Defined d -> {
         Closure body = find(d.def()).closure();
         yield expand(d.def(), c, body.env(), body.site());
@@ -486,10 +542,10 @@ public final class Resolver {
    */
   private Node expand(Ast.FuncDef def, Ast.Call c, Env defining, Source bodySite) {
     if (binder.recursive(def)) {
-      throw Stub.unbuilt("the call of the recursive " + def.name() + "/" + def.params().size() + " at byte " + here(c.source()).start());
+      throw stub("the call of the recursive ", def.name(), "/", def.params().size(), " at byte ", here(c.source()).start());
     }
     if (depth + 1 >= EXPANSIONS) {
-      throw Stub.unbuilt("a filter that nests " + EXPANSIONS + " expansions");
+      throw stub("a filter that nests ", EXPANSIONS, " expansions");
     }
     depth++;
     Env caller = env;
@@ -830,34 +886,27 @@ public final class Resolver {
    * spent {@code top}'s node and level.
    */
   private Node operators(Ast.Binary top) {
+    if (folded(top) instanceof Const whole) {
+      return whole;
+    }
     List<Ast.Binary> chain = new ArrayList<>();
-    Node first = null;
-    Ast.Binary b = top;
-    while (true) {
-      if (ConstantKey.arithmetic(b.op()) != null && folds.constant(b) instanceof JqValue folded) {
-        first = new Const(here(b.source()), folded);
-        break;
-      }
-      chain.add(b);
-      if (!(b.left() instanceof Ast.Binary next && chained(next.op()))) {
-        break;
-      }
+    chain.add(top);
+    Node node = null;
+    while (chain.getLast().left() instanceof Ast.Binary next && chained(next.op())) {
       spend();
       if (++levels > MAX_IR_DEPTH) {
         throw TOO_DEEP;
       }
-      b = next;
+      if (folded(next) instanceof Const prefix) {
+        // The folded operator's level ends with its Const.
+        levels--;
+        node = prefix;
+        break;
+      }
+      chain.add(next);
     }
-    if (chain.isEmpty()) {
-      return first;
-    }
-    Node node;
-    if (first == null) {
+    if (node == null) {
       node = lower(chain.getLast().left());
-    } else {
-      // The folded operator's level ends with its Const.
-      levels--;
-      node = first;
     }
     for (int i = chain.size() - 1; i >= 0; i--) {
       node = operator(chain.get(i), node, lower(chain.get(i).right()));
@@ -866,6 +915,11 @@ public final class Resolver {
       }
     }
     return node;
+  }
+
+  /** The Const of {@code b} when it is an arithmetic operator whose operands fold (#65), or null. */
+  private Const folded(Ast.Binary b) {
+    return ConstantKey.arithmetic(b.op()) != null && folds.constant(b) instanceof JqValue value ? new Const(here(b.source()), value) : null;
   }
 
   /** {@code b} on its lowered operands, {@code l op r}: the call of its operation, an If or an Alt. */
@@ -1036,7 +1090,7 @@ public final class Resolver {
       return new Const(here(at), JqNull.NULL);
     }
     if (declaration instanceof Binder.Predefined p) {
-      throw Stub.unbuilt("$" + p.name());
+      throw stub("$", p.name());
     }
     return new Var(here(at), find(declaration).slot());
   }
@@ -1194,7 +1248,7 @@ public final class Resolver {
       return new Const(here(s.source()), BuiltString.of(bytes(s)));
     }
     if (s.format() != null && !s.format().equals("text")) {
-      throw Stub.unbuilt("the @" + s.format() + " string at byte " + here(s.source()).start());
+      throw stub("the @", s.format(), " string at byte ", here(s.source()).start());
     }
     List<Ast.Part> parts = s.parts();
     Node[] nodes = new Node[parts.size()];

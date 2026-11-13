@@ -271,12 +271,15 @@ Resolver built a node (ADR-0040 "What counts"): an Ast's own node, the Bind of e
 expansion's body, the Bind of a computed key or bound around the chain before it, and the Pipe trees of a chain. So
 the bound stubs a construct whose IR is as deep as it is wide: an operator between two filters binds both, two levels
 a term, and one between variables; `and` and `or` are a level a term; an object's computed value is a level and its
-computed key two; an interpolation, a pattern's variable and a value parameter are a level each. Issue #86 is to
-lower left-associative operator chains without recursion. The parser's 512 nesting levels bound one body ("Parse
+computed key two; an interpolation, a pattern's variable and a value parameter are a level each. The Binder and the
+Resolver walk a left-associative operator chain by a loop (#86), so a chain of any length past the bound is this
+Stub, not a StackOverflowError (jq-core `OperatorChainTest`, 20 000 terms on a 512 KiB stack); jq-ref 1.8.2 runs
+6 554 terms of `.a+`, 3 277 of `.a and` or `.a or` and 2 185 of `.a == .a and`, and rejects one more with the
+bytecode limit of "Long comma chains", rc 3. `//` nests to the right, so its chain is bounded by "Parse depth". The parser's 512 nesting levels bound one body ("Parse
 depth"); definitions nest one body in another, so without the bound the IR, and the Resolver's recursion over it,
 would be as deep as the inline cap lets them. 30 001 levels overflowed a 512 KiB stack (ADR-0017's `stackBytes`).
 `IrDepthTest` pins 512 levels running and 513, 30 001 levels and the 500 nested expansions a Stub on a 512 KiB stack
-in a fresh JVM, and every row a Stub on a 16 MiB stack. Spec 2b's calls revisit the bound.
+in a fresh JVM, also with C1 only, and every row a Stub on a 16 MiB stack. Spec 2b's calls revisit the bound.
 
 ## Array length limit (ADR-0035, issue #64)
 
