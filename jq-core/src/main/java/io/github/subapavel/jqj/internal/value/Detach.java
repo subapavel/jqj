@@ -16,11 +16,14 @@ import java.util.TreeMap;
  * container, a document's or a built one, a built container of its members' copies, an object its keys' too, in its
  * members' order. The walk keeps an explicit stack, so a deep value takes no Java stack. It runs under the host rule
  * of ADR-0016, after the run, where no budget, deadline or interrupt reaches it: it charges no bytes built and no
- * tick. A container the value holds at several places, a built one by identity or a document's by its place in the
- * document, is copied once and its copy shared, so the time is bounded by the members of its distinct containers times
- * the log of its widest object's keys. A document's object is read once,
- * its keys decoded into a map ordered by their unsigned bytes (UTF-8 order), so a repeated key keeps its first
- * position and takes its last value without the scans of {@link ObjectView#next}.
+ * tick. Each value is copied once and its copy shared wherever the value is held: a built container known by its
+ * identity, and a document's container, string, key or number by its document and tape index. A document's object is
+ * read once, its keys looked up in a map ordered by their unsigned bytes (UTF-8 order), so a repeated key keeps its
+ * first position and takes its last value without the scans of {@link ObjectView#next}. So the walk visits each member
+ * of each distinct container once, each visit one memo lookup, and its time is the sum of: one step per such member;
+ * the bytes of each distinct document string and key, decoded once, and of each distinct document number's token,
+ * copied once; and for each key entry of each distinct document object of m key entries, at most 2 log2(m + 1)
+ * compares of its decoded bytes with another key's, the height of a red-black tree of m keys.
  */
 public final class Detach {
   /** The capacity of a container's first array of copies. */
@@ -53,7 +56,7 @@ public final class Detach {
         if (done != null) {
           copied = done;
         } else {
-          Frame frame = Frame.of(container, top, free);
+          Frame frame = Frame.of(container, top, copies, free);
           if (frame.length > 0) {
             top = frame;
             next = (JqValue) frame.values[0];
@@ -62,7 +65,7 @@ public final class Detach {
           copied = frame.build();
         }
       } else {
-        copied = leaf(next);
+        copied = copies.leaf(next);
       }
       // Hand the copy to its container; each container whose last member it was is built and handed on in turn.
       for (;;) {
@@ -81,34 +84,44 @@ public final class Detach {
     }
   }
 
-  /** The copy of a value that is no container: a document's string or number copied, any other as it is. */
-  private static JqValue leaf(JqValue v) {
-    return switch (v) {
-      case StringView s -> string(s);
-      case NumberView n -> LiteralNumber.copyOf(n);
-      // Null, the booleans, built strings and the filter's and computed numbers view no document.
-      default -> v;
-    };
-  }
-
-  /** A string as a built string: a document's of its decoded bytes, a built one as it is. */
-  private static JqString key(JqString key) {
-    return key instanceof StringView s ? string(s) : key;
-  }
-
-  private static BuiltString string(StringView s) {
-    long entry = s.doc().live()[s.index()];
-    return BuiltString.of(JsonStrings.decode(s.doc().bytes(), entry));
-  }
-
   /**
-   * The containers' copies made so far: a built container's by its identity, a view's by its document's identity and
-   * its tape index, since each access to a document's container makes a new view of it. Views of two documents never
-   * share a copy.
+   * The copies made so far: a built container's by its identity, and a document's value's, a container, a string, a
+   * key or a number, by its document's identity and its tape index, since each access to a document's value makes a new
+   * view of it. Views of two documents never share a copy.
    */
   private static final class Copies {
     private final Map<Members, JqValue> built = new IdentityHashMap<>();
     private final Map<Document, Map<Integer, JqValue>> views = new IdentityHashMap<>();
+
+    /** The copy of a value that is no container: a document's string or number copied once, any other as it is. */
+    JqValue leaf(JqValue v) {
+      return switch (v) {
+        case StringView s -> string(s.doc(), s.index());
+        case NumberView n -> of(n.doc()).computeIfAbsent(n.index(), i -> LiteralNumber.copyOf(n));
+        // Null, the booleans, built strings and the filter's and computed numbers view no document.
+        default -> v;
+      };
+    }
+
+    /** A key as a built string: a document's copied once, a built one as it is. */
+    JqString key(JqString key) {
+      return key instanceof StringView s ? string(s.doc(), s.index()) : key;
+    }
+
+    /**
+     * The built string of the string or key at tape index {@code index} of {@code doc}, of its decoded bytes, decoded
+     * once; its {@link BuiltString#bytes()} are exactly those bytes.
+     */
+    BuiltString string(Document doc, int index) {
+      return (BuiltString)
+          of(doc)
+              .computeIfAbsent(
+                  index,
+                  i -> {
+                    long entry = doc.live()[i];
+                    return BuiltString.of(JsonStrings.decode(doc.bytes(), entry));
+                  });
+    }
 
     /** The copy of {@code container} made before, or null. */
     JqValue get(Members container) {
@@ -162,38 +175,40 @@ public final class Detach {
       this.keys = container instanceof Keyed ? new JqString[0] : null;
     }
 
-    /** The frame of {@code container}'s members, each object key once, at its first position with its last value. */
-    static Frame of(Members container, Frame parent, RunState free) {
+    /**
+     * The frame of {@code container}'s members, each object key once, at its first position with its last value, and
+     * each key copied through {@code copies}.
+     */
+    static Frame of(Members container, Frame parent, Copies copies, RunState free) {
       Frame frame = new Frame(container, parent);
       if (container instanceof ObjectView object) {
-        frame.addDistinct(object);
+        frame.addDistinct(object, copies);
       } else {
         // An array's or a built object's walk steps from member to member: a built object's keys are distinct.
         for (int c = container.first(); c != END; c = container.next(free, c)) {
-          frame.add(container instanceof Keyed keyed ? key(keyed.key(c)) : null, container.member(free, c));
+          frame.add(container instanceof Keyed keyed ? copies.key(keyed.key(c)) : null, container.member(free, c));
         }
       }
       return frame;
     }
 
     /**
-     * A document's object, read once: each key decoded and looked up in a map of the keys so far (ObjectView: keys are
-     * one when their decoded bytes are), a new one added, a repeated one's value replaced. The map is ordered by the
-     * bytes, so a lookup takes log n compares whatever the keys; a hashed map degrades to a scan per key on keys of one
-     * hash that it cannot order (second review of #68).
+     * A document's object, read once: each key copied through {@code copies} and its bytes looked up in a map of the
+     * keys so far (ObjectView: keys are one when their decoded bytes are), a new one added, a repeated one's value
+     * replaced. The map is ordered by the bytes, so a lookup takes log n compares whatever the keys; a hashed map
+     * degrades to a scan per key on keys of one hash that it cannot order (second review of #68).
      */
-    private void addDistinct(ObjectView object) {
+    private void addDistinct(ObjectView object, Copies copies) {
       Document doc = object.doc();
       long[] tape = doc.live();
-      byte[] bytes = doc.bytes();
       int end = Tape.end(tape, object.index());
       Map<byte[], Integer> seen = new TreeMap<>(Arrays::compareUnsigned);
       for (int k = object.index() + 1; k < end; k = Tape.next(tape, k + 1)) {
-        byte[] name = JsonStrings.decode(bytes, tape[k]);
+        BuiltString name = copies.string(doc, k);
         JqValue member = doc.valueAt(tape, k + 1);
-        Integer first = seen.putIfAbsent(name, length);
+        Integer first = seen.putIfAbsent(name.bytes(), length);
         if (first == null) {
-          add(BuiltString.of(name), member);
+          add(name, member);
         } else {
           values[first] = member;
         }

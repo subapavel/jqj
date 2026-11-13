@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import io.github.subapavel.jqj.RunBudgets.Results;
+import io.github.subapavel.jqj.internal.value.BuiltObject;
 import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
@@ -131,6 +132,56 @@ class DetachedPayloadShapesTest {
     assertThat(((JqArray) payload.get(1)).length()).as("length of payload[1]").isEqualTo(n);
     for (int i = 2; i < 2 * n; i++) {
       assertThat(payload.get(i)).as("payload[%d] is payload[%d]'s copy", i, i % 2).isSameAs(payload.get(i % 2));
+    }
+  }
+
+  /** {@code filter}'s payload on {"xs": 10^4 numbers, "s": and "k": strings of 1 MiB, "n": 12345}, under a 5 s bound. */
+  private static JqValue payloadOfSharedLeaves(String filter) {
+    String xs = String.join(",", java.util.stream.IntStream.range(0, 10_000).mapToObj(Integer::toString).toList());
+    String mebi = "a".repeat(1 << 20);
+    String json = "{\"xs\":[" + xs + "],\"s\":\"" + mebi + "\",\"k\":\"" + mebi + "\",\"n\":12345}";
+    JqEngine engine = unlimited();
+    Workspace workspace = engine.newWorkspace();
+    JqValue root = read(workspace, json.getBytes(UTF_8)).root();
+    JqFilter compiled = engine.compile(filter);
+    return assertTimeoutPreemptively(
+            Duration.ofSeconds(5),
+            () -> assertThatExceptionOfType(JqFilterException.class).isThrownBy(() -> compiled.run(root, NONE, new Results(), workspace)).actual(),
+            filter + " on xs of 10^4 elements and strings of 1 MiB")
+        .value();
+  }
+
+  @Test
+  void aDocumentStringAtManyPlacesIsDecodedOnce() {
+    // Fourth review of #68: each $r.s is a new view of one 1 MiB string. A detach that decodes it per place builds
+    // 10^4 MiB after the run (a time and memory witness); its copy is one built string, shared.
+    JqArray payload = (JqArray) payloadOfSharedLeaves(". as $r | [.xs[] | $r.s] | error");
+    assertThat(payload.length()).as("length of the payload").isEqualTo(10_000);
+    assertThat(((JqString) payload.get(0)).value()).as("payload[0]").hasSize(1 << 20);
+    for (int i = 1; i < 10_000; i++) {
+      assertThat(payload.get(i)).as("payload[%d] is payload[0]'s copy", i).isSameAs(payload.get(0));
+    }
+  }
+
+  @Test
+  void aDocumentStringKeyOfManyBuiltObjectsIsDecodedOnce() {
+    // Fourth review of #68: each {($r.k): 1} is a built object whose key is a view of one 1 MiB string
+    // (BuiltObject keeps a view key); the key's copy is one built string, shared by every object's copy.
+    JqArray payload = (JqArray) payloadOfSharedLeaves(". as $r | [.xs[] | {($r.k): 1}] | error");
+    assertThat(payload.length()).as("length of the payload").isEqualTo(10_000);
+    JqString key = ((BuiltObject) payload.get(0)).key(0);
+    assertThat(key.value()).as("payload[0]'s key").hasSize(1 << 20);
+    for (int i = 1; i < 10_000; i++) {
+      assertThat(((BuiltObject) payload.get(i)).key(0)).as("payload[%d]'s key is payload[0]'s", i).isSameAs(key);
+    }
+  }
+
+  @Test
+  void aDocumentNumberAtManyPlacesIsCopiedOnce() {
+    JqArray payload = (JqArray) payloadOfSharedLeaves(". as $r | [.xs[] | $r.n] | error");
+    assertThat(payload.get(0).toJson()).as("payload[0]").isEqualTo("12345");
+    for (int i = 1; i < 10_000; i++) {
+      assertThat(payload.get(i)).as("payload[%d] is payload[0]'s copy", i).isSameAs(payload.get(0));
     }
   }
 
