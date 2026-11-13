@@ -5,11 +5,13 @@ import static io.github.subapavel.jqj.RunBudgets.read;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import io.github.subapavel.jqj.RunBudgets.Results;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +56,17 @@ class RangeTest {
     assertThat(results("[range(100000000000000000001;100000000000000000003)]", "null")).as("[range(1e20 + 1; 1e20 + 3)]").containsExactly("[]");
     assertThat(results("[range(0;2.5)]", "null")).as("[range(0;2.5)]").containsExactly("[0,1,2]");
     assertThat(results("[range(-2.5;0)]", "null")).as("[range(-2.5;0)]").containsExactly("[-2.5,-1.5,-0.5]");
+  }
+
+  @Test
+  void theEndIsReadOnceWhenTheRangeStarts() {
+    // A document's number computes its double from its token at each read (ADR-0012), so an end read at each step
+    // costs its token's length per tick. 100000 and a point and 2^20 zeros: 10^5 steps over a 1 MiB token, minutes when
+    // read at each step; jq-ref gives 100000, rc 0, observed 2026-11-13.
+    String end = "100000." + "0".repeat(1 << 20);
+    List<String> counted =
+        assertTimeoutPreemptively(Duration.ofSeconds(5), () -> results("reduce range(0; .) as $i (0; . + 1)", end), "reduce range(0; .) on a 1 MiB end");
+    assertThat(counted).as("reduce range(0; .) as $i (0; . + 1) on 100000.0...0").containsExactly("100000");
   }
 
   @Test

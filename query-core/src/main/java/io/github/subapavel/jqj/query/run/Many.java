@@ -4,7 +4,8 @@ package io.github.subapavel.jqj.query.run;
  * The call form of an operation with any number of results (ADR-0009, ADR-0034, ADR-0041): a resumable cursor, so the
  * caller runs it as a loop and charges one step per result before it emits it. A cursor is a {@code long} the operation
  * chooses, {@link #END} after the last result. The arguments come as an array, as many as the call has, the same array
- * at each call of one loop; the operation never writes it.
+ * at each call of one loop and a new one for each loop; {@link #first} may replace an argument with one the later calls
+ * read more cheaply, and no other call writes it.
  */
 public non-sealed interface Many extends CallForm {
   /** The cursor after the last result. */
