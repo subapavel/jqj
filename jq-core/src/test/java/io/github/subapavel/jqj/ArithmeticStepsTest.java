@@ -158,6 +158,15 @@ class ArithmeticStepsTest {
     assertThat(two - one).as("a two-KiB separator against a one-KiB one").isEqualTo(2);
   }
 
+  @Test
+  void anEmptySeparatorCountsAsOneKibibyte() {
+    // .s / "" on 1025 letters against 1024: one KiB more searched, times one for the empty separator, and one piece
+    // more, one per letter.
+    long r1024 = boundary(".s / \"\"", document("{\"s\":\"" + "y".repeat(1024) + "\"}"));
+    long r1025 = boundary(".s / \"\"", document("{\"s\":\"" + "y".repeat(1025) + "\"}"));
+    assertThat(r1025 - r1024).as("1025 letters split by the empty separator against 1024").isEqualTo(2);
+  }
+
   /** {"a":<a letters x>,"b":<b letters x>}. */
   private static JqValue strings(int a, int b) {
     return document("{\"a\":\"" + "x".repeat(a) + "\",\"b\":\"" + "x".repeat(b) + "\"}");
