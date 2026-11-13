@@ -73,7 +73,7 @@ report compile-copy-only "x${T}FAIL${T}${T}d1\n"
 check "compile mode lines checked per mode" "$(run check)" 1
 has "failing mode named" 'copy-only'
 
-# --- the compile-mode oracle (ADR-0020 amendment for #60): the ticket gate never produces its report (F-27) ---
+# --- the compile-mode oracle (ADR-0020 amendment for #60): a build without -Pcompile-oracle writes no report ---
 fresh
 printf 'x\td1\tconservative\n' > "$root/ratchet/oracle/compile.txt"
 check "check without a compile report passes" "$(run check)" 0
