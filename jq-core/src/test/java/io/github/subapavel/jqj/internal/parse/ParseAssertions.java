@@ -5,11 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.JqCompileException;
+import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.Bind;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
@@ -74,8 +76,9 @@ final class ParseAssertions {
    * [s,e)}, an Intrinsic its Operation's name, its arguments in parentheses when it has any, and {@code [s,e)}; a Pipe
    * {@code (left | right)}, a Comma {@code (left, right)}, a Bind {@code (value as $i | body)} and a Var {@code $i},
    * where i counts the Binds in the order they are met, so the text names which Bind a Var reads and not the slot's
-   * number. An argument is printed without its Source; a Pipe, Comma or Bind's own Source is left out (no design fixes
-   * it). A Var with no enclosing Bind of its slot is {@code $?}.
+   * number; an If {@code (if cond then t else e)} and an Alt {@code (left // right)} (#66). An argument is printed
+   * without its Source; a Pipe, Comma, Bind, If or Alt's own Source is left out (no design fixes it). A Var with no
+   * enclosing Bind of its slot is {@code $?}.
    */
   static String shape(Node node) {
     return shape(node, Map.of(), new int[1]);
@@ -98,6 +101,8 @@ final class ParseAssertions {
       }
       case Var v -> scope.getOrDefault(v.slot(), "$?");
       case Collect c -> "[" + shape(c.body(), scope, met) + "]" + chars(c.source());
+      case If i -> "(if " + shape(i.cond(), scope, met) + " then " + shape(i.then(), scope, met) + " else " + shape(i.otherwise(), scope, met) + ")";
+      case Alt a -> "(" + shape(a.left(), scope, met) + " // " + shape(a.right(), scope, met) + ")";
     };
   }
 
