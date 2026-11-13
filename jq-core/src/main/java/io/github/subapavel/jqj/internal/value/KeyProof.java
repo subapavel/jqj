@@ -48,9 +48,28 @@ public final class KeyProof {
   /** The walk of the object at tape index {@code index} of {@code doc}, after its proof. */
   public static ObjectWalk walk(RunState state, Document doc, int index, boolean written) {
     long[] tape = doc.live();
-    byte[] bytes = doc.bytes();
+    long entries = entries(state, tape, index, written);
+    int[] plan = prove(state, doc, tape, index, entries, written);
+    return new ObjectWalk(doc, index, plan == null ? (int) (entries >>> 1) : plan.length / 2, plan);
+  }
+
+  /**
+   * The plan of the object at tape index {@code index} of {@code doc} after its proof, as {@link ObjectWalk#plan}: null
+   * when its keys are distinct, so its key entries are its members in source order. The Printer's walk, which keeps
+   * no walk object per printed object (#85).
+   */
+  public static int[] plan(RunState state, Document doc, int index, boolean written) {
+    long[] tape = doc.live();
+    return prove(state, doc, tape, index, entries(state, tape, index, written), written);
+  }
+
+  /**
+   * Counts the key entries of the object at {@code index} and charges their ticks: the count shifted left by one, its
+   * low bit set when a key is tag 6.
+   */
+  private static long entries(RunState state, long[] tape, int index, boolean written) {
     int end = Tape.end(tape, index);
-    int n = 0;
+    long n = 0;
     int ticks = 0;
     boolean escaped = false;
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
@@ -63,15 +82,24 @@ public final class KeyProof {
     } else {
       state.tick(ticks);
     }
-    // Each tag-6 key is decoded once, into its ordinal's place, when the proof first needs its bytes (#85 review).
-    byte[][] texts = escaped ? new byte[n][] : null;
-    Keys keys = new Keys(tape, bytes, texts);
-    if (n <= PAIRWISE) {
-      return pairwise(state, doc, keys, index, end, n);
-    }
-    ObjectWalk hashed = hashed(state, doc, keys, index, end, n);
-    return hashed != null ? hashed : sorted(state, doc, keys, index, end, n, written);
+    return n << 1 | (escaped ? 1 : 0);
   }
+
+  /** The plan of the {@code entries} (as {@link #entries} gives them) of the object at {@code index}, null for none. */
+  private static int[] prove(RunState state, Document doc, long[] tape, int index, long entries, boolean written) {
+    int end = Tape.end(tape, index);
+    int n = (int) (entries >>> 1);
+    // Each tag-6 key is decoded once, into its ordinal's place, when the proof first needs its bytes (#85 review).
+    Keys keys = new Keys(tape, doc.bytes(), (entries & 1) != 0 ? new byte[n][] : null);
+    if (n <= PAIRWISE) {
+      return pairwise(state, keys, index, end, n);
+    }
+    int[] hashed = hashed(state, keys, index, end, n);
+    return hashed != OVER ? hashed : sorted(state, keys, index, end, n, written);
+  }
+
+  /** What {@link #hashed} gives when its probe budget runs out. */
+  private static final int[] OVER = new int[0];
 
   /**
    * The keys of one proof: a tag-5 key's decoded bytes are the document's, a tag-6 key's are decoded once, by its
@@ -114,10 +142,10 @@ public final class KeyProof {
   }
 
   /**
-   * The walk of up to {@link #PAIRWISE} key entries: each compared with the distinct keys before it, kept in the
+   * The plan of up to {@link #PAIRWISE} key entries: each compared with the distinct keys before it, kept in the
    * scratch as a pair of its key's first place and its last value, and after the pairs the ordinal of each first place.
    */
-  private static ObjectWalk pairwise(RunState state, Document doc, Keys keys, int index, int end, int n) {
+  private static int[] pairwise(RunState state, Keys keys, int index, int end, int n) {
     long[] tape = keys.tape();
     int[] pairs = state.ints(3 * n);
     int size = 0;
@@ -146,15 +174,15 @@ public final class KeyProof {
       pairs[2 * at + 1] = k + 1;
       ordinal++;
     }
-    return new ObjectWalk(doc, index, size, repeated ? Arrays.copyOf(pairs, 2 * size) : null);
+    return repeated ? Arrays.copyOf(pairs, 2 * size) : null;
   }
 
   /**
-   * The walk of {@code n} key entries proved through the table, or null when the probe budget runs out. The scratch
+   * The plan of {@code n} key entries proved through the table, or {@link #OVER} when the probe budget runs out. The scratch
    * holds the table's slots first, each 0 when free or one more than the number of a distinct key, then a pair per
    * distinct key, its first place and its last value, then the ordinal of each distinct key's first place.
    */
-  private static ObjectWalk hashed(RunState state, Document doc, Keys keys, int index, int end, int n) {
+  private static int[] hashed(RunState state, Keys keys, int index, int end, int n) {
     long[] tape = keys.tape();
     int slots = slots(n);
     int mask = slots - 1;
@@ -174,7 +202,7 @@ public final class KeyProof {
         int held = scratch[slot];
         if (held == 0) {
           if (--budget < 0) {
-            return null;
+            return OVER;
           }
           scratch[slot] = ++size;
           scratch[slots + 2 * size - 2] = k;
@@ -188,7 +216,7 @@ public final class KeyProof {
         int otherTo = keys.to(otherKey, other);
         budget -= to - from == otherTo - otherFrom ? Math.max(1, kibibytes(to - from)) : 1;
         if (budget < 0) {
-          return null;
+          return OVER;
         }
         if (Arrays.equals(key, from, to, otherKey, otherFrom, otherTo)) {
           scratch[slots + 2 * held - 1] = k + 1;
@@ -199,15 +227,15 @@ public final class KeyProof {
       }
       ordinal++;
     }
-    return new ObjectWalk(doc, index, size, repeated ? Arrays.copyOfRange(scratch, slots, slots + 2 * size) : null);
+    return repeated ? Arrays.copyOfRange(scratch, slots, slots + 2 * size) : null;
   }
 
   /**
-   * The walk of {@code n} key entries proved by a sort. The scratch holds the key entries' tape indices in source order,
+   * The plan of {@code n} key entries proved by a sort, null when they are distinct. The scratch holds the key entries' tape indices in source order,
    * then their ordinals, sorted stably by their keys' bytes, then the merge's other half, which afterwards holds, at the
    * ordinal of each distinct key's first place, the tape index of its last value, and 0 at a repeat's.
    */
-  private static ObjectWalk sorted(RunState state, Document doc, Keys keys, int index, int end, int n, boolean written) {
+  private static int[] sorted(RunState state, Keys keys, int index, int end, int n, boolean written) {
     long[] tape = keys.tape();
     int[] scratch = state.ints(3 * n);
     int i = 0;
@@ -243,7 +271,7 @@ public final class KeyProof {
       start = next;
     }
     if (size == n) {
-      return new ObjectWalk(doc, index, n, null);
+      return null;
     }
     int[] plan = new int[2 * size];
     int p = 0;
@@ -254,7 +282,7 @@ public final class KeyProof {
         plan[p++] = value;
       }
     }
-    return new ObjectWalk(doc, index, size, plan);
+    return plan;
   }
 
   /**
