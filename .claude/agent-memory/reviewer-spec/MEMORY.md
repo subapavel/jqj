@@ -23,3 +23,4 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#66) For a case left out "for #N", check that #N has a hand-over comment and that the id is in its require/N.txt; the .cases file may not exist on #N's branch yet.
 - (#66) If a unit test runs the same filter as a differential case left out of the require file, that case is already green: ask why it was left out.
 - (#67) A test cited as the witness of an error order may produce only one error (one name declared, the other not). Check that it has two items to order.
+- (#69) Count the ids in a require file against the evidence's "N of N". When an issue body gains a blocker edge, check that census.java's BLOCKED_BY mirrors it.
