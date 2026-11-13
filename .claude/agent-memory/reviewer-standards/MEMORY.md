@@ -31,3 +31,6 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#62) Syntax-error stderr is not compared by the oracle, so token-name tables and lookahead sets are unit-test-only: count the witnessed rows.
 - (#62) A hand-written parser over parser.y counts as a translation for NOTICE (Lexer.java precedent); error-recovery logic must name its source (Bison manual vs parser.c vs GPL yacc.c).
 - (#62) F-13 is the JSON reader's depth limit; it does not cover the filter parser's recursion.
+- (#63) The oracle runs without budgets, so every new `state.tick` needs its own adjacent budget pair: grep the diff for `tick(` and match each hit to a test.
+- (#63) A `case JqValue other` total pattern counts as a default on a sealed type. `ObjectView.isFirst`/`lastValueOf`-style scans inside a walk are loops over data and need ticks (F-40).
+- (#63) Sign-encoded or long-packed scan returns are this codebase's recurring hot-path idiom: raise once as a carry.
