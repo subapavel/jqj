@@ -436,6 +436,9 @@ basics/file-argument	6c7392b8e989	interpreter
 basics/index-of-array	c0c5e781ca9d	interpreter
 basics/syntax-error-eof	7a1939e8b8cf	interpreter
 bench/G1.1k	cf34a15087e3	interpreter
+bench/G2.1k	c0b79b927e3a	interpreter
+bench/G3.1k	a24d626b409a	interpreter
+bench/G4.1k	3a6965e1801f	interpreter
 bench/G6.compact.1k	e04071d3afa9	interpreter
 bench/G6.pretty.1k	6fe68dc9ed09	interpreter
 bench/G7.1k	c6e8cbfd94f1	interpreter
