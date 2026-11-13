@@ -49,6 +49,7 @@ import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 import java.io.ByteArrayOutputStream;
+import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -114,6 +115,22 @@ public final class Resolver {
   static final int MAX_IR_DEPTH = 512;
 
   /**
+   * What the lowering throws past {@link #MAX_IR_DEPTH}, at the deepest level: one instance, made with the class, with
+   * no message, cause or stack trace, so the throw allocates and loads nothing there; {@link #resolve(Program, List)}
+   * turns it into the Stub where the compile has unwound (F-44).
+   */
+  private static final TooDeep TOO_DEEP = new TooDeep();
+
+  /** The signal of {@link #TOO_DEEP}. */
+  private static final class TooDeep extends RuntimeException {
+    @Serial private static final long serialVersionUID = 1L;
+
+    private TooDeep() {
+      super(null, null, false, false);
+    }
+  }
+
+  /**
    * The most nodes of a chain that stay a Pipe chain, and the longest run of steps of one result or none that stays
    * steps of their own: the parser's nesting bound, so neither is deeper than the nesting the parser takes. More nodes
    * are piped balanced, and a longer run is one {@link StepRun} (F-42, F-44).
@@ -144,7 +161,7 @@ public final class Resolver {
   /** The nodes lowered inside expansions so far. */
   private int inlined;
 
-  /** The levels of built IR the lowering is inside ({@link #MAX_IR_DEPTH}). A Stub ends the compile, so no throw restores it. */
+  /** The levels of built IR the lowering is inside ({@link #MAX_IR_DEPTH}). Every throw ends the compile, so none restores it. */
   private int levels;
 
   /**
@@ -224,7 +241,11 @@ public final class Resolver {
     for (Object host : binder.hosts()) {
       resolver.env = new Env(host, resolver.slots++, null, resolver.env);
     }
-    return resolver.lower(program.main());
+    try {
+      return resolver.lower(program.main());
+    } catch (TooDeep e) {
+      throw Stub.unbuilt("a filter of more than " + MAX_IR_DEPTH + " levels of IR");
+    }
   }
 
   private Node lower(Ast ast) {
@@ -236,7 +257,7 @@ public final class Resolver {
       default -> {
         spend();
         if (++levels > MAX_IR_DEPTH) {
-          throw Stub.unbuilt("a filter of more than " + MAX_IR_DEPTH + " levels of IR");
+          throw TOO_DEEP;
         }
         Node node = built(ast);
         levels--;
