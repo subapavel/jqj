@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
@@ -65,11 +66,27 @@ class IrDepthTest {
    */
   @Test
   void onA512KiBThreadInAFreshJvm512LevelsRunAndDeeperFiltersAreStubs() throws IOException, InterruptedException {
+    assertChildPrintsTheEdges();
+  }
+
+  /**
+   * The same child JVM with C1 only and compiles in the foreground, the state of a loaded machine whose C2 compiles
+   * lag (#86): the 512 levels the child runs first get the Resolver C1-compiled, and the descent of 513 levels ran out
+   * of 512 KiB about 500 levels down, before the bound's Stub (#86, 5 of 5 runs before the lowering's frames were made small).
+   */
+  @Test
+  void onA512KiBThreadInAFreshC1OnlyJvm512LevelsRunAndDeeperFiltersAreStubs() throws IOException, InterruptedException {
+    assertChildPrintsTheEdges("-Xbatch", "-XX:TieredStopAtLevel=1");
+  }
+
+  /** Runs {@link Child} in a fresh JVM with {@code flags} and asserts it prints {@link #EDGES}. */
+  private void assertChildPrintsTheEdges(String... flags) throws IOException, InterruptedException {
     File out = dir.resolve("out").toFile();
-    ProcessBuilder launch =
-        new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", System.getProperty("java.class.path"), Child.class.getName())
-            .redirectErrorStream(true)
-            .redirectOutput(out);
+    List<String> command = new ArrayList<>();
+    command.add(Path.of(System.getProperty("java.home"), "bin", "java").toString());
+    command.addAll(List.of(flags));
+    command.addAll(List.of("-cp", System.getProperty("java.class.path"), Child.class.getName()));
+    ProcessBuilder launch = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(out);
     // Each would reach the child's command line, and an agent there would make it the instrumented case.
     launch.environment().remove("JAVA_TOOL_OPTIONS");
     launch.environment().remove("JDK_JAVA_OPTIONS");
