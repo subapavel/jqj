@@ -81,9 +81,9 @@ class ParserEdgesTest {
             // stubs.
             ". as $x | 1 | ..",
             ". as {\"a\": $b} | 1 | ..",
-            // A call of a jq builtin #71 binds, wrapped in a user definition whose body .. still stubs (jq-ref 1.8.2,
-            // observed 2026-11-13 with -nc: 1, rc 0). unwrap at #71 (ADR-0042 native table)
-            "def tostring: ..; . as {(1|tostring): $e} | 1",
+            // Unwrapped at #71: tostring/0 is an unbuilt native of #72 (ADR-0042 native table), so it still stubs
+            // (jq-ref 1.8.2, observed 2026-11-13 with -nc: 1, rc 0).
+            ". as {(1|tostring): $e} | 1",
             ". as {$a: [$b]} | 1 | ..",
             "foreach . as $x (0; 1; 2) | ..",
             "if 1 then 2 elif 3 then 4 else 5 end | ..")) {
@@ -222,8 +222,9 @@ class ParserEdgesTest {
   @Test
   void builtinJqIsItsDefinitionsAlone() throws IOException {
     String text;
-    try (InputStream in = ParserEdgesTest.class.getResourceAsStream("/jq/builtin.jq")) {
-      assertThat(in).as("the resource jq/builtin.jq").isNotNull();
+    // ADR-0042: the prelude's main resource since #71, moved from the test resource jq/builtin.jq.
+    try (InputStream in = ParserEdgesTest.class.getResourceAsStream("/io/github/subapavel/jqj/internal/parse/builtin.jq")) {
+      assertThat(in).as("the main resource builtin.jq").isNotNull();
       text = new String(in.readAllBytes(), UTF_8);
     }
     // Each top-level definition of jq's file starts its line; the nested ones are indented.
