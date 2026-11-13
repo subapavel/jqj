@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.JqCompileException;
+import io.github.subapavel.jqj.query.ir.Advance;
 import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
@@ -13,12 +14,14 @@ import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
+import io.github.subapavel.jqj.query.ir.Foreach;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Label;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
+import io.github.subapavel.jqj.query.ir.Reduce;
 import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.ir.Try;
 import io.github.subapavel.jqj.query.ir.Var;
@@ -85,10 +88,12 @@ final class ParseAssertions {
    * (value as $i | m1 -> [f, ...] ?// m2 -> [f, ...] as [$g, ...] | body)}, its value slot, then each alternative's
    * match and its from slots by their names at the match's leaf, then its group slots, each named as a Bind is; a Try
    * (#68) {@code (try body catch handler)}, a Label {@code (label $i | body)}, its slot named as a Bind's is, and a
-   * Break {@code break $i} and {@code [s,e)}, naming its Label. An argument is printed without its Source; a Pipe,
-   * Comma, Bind, If, Alt, AltBind, Try or Label's own Source is left out (no design fixes it). A Var with no enclosing
-   * Bind of its slot, a Break with no enclosing Label of its slot, and a from slot no Bind of the match holds, is
-   * {@code $?}.
+   * Break {@code break $i} and {@code [s,e)}, naming its Label; a Reduce (#69) {@code (reduce $i = init | each)} and a
+   * Foreach {@code (foreach $i = init | each)}, the state slot named as a Bind's is, and an Advance {@code (advance $i |
+   * update)}, naming its loop's state slot. An argument is printed without its Source; a Pipe, Comma, Bind, If, Alt,
+   * AltBind, Try, Label, Reduce, Foreach or Advance's own Source is left out (no design fixes it). A Var with no
+   * enclosing Bind of its slot, a Break with no enclosing Label of its slot, an Advance with no enclosing loop of its
+   * slot, and a from slot no Bind of the match holds, is {@code $?}.
    */
   static String shape(Node node) {
     return shape(node, Map.of(), new int[1]);
@@ -143,7 +148,19 @@ final class ParseAssertions {
         yield "(label " + name + " | " + shape(l.body(), inner, met) + ")";
       }
       case Break b -> "break " + scope.getOrDefault(b.slot(), "$?") + chars(b.source());
+      case Reduce r -> loop("reduce", r.init(), r.slot(), r.each(), scope, met);
+      case Foreach f -> loop("foreach", f.init(), f.slot(), f.each(), scope, met);
+      case Advance a -> "(advance " + scope.getOrDefault(a.slot(), "$?") + " | " + shape(a.update(), scope, met) + ")";
     };
+  }
+
+  /** A Reduce or Foreach, {@code kind}: its state slot named as a Bind's is, its init in {@code scope}, then its each. */
+  private static String loop(String kind, Node init, int slot, Node each, Map<Integer, String> scope, int[] met) {
+    String name = "$" + met[0]++;
+    String first = shape(init, scope, met);
+    Map<Integer, String> inner = new HashMap<>(scope);
+    inner.put(slot, name);
+    return "(" + kind + " " + name + " = " + first + " | " + shape(each, inner, met) + ")";
   }
 
   /** An alternative's match, its Binds as {@link #shape} prints them; {@code leaf} gets the scope at its leaf. */
