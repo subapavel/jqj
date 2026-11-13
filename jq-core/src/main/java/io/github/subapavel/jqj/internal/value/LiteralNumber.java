@@ -4,16 +4,27 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import io.github.subapavel.jqj.value.JqNumber;
 import java.math.BigDecimal;
+import java.util.Arrays;
 
 /**
- * A literal number written in a filter (ADR-0012, ADR-0028, ADR-0031; GLOSSARY "Literal number"): its canonical form,
- * its double and whether it fits a long, all computed once, when it is made. Public only so the kind can permit it.
+ * A literal number written in a filter, or a negated literal (ADR-0012, ADR-0028, ADR-0031; GLOSSARY "Literal
+ * number"): its canonical form, its double and whether it fits a long, all computed once, when it is made. Public only
+ * so the kind can permit it.
  */
-public final class LiteralNumber implements JqNumber {
+public final class LiteralNumber implements JqNumber, Literal {
   /** {@link Long#MAX_VALUE}'s digits: a 19-digit integer fits a long when it is at most these. */
   private static final String LONG_MAX = Long.toString(Long.MAX_VALUE);
 
-  /** The normalised lexeme: a strict token of ADR-0012's grammar without a sign. */
+  /** The digits of {@link Long#MIN_VALUE} without its sign: the most a negative 19-digit integer may have. */
+  private static final String LONG_MIN = LONG_MAX.substring(0, 18) + "8";
+
+  /** A short token's most bytes (ADR-0012 "Flags"). */
+  private static final int SHORT = 15;
+
+  /**
+   * A strict token of ADR-0012's grammar: a normalised lexeme, which has no sign, or the token of a negated literal,
+   * which has one unless its value is a zero.
+   */
   private final byte[] token;
 
   /** The canonical form's ASCII bytes. */
@@ -42,11 +53,14 @@ public final class LiteralNumber implements JqNumber {
         });
     this.canonical = text.toString().getBytes(US_ASCII);
     this.doubleValue = CanonicalForm.toDouble(this.token, 0, this.token.length);
-    // ADR-0012 FITS_LONG of the normalised lexeme (ADR-0031): an integer token, which here has no sign, in the long
-    // range. Two digit strings of the same length compare as their values.
+    // ADR-0012 FITS_LONG (ADR-0031): an integer token, never -0, in the long range. A sign is only ever on a non-zero
+    // value. Two digit strings of the same length compare as their values.
+    int sign = token.startsWith("-") ? 1 : 0;
+    String digits = token.substring(sign);
+    String limit = sign == 0 ? LONG_MAX : LONG_MIN;
     this.fitsLong =
-        token.chars().allMatch(c -> c >= '0' && c <= '9')
-            && (token.length() < LONG_MAX.length() || token.length() == LONG_MAX.length() && token.compareTo(LONG_MAX) <= 0);
+        digits.chars().allMatch(c -> c >= '0' && c <= '9')
+            && (digits.length() < limit.length() || digits.length() == limit.length() && digits.compareTo(limit) <= 0);
   }
 
   /**
@@ -71,6 +85,19 @@ public final class LiteralNumber implements JqNumber {
     }
     token.append(lexeme, fractionEnd, lexeme.length());
     return new LiteralNumber(token.toString());
+  }
+
+  /**
+   * jq's {@code jv_number_negate} of the literal whose strict token is {@code b[off, off + len)}, decNumber's
+   * {@code decNumberMinus} (ADR-0012): the token with its sign flipped, except that a zero of either sign gives a
+   * positive zero with the same exponent ({@code -0} gives {@code 0}, {@code 0E-7} gives {@code 0E-7}).
+   */
+  static LiteralNumber negated(byte[] b, int off, int len) {
+    String token = new String(b, off, len, US_ASCII);
+    if (b[off] == '-') {
+      return new LiteralNumber(token.substring(1));
+    }
+    return new LiteralNumber(CanonicalForm.zero(b, off, len) ? token : "-" + token);
   }
 
   /** The canonical form's ASCII bytes, which the writer copies; never written. */
@@ -107,5 +134,25 @@ public final class LiteralNumber implements JqNumber {
   @Override
   public BigDecimal decimalValue() {
     return CanonicalForm.toDecimal(token, 0, token.length);
+  }
+
+  @Override
+  public byte[] tokenBytes() {
+    return token;
+  }
+
+  @Override
+  public int tokenOffset() {
+    return 0;
+  }
+
+  @Override
+  public int tokenLength() {
+    return token.length;
+  }
+
+  @Override
+  public boolean isShort() {
+    return token.length <= SHORT && Arrays.equals(token, canonical);
   }
 }
