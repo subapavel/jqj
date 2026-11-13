@@ -38,7 +38,7 @@ a `?` or a `?//` around it can catch it. In jqj a break is a stop signal and no 
 | --- | --- | --- | --- |
 | `control/deviation-try-break` (`deviation break-not-error`) | `[label $f \| 1, (try (break $f) catch .), 2]` | `[1,{"__jq":0},2]` | `[1]` |
 | `control/deviation-postfix-break` (`deviation break-not-error`) | `[label $f \| 1, (break $f)?, 2]` | `[1,2]` | `[1]` |
-| none yet | `[[1]] \| [first(.[] as [$a] ?// $a \| $a)]` | `[1,[1]]` | `[1]` |
+| `control/deviation-altbind-break` (`deviation break-not-error`) | `[label $l \| [[1]] \| .[] as [$a] ?// $a \| $a, break $l]` | `[1,[1]]` | `[1]` |
 | `control/deviation-forged-break` (`deviation break-not-error`) | `[label $f \| 1, error({"__jq":0}), 2]` | `[1]` (a forged error breaks) | error `{"__jq":0}` |
 | none yet | `label $a \| label $b \| try (break $b) catch .`, inputs `1`, `2` | `{"__jq":1}`, `{"__jq":3}` | nothing |
 

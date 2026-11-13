@@ -553,6 +553,13 @@ stdout [1,2]\n
 stderr
 end
 
+case control/deviation-altbind-break
+def ac905d1d09d3
+rc 0
+stdout [1,[1]]\n
+stderr
+end
+
 case control/deviation-forged-break
 def d7f4dab4192b
 rc 0
