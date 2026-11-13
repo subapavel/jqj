@@ -3,7 +3,8 @@
 Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #59; designer draft);
 amends ADR-0008 (`ws` in the protocol is the run state; a termination carries its budget),
 ADR-0009 (every call form takes the run state first), ADR-0013 (`…query.run` holds it) and
-ADR-0015 (when the reader's ticks reset); amended by ADR-0035 (bytes built, #64)
+ADR-0015 (when the reader's ticks reset); amended by ADR-0035 (bytes built, #64) and ADR-0044
+(scratch, #85)
 
 ADR-0008 and ADR-0009 write the protocol's state as `ws`, the Workspace. `query-core` cannot name
 the Workspace (founding §14), and spec 2a needs the steps, deadline and bytes-written budgets
@@ -49,3 +50,7 @@ before any loop exists. This ADR fixes where that state lives and when it counts
   second running flag.
 - **Charge after the write:** overshoots the limit by up to 64 KiB.
 - **Name it `RunContext`:** the glossary keeps "context" for jq's `.`.
+
+## Amendment (ADR-0044, ticket #85)
+
+- `RunState.ints(n)` is a reused `int[]` of at least `n`, format-neutral scratch for one native's tape positions within one call, never charged: the key proof asks at most 2^20 table slots plus its probe budget of 4 n, and the scratch lives as long as its RunState.
