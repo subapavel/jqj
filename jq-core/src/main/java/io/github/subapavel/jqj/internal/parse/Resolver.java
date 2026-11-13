@@ -21,6 +21,7 @@ import io.github.subapavel.jqj.internal.op.ObjectKey;
 import io.github.subapavel.jqj.internal.op.Raise;
 import io.github.subapavel.jqj.internal.op.Range;
 import io.github.subapavel.jqj.internal.op.Slice;
+import io.github.subapavel.jqj.internal.op.Sort;
 import io.github.subapavel.jqj.internal.op.StepRun;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltString;
@@ -477,8 +478,8 @@ public final class Resolver {
   }
 
   /**
-   * A call of the native {@code n} (ADR-0040's native table, ADR-0041's {@code range/2}, #72's language natives), one
-   * arm a line: an operation on the input, or on one argument ({@link #withArgument}), or {@link #last}.
+   * A call of the native {@code n} (ADR-0040's native table, ADR-0041's {@code range/2}, #72's language natives, #73's
+   * sort and its kin), one arm a line: an operation on the input, or on one argument ({@link #withArgument}), or {@link #last}.
    */
   private Node natively(Binder.Native n, Ast.Call c) {
     Source at = here(c.source());
@@ -505,13 +506,23 @@ public final class Resolver {
       case ISNORMAL -> new Intrinsic(at, NumberTests.ISNORMAL, List.of());
       case HAVE_DECNUM -> new Intrinsic(at, NumberTests.HAVE_DECNUM, List.of());
       case HAVE_LITERAL_NUMBERS -> new Intrinsic(at, NumberTests.HAVE_LITERAL_NUMBERS, List.of());
+      case SORT -> new Intrinsic(at, Sort.SORT, List.of());
+      case SORT_BY -> withArgument(c, Sort.SORT_BY);
+      case GROUP_BY -> withArgument(c, Sort.GROUP_BY);
+      case UNIQUE -> new Intrinsic(at, Sort.UNIQUE, List.of());
+      case UNIQUE_BY -> withArgument(c, Sort.UNIQUE_BY);
+      case MIN -> new Intrinsic(at, Sort.MIN, List.of());
+      case MAX -> new Intrinsic(at, Sort.MAX, List.of());
+      case MIN_BY -> withArgument(c, Sort.MIN_BY);
+      case MAX_BY -> withArgument(c, Sort.MAX_BY);
     };
   }
 
   /**
    * The call {@code c} of a native of one argument, the Fn1 {@code op} on each result of it: an Identity, Const or Var
    * argument passed as it is, any other bound around the call, as an operator's operand is (ADR-0034 amendment for
-   * #65). {@code has(k)}'s key and {@code flatten($x)}'s depth lower so.
+   * #65). {@code has(k)}'s key, {@code flatten($x)}'s depth and the keys of {@code _sort_by_impl} and its kin lower
+   * so.
    */
   private Node withArgument(Ast.Call c, Operation op) {
     Node arg = lower(c.args().getFirst());
