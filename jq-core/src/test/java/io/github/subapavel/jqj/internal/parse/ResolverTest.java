@@ -4,7 +4,10 @@ import static io.github.subapavel.jqj.internal.parse.ParseAssertions.ir;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.parsesToAStub;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.shape;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.internal.op.FieldRun;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
@@ -73,8 +76,10 @@ class ResolverTest {
   /**
    * One filter per other construct of the grammar. jq-ref 1.8.2, observed 2026-11-12 (.logs/62-jqref-accept.log of
    * the test-author's run): none is a syntax error; each gives rc 0 or 5, or rc 3 with a resolution error (module not
-   * found for import and include, "true/1 is not defined", "foo/0 is not defined", "$x is not defined"). The
-   * {@code $$$$v} form is builtin.jq's {@code _modify}.
+   * found for import and include). The {@code $$$$v} form is builtin.jq's {@code _modify}. #70 binds every call: the
+   * entries that bound nowhere are jq's compile error ({@link #referencesThatBindNowhereAreJqsCompileError}), and a call
+   * of a jq builtin #71 binds is wrapped in a user definition of the same arity whose body is {@code ..}, which still
+   * stubs (jq-ref 1.8.2, observed 2026-11-13 with -nc: each wrapped entry gives rc 0 or 5).
    */
   private static final List<String> GRAMMAR =
       List.of(
@@ -86,8 +91,10 @@ class ResolverTest {
           ".a |= .b",
           ".a |= 1 | .b += 2 | .d *= 2 | .e /= 1 | .g //= 3 | .h = 4",
           ".f %= 1 | .c -= 1",
-          "getpath([\"a\"]) |= 1",
-          "{if: 1, and: 2, a: 3, \"b\": 4, @base64 \"k\": 5, \"x\\(1)\": 6, (1|tostring): 7, $__loc__, c}",
+          // unwrap at #71 (ADR-0042 native table)
+          "def getpath(p): ..; getpath([\"a\"]) |= 1",
+          // unwrap at #71 (ADR-0042 native table)
+          "def tostring: ..; {if: 1, and: 2, a: 3, \"b\": 4, @base64 \"k\": 5, \"x\\(1)\": 6, (1|tostring): 7, $__loc__, c}",
           "1 as $x | {$x: 2} | ..",
           "{a: -1, b: 1 | . + 1} | ..",
           "[] | ..",
@@ -96,9 +103,6 @@ class ResolverTest {
           "-1 | ..",
           "-(1 + 2) | ..",
           "not | ..",
-          "true(1)",
-          "foo",
-          "$x | ..",
           "def f(g; $x): g + $x; f(1; 2) | ..",
           "def f: def g: 3; g; f | ..",
           "def f: .; def g: f; g | ..",
@@ -125,14 +129,38 @@ class ResolverTest {
           "@text \"a\" | ..",
           "@json",
           "1 # c\n+ 2 | ..",
-          "[limit(2; 1, 2, 3)]");
+          // unwrap at #71 (ADR-0042 native table)
+          "def limit(n; f): ..; [limit(2; 1, 2, 3)]");
+
+  /**
+   * The GRAMMAR entries that bound nowhere, moved here when #70 bound every reference (ADR-0040): a constant called
+   * with arguments, another name and a variable no {@code as} binds are jq's compile error, thrown before any lowering,
+   * so the {@code ..} after one never stubs. jq-ref 1.8.2, observed 2026-11-13 with -n: rc 3 and exactly these blocks.
+   */
+  @Test
+  void referencesThatBindNowhereAreJqsCompileError() {
+    Map<String, String> blocks =
+        Map.of(
+            "true(1)", "jq: error: true/1 is not defined at <top-level>, line 1, column 1:\n    true(1)\n    ^^^^",
+            "foo", "jq: error: foo/0 is not defined at <top-level>, line 1, column 1:\n    foo\n    ^^^",
+            "$x | ..", "jq: error: $x is not defined at <top-level>, line 1, column 1:\n    $x | ..\n    ^^");
+    for (Map.Entry<String, String> e : blocks.entrySet()) {
+      assertThatCode(() -> Parser.parse(e.getKey())).as("parse of %s", e.getKey()).doesNotThrowAnyException();
+      JqCompileException error =
+          assertThatExceptionOfType(JqCompileException.class).as("resolve of %s", e.getKey()).isThrownBy(() -> ir(e.getKey())).actual();
+      assertThat(error.blocks()).as("blocks of %s", e.getKey()).containsExactly(e.getValue());
+    }
+  }
 
   @Test
   void rangeWithOtherThanTwoBoundsIsAStub() {
     // #69 lowers range/2 only; range/1 and range/3 are builtin.jq's, from #71's prelude (ADR-0041). jq-ref 1.8.2,
-    // observed 2026-11-13 with -nc: range(5) gives 0 to 4 and range(0; 10; 3) gives 0, 3, 6, 9 (rc 0).
-    parsesToAStub("range(5)");
-    parsesToAStub("range(0; 10; 3)");
+    // observed 2026-11-13 with -nc: range(5) gives 0 to 4 and range(0; 10; 3) gives 0, 3, 6, 9 (rc 0); wrapped, each
+    // gives null (the body .. on null).
+    // unwrap at #71 (ADR-0042 native table)
+    parsesToAStub("def range(n): ..; range(5)");
+    // unwrap at #71 (ADR-0042 native table)
+    parsesToAStub("def range(a; b; c): ..; range(0; 10; 3)");
     // Witness: two bounds lower.
     assertThat(shape(ir("range(0; 5)"))).as("IR of range(0; 5)").isEqualTo("range(0; 5)[0,11)");
   }
