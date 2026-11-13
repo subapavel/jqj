@@ -10,11 +10,14 @@ import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.CanonicalForm;
 import io.github.subapavel.jqj.internal.value.Document;
 import io.github.subapavel.jqj.internal.value.DoubleNumber;
+import io.github.subapavel.jqj.internal.value.KeyProof;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
 import io.github.subapavel.jqj.internal.value.NumberView;
 import io.github.subapavel.jqj.internal.value.ObjectView;
+import io.github.subapavel.jqj.internal.value.ObjectWalk;
 import io.github.subapavel.jqj.internal.value.StringView;
 import io.github.subapavel.jqj.internal.value.Tape;
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqString;
@@ -32,7 +35,8 @@ import java.util.Arrays;
  * written in its canonical form otherwise (#36); a filter's literal number is its canonical form (#61); a computed
  * number is jq's {@code jvp_dtoa_fmt} layout of its double (#65, ADR-0012); a tag-6 string,
  * a tag-6 key and a built string are re-escaped as jq's {@code jvp_dump_string} (#35). A document's object prints each
- * key at its first position with its last value (ADR-0002); a built object prints its key list (#64). A value inside
+ * key at its first position with its last value (ADR-0002), through the walk its key proof gives, which charges the
+ * printer's run state as the writer's ticks (ADR-0044); a built object prints its key list (#64). A value inside
  * more than {@link #MAX_DEPTH} containers prints as {@code <skipped: too deep>}, as jq's does (jq-ref 1.8.2, observed:
  * DeepBuiltArrayTest), so the stack never holds more than {@code MAX_DEPTH + 1} containers. A target's exception, or a
  * document found stale after a drain, in the middle of a value leaves what was drained before it written.
@@ -79,16 +83,29 @@ public final class Printer implements CanonicalForm.Out {
   private boolean pretty;
 
   /**
-   * The open containers, innermost last: a document's container as its {@link Document}, a built one as itself. A
-   * cleared slot holds null, so a printed value is not kept after its line.
+   * The open containers, innermost last: a document's array as its {@link Document}, a document's object as its
+   * {@link ObjectWalk}, a built one as itself. A cleared slot holds null, so a printed value is not kept after its line.
    */
   private Object[] open = new Object[16];
 
   /**
-   * Two slots per open container: a document's tape index and the tape index of its next entry to print; a built
-   * one's unused slot and the index of its next entry.
+   * Two slots per open container: a document's tape index and its next entry to print, an array's tape index or an
+   * object's walk cursor, -1 after its last; a built one's unused slot and the index of its next entry.
    */
   private int[] cursors = new int[32];
+
+  /** What the key proofs of a document's objects charge, through {@link RunState#tickWritten} (ADR-0044). */
+  private final RunState state;
+
+  /** A printer whose key proofs charge a run state of its own, which no run reads: a view's text, an error's head. */
+  public Printer() {
+    this(new RunState());
+  }
+
+  /** A printer whose key proofs charge {@code state}, its Workspace's (ADR-0008, ADR-0030, ADR-0044). */
+  public Printer(RunState state) {
+    this.state = state;
+  }
 
   private int pos;
   private Target target;
@@ -210,33 +227,27 @@ public final class Printer implements CanonicalForm.Out {
           long[] tape = d.live();
           int index = cursors[2 * depth - 2];
           int end = Tape.end(tape, index);
-          boolean array = Tape.tag(tape[index]) == Tape.ARRAY;
-          if (array) {
-            if (next < end) {
-              separate(next > index + 1, depth);
-              cursors[2 * depth - 1] = Tape.next(tape, next);
-              from = d;
-              at = next;
-              break;
-            }
-          } else {
-            byte[] bytes = d.bytes();
-            while (next < end && !ObjectView.isFirst(tape, bytes, index, next)) {
-              next = Tape.next(tape, next + 1);
-            }
-            if (next < end) {
-              // The first key of an object is always printed, so any later printed key follows a comma.
-              separate(next > index + 1, depth);
-              string(bytes, tape[next]);
-              colon();
-              cursors[2 * depth - 1] = Tape.next(tape, next + 1);
-              from = d;
-              at = ObjectView.lastValueOf(tape, bytes, next, end);
-              break;
-            }
+          if (next < end) {
+            separate(next > index + 1, depth);
+            cursors[2 * depth - 1] = Tape.next(tape, next);
+            from = d;
+            at = next;
+            break;
           }
-          // An object with entries always prints its first key, so `end` tells an empty object for both kinds.
-          close(end > index + 1, depth, array ? ']' : '}');
+          close(end > index + 1, depth, ']');
+        } else if (container instanceof ObjectWalk w) {
+          // A document's object: the members of its walk, each key at its first place with its last value.
+          if (next != -1) {
+            long[] tape = w.doc().live();
+            separate(next != w.first(), depth);
+            string(w.doc().bytes(), tape[w.keyAt(next)]);
+            colon();
+            cursors[2 * depth - 1] = w.next(state, next);
+            from = w.doc();
+            at = w.valueAt(next);
+            break;
+          }
+          close(w.size() > 0, depth, '}');
         } else if (container instanceof BuiltArray a) {
           if (next < a.length()) {
             separate(next > 0, depth);
@@ -299,9 +310,14 @@ public final class Printer implements CanonicalForm.Out {
     doc = d;
     long entry = tape[at];
     int tag = Tape.tag(entry);
-    if (tag == Tape.ARRAY || tag == Tape.OBJECT) {
-      put(tag == Tape.ARRAY ? '[' : '{');
+    if (tag == Tape.ARRAY) {
+      put('[');
       return push(d, at, at + 1, depth);
+    }
+    if (tag == Tape.OBJECT) {
+      put('{');
+      ObjectWalk walk = KeyProof.walk(state, d, at, true);
+      return push(walk, at, walk.first(), depth);
     }
     scalar(d.bytes(), entry);
     return depth;

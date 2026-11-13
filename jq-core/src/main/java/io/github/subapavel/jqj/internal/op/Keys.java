@@ -1,6 +1,6 @@
 /*
- * Translated from jq 1.8.2 (https://github.com/jqlang/jq): f_has, f_keys and f_keys_unsorted in src/builtin.c, and
- * jv_has, jv_keys and jv_keys_unsorted in src/jv_aux.c.
+ * Translated from jq 1.8.2 (https://github.com/jqlang/jq): f_has, f_keys and f_keys_unsorted in src/builtin.c,
+ * jv_has, jv_keys and jv_keys_unsorted in src/jv_aux.c, and to_entries/0 in src/builtin.jq.
  *
  * jq is copyright (C) 2012 Stephen Dolan
  *
@@ -27,12 +27,15 @@ package io.github.subapavel.jqj.internal.op;
 
 import io.github.subapavel.jqj.internal.value.ArrayView;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
+import io.github.subapavel.jqj.internal.value.BuiltObject;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.DoubleNumber;
+import io.github.subapavel.jqj.internal.value.KeyProof;
 import io.github.subapavel.jqj.internal.value.Keyed;
 import io.github.subapavel.jqj.internal.value.Members;
 import io.github.subapavel.jqj.internal.value.Order;
 import io.github.subapavel.jqj.query.ir.Operation;
+import io.github.subapavel.jqj.query.run.Charges;
 import io.github.subapavel.jqj.query.run.FilterException;
 import io.github.subapavel.jqj.query.run.Fn0;
 import io.github.subapavel.jqj.query.run.Fn1;
@@ -48,7 +51,8 @@ import java.lang.foreign.MemorySegment;
 
 /**
  * jq 1.8.2's natives of keys (#72; jq-ref, recorded: diff/natives.rec has-*, keys-*): {@code has(k)}, {@code keys} and
- * {@code keys_unsorted}. They tick where their loop depends on the data (ADR-0008): {@code has} as its lookup does
+ * {@code keys_unsorted}, and builtin.jq's {@code to_entries} as a native (#85, ADR-0044; distinct.rec to-entries-*).
+ * They tick where their loop depends on the data (ADR-0008): {@code has} as its lookup does
  * (ADR-0034), {@code keys} and {@code keys_unsorted} once per key or index, on top of a view's walk, and {@code keys}
  * once more per compare of its sort for each started KiB of the shorter key, at least one; the arrays they build are
  * charged (ADR-0035).
@@ -62,6 +66,12 @@ public final class Keys {
 
   /** {@code keys_unsorted}. */
   public static final Operation KEYS_UNSORTED = new Operation("keys_unsorted", (Fn0) (state, in) -> keys(state, (JqValue) in, false));
+
+  /** {@code to_entries}. */
+  public static final Operation TO_ENTRIES = new Operation("to_entries", (Fn0) (state, in) -> entries(state, (JqValue) in));
+
+  /** The shape of each object {@code to_entries} builds, as builtin.jq's {@code {key: $k, value: .[$k]}} has it. */
+  private static final JqString[] ENTRY = {BuiltString.of("key"), BuiltString.of("value")};
 
   private Keys() {}
 
@@ -114,7 +124,7 @@ public final class Keys {
   private static BuiltArray keys(RunState state, JqValue v, boolean sorted) {
     return switch (v) {
       case JqArray array -> indices(state, array);
-      case JqObject object -> names(state, (Members) object, sorted);
+      case JqObject object -> names(state, KeyProof.members(state, object), sorted);
       case JqNull _ -> throw Arithmetic.cannot(v, "has no keys");
       case JqBool _ -> throw Arithmetic.cannot(v, "has no keys");
       case JqNumber _ -> throw Arithmetic.cannot(v, "has no keys");
@@ -137,7 +147,7 @@ public final class Keys {
     return new BuiltArray(indices, n);
   }
 
-  /** The keys of an object, in its members' walk, one tick each, then sorted if {@code sorted}. */
+  /** The keys of an object, in its members' walk after its proof, one tick each, then sorted if {@code sorted}. */
   private static BuiltArray names(RunState state, Members object, boolean sorted) {
     Keyed keyed = (Keyed) object;
     Built.Elements names = new Built.Elements(state);
@@ -155,5 +165,33 @@ public final class Keys {
           });
     }
     return names.array();
+  }
+
+  /**
+   * builtin.jq's {@code to_entries}, {@code [keys_unsorted[] as $k | {key: $k, value: .[$k]}]}, in one walk (ADR-0044,
+   * ADR-0042 as amended): an object's members after its proof, each key with its last value; an array's elements, each
+   * with its index; any other kind {@code keys_unsorted}'s error. One tick per entry, on top of a view's proof; the array
+   * and each entry are charged as the definition's collect and object construction charge them (ADR-0035).
+   */
+  private static BuiltArray entries(RunState state, JqValue v) {
+    Members members =
+        switch (v) {
+          case JqArray array -> (Members) array;
+          case JqObject object -> KeyProof.members(state, object);
+          case JqNull _ -> throw Arithmetic.cannot(v, "has no keys");
+          case JqBool _ -> throw Arithmetic.cannot(v, "has no keys");
+          case JqNumber _ -> throw Arithmetic.cannot(v, "has no keys");
+          case JqString _ -> throw Arithmetic.cannot(v, "has no keys");
+        };
+    Built.Elements entries = new Built.Elements(state);
+    int i = 0;
+    for (int c = members.first(); c != -1; c = members.next(state, c)) {
+      state.tick();
+      JqValue key = members instanceof Keyed keyed ? keyed.key(c) : new DoubleNumber(i++);
+      JqValue value = members.member(state, c);
+      state.chargeBuilt(Charges.CONTAINER + Charges.ENTRY * ENTRY.length);
+      entries.add(new BuiltObject(ENTRY, new Object[] {key, value}));
+    }
+    return entries.array();
   }
 }

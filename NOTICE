@@ -75,7 +75,7 @@ licence text ships in the jq-core jar under META-INF/.
   jq 1.8.2's f_length, f_type, f_tostring, f_dump and f_tonumber (src/builtin.c) (#72)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Keys.java, translated from
   jq 1.8.2's f_has, f_keys and f_keys_unsorted (src/builtin.c) and jv_has, jv_keys and
-  jv_keys_unsorted (src/jv_aux.c) (#72)
+  jv_keys_unsorted (src/jv_aux.c) (#72), and to_entries/0 (src/builtin.jq) (#85)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/op/NumberTests.java, translated from
   jq 1.8.2's f_nan, f_infinite, f_isnan, f_isinfinite, f_isnormal and f_have_decnum
   (src/builtin.c) (#72)

@@ -34,6 +34,7 @@ import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.DoubleNumber;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
 import io.github.subapavel.jqj.internal.value.Numbers;
+import io.github.subapavel.jqj.internal.value.KeyProof;
 import io.github.subapavel.jqj.internal.value.ObjectView;
 import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.run.Fn0;
@@ -86,8 +87,8 @@ public final class Basics {
 
   /**
    * {@code length}: null 0; a number its absolute value ({@link Numbers#abs}); a string its code points; an array its
-   * elements, a view's counted by its walk; an object its distinct keys, a view's counted by its members' walk, which
-   * charges each key it compares (ObjectView); a boolean jq's "has no length".
+   * elements, a view's counted by its walk; an object its distinct keys, a view's the size its key proof finds, which
+   * charges each key entry (ADR-0044); a boolean jq's "has no length".
    */
   private static Object length(RunState state, Object in) {
     JqValue v = (JqValue) in;
@@ -98,7 +99,7 @@ public final class Basics {
       case JqString s -> new DoubleNumber(codePoints(state, s.utf8()));
       case ArrayView a -> new DoubleNumber(a.length(state));
       case BuiltArray a -> new DoubleNumber(a.length());
-      case ObjectView o -> new DoubleNumber(members(state, o));
+      case ObjectView o -> new DoubleNumber(KeyProof.walk(state, o, false).size());
       case BuiltObject o -> new DoubleNumber(o.size());
     };
   }
@@ -112,15 +113,6 @@ public final class Basics {
       if ((s.get(JAVA_BYTE, i) & 0xC0) != 0x80) {
         count++;
       }
-    }
-    return count;
-  }
-
-  /** The distinct keys of a document's object: its members' walk, each step charging the keys it compares. */
-  private static int members(RunState state, ObjectView o) {
-    int count = 0;
-    for (int c = o.first(); c != -1; c = o.next(state, c)) {
-      count++;
     }
     return count;
   }
