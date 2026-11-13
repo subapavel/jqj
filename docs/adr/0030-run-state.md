@@ -53,4 +53,4 @@ before any loop exists. This ADR fixes where that state lives and when it counts
 
 ## Amendment (ADR-0044, ticket #85)
 
-- `RunState.ints(n)` is a reused `int[]` of at least `n`, format-neutral scratch for one native's tape positions within one call, never charged: the key proof asks at most 2^20 table slots plus its probe budget of 4 n, and the scratch lives as long as its RunState.
+- `RunState.ints(n)` is a reused `int[]` of at least `n`, format-neutral scratch for one native's tape positions within one call, never charged: the RunState keeps at most 2^20 ints (4 MiB) for as long as it lives, and a longer ask gets an array of its own for that call; the key proof asks its table's slots, at most 2^20, plus 3 n positions for n key entries (#85).
