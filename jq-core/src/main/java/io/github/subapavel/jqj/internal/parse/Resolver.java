@@ -61,7 +61,12 @@ public final class Resolver {
   /** The slots taken so far: each Bind takes the next (ADR-0034). */
   private int slots;
 
-  private Resolver() {}
+  /** The compile's fold budget, carried from the parser (ADR-0035). */
+  private final ConstantKey folds;
+
+  private Resolver(ConstantKey folds) {
+    this.folds = folds;
+  }
 
   /**
    * The IR of {@code program}.
@@ -75,7 +80,7 @@ public final class Resolver {
     if (program.module() != null || !program.imports().isEmpty()) {
       throw Stub.unbuilt("the module directive and imports");
     }
-    return new Resolver().lower(program.main());
+    return new Resolver(program.folds()).lower(program.main());
   }
 
   private Node lower(Ast ast) {
@@ -152,7 +157,7 @@ public final class Resolver {
    * outer loop, as jq's {@code gen_binop} runs it, an Identity or Const operand passed as an argument without a Bind.
    */
   private Node binary(Ast.Binary b) {
-    if (ConstantKey.constant(b) instanceof JqValue folded) {
+    if (folds.constant(b) instanceof JqValue folded) {
       return new Const(b.source(), folded);
     }
     Node right = lower(b.right());

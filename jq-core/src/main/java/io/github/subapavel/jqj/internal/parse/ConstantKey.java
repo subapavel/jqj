@@ -55,9 +55,10 @@ import java.util.Map;
  * and its last value). Nothing else folds: {@code 1|2}, {@code -1}, {@code 1?}, {@code [.]} and a key whose value or
  * key is a shorthand or a variable are known only at run time. {@code $__loc__} folds in jq too; it is not built yet, so
  * it is no constant here. An arithmetic operator on two constants folds to its result (#65, {@link #binary}), which the
- * resolver lowers to a Const too.
+ * resolver lowers to a Const too. One instance holds one compile's fold budget, which every fold of it shares
+ * ({@link #walk}); a {@link Program} carries it from the parser to the resolver.
  */
-final class ConstantKey {
+public final class ConstantKey {
   /** What {@code .} alone folds to: a pipe drops it. */
   private static final Object DOT = new Object();
 
@@ -83,30 +84,65 @@ final class ConstantKey {
   /** The bytes the key-kind check's whole second fold may build (ADR-0035, #65 standards review): 1 MiB. */
   static final long CHECK_BYTES = 1 << 20;
 
+  /** The bytes all the folds of one compile may build together, the key-kind checks included (ADR-0035): 1 MiB. */
+  static final long COMPILE_BYTES = 1 << 20;
+
+  /** The steps all the folds of one compile may take together, the key-kind checks included (ADR-0035): 2^20. */
+  static final long COMPILE_STEPS = 1 << 20;
+
   /**
-   * The run state every arithmetic fold of this walk charges: one bytes-built budget for the whole constant
-   * expression, not one per operator, so a container of folds is held to it too (ADR-0035).
+   * The one run state every fold of this compile charges (ADR-0035 amendment, #65 third review): each fold is a run
+   * of its own on it, begun with what is left of the compile's budgets, its bytes built at most its cap, so one
+   * bytes-built budget holds for the whole constant expression, not one per operator, and for a container of folds.
    */
   private final RunState state = new RunState();
 
-  private ConstantKey(long budget) {
-    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, budget, Long.MAX_VALUE);
-  }
+  /** The compile's steps not yet taken by a fold. */
+  private long steps = COMPILE_STEPS;
+
+  /** The compile's bytes not yet built by a fold. */
+  private long bytes = COMPILE_BYTES;
+
+  /** The folds of one compile, with the whole compile budget left: the parser makes one, the resolver uses it too. */
+  ConstantKey() {}
 
   /**
    * jq's message for the key {@code query} when it folds to a constant that is no string, or null. jq folds without a
    * cap, so a key whose fold goes past {@link #FOLD_BYTES} and whose result is an array or an object ({@link
    * #container}) is folded again under {@link #CHECK_BYTES}, for the check only: jq-ref gives rc 3 for
-   * {@code {(("x"*5000)/"x"):1}}. Past that bound too the key is left to the run, which raises the same text with rc 5
-   * (ADR-0035, DEVIATIONS "Huge constant keys"). A key whose result is a string is valid whatever its length, so it is
-   * not folded again; the run builds it.
+   * {@code {(("x"*5000)/"x"):1}}. Past that bound, or past what is left of the compile's budgets, the key is left to
+   * the run, which raises the same text with rc 5 (ADR-0035, DEVIATIONS "Huge constant keys"). A key whose result is a
+   * string is valid whatever its length, so it is not folded again; the run builds it.
    */
-  static String error(Ast query) {
-    Object key = new ConstantKey(FOLD_BYTES).fold(query);
+  String error(Ast query) {
+    Object key = walk(query, FOLD_BYTES);
     if (key == null && container(query)) {
-      key = new ConstantKey(CHECK_BYTES).fold(query);
+      key = walk(query, CHECK_BYTES);
     }
     return key instanceof JqValue value && !(value instanceof JqString) ? ObjectKey.message(value) : null;
+  }
+
+  /** The constant {@code ast} folds to, or null when it is none: what the resolver lowers to a Const. */
+  JqValue constant(Ast ast) {
+    return walk(ast, FOLD_BYTES) instanceof JqValue value ? value : null;
+  }
+
+  /**
+   * The fold of {@code ast} as one run on {@link #state}: its bytes built at most {@code cap} and what is left of the
+   * compile's bytes, its steps at most what is left of the compile's. What it took, a failed fold's too, is no longer
+   * left; a fold past either budget is none ({@link #binary}), so once the compile's budget is spent the folds that
+   * would charge it are left to the run.
+   */
+  private Object walk(Ast ast, long cap) {
+    state.begin(steps, Long.MAX_VALUE, Math.min(cap, bytes), Long.MAX_VALUE);
+    try {
+      return fold(ast);
+    } finally {
+      // A tick past the step budget is counted before it ends the fold, so the steps taken may pass those left.
+      steps = Math.max(0, steps - state.steps());
+      bytes -= state.built();
+      state.end();
+    }
   }
 
   /**
@@ -159,16 +195,12 @@ final class ConstantKey {
     return ARITHMETIC.get(op);
   }
 
-  /** The constant {@code ast} folds to, or null when it is none: what the resolver lowers to a Const. */
-  static JqValue constant(Ast ast) {
-    return new ConstantKey(FOLD_BYTES).fold(ast) instanceof JqValue value ? value : null;
-  }
-
   /**
    * jq's {@code constant_fold} of {@code + - * / %} (GLOSSARY "Fold"): the operator on two constants, computed now as
-   * the run would, charging this walk's one bytes-built budget: {@link #FOLD_BYTES} (ADR-0035 amendment), or {@link
-   * #CHECK_BYTES} for a key's second check ({@link #error}). A fold that raises, or that would build past what is left
-   * of the budget, is none: the run computes it, raising or building and charging there. The other operators fold in
+   * the run would, charging the budgets its walk began with ({@link #walk}): {@link #FOLD_BYTES} (ADR-0035
+   * amendment), or {@link #CHECK_BYTES} for a key's second check ({@link #error}), and what is left of the compile's. A
+   * fold that raises, or that would build or step past what is left of them, is none: the run computes it, raising or
+   * building and charging there. The other operators fold in
    * jq too; comparison is #66's, and {@code and}, {@code or} and {@code //} are not folded.
    */
   private Object binary(Ast.Binary b) {

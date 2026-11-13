@@ -142,6 +142,9 @@ public final class Parser {
   /** The nesting levels open now, at most {@link #MAX_DEPTH}. */
   private int depth;
 
+  /** The compile's fold budget, which the key checks share and the program carries on to the resolver (ADR-0035). */
+  private final ConstantKey folds = new ConstantKey();
+
   private Parser(String filter) {
     Lexer lexer = new Lexer(filter);
     this.text = lexer.text();
@@ -195,7 +198,7 @@ public final class Parser {
       }
       defs.clear();
     }
-    return new Program(module, List.copyOf(imports), List.copyOf(defs), main);
+    return new Program(module, List.copyOf(imports), List.copyOf(defs), main, folds);
   }
 
   /** {@code import path as name metadata? ;}, {@code import path as $name metadata? ;} or {@code include path metadata? ;}. */
@@ -721,7 +724,7 @@ public final class Parser {
     advance();
     Ast value = dictExpr();
     if (computed != null) {
-      String error = ConstantKey.error(computed);
+      String error = folds.error(computed);
       if (error != null) {
         fail(error, computed.source().start(), computed.source().end());
       }

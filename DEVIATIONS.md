@@ -145,17 +145,21 @@ about 20 MB of stack; 512 levels fit a 512 KiB stack (ADR-0017's `stackBytes`) w
 
 jq folds a computed object key whole at parse time, so a key that folds to an array or an object is its compile
 error, rc 3, however much the fold builds. jqj folds at most 4 KiB, and folds a key past that a second time, for the
-kind check only, under 1 MiB of bytes built for the whole fold. Past that bound the key is left to the run, which
-raises the same text with rc 5. Both sides are recorded on 1.8.2. The bound's value is pinned by the edge pair
-`constant-key-cap/check-edge-under` (1048556 bytes built, rc 3 as in jq) and `constant-key-cap/check-edge-over`
-(1048605 bytes, 29 past the bound, the first row below); jq-core HugeConstantKeyTest pins that a compile past the
-bound allocates no gigabyte:
+kind check only, under 1 MiB of bytes built for the whole fold. Every fold of one compile, the checks included,
+also shares one budget of 1 MiB of bytes built and 2^20 steps (ADR-0035, bd34167). Past either bound the key is left
+to the run, which raises the same text with rc 5; when another key of the same filter already failed its check, the
+compile still fails with rc 3, one error short. Both sides are recorded on 1.8.2. The bound's value is pinned by the
+edge pair `constant-key-cap/check-edge-under` (1048556 bytes built, rc 3 as in jq) and
+`constant-key-cap/check-edge-over` (1048605 bytes, 29 past the bound, the first row below); jq-core
+HugeConstantKeyTest pins that a compile past the bound allocates no gigabyte, and the compile budget's bytes and
+steps:
 
 | case | filter | jq 1.8.2 | jqj |
 | --- | --- | --- | --- |
 | `constant-key-cap/check-edge-over` (`deviation huge-constant-keys`) | `{(("x"*21397)/"x"):1}` | rc 3, `Cannot use array (["","","","","","","","",...]) as object key` at column 3 | rc 5, the same text at run time |
 | `constant-key-cap/huge-split` (`deviation huge-constant-keys`) | `{(("x"*2000000)/"x"):1}` | rc 3, the same text | rc 5, the same text at run time |
 | `constant-key-cap/check-whole-fold` (`deviation huge-constant-keys`) | `{([("x"*1000000),("x"*1000000)]):1}` | rc 3, `Cannot use array (["xxxxxxxxxxxxxxxxxxxxxxx...]) as object key` | rc 5, the same text at run time |
+| `constant-key-cap/check-after-the-compile-budget` (`deviation huge-constant-keys`) | `{(("x"*21396)/"x"):1},{(("x"*5000)/"x"):1}` | rc 3, `Cannot use array` at columns 3 and 25, `jq: 2 compile errors` | rc 3, the error at column 3 only, `jq: 1 compile error` |
 
 Reason: an untrusted filter such as `{(("x"*1e9)/"x"):1}` would otherwise make the compile allocate gigabytes, where
 no budget applies (ADR-0035). A key below the bound keeps jq's rc 3 (`constant-key-cap/split`).
