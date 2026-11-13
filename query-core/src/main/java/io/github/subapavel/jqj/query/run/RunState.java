@@ -210,6 +210,11 @@ public final class RunState {
     written += bytes;
   }
 
+  /** The bytes built since the last begin (ADR-0035): each charge {@link #chargeBuilt} counted, none it refused. */
+  public long built() {
+    return built;
+  }
+
   /** The ticks counted since the last main read outside a run, or since the last begin that no read primed. */
   public long steps() {
     return counted + filled - fuel;

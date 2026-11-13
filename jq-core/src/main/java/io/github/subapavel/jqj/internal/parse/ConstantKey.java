@@ -1,6 +1,6 @@
 /*
- * Translated from jq 1.8.2 (https://github.com/jqlang/jq): check_object_key in src/parser.y, and the folds its
- * block_is_const sees, gen_const_array and gen_const_object in src/compile.c.
+ * Translated from jq 1.8.2 (https://github.com/jqlang/jq): check_object_key and constant_fold in src/parser.y, and the
+ * folds its block_is_const sees, gen_const_array and gen_const_object in src/compile.c.
  *
  * jq is copyright (C) 2012 Stephen Dolan
  *
@@ -25,17 +25,25 @@
  */
 package io.github.subapavel.jqj.internal.parse;
 
+import io.github.subapavel.jqj.internal.op.Arithmetic;
 import io.github.subapavel.jqj.internal.op.ObjectKey;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltObject;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
+import io.github.subapavel.jqj.query.ir.Operation;
+import io.github.subapavel.jqj.query.run.Charges;
+import io.github.subapavel.jqj.query.run.EvaluationException;
+import io.github.subapavel.jqj.query.run.Fn2;
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,7 +56,10 @@ import java.util.Map;
  * constant strings and whose values are constants, folded as a construction is (a repeated key keeps its first place
  * and its last value). Nothing else folds: {@code 1|2}, {@code -1}, {@code 1?}, {@code [.]} and a key whose value or
  * key is a shorthand or a variable are known only at run time. {@code $__loc__} folds in jq too; it is not built yet, so
- * it is no constant here.
+ * it is no constant here. An arithmetic operator on two constants folds to its result (#65, {@link #binary}), which the
+ * resolver lowers to a Const too. One instance holds one compile's folds (ADR-0035 amendments, #65 third and fourth
+ * reviews): each node is folded at most once, its result kept, and every fold charges one run state with the
+ * compile's budget; a {@link Program} carries it from the parser to the resolver.
  */
 final class ConstantKey {
   /** What {@code .} alone folds to: a pipe drops it. */
@@ -57,15 +68,94 @@ final class ConstantKey {
   /** The calls that are constants, by name and arity (jq's parser). */
   private static final Map<String, JqValue> CONSTANTS = Map.of("true/0", JqBool.TRUE, "false/0", JqBool.FALSE, "null/0", JqNull.NULL);
 
-  private ConstantKey() {}
+  /** The arithmetic operators, which jq folds, and their operations. */
+  private static final Map<BinOp, Operation> ARITHMETIC =
+      Map.of(
+          BinOp.ADD, Arithmetic.PLUS,
+          BinOp.SUBTRACT, Arithmetic.MINUS,
+          BinOp.MULTIPLY, Arithmetic.MULTIPLY,
+          BinOp.DIVIDE, Arithmetic.DIVIDE,
+          BinOp.MODULO, Arithmetic.MODULO);
 
-  /** jq's message for the key {@code query} when it folds to a constant that is no string, or null. */
-  static String error(Ast query) {
-    return fold(query) instanceof JqValue key && !(key instanceof JqString) ? ObjectKey.message(key) : null;
+  /**
+   * The bytes the operators of a Const's whole fold may build together (ADR-0035 amendment: no fold result larger than
+   * 4 KiB): a string of 4096 bytes with its fixed charge, so 4096 bytes fold and 4097 do not; any other value is held
+   * to the same charges. The literals of the filter text are no fold results, so they count against the compile's
+   * budget only.
+   */
+  static final long FOLD_BYTES = Charges.STRING + 4096;
+
+  /** The bytes all the folds of one compile may build together, the literals and the key-kind checks included: 1 MiB. */
+  static final long COMPILE_BYTES = 1 << 20;
+
+  /** The steps all the folds of one compile may take together, the key-kind checks included: 2^20. */
+  static final long COMPILE_STEPS = 1 << 20;
+
+  /**
+   * The one run state every fold of this compile charges, begun once with the compile's budget and never ended: once a
+   * budget is spent, every later fold that would charge it is none, and the run computes it.
+   */
+  private final RunState state = new RunState();
+
+  /** Each node folded so far, by identity: what it folded to, and the bytes its operators built. */
+  private final Map<Ast, Kept> kept = new IdentityHashMap<>();
+
+  /** The bytes the operators of this compile's folds have built so far. */
+  private long built;
+
+  /** The bytes of the kept folds a fold has used so far, which its own operators did not build again. */
+  private long reused;
+
+  /** A node's fold: its constant, {@link #DOT} or null, and the bytes the operators of its whole fold built. */
+  private record Kept(Object value, long bytes) {}
+
+  /** The folds of one compile, with the whole compile budget left: the parser makes one, the resolver uses it too. */
+  ConstantKey() {
+    state.begin(COMPILE_STEPS, Long.MAX_VALUE, COMPILE_BYTES, Long.MAX_VALUE);
   }
 
-  /** The constant {@code ast} folds to, {@link #DOT} for {@code .} alone, or null when it is none. */
-  private static Object fold(Ast ast) {
+  /**
+   * jq's message for the key {@code query} when it folds to a constant that is no string, or null. jq folds without a
+   * cap, so the check takes the fold whatever its size, as long as the compile's budget holds it: jq-ref gives rc 3 for
+   * {@code {(("x"*5000)/"x"):1}}. Past the compile's budget the key is left to the run, which raises the same text with
+   * rc 5 (DEVIATIONS "Huge constant keys").
+   */
+  String error(Ast query) {
+    return fold(query) instanceof JqValue value && !(value instanceof JqString) ? ObjectKey.message(value) : null;
+  }
+
+  /**
+   * The constant {@code ast} folds to when its operators built at most {@link #FOLD_BYTES}, or null: what the resolver
+   * lowers to a Const.
+   */
+  JqValue constant(Ast ast) {
+    return fold(ast) instanceof JqValue value && kept.get(ast).bytes() <= FOLD_BYTES ? value : null;
+  }
+
+  /**
+   * The constant {@code ast} folds to, {@link #DOT} for {@code .} alone, or null when it is none, computed once and
+   * kept: a fold that raises, or that would build or step past the compile's budget, is none, and so is each fold
+   * around it.
+   */
+  private Object fold(Ast ast) {
+    Kept known = kept.get(ast);
+    if (known != null) {
+      reused += known.bytes();
+      return known.value();
+    }
+    long builtBefore = built;
+    long reusedBefore = reused;
+    Object value;
+    try {
+      value = compute(ast);
+    } catch (EvaluationException e) {
+      value = null;
+    }
+    kept.put(ast, new Kept(value, built - builtBefore + reused - reusedBefore));
+    return value;
+  }
+
+  private Object compute(Ast ast) {
     return switch (ast) {
       case Ast.Dot _ -> DOT;
       case Ast.Paren p -> fold(p.body());
@@ -76,8 +166,32 @@ final class ConstantKey {
       case Ast.Call c -> CONSTANTS.get(c.name() + "/" + c.args().size());
       case Ast.ArrayCons a -> array(a.body());
       case Ast.ObjectCons o -> object(o.pairs());
+      case Ast.Binary b -> binary(b);
       default -> null;
     };
+  }
+
+  /** The operation of an arithmetic operator, or null for any other. */
+  static Operation arithmetic(BinOp op) {
+    return ARITHMETIC.get(op);
+  }
+
+  /**
+   * jq's {@code constant_fold} of {@code + - * / %} (GLOSSARY "Fold"): the operator on two constants, computed now as
+   * the run would, charging the compile's budget, the bytes it builds counted for {@link #constant}'s cap. A fold that
+   * raises, or that would build or step past the budget, is none ({@link #fold}): the run computes it, raising or
+   * building and charging there. The other operators fold in jq too; comparison is #66's, and {@code and}, {@code or}
+   * and {@code //} are not folded.
+   */
+  private Object binary(Ast.Binary b) {
+    Operation op = ARITHMETIC.get(b.op());
+    if (op == null || !(fold(b.left()) instanceof JqValue left) || !(fold(b.right()) instanceof JqValue right)) {
+      return null;
+    }
+    long before = state.built();
+    Object value = ((Fn2) op.form()).apply(state, JqNull.NULL, left, right);
+    built += state.built() - before;
+    return value;
   }
 
   /** A pipe of two folds: the other side when one is {@code .} alone, otherwise none. */
@@ -88,8 +202,10 @@ final class ConstantKey {
     return right == DOT ? left : null;
   }
 
-  /** A string without interpolation: its text parts' bytes, joined; with an interpolation, none. */
-  private static Object string(Ast.Str s) {
+  /**
+   * A string without interpolation: its text parts' bytes, joined, charged as a string; with an interpolation, none.
+   */
+  private Object string(Ast.Str s) {
     ByteArrayOutputStream value = new ByteArrayOutputStream();
     for (Ast.Part part : s.parts()) {
       if (!(part instanceof Ast.Text text)) {
@@ -97,28 +213,41 @@ final class ConstantKey {
       }
       value.writeBytes(text.bytes());
     }
-    return BuiltString.of(value.toByteArray());
+    return string(value.toByteArray());
+  }
+
+  /** The string of {@code bytes}, charged before it is built (ADR-0035 amendment: a fold's literals are charged). */
+  private JqString string(byte[] bytes) {
+    state.chargeBuilt(Charges.STRING + bytes.length);
+    return BuiltString.of(bytes);
   }
 
   /**
    * {@code [body]}: empty without a body; otherwise the constants of a comma chain that nests to the left only, a
-   * pipe with {@code .} or parentheses around any part of it, each right-hand term one constant.
+   * pipe with {@code .} or parentheses around any part of it, each right-hand term one constant. It is charged as a
+   * container and its elements.
    */
-  private static Object array(Ast body) {
-    List<Object> elements = new ArrayList<>();
+  private Object array(Ast body) {
+    // The terms are found right to left, as the chain nests, then folded left to right, each added once at the end.
+    List<Ast> terms = new ArrayList<>();
     Ast chain = body == null ? null : spine(body);
     while (chain instanceof Ast.Comma c) {
-      elements.addFirst(fold(c.right()));
+      terms.add(c.right());
       chain = spine(c.left());
     }
     if (chain != null) {
-      elements.addFirst(fold(chain));
+      terms.add(chain);
+    }
+    List<Object> elements = new ArrayList<>(terms.size());
+    for (int i = terms.size() - 1; i >= 0; i--) {
+      elements.add(fold(terms.get(i)));
     }
     for (Object e : elements) {
       if (!(e instanceof JqValue)) {
         return null;
       }
     }
+    state.chargeBuilt(Charges.CONTAINER + Charges.ELEMENT * elements.size());
     return new BuiltArray(elements.toArray(), elements.size());
   }
 
@@ -127,9 +256,9 @@ final class ConstantKey {
     for (;;) {
       if (ast instanceof Ast.Paren p) {
         ast = p.body();
-      } else if (ast instanceof Ast.Pipe p && fold(p.left()) == DOT) {
+      } else if (ast instanceof Ast.Pipe p && dot(p.left())) {
         ast = p.right();
-      } else if (ast instanceof Ast.Pipe p && fold(p.right()) == DOT) {
+      } else if (ast instanceof Ast.Pipe p && dot(p.right())) {
         ast = p.left();
       } else {
         return ast;
@@ -137,14 +266,30 @@ final class ConstantKey {
     }
   }
 
-  /** {@code {pairs}}: each key a constant string and each value a constant, or none. */
-  private static Object object(List<Ast.Pair> pairs) {
+  /**
+   * Whether {@code ast} folds to {@link #DOT}: {@code .} alone, in parentheses or piped to itself. It is told by the
+   * shape, without a fold, so no fold is computed, and charged, twice.
+   */
+  private static boolean dot(Ast ast) {
+    return switch (ast) {
+      case Ast.Dot _ -> true;
+      case Ast.Paren p -> dot(p.body());
+      case Ast.Pipe p -> dot(p.left()) && dot(p.right());
+      default -> false;
+    };
+  }
+
+  /**
+   * {@code {pairs}}: each key a constant string and each value a constant, or none. It is charged as a construction
+   * is, a container and an entry per pair, and a name key as a string.
+   */
+  private Object object(List<Ast.Pair> pairs) {
     Object[] entries = new Object[2 * pairs.size()];
     for (int i = 0; i < pairs.size(); i++) {
       Ast.Pair pair = pairs.get(i);
       Object key =
           switch (pair.key()) {
-            case Ast.NameKey k -> BuiltString.of(k.name());
+            case Ast.NameKey k -> string(k.name().getBytes(StandardCharsets.UTF_8));
             case Ast.StringKey k -> string(k.string());
             case Ast.QueryKey k -> fold(k.query());
             default -> null;
@@ -156,6 +301,7 @@ final class ConstantKey {
       entries[2 * i] = key;
       entries[2 * i + 1] = value;
     }
+    state.chargeBuilt(Charges.CONTAINER + Charges.ENTRY * pairs.size());
     return BuiltObject.ofPairs(entries);
   }
 }
