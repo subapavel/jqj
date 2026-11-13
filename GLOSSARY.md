@@ -67,7 +67,7 @@ A compile error jq adds after a syntax error at a known place, such as "May need
 object key expression"; its text matches jq.
 
 **Slot**:
-The place a `Bind`, an `AltBind`, a `Reduce` or `Foreach` (its state slot) or a parameter keeps a value while its scope runs; each has its own (ADR-0034, ADR-0038, ADR-0041).
+The place a `Bind`, a `Binds` (one per value), an `AltBind`, a `Reduce` or `Foreach` (its state slot) or a parameter keeps a value while its scope runs; each has its own (ADR-0034, ADR-0038, ADR-0041, ADR-0043).
 
 **Downstream error**:
 An error raised by what runs on a Try's result after its body emitted it. That Try lets it through; an outer Try, or an AltBind inside the body, may still catch it (ADR-0039).
@@ -308,6 +308,20 @@ on unchanged, so the closure disappears.
 **Tail call**:
 A call inside a recursive group with nothing left to do after it and at most one result in
 progress to its left; it runs as a jump.
+
+**Binds**:
+One IR node for a run of binds: `Binds(source, values, slots, body)`, n ≥ 2, means
+`Bind(v1, s1, … Bind(vn, sn, body))`, the first outermost. Slot k is in scope in the later values
+and in the body. It ticks and charges nothing of its own (ADR-0043).
+_Avoid_: n-ary Bind
+
+**Tail emitter**:
+A node that, by its kind alone, gives one result at most and never breaks out: Identity, Const,
+Var, an Intrinsic of a one-result call form, or a Pipe, If, Bind or Binds made of tail emitters. A
+Binds takes a tail value's result, and an If a tail condition's, before the rest runs, so the stack
+does not grow with them. It is a local fast path of the push form, not ADR-0008's value form
+(ADR-0043).
+_Avoid_: tail call (a call that runs as a jump), value form
 
 **Last read**:
 The only read of a variable's value in its binding, after which the value may be moved instead of

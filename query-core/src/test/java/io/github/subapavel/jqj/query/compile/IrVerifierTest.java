@@ -6,7 +6,9 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Binds;
 import io.github.subapavel.jqj.query.ir.Comma;
+import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
@@ -14,6 +16,7 @@ import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.query.run.Fn1;
+import io.github.subapavel.jqj.query.run.FnN;
 import io.github.subapavel.jqj.query.run.RunState;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +34,9 @@ import org.junit.jupiter.api.Test;
  * {@code Compiler.compile(Node, int parameters, CompileMode)}; {@code Executable.run(RunState, Object[] parameters,
  * Object in, Sink)}. A match is a chain of Binds whose innermost body is its leaf. No case here has an alternative
  * without a slot for some group slot, the "or null" of ADR-0038, whose form the ADR leaves open.
+ *
+ * <p>ADR-0043's {@code Binds(Source, List<Node> values, List<Integer> slots, Node body)}, n ≥ 2, has the slot rule of
+ * the nested Binds it means.
  */
 class IrVerifierTest {
   private static final Source AT = new Source(0, 1);
@@ -157,5 +163,112 @@ class IrVerifierTest {
     // Slot 1 is no parameter and no Bind takes it; with no parameter, slot 0 is not in scope either.
     assertThatIllegalStateException().as("compile of id($1) with one parameter").isThrownBy(() -> compile(id(var(1)), 1));
     assertThatIllegalStateException().as("compile of id($0) with no parameter").isThrownBy(() -> compile(id(var(0)), 0));
+  }
+
+  private static Const constant(Object value) {
+    return new Const(AT, value);
+  }
+
+  /** The list of its arguments, any number of them. */
+  private static Intrinsic list(Node... args) {
+    FnN all = (state, in, a) -> List.of(a);
+    return new Intrinsic(AT, new Operation("list", all), List.of(args));
+  }
+
+  /** {@code values[0] as $slots[0] | … | body} as one Binds (ADR-0043). */
+  private static Binds binds(List<Node> values, List<Integer> slots, Node body) {
+    return new Binds(AT, values, slots, body);
+  }
+
+  /** {@code a as $4 | b as $6 | list($4; $6)}, a well-formed Binds of two values over {@code a} and {@code b}. */
+  private static Binds two(Object a, Object b) {
+    return binds(List.of(constant(a), constant(b)), List.of(4, 6), list(var(4), var(6)));
+  }
+
+  /**
+   * ADR-0043: a Binds means {@code Bind(v1, s1, … Bind(vn, sn, body))}, so slot k is in scope in the later values and
+   * in the body, and nowhere else; the verifier rejects anything else, as it rejects a Var outside its Bind's body.
+   */
+  @Test
+  void aBindsSlotIsInScopeInLaterValuesAndTheBodyOnly() {
+    Object a = new Object();
+    Object b = new Object();
+    // A value reads its own slot: it runs before the slot is set.
+    Binds own = binds(List.of(constant(a), list(var(6))), List.of(4, 6), list(var(4), var(6)));
+    assertThatIllegalStateException().as("compile of a as $4 | list($6) as $6 | list($4; $6)").isThrownBy(() -> compile(own, 0));
+    // A value reads a later value's slot.
+    Binds later = binds(List.of(constant(a), list(var(8)), constant(b)), List.of(4, 6, 8), list(var(4), var(6), var(8)));
+    assertThatIllegalStateException().as("compile of a as $4 | list($8) as $6 | b as $8 | list($4; $6; $8)").isThrownBy(() -> compile(later, 0));
+    // The first value reads the last slot.
+    Binds first = binds(List.of(list(var(6)), constant(b)), List.of(4, 6), list(var(4), var(6)));
+    assertThatIllegalStateException().as("compile of list($6) as $4 | b as $6 | list($4; $6)").isThrownBy(() -> compile(first, 0));
+    // A Var of a Binds slot after the Binds, and one before it.
+    Comma after = new Comma(AT, two(a, b), id(var(6)));
+    assertThatIllegalStateException().as("compile of (a as $4 | b as $6 | list($4; $6)), id($6)").isThrownBy(() -> compile(after, 0));
+    Comma before = new Comma(AT, id(var(4)), two(a, b));
+    assertThatIllegalStateException().as("compile of id($4), (a as $4 | b as $6 | list($4; $6))").isThrownBy(() -> compile(before, 0));
+    // A later value reads the slot of a Bind inside an earlier value, which is in scope in that Bind's body only.
+    Binds inner = binds(List.of(new Bind(AT, constant(a), 9, id(var(9))), list(var(9))), List.of(4, 6), list(var(4), var(6)));
+    assertThatIllegalStateException().as("compile of (a as $9 | id($9)) as $4 | list($9) as $6 | list($4; $6)").isThrownBy(() -> compile(inner, 0));
+    // Witness for the last: the inner Bind's body reads its slot, and the later value reads the earlier one's.
+    Binds nested = binds(List.of(new Bind(AT, constant(a), 9, id(var(9))), list(var(4))), List.of(4, 6), list(var(4), var(6)));
+    assertThat(results(compile(nested, 0), new Object[0], new Object())).as("results of (a as $9 | id($9)) as $4 | list($4) as $6 | list($4; $6)").containsExactly(List.of(a, List.of(a)));
+    // Witness for the rest: the second value reads the first slot, the third both, and the body all three. Slots 4, 6
+    // and 8 make a run of nine slots, so a slot the verifier did not count would be past the run's slots.
+    Binds well = binds(List.of(constant(a), list(var(4)), list(var(6), var(4))), List.of(4, 6, 8), list(var(8), var(6), var(4)));
+    assertThat(results(compile(well, 0), new Object[0], new Object()))
+        .as("results of a as $4 | list($4) as $6 | list($6; $4) as $8 | list($8; $6; $4)")
+        .containsExactly(List.of(List.of(List.of(a), a), List.of(a), a));
+  }
+
+  /** ADR-0043: a Binds has two values at least; one value is a Bind. */
+  @Test
+  void aBindsOfOneValueIsRejected() {
+    Object a = new Object();
+    Object b = new Object();
+    Binds one = binds(List.of(constant(a)), List.of(4), list(var(4)));
+    assertThatIllegalStateException().as("compile of a Binds of one value, a as $4 | list($4)").isThrownBy(() -> compile(one, 0));
+    Binds none = binds(List.of(), List.of(), constant(a));
+    assertThatIllegalStateException().as("compile of a Binds of no value").isThrownBy(() -> compile(none, 0));
+    // Witnesses: the same one value as a Bind compiles, and a Binds of two values, the fewest, runs.
+    assertThat(results(compile(new Bind(AT, constant(a), 4, list(var(4))), 0), new Object[0], new Object())).as("results of the Bind a as $4 | list($4)").containsExactly(List.of(a));
+    assertThat(results(compile(two(a, b), 0), new Object[0], new Object())).as("results of a as $4 | b as $6 | list($4; $6)").containsExactly(List.of(a, b));
+  }
+
+  /**
+   * ADR-0043: a Binds has one slot per value, the value k sets slot k; values and slots of different lengths are
+   * rejected, more values than slots and more slots than values, whatever the verifier walks the Binds by.
+   */
+  @Test
+  void aBindsOfValuesAndSlotsOfDifferentLengthsIsRejected() {
+    Object a = new Object();
+    Object b = new Object();
+    // A third value with no slot of its own.
+    Binds values = binds(List.of(constant(a), constant(b), constant(a)), List.of(4, 6), list(var(4), var(6)));
+    assertThatIllegalStateException().as("compile of a Binds of three values and two slots").isThrownBy(() -> compile(values, 0));
+    // A third slot with no value; the body does not read it, so only the lengths are wrong.
+    Binds slots = binds(List.of(constant(a), constant(b)), List.of(4, 6, 8), list(var(4), var(6)));
+    assertThatIllegalStateException().as("compile of a Binds of two values and three slots").isThrownBy(() -> compile(slots, 0));
+    // Witness: two values and two slots, the same body, run.
+    assertThat(results(compile(two(a, b), 0), new Object[0], new Object())).as("results of a as $4 | b as $6 | list($4; $6)").containsExactly(List.of(a, b));
+  }
+
+  /** ADR-0034's rule holds for a Binds slot as for a Bind's: a slot is bound by one node of the tree, or is a parameter. */
+  @Test
+  void aBindsSlotIsBoundOnceInTheTree() {
+    Object a = new Object();
+    Object b = new Object();
+    Binds twice = binds(List.of(constant(a), constant(b)), List.of(4, 4), list(var(4)));
+    assertThatIllegalStateException().as("compile of a as $4 | b as $4 | list($4)").isThrownBy(() -> compile(twice, 0));
+    Binds again = binds(List.of(constant(a), constant(b)), List.of(4, 6), new Bind(AT, constant(a), 4, list(var(4), var(6))));
+    assertThatIllegalStateException().as("compile of a as $4 | b as $6 | a as $4 | list($4; $6)").isThrownBy(() -> compile(again, 0));
+    Binds parameter = binds(List.of(constant(a), constant(b)), List.of(0, 6), list(var(0), var(6)));
+    assertThatIllegalStateException().as("compile of a as $0 | b as $6 | list($0; $6) with $0 a parameter").isThrownBy(() -> compile(parameter, 1));
+    // Witness: slots 1 and 6 beside the parameter slot 0, which every value and the body may read.
+    Object p = new Object();
+    Binds beside = binds(List.of(list(var(0)), constant(b)), List.of(1, 6), list(var(0), var(1), var(6)));
+    assertThat(results(compile(beside, 1), new Object[] {p}, new Object()))
+        .as("results of list($0) as $1 | b as $6 | list($0; $1; $6) with $0 a parameter")
+        .containsExactly(List.of(p, List.of(p), b));
   }
 }
