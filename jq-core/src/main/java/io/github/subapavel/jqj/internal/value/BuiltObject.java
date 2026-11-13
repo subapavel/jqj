@@ -48,7 +48,8 @@ public final class BuiltObject implements JqObject, Members, Keyed {
     this(keys, values, keys.length);
   }
 
-  private BuiltObject(JqString[] keys, Object[] values, int size) {
+  /** The object of the distinct keys {@code [0, size)} of {@code keys} and their values, kept without a copy. */
+  BuiltObject(JqString[] keys, Object[] values, int size) {
     this.keys = keys;
     this.values = values;
     this.size = size;
@@ -165,7 +166,8 @@ public final class BuiltObject implements JqObject, Members, Keyed {
     }
   }
 
-  /** The key at {@code i}, {@code 0 <= i < size()}, for the writer. */
+  /** The key at {@code i}, {@code 0 <= i < size()}, for the writer, and at the cursor {@code i} of {@link #first}. */
+  @Override
   public JqString key(int i) {
     return keys[i];
   }
