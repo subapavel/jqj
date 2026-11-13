@@ -301,6 +301,41 @@ stdout
 stderr jq: error: Cannot use number (1) as object key at <top-level>, line 1, column 19:\n    {("a\\(1)"):1} | {(1):2}\n                      ^\njq: 1 compile error\n
 end
 
+case construct/key-array-dot-then-commas
+def c3f91d6009ad
+rc 3
+stdout
+stderr jq: error: Cannot use array ([1,2]) as object key at <top-level>, line 1, column 3:\n    {([.|(1,2)]):1}\n      ^^^^^^^^^\njq: 1 compile error\n
+end
+
+case construct/key-array-commas-then-dot
+def 1df240edd1b4
+rc 3
+stdout
+stderr jq: error: Cannot use array ([1,2]) as object key at <top-level>, line 1, column 3:\n    {([(1,2)|.]):1}\n      ^^^^^^^^^\njq: 1 compile error\n
+end
+
+case construct/key-array-dot-then-commas-on-the-left
+def 54ca919802bf
+rc 3
+stdout
+stderr jq: error: Cannot use array ([1,2,3]) as object key at <top-level>, line 1, column 3:\n    {([(.|(1,2)),3]):1}\n      ^^^^^^^^^^^^^\njq: 1 compile error\n
+end
+
+case construct/key-array-pipe-of-constants
+def 79357e3aa285
+rc 5
+stdout
+stderr jq: error (at <stdin>:1): Cannot use array ([2]) as object key\n
+end
+
+case construct/key-object-variable-shorthand-then-constant-key
+def 85cc202f4a8f
+rc 3
+stdout
+stderr jq: error: Cannot use number (1) as object key at <top-level>, line 1, column 26:\n    . as $x | {({$x}):1} | {(1):2}\n                             ^\njq: 1 compile error\n
+end
+
 case construct/key-computed-repeated
 def b83fadbc4a6e
 rc 0
