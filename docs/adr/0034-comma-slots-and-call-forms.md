@@ -39,6 +39,12 @@ Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; desig
   - object merge `*` and object `+` tick once per left entry they copy;
   - Equality ticks once per key it counts when it compares object sizes, once per member pair, and once per started KiB of the shorter string when it compares two strings (as ADR-0037's Order);
   - string repeat ticks once per started KiB of its result;
-  - (#73) `sort`, `unique`, `min`, `max` `_sort_by_impl`, `_group_by_impl`, `_unique_by_impl`, `_min_by_impl` and `_max_by_impl` tick once per member they read, and add the ticks of each compare (ADR-0037) and equality check they make, never one of their own per compare (`SortStepsTest`).
+  - (#72, F-48) `keys` ticks once per member and once per compare of its key sort (at least 1, one
+    per started KiB of the shorter key); `tostring` and `tojson` once per started KiB of output
+    (`NativeStepsTest`);
+  - (#73, F-48) `sort`, `unique`, `min`, `max`, `_sort_by_impl`, `_group_by_impl`, `_unique_by_impl`,
+    `_min_by_impl` and `_max_by_impl` tick once per member of the input (with its key, for the
+    `_impl` forms) and add the ADR-0037 ticks of each compare and equality check, never one of
+    their own per compare (`SortStepsTest`).
 Each rate is pinned by two adjacent counts (`ArithmeticStepsTest`, red at 65b717b, completed by the implementer for the rates added here).
 - Considered: the left operand outer (not jq's order); a binary IR node (hides the binds, as `Index` would).
