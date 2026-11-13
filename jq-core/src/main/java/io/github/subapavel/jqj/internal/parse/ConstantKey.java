@@ -79,6 +79,9 @@ final class ConstantKey {
    */
   static final long FOLD_BYTES = Charges.STRING + 4096;
 
+  /** The bytes the key-kind check's second fold may build (ADR-0035, #65 standards review): 1 MiB. */
+  static final long CHECK_BYTES = 1 << 20;
+
   /** The bytes each arithmetic fold of this walk may build. */
   private final long budget;
 
@@ -89,14 +92,16 @@ final class ConstantKey {
   /**
    * jq's message for the key {@code query} when it folds to a constant that is no string, or null. jq folds without a
    * cap, so a key whose fold goes past {@link #FOLD_BYTES} and whose result is an array or an object ({@link
-   * #container}) is folded again without one, for the check only: jq-ref gives rc 3 for {@code {(("x"*5000)/"x"):1}}.
-   * A key whose result is a string is valid whatever its length, so it is not folded again; the run builds it.
+   * #container}) is folded again under {@link #CHECK_BYTES}, for the check only: jq-ref gives rc 3 for
+   * {@code {(("x"*5000)/"x"):1}}. Past that bound too the key is left to the run, which raises the same text with rc 5
+   * (ADR-0035, DEVIATIONS "Huge constant keys"). A key whose result is a string is valid whatever its length, so it is
+   * not folded again; the run builds it.
    */
   static String error(Ast query) {
     ConstantKey capped = new ConstantKey(FOLD_BYTES);
     Object key = capped.fold(query);
     if (key == null && capped.container(query)) {
-      key = new ConstantKey(Long.MAX_VALUE).fold(query);
+      key = new ConstantKey(CHECK_BYTES).fold(query);
     }
     return key instanceof JqValue value && !(value instanceof JqString) ? ObjectKey.message(value) : null;
   }
@@ -158,8 +163,8 @@ final class ConstantKey {
 
   /**
    * jq's {@code constant_fold} of {@code + - * / %} (GLOSSARY "Fold"): the operator on two constants, computed now as
-   * the run would, under this walk's bytes-built budget: {@link #FOLD_BYTES} (ADR-0035 amendment), except for a key's
-   * second check ({@link #error}). A fold that raises, or that would build past the budget, is none: the run computes
+   * the run would, under this walk's bytes-built budget: {@link #FOLD_BYTES} (ADR-0035 amendment), or {@link
+   * #CHECK_BYTES} for a key's second check ({@link #error}). A fold that raises, or that would build past the budget, is none: the run computes
    * it, raising or building and charging there. The other
    * operators fold in jq too; comparison is #66's, and {@code and}, {@code or} and {@code //} are not folded.
    */
