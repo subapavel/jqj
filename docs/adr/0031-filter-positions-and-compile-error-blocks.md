@@ -1,6 +1,6 @@
 # Filter positions and compile-error blocks
 
-Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #61; designer draft); amends ADR-0016 (`JqCompileException`); amended by ADR-0032 (errors before Stubs)
+Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #61; designer draft); amends ADR-0016 (`JqCompileException`); amended by ADR-0032 (errors before Stubs); Source of inlined prelude nodes amended by ADR-0042 (#71)
 
 ## Context
 

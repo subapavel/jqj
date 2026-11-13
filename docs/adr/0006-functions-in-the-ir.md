@@ -1,6 +1,6 @@
 # Functions in the IR: lifted, called by name, specialised away
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0009 (issue #7); amended by F-31 (the natives sentence covers jq-defined builtins only)
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0009 (issue #7); amended by F-31 (the natives sentence covers jq-defined builtins only); amended for spec 2a by ADR-0040 (F-41: inlined by the resolver, #70)
 
 Every jq `def` is lifted into the program's function list. Captured variables and enclosing
 closure parameters become trailing parameters. A jq closure is a node of the caller's scope, run
