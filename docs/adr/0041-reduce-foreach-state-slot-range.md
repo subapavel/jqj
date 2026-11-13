@@ -44,7 +44,7 @@ jq 1.8.2's `gen_reduce` and `gen_foreach` keep the loop state in a fresh variabl
   - The call site allocates a new args array for each loop. IntrinsicManyOp does so on every run, and a future bytecode backend or trampoline (ADR-0011) must do the same.
   - `first` may replace an argument in that array with a form the later calls read more cheaply. Range stores its end's double once, because a NumberView recomputes it on every read (ADR-0012).
   - A Const is never written: only the array's element is replaced.
-- **The verifier**: it accepts at most one Advance per loop. A loop whose `each` never advances, such as `reduce empty as $x (0; .)`, is valid.
+- **The verifier**: it accepts at most one Advance per loop node. The jq lowering always places exactly one; a hand-built IR loop with none is valid and emits its initial state.
 
 
 - **Pattern Binds inside the update**: a retried alternative would rerun U on the old state.
