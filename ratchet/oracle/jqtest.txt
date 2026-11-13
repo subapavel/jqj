@@ -1,5 +1,6 @@
 jq.test#000784afc854	interpreter
 jq.test#0032ccba96bc	interpreter
+jq.test#00658c49c894	interpreter
 jq.test#00bd6269df2a	interpreter
 jq.test#023a4f8e4728	interpreter
 jq.test#030494f95af4	interpreter
@@ -41,6 +42,7 @@ jq.test#33233245fd79	interpreter
 jq.test#349dd9fd1478	interpreter
 jq.test#350f3cad33e6	interpreter
 jq.test#399756af877a	interpreter
+jq.test#3a02318c5a87	interpreter
 jq.test#3a94f773efd4	interpreter
 jq.test#3b9948d25fe1	interpreter
 jq.test#3c39874a7395	interpreter
@@ -55,10 +57,12 @@ jq.test#410a7a6e988d	interpreter
 jq.test#417b92383173	interpreter
 jq.test#4556621475e5	interpreter
 jq.test#4b6e5881d306	interpreter
+jq.test#4b72f080b94b	interpreter
 jq.test#4d4e9fd7bad4	interpreter
 jq.test#4dc145ab0b77	interpreter
 jq.test#4dd9b0b64b47	interpreter
 jq.test#4ebcd8370580	interpreter
+jq.test#4fc10dca2848	interpreter
 jq.test#5391099daec9	interpreter
 jq.test#5482bd8f2a67	interpreter
 jq.test#552a4482e91f	interpreter
@@ -71,6 +75,7 @@ jq.test#5efbe6cab008	interpreter
 jq.test#5f094768e4ca	interpreter
 jq.test#5f103bd8e523	interpreter
 jq.test#5f2c137c6b47	interpreter
+jq.test#5f8a5d811422	interpreter
 jq.test#6030a2ec413f	interpreter
 jq.test#60ea650c4e1b	interpreter
 jq.test#62183b6c83a9	interpreter
@@ -123,10 +128,12 @@ jq.test#994ab5941254	interpreter
 jq.test#9b754399f1fe	interpreter
 jq.test#9b89c2a0890b	interpreter
 jq.test#9f0c7883b67d	interpreter
+jq.test#9f860637b48a	interpreter
 jq.test#a1121bdecdc5	interpreter
 jq.test#a1992d239479	interpreter
 jq.test#a1e1f0a4fe13	interpreter
 jq.test#a271da33fe01	interpreter
+jq.test#a33f53dfa710	interpreter
 jq.test#a3fde6bda96a	interpreter
 jq.test#a456ff5ede3b	interpreter
 jq.test#a45caa2bc474	interpreter
@@ -150,6 +157,7 @@ jq.test#b24ef7229d56	interpreter
 jq.test#b99a5b261547	interpreter
 jq.test#b9cbb578cf37	interpreter
 jq.test#b9d51fb64b51	interpreter
+jq.test#ba8f650a5ecb	interpreter
 jq.test#bbfa99fa0166	interpreter
 jq.test#bc202bd96a6b	interpreter
 jq.test#bd1c15c53252	interpreter
@@ -180,6 +188,7 @@ jq.test#d6a660e5da12	interpreter
 jq.test#d7820c8e1850	interpreter
 jq.test#d923809e1cb9	interpreter
 jq.test#d9512412a4af	interpreter
+jq.test#d96f1673c7e1	interpreter
 jq.test#d97de085e47b	interpreter
 jq.test#da40100f483d	interpreter
 jq.test#dcc547ee570b	interpreter
@@ -187,6 +196,7 @@ jq.test#dce32f394f5f	interpreter
 jq.test#ddfc0b9f24d0	interpreter
 jq.test#e1de014beb31	interpreter
 jq.test#e30d7814d724	interpreter
+jq.test#e3ce03da0501	interpreter
 jq.test#e3d73b9ff1ab	interpreter
 jq.test#e3fec0b48f1b	interpreter
 jq.test#e5bf3a62e06e	interpreter
@@ -196,6 +206,7 @@ jq.test#e83227797827	interpreter
 jq.test#e9512ef8e30c	interpreter
 jq.test#e9f541befc2b	interpreter
 jq.test#eb745e3d9017	interpreter
+jq.test#ec0b49b8c80f	interpreter
 jq.test#ecef954c5506	interpreter
 jq.test#eeb224a1461b	interpreter
 jq.test#f01bdc18549d	interpreter
