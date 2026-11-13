@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Every prelude definition, called as {@code name(.;…)}, compiles or is a Stub exactly as {@link PreludeSignatures#STUBS}
- * pins it at #72 (ADR-0042: a live prelude body is bound, checked and lowered; an unbuilt native or a recursive group
- * is a Stub). Through the exported API: a resolver that stubs every prelude call fails the 46 that compile, and one
+ * pins it at #73 (ADR-0042: a live prelude body is bound, checked and lowered; an unbuilt native or a recursive group
+ * is a Stub). Through the exported API: a resolver that stubs every prelude call fails the 52 that compile, and one
  * that lowers an unbuilt native or a recursive group fails the Stubs. The Stub text is never asserted, only its prefix
  * (GLOSSARY "Stub").
  */
@@ -32,11 +32,11 @@ class PreludeCompileTest {
     assertThat(wrong).as("prelude calls whose compile differs from the pinned list").isEmpty();
   }
 
-  /** The pinned list itself: 60 Stubs among the 106 definitions, so 46 calls must compile (78 and 28 at #71). */
+  /** The pinned list itself: 54 Stubs among the 106 definitions, so 52 calls must compile (78 and 28 at #71, 60 and 46 at #72). */
   @Test
   void thePinnedStubsAreDefinitions() {
     assertThat(DEFINITIONS).as("builtin.jq's definitions").hasSize(106).containsAll(STUBS);
-    assertThat(STUBS).as("the pinned Stubs").hasSize(60);
+    assertThat(STUBS).as("the pinned Stubs").hasSize(54);
   }
 
   /** "compiles", "stub", or the class and message of any other compile error. */
