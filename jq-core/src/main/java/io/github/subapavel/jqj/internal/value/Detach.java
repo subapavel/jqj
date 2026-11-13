@@ -5,6 +5,7 @@ import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -15,8 +16,9 @@ import java.util.TreeMap;
  * container, a document's or a built one, a built container of its members' copies, an object its keys' too, in its
  * members' order. The walk keeps an explicit stack, so a deep value takes no Java stack. It runs under the host rule
  * of ADR-0016, after the run, where no budget, deadline or interrupt reaches it: it charges no bytes built and no
- * tick. A container the value holds at several places is copied once and its copy shared, so the time is bounded by
- * the members of its distinct containers times the log of its widest object's keys. A document's object is read once,
+ * tick. A container the value holds at several places, a built one by identity or a document's by its place in the
+ * document, is copied once and its copy shared, so the time is bounded by the members of its distinct containers times
+ * the log of its widest object's keys. A document's object is read once,
  * its keys decoded into a map ordered by their unsigned bytes (UTF-8 order), so a repeated key keeps its first
  * position and takes its last value without the scans of {@link ObjectView#next}.
  */
@@ -41,7 +43,7 @@ public final class Detach {
     // unlimited, and none of those walks scans.
     RunState free = new RunState();
     // A container the value holds at several places is copied once, and the copy is shared: values are immutable.
-    Map<Members, JqValue> copies = new IdentityHashMap<>();
+    Copies copies = new Copies();
     Frame top = null;
     JqValue next = value;
     for (;;) {
@@ -97,6 +99,38 @@ public final class Detach {
   private static BuiltString string(StringView s) {
     long entry = s.doc().live()[s.index()];
     return BuiltString.of(JsonStrings.decode(s.doc().bytes(), entry));
+  }
+
+  /**
+   * The containers' copies made so far: a built container's by its identity, a view's by its document's identity and
+   * its tape index, since each access to a document's container makes a new view of it. Views of two documents never
+   * share a copy.
+   */
+  private static final class Copies {
+    private final Map<Members, JqValue> built = new IdentityHashMap<>();
+    private final Map<Document, Map<Integer, JqValue>> views = new IdentityHashMap<>();
+
+    /** The copy of {@code container} made before, or null. */
+    JqValue get(Members container) {
+      return switch (container) {
+        case ArrayView v -> of(v.doc()).get(v.index());
+        case ObjectView v -> of(v.doc()).get(v.index());
+        case BuiltArray _, BuiltObject _ -> built.get(container);
+      };
+    }
+
+    void put(Members container, JqValue copy) {
+      switch (container) {
+        case ArrayView v -> of(v.doc()).put(v.index(), copy);
+        case ObjectView v -> of(v.doc()).put(v.index(), copy);
+        case BuiltArray _, BuiltObject _ -> built.put(container, copy);
+      }
+    }
+
+    /** The copies of {@code doc}'s containers by tape index. */
+    private Map<Integer, JqValue> of(Document doc) {
+      return views.computeIfAbsent(doc, d -> new HashMap<>());
+    }
   }
 
   /**
