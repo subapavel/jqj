@@ -89,9 +89,10 @@ final class Minus implements Fn2 {
   }
 
   /**
-   * The elements of {@code a} that equal no element of {@code b}, in order: one tick per pair compared, stopping at the
-   * first equal one (ADR-0034 amendment); a container charged first, then an element before each kept one enters
-   * (ADR-0035 amendment). The slots are as many as {@code a} has, the builder's own cost.
+   * The elements of {@code a} that equal no element of {@code b}, in order: one tick per element of {@code a}, even
+   * against {@code []}, and one per pair compared, stopping at the first equal one (ADR-0034 amendment); a container
+   * charged first, then an element before each kept one enters (ADR-0035 amendment). The slots are as many as {@code a}
+   * has, the builder's own cost.
    */
   private static BuiltArray difference(RunState state, JqArray a, JqArray b) {
     state.chargeBuilt(Charges.CONTAINER);
@@ -100,6 +101,7 @@ final class Minus implements Fn2 {
     Members left = (Members) a;
     Members right = (Members) b;
     for (int c = left.first(); c != -1; c = left.next(state, c)) {
+      state.tick();
       var x = left.member(state, c);
       boolean found = false;
       for (int d = right.first(); d != -1; d = right.next(state, d)) {

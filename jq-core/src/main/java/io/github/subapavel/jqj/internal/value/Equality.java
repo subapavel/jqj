@@ -43,8 +43,8 @@ import io.github.subapavel.jqj.value.JqValue;
  * whose document is checked first (ADR-0026). Numbers compare by {@link Numbers#compare}, strings by their UTF-8 bytes,
  * arrays by their lengths, then element by element; an object by each of its keys, in its key order, found in the
  * other object with an equal value, and then by the two key counts. The walk keeps its open containers on a stack of
- * its own, never in Java frames, and charges one tick per member pair it compares (ADR-0008); a view's own walks
- * charge theirs.
+ * its own, never in Java frames, and charges one tick per member pair it compares and one per key of the right object
+ * it counts (ADR-0008, ADR-0034 amendment for #65); a view's own walks charge theirs.
  */
 public final class Equality {
   /** jq's {@code MAX_EQUAL_DEPTH}. */
@@ -187,7 +187,7 @@ public final class Equality {
   /**
    * jq's {@code jvp_object_equal}: each key of the left object in its key order with its value, the right object's value
    * of the same key; a key the right object lacks makes them unequal at once. After the last key they are equal when
-   * the right object has no other key.
+   * the right object has no other key, which it counts with one tick per key.
    */
   private static final class Values extends Walk {
     private final Members left;
@@ -208,6 +208,7 @@ public final class Equality {
         Members other = (Members) right;
         int keys = 0;
         for (int c = other.first(); c != -1; c = other.next(state, c)) {
+          state.tick();
           keys++;
         }
         return keys == matched ? DONE : UNEQUAL;

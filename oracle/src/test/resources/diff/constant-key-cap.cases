@@ -1,0 +1,116 @@
+# A computed object key whose fold goes past the 4 KiB fold cap (ADR-0035 amendment), #65 standards review: jq folds
+# without a cap, so a key that folds to an array or an object is jq's compile error (rc 3) however large it is; jqj
+# folds such a key again without the cap, for the check only. A key that folds to a long string is valid, and a pipe
+# whose sides are not . alone is no fold, so both run (rc 0), as do a remainder of a string and a merge of an array,
+# to their errors (rc 5).
+# jq's -n is not built in jqj's command line yet, so
+# every case runs on stdin null. Format: oracle/src/main/java/io/github/subapavel/jqj/oracle/diff/DiffCase.java.
+# Expected outputs live in constant-key-cap.rec, written by scripts/oracle-record.sh only. Ids are immutable.
+
+# rc 3: past the cap, the fold is an array or an object
+
+case constant-key-cap/split
+arg -c
+filter {(("x"*5000)/"x"):1}
+stdin null\n
+end
+
+case constant-key-cap/split-in-parentheses
+arg -c
+filter {((("x"*5000)/"x")):1}
+stdin null\n
+end
+
+case constant-key-cap/split-after-dot
+arg -c
+filter {(. | ("x"*5000)/"x"):1}
+stdin null\n
+end
+
+case constant-key-cap/array
+arg -c
+filter {([("x"*5000)]):1}
+stdin null\n
+end
+
+case constant-key-cap/object
+arg -c
+filter {({a:("x"*5000)}):1}
+stdin null\n
+end
+
+case constant-key-cap/difference
+arg -c
+filter {([("x"*5000)] - []):1}
+stdin null\n
+end
+
+case constant-key-cap/array-plus
+arg -c
+filter {([] + [("x"*5000)]):1}
+stdin null\n
+end
+
+case constant-key-cap/null-plus-array
+arg -c
+filter {(null + [("x"*5000)]):1}
+stdin null\n
+end
+
+case constant-key-cap/merge
+arg -c
+filter {({a:("x"*5000)} * {}):1}
+stdin null\n
+end
+
+case constant-key-cap/merge-of-a-plus
+arg -c
+filter {((. | {a:("x"*5000)} + {}) * {}):1}
+stdin null\n
+end
+
+case constant-key-cap/merge-of-null-plus-an-object
+arg -c
+filter {((null + {a:("x"*5000)}) * {}):1}
+stdin null\n
+end
+
+case constant-key-cap/merge-of-a-merge
+arg -c
+filter {(({a:("x"*5000)} * {}) * {}):1}
+stdin null\n
+end
+
+# rc 0: a string past the cap is a valid key; a pipe of two non-dot sides is no fold
+
+case constant-key-cap/string-repeat
+arg -c
+filter {((("x"*2049) + "y") * 2):1}
+stdin null\n
+end
+
+case constant-key-cap/string-plus
+arg -c
+filter {(("x"*4097) + "y"):1}
+stdin null\n
+end
+
+case constant-key-cap/split-then-index
+arg -c
+filter {(("x"*5000)/"x" | .[0]):1}
+stdin null\n
+end
+
+# rc 5: a remainder of a string and a merge of an array are no fold, and their errors come at run time
+
+case constant-key-cap/remainder-of-a-string
+arg -c
+filter {(("x"*5000) % 2):1}
+stdin null\n
+end
+
+case constant-key-cap/merge-of-a-split
+arg -c
+filter {((("x"*5000)/"x") * {}):1}
+stdin null\n
+end
