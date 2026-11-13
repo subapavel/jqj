@@ -16,7 +16,7 @@ Spec 2a compiles no recursion, so every call that compiles is inlined, as ADR-00
   - The binding errors (`f/1 is not defined`, `$x is not defined`, `$*label-l is not defined`) form one list of blocks, thrown before any lowering. The caret covers the name only, except for `break $l`, where it covers the whole term (jq-ref).
   - A compile level (main, a live def's body, a closure argument of any jq-defined function, user or builtin) reports its own references in source order.
   - It reports its inner levels only when it had no error itself.
-  - A native's arguments stay in the caller's level.
+  - A C native's arguments stay in the caller's level. A bytecoded native's arguments (`path/1`, `last/1`, `range/2`) are inner levels, like a jq-defined function's (jq-ref, #71 red: `zz1, path(zz2)` reports zz1 only, while `zz1, getpath(zz2)` reports both).
 - **Lowering (pass 2)**: a call to a live non-recursive def lowers the def's body in its defining environment plus its params, with fresh slots for each copy.
   - A filter param is the caller's closure, lowered on the callee's input for each use. A param passed straight on is not wrapped again.
   - `$a` is `Bind(a, s_a, …)`, with the first param outermost, and `a/0` stays callable.
