@@ -19,20 +19,32 @@ import org.junit.jupiter.api.io.TempDir;
  * about n key lookups and not n²/2 compares: 1.25·10⁹ at {@link #KEYS} keys.
  *
  * <p>No seam counts the Resolver's key compares, so the bound is wall time, taken in a fresh child JVM with no agent
- * and no tool or JVM options, as IrDepthTest's children are, and generous: {@link #BOUND_MS}. The witness is the same
- * width with one computed key in front, a site that passes a key and a value per pair and never looks for a repeated
- * key, which compiles under the same bound before #93; so the bound does not stop {@link #KEYS} pairs, only the scan.
- * jq-ref 1.8.2 does not compile either filter (one past 4998 keys without values is "memory exhausted", .logs/
- * 93-jqref-limits.log of the test-author's run): only the compile's time is pinned here, the results of a repeated
- * constant key by ConstructionOrderTest.
+ * and no tool or JVM options, as IrDepthTest's children are. The witness is the same width with one computed key in
+ * front, a site that passes a key and a value per pair and never looks for a repeated key; it is timed first, in the
+ * same child, so a slow or busy machine slows both compiles alike. The constant keys may take at most
+ * {@link #FACTOR} times the witness plus {@link #SLACK_MS}: before #93 the witness took 395 ms to 598 ms and the scan
+ * 9 s to 34 s (four runs; .logs/93-red-keys.log: 10 036 ms against a bound of 3 392 ms, .logs/93-red-keys-run2.log:
+ * 32 736 ms against 2 580 ms), so the scan misses its bound by about three times or more, while a map by the key's
+ * bytes, a lookup per key as the witness has a pass per key, would take about the witness's time and have more than
+ * five times room. An absolute bound, 10 s, was red at 34 s and green at 9 s on the same code. The witness keeps an
+ * absolute bound, {@link #WITNESS_BOUND_MS}, which it met by more than fifteen times before #93, so a change that
+ * slows both sites alike cannot pass the relative bound. jq-ref 1.8.2 does not compile either filter (one
+ * past 4998 keys without values is "memory exhausted", .logs/93-jqref-limits.log of the test-author's run): only the
+ * compile's time is pinned here, the results of a repeated constant key by ConstructionOrderTest.
  */
 class ObjectKeysCostTest {
 
   /** Distinct constant keys of the object. */
   static final int KEYS = 50_000;
 
-  /** The most milliseconds the compile of either filter may take. */
-  static final long BOUND_MS = 10_000;
+  /** The most milliseconds the witness's compile may take. */
+  static final long WITNESS_BOUND_MS = 10_000;
+
+  /** How many times the witness's milliseconds the compile of the constant keys may take, plus {@link #SLACK_MS}. */
+  static final long FACTOR = 4;
+
+  /** Milliseconds the constant keys' compile may take on top of {@link #FACTOR} times the witness. */
+  static final long SLACK_MS = 1_000;
 
   @TempDir Path dir;
 
@@ -41,8 +53,10 @@ class ObjectKeysCostTest {
     String printed = runChild();
     String[] lines = printed.split("\n");
     assertThat(lines).as("lines the child JVM printed: %s", printed).hasSize(2);
-    assertThat(Long.parseLong(lines[0])).as("milliseconds to compile %d pairs after one computed key, the witness; printed %s", KEYS, printed).isLessThan(BOUND_MS);
-    assertThat(Long.parseLong(lines[1])).as("milliseconds to compile %d constant keys, the witness's %s", KEYS, lines[0]).isLessThan(BOUND_MS);
+    long witness = Long.parseLong(lines[0]);
+    assertThat(witness).as("milliseconds to compile %d pairs after one computed key, the witness; printed %s", KEYS, printed).isLessThan(WITNESS_BOUND_MS);
+    long bound = FACTOR * witness + SLACK_MS;
+    assertThat(Long.parseLong(lines[1])).as("milliseconds to compile %d constant keys, against %d times the witness's %d ms plus %d ms", KEYS, FACTOR, witness, SLACK_MS).isLessThan(bound);
   }
 
   /** What {@link Child} printed, run in a fresh JVM, once it ended within 600 s with exit code 0. */
