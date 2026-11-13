@@ -5,7 +5,8 @@ import java.util.function.LongSupplier;
 
 /**
  * The budgets of one evaluation (ADR-0030, ADR-0008, ADR-0035): its fuel, the step budget, the deadline and the
- * bytes-built and bytes-written counts, in a phase that is idle, primed or running. The engine's Workspace owns one and hands it to each run, so it
+ * bytes-built and bytes-written counts, in a phase that is idle, primed or running; and its label tokens and break
+ * target (ADR-0039). The engine's Workspace owns one and hands it to each run, so it
  * is never shared between two running evaluations; it is not thread-safe.
  *
  * <p>A main read primes it: the run that begins next keeps the ticks counted since, less those the writer charged
@@ -66,6 +67,15 @@ public final class RunState {
   /** The bytes charged since the last begin. */
   private long written;
 
+  /**
+   * The last label token handed out since the last begin: the tokens of a run count from 1 (ADR-0039). A long, so no
+   * run reaches its wrap and a token is never 0 or one handed out before.
+   */
+  private long labels;
+
+  /** The token a Break marked and its Label has not taken back yet, or 0 for none: a false then is a stop. */
+  private long breakTo;
+
   /** The monotonic clock in nanoseconds that the deadline reads: {@link System#nanoTime()} outside the tests. */
   private final LongSupplier clock;
 
@@ -104,7 +114,8 @@ public final class RunState {
   /**
    * Begins a run with its budgets, each {@code Long.MAX_VALUE} when unlimited: the steps, the deadline in nanoseconds,
    * the bytes built (ADR-0035) and the bytes written. A primed read's ticks count against it, the writer's outside a
-   * run do not; without a primed read it starts from no tick. The bytes built and written count from zero.
+   * run do not; without a primed read it starts from no tick. The bytes built and written count from zero, the label
+   * tokens from 1, and no break is marked (ADR-0008).
    *
    * @throws IllegalStateException when a run is running on this state, which then stays as it was
    * @throws Termination over the step budget when the primed ticks already pass it; no run is then running
@@ -125,6 +136,8 @@ public final class RunState {
     built = 0;
     writtenBudget = bytesWritten;
     written = 0;
+    labels = 0;
+    breakTo = 0;
     start = clock.getAsLong();
     refill(kept);
   }
@@ -208,6 +221,41 @@ public final class RunState {
       throw Termination.over(Budget.BYTES_WRITTEN);
     }
     written += bytes;
+  }
+
+  /** A new Label activation's token (ADR-0039): the next number of the run, from 1 after each {@link #begin}. */
+  public long label() {
+    return ++labels;
+  }
+
+  /**
+   * For tests only: the next {@link #label} token is {@code last + 1}, so a test reaches the tokens past 2^32
+   * activations without running them. No engine code calls it.
+   */
+  void labelsAfter(long last) {
+    labels = last;
+  }
+
+  /**
+   * A Break to the activation of {@code token} (ADR-0008, ADR-0039): marks it and returns false, which every node
+   * passes on until the Label of that token takes it back with {@link #caught}.
+   */
+  public boolean breakTo(long token) {
+    breakTo = token;
+    return false;
+  }
+
+  /**
+   * Whether the false a Label's body gave is a Break to that Label's {@code token}: then the mark is cleared and the
+   * Label's run goes on as if the body ran out. Otherwise the false is a stop or a Break to an outer Label, which the
+   * Label passes on.
+   */
+  public boolean caught(long token) {
+    if (breakTo != token) {
+      return false;
+    }
+    breakTo = 0;
+    return true;
   }
 
   /** The bytes built since the last begin (ADR-0035): each charge {@link #chargeBuilt} counted, none it refused. */

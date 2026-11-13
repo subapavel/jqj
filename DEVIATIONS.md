@@ -34,13 +34,13 @@ results.
 In jq, `break $l` raises the error `{"__jq":n}`, where `n` is a per-process label counter. A `try`,
 a `?` or a `?//` around it can catch it. In jqj a break is a stop signal and no catch set holds it:
 
-| filter | jq 1.8.2 | jqj |
-| --- | --- | --- |
-| `[label $f \| 1, (try (break $f) catch .), 2]` | `[1,{"__jq":0},2]` | `[1]` |
-| `[label $f \| 1, (break $f)?, 2]` | `[1,2]` | `[1]` |
-| `[[1]] \| [first(.[] as [$a] ?// $a \| $a)]` | `[1,[1]]` | `[1]` |
-| `[label $f \| 1, error({"__jq":0}), 2]` | `[1]` (a forged error breaks) | error `{"__jq":0}` |
-| `label $a \| label $b \| try (break $b) catch .`, inputs `1`, `2` | `{"__jq":1}`, `{"__jq":3}` | nothing |
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| `control/deviation-try-break` (`deviation break-not-error`) | `[label $f \| 1, (try (break $f) catch .), 2]` | `[1,{"__jq":0},2]` | `[1]` |
+| `control/deviation-postfix-break` (`deviation break-not-error`) | `[label $f \| 1, (break $f)?, 2]` | `[1,2]` | `[1]` |
+| `control/deviation-altbind-break` (`deviation break-not-error`) | `[label $l \| [[1]] \| .[] as [$a] ?// $a \| $a, break $l]` | `[1,[1]]` | `[1]` |
+| `control/deviation-forged-break` (`deviation break-not-error`) | `[label $f \| 1, error({"__jq":0}), 2]` | `[1]` (a forged error breaks) | error `{"__jq":0}` |
+| none yet | `label $a \| label $b \| try (break $b) catch .`, inputs `1`, `2` | `{"__jq":1}`, `{"__jq":3}` | nothing |
 
 Reason: `first`, `limit` and `isempty` keep at most one result even when their argument contains a
 `?//`, and an embedded Workspace cannot reproduce a counter that grows across inputs. jq's own test

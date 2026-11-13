@@ -25,7 +25,8 @@ class ResolverTest {
    * #62 does not lower, so each parses and resolves to the Stub; the recording is the owning ticket's red. A filter
    * whose kinds a later ticket lowers (#64 constructions, #65 arithmetic and negation, #66 comparison, {@code and},
    * {@code or}, {@code not} and {@code //}, #67 {@code as}, patterns, {@code ?//}, variables, {@code $__loc__} and
-   * format strings) ends with {@code | ..}, which still stubs, here and in {@link #GRAMMAR}.
+   * format strings, #68 {@code if}, {@code try}, {@code ?}, {@code error}, {@code label} and {@code break}) ends with
+   * {@code | ..}, which still stubs, here and in {@link #GRAMMAR}.
    */
   private static final List<String> PRECEDENCE =
       List.of(
@@ -33,7 +34,7 @@ class ResolverTest {
           "1 | def f: 2; f",
           "1 as $x | 2 | $x | ..",
           "\"x\" as $x | \"y\" as $y | $x + $y | ..",
-          "label $out | 1, break $out, 2",
+          "label $out | 1, break $out, 2 | ..",
           "1, 2 | . + 10 | ..",
           "1, null // 2 | ..",
           ".a = null // 2",
@@ -46,7 +47,7 @@ class ResolverTest {
           "- \"a\" * 2 | ..",
           "- 1 + 2 | ..",
           "- 1 | . + 1 | ..",
-          "[- \"a\"?]",
+          "[- \"a\"?] | ..",
           "1 - 2 - 3 | ..",
           "1 - 2 + 3 | ..",
           "8 / 4 / 2 | ..",
@@ -56,13 +57,13 @@ class ResolverTest {
           "[1, 2 as $x | $x, 3] | ..",
           "reduce 1 + 2 as $x (0; . + $x)",
           "foreach 1 + 2 as $x (0; . + $x)",
-          "try 1 catch 2 + 3",
-          "try 1 + error(\"x\")",
+          "try 1 catch 2 + 3 | ..",
+          "try 1 + error(\"x\") | ..",
           "{a: 1 | . + 1} | ..",
           "[5,6] [1] | ..",
-          "if true then 1 else 2 end + 1",
+          "if true then 1 else 2 end + 1 | ..",
           "reduce (1,2) as $x (0; . + $x) * 2",
-          "error(\"x\")? // 1");
+          "error(\"x\")? // 1 | ..");
 
   /**
    * One filter per other construct of the grammar. jq-ref 1.8.2, observed 2026-11-12 (.logs/62-jqref-accept.log of
@@ -99,11 +100,11 @@ class ResolverTest {
           "def f: 1; .",
           "[foreach (1,2,3) as $x (0; . + $x; [$x, .])]",
           "reduce empty as $x (0; .)",
-          "if false then 1 elif true then 2 else 3 end",
-          "if false then 1 end",
-          "try error(\"x\") catch .",
-          "try error(\"x\")",
-          "label $f | break $f",
+          "if false then 1 elif true then 2 else 3 end | ..",
+          "if false then 1 end | ..",
+          "try error(\"x\") catch . | ..",
+          "try error(\"x\") | ..",
+          "label $f | break $f | ..",
           ".[] as [$a, $b] | $a + $b | ..",
           ". as {a: {b: $c}} | $c | ..",
           ". as {$a} | $a | ..",
@@ -233,6 +234,39 @@ class ResolverTest {
             Map.entry(
                 ". as [$a] ?// $b | $a",
                 "(null[0,21) as $0 | (.[0,1) as $1 | (($1 | .[k](0)[6,8)) as $2 | .[5,9)) -> [$2, $0] ?// .[14,16) -> [$0, $1] as [$3, $4] | $3))"));
+    for (Map.Entry<String, String> e : shapes.entrySet()) {
+      assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
+    }
+  }
+
+  /**
+   * #68's lowerings (ADR-0039), the positive witnesses of the entries that left the Stub lists above: an elif is the If
+   * of its else and a missing else an Identity; {@code try} without {@code catch} and {@code f?} take {@code empty} as
+   * their handler, a {@code ?} spanning its target; {@code error(f)} is {@code f | error} at the call's Source; a Break
+   * names the innermost Label of its name, and a label's name is apart from a variable's. jq-ref 1.8.2, observed
+   * 2026-11-13 with -nc: {@code [1 as $f | label $f | $f, break $f, 2]}, {@code [label $f | label $f | 1, break $f, 2]}
+   * and {@code [label $a | label $b | 1, break $a, 2]} each give [1], {@code [if false then 1 end]} [null],
+   * {@code [(1, 2)?]} [1,2] and {@code [try error("x") catch .]} ["x"].
+   */
+  @Test
+  void controlFlowLowersToItsIr() {
+    Map<String, String> shapes =
+        Map.ofEntries(
+            Map.entry("if true then 1 else 2 end", "(if true[3,7) then 1[13,14) else 2[20,21))"),
+            Map.entry("if false then 1 end", "(if false[3,8) then 1[14,15) else .[0,19))"),
+            Map.entry(
+                "if false then 1 elif true then 2 else 3 end",
+                "(if false[3,8) then 1[14,15) else (if true[21,25) then 2[31,32) else 3[38,39)))"),
+            Map.entry("try 1 catch 2", "(try 1[4,5) catch 2[12,13))"),
+            Map.entry("try 1", "(try 1[4,5) catch empty[0,5))"),
+            Map.entry("1?", "(try 1[0,1) catch empty[0,2))"),
+            Map.entry("(1, 2)?", "(try (1[1,2), 2[4,5)) catch empty[0,7))"),
+            Map.entry("error", "error[0,5)"),
+            Map.entry("try error(\"x\") catch .", "(try (\"x\"[10,13) | error[4,14)) catch .[21,22))"),
+            Map.entry("label $f | break $f", "(label $0 | break $0[11,19))"),
+            Map.entry("label $f | label $f | break $f", "(label $0 | (label $1 | break $1[22,30)))"),
+            Map.entry("label $a | label $b | break $a", "(label $0 | (label $1 | break $0[22,30)))"),
+            Map.entry("1 as $f | label $f | $f, break $f", "(1[0,1) as $0 | (label $1 | ($0, break $1[25,33))))"));
     for (Map.Entry<String, String> e : shapes.entrySet()) {
       assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
     }

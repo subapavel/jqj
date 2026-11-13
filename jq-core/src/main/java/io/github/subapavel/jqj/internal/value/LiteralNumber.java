@@ -34,6 +34,11 @@ public final class LiteralNumber implements JqNumber, Literal {
   private final boolean fitsLong;
 
   private LiteralNumber(String token) {
+    this(token, fitsLong(token));
+  }
+
+  /** The literal of {@code token}, whose FITS_LONG flag (ADR-0012) is {@code fitsLong}. */
+  private LiteralNumber(String token, boolean fitsLong) {
     this.token = token.getBytes(US_ASCII);
     StringBuilder text = new StringBuilder();
     CanonicalForm.write(
@@ -53,14 +58,28 @@ public final class LiteralNumber implements JqNumber, Literal {
         });
     this.canonical = text.toString().getBytes(US_ASCII);
     this.doubleValue = CanonicalForm.toDouble(this.token, 0, this.token.length);
-    // ADR-0012 FITS_LONG (ADR-0031): an integer token, never -0, in the long range. A sign is only ever on a non-zero
-    // value. Two digit strings of the same length compare as their values.
+    this.fitsLong = fitsLong;
+  }
+
+  /**
+   * ADR-0012 FITS_LONG (ADR-0031) of a filter's token: an integer token, never -0, in the long range. A sign is only
+   * ever on a non-zero value. Two digit strings of the same length compare as their values.
+   */
+  private static boolean fitsLong(String token) {
     int sign = token.startsWith("-") ? 1 : 0;
     String digits = token.substring(sign);
     String limit = sign == 0 ? LONG_MAX : LONG_MIN;
-    this.fitsLong =
-        digits.chars().allMatch(c -> c >= '0' && c <= '9')
-            && (digits.length() < limit.length() || digits.length() == limit.length() && digits.compareTo(limit) <= 0);
+    return digits.chars().allMatch(c -> c >= '0' && c <= '9')
+        && (digits.length() < limit.length() || digits.length() == limit.length() && digits.compareTo(limit) <= 0);
+  }
+
+  /**
+   * The literal of a document's number {@code view}, for a detach (ADR-0039): its token copied, so it outlives the
+   * document, and its FITS_LONG flag the tape's, which is false for a document's {@code -0}.
+   */
+  static LiteralNumber copyOf(NumberView view) {
+    int off = view.tokenOffset();
+    return new LiteralNumber(new String(view.tokenBytes(), off, view.tokenLength(), US_ASCII), view.fitsLong());
   }
 
   /**
@@ -109,6 +128,12 @@ public final class LiteralNumber implements JqNumber, Literal {
   @Override
   public String toJson() {
     return new String(canonical, US_ASCII);
+  }
+
+  /** jq's printed form (ADR-0016), the canonical form: what a host sees of a detached payload number (ADR-0039). */
+  @Override
+  public String toString() {
+    return toJson();
   }
 
   /** ADR-0012 "Values", ADR-0028: an Infinity literal gives an infinity. */
