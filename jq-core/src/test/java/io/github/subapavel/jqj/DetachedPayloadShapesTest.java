@@ -109,6 +109,50 @@ class DetachedPayloadShapesTest {
   }
 
   @Test
+  void viewsOfOneSubtreeAreCopiedOnce() {
+    // Ruling on #68: each $r.a and $r.l makes a new view of the same subtree, 10^4 times each. A detach that copies a
+    // view once per instance copies 2 * 10^8 nodes after the run (a time witness). jq-ref: on
+    // {"xs":[0,1],"a":{"b":[0]},"l":[1]} the filter prints [{"b":[0]},[1],{"b":[0]},[1]].
+    int n = 10_000;
+    String elements = String.join(",", java.util.stream.IntStream.range(0, n).mapToObj(Integer::toString).toList());
+    String json = "{\"xs\":[" + elements + "],\"a\":{\"b\":[" + elements + "]},\"l\":[" + elements + "]}";
+    JqEngine engine = unlimited();
+    Workspace workspace = engine.newWorkspace();
+    JqValue root = read(workspace, json.getBytes(UTF_8)).root();
+    JqFilter filter = engine.compile(". as $r | [.xs[] | $r.a, $r.l] | error");
+    JqFilterException e =
+        assertTimeoutPreemptively(
+            Duration.ofSeconds(5),
+            () -> assertThatExceptionOfType(JqFilterException.class).isThrownBy(() -> filter.run(root, NONE, new Results(), workspace)).actual(),
+            ". as $r | [.xs[] | $r.a, $r.l] | error on xs, a.b and l of 10^4 elements");
+    JqArray payload = (JqArray) e.value();
+    assertThat(payload.length()).as("length of the payload").isEqualTo(2 * n);
+    assertThat(((JqArray) ((JqObject) payload.get(0)).get("b")).length()).as("length of payload[0].b").isEqualTo(n);
+    assertThat(((JqArray) payload.get(1)).length()).as("length of payload[1]").isEqualTo(n);
+    for (int i = 2; i < 2 * n; i++) {
+      assertThat(payload.get(i)).as("payload[%d] is payload[%d]'s copy", i, i % 2).isSameAs(payload.get(i % 2));
+    }
+  }
+
+  @Test
+  void viewsOfTwoDocumentsAtOnePlaceAreCopiedApart() {
+    // The input [1] and the host variable $x, the root of [2] read into another Workspace, are both a document's root at
+    // tape index 0; their copies are their own: [$x, .] | error raises [[2],[1]].
+    JqEngine engine = unlimited();
+    Workspace workspace = engine.newWorkspace();
+    JqValue other = read(engine.newWorkspace(), "[2]".getBytes(UTF_8)).root();
+    JqValue root = read(workspace, "[1]".getBytes(UTF_8)).root();
+    JqFilter filter = engine.compile("[$x, .] | error", java.util.Set.of("x"));
+    Bindings bindings = Bindings.builder().put("x", other).build();
+    JqFilterException e =
+        assertThatExceptionOfType(JqFilterException.class)
+            .as("[$x, .] | error")
+            .isThrownBy(() -> filter.run(root, bindings, new Results(), workspace))
+            .actual();
+    assertThat(e.value().toJson()).as("the payload's text").isEqualTo("[[2],[1]]");
+  }
+
+  @Test
   void aKeyRepeatedThreeTimesTakesItsLastValue() {
     // jq-ref: .a | error on {"a":{"a":1,"b":2,"a":3,"a":4}} prints {"a":4,"b":2}.
     JqValue payload = payloadAfterTheNextRead(".a | error", "{\"a\":{\"a\":1,\"b\":2,\"a\":3,\"a\":4}}");
