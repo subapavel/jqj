@@ -85,15 +85,42 @@ has "step timings recorded" "^verify	" "$repo/.logs/25-steps.tsv"
 hasnt "no pit timing recorded" "^pit" "$repo/.logs/25-steps.tsv"
 order=$(grep -o 'mvnw -B -Pbench,compile-oracle verify\|test org.pitest\|check-lf\|check-trailers\|check-core\|java ' "$STUB_CALLS" | tr '\n' ' ')
 check "steps in ADR order" "$order" "mvnw -B -Pbench,compile-oracle verify check-lf check-trailers check-core "
+# #84: every step that ran prints its result and has its row, and "passed" is the last line
+steps() { cut -f1,3 "$repo/.logs/25-steps.tsv" | tr '\t\n' ': '; }
+check "green: every step recorded with its exit code (#84)" "$(steps)" "verify:0 lf:0 trailers:0 word:0 ratchet:0 "
+results=$(grep -o '^-- [a-z]*: rc [0-9]*, [0-9]* ms$' "$tmp/out" | sed 's/, [0-9]* ms$//' | tr '\n' ' ')
+check "green: a result line per step, name and rc (#84)" "$results" "-- verify: rc 0 -- lf: rc 0 -- trailers: rc 0 -- word: rc 0 -- ratchet: rc 0 "
+check "green: passed is the last line (#84)" "$(tail -n 1 "$tmp/out")" "gate-ticket: 25 passed"
+has "no require file is visible in the log (F-38, #84)" "^== require: none (ORACLE_REQUIRE unset)$" "$tmp/out"
 
+printf 'jq.test#a\n' > "$tmp/req.txt"
 : > "$STUB_CALLS"; rm -rf "$repo/.logs"
-(cd "$repo" && ORACLE_REQUIRE=/x/req.txt scripts/gate-ticket.sh 25 query-core base > "$tmp/out" 2>&1)
-has "required case file passed to the oracle" "-Doracle.require=/x/req.txt" "$STUB_CALLS"
+(cd "$repo" && ORACLE_REQUIRE=$tmp/req.txt scripts/gate-ticket.sh 25 query-core base > "$tmp/out" 2>&1)
+has "required case file passed to the oracle" "-Doracle.require=$tmp/req.txt" "$STUB_CALLS"
+has "the require file used is visible in the log (F-38, #84)" "^== require: $tmp/req.txt$" "$tmp/out"
+# #84: the variable is the only require path; a relative one is the caller's, so Maven gets it absolute
+: > "$STUB_CALLS"; rm -rf "$repo/.logs"
+(cd "$tmp" && ORACLE_REQUIRE=req.txt repo/scripts/gate-ticket.sh 25 query-core base > "$tmp/out" 2>&1)
+has "a relative require path is resolved against the caller's directory (#84)" "-Doracle.require=$tmp/req.txt" "$STUB_CALLS"
+# #84: a missing require file fails before Maven starts
+: > "$STUB_CALLS"; rm -rf "$repo/.logs"
+(cd "$repo" && ORACLE_REQUIRE=$tmp/none.txt scripts/gate-ticket.sh 25 query-core base > "$tmp/out" 2>&1; echo $? > "$tmp/rc")
+check "a missing require file fails the gate (#84)" "$(cat "$tmp/rc")" 2
+check "a missing require file: Maven never starts (#84)" "$(grep -c '^mvnw ' "$STUB_CALLS")" 0
+check "a missing require file: the last line names it (#84)" "$(tail -n 1 "$tmp/out")" \
+  "gate-ticket: 25 failed before step verify: ORACLE_REQUIRE is not a file: $tmp/none.txt"
+hasnt "a missing require file: no passed line (#84)" "passed" "$tmp/out"
+check "a missing require file: no step recorded (#84)" "$(steps)" ""
 
 export STUB_FAIL=verify:7
 check "ticket: step 1 fails, its exit code" "$(ticket 25 query-core base)" 7
 hasnt "nothing after the failing step 1" "check-lf" "$STUB_CALLS"
 has "failing step named" "verify" "$tmp/out"
+hasnt "step 1 fails: no passed line (#84)" "passed" "$tmp/out"
+check "step 1 fails: its row is the only one (#84)" "$(steps)" "verify:7 "
+has "step 1 fails: its result line (#84)" "^-- verify: rc 7, [0-9]* ms$" "$tmp/out"
+check "step 1 fails: the last line names the step and its exit code (#84)" "$(tail -n 1 "$tmp/out")" \
+  "gate-ticket: 25 step verify failed with exit code 7 (log .logs/25-verify.log)"
 
 # a failing PIT cannot stop the ticket gate: none runs (F-27)
 export STUB_FAIL=pitest:9
@@ -104,6 +131,12 @@ has "step 3 reached after step 1" "check-lf" "$STUB_CALLS"
 export STUB_FAIL=check-trailers:4
 check "ticket: step 3 trailer check fails" "$(ticket 25 query-core base)" 4
 hasnt "ratchet not reached" "ratchet.java check" "$tmp/out"
+hasnt "a later step fails: no passed line (#84)" "passed" "$tmp/out"
+check "a later step fails: every step that ran has its row (#84)" "$(steps)" "verify:0 lf:0 trailers:4 "
+results=$(grep -o '^-- [a-z]*: rc [0-9]*' "$tmp/out" | tr '\n' ' ')
+check "a later step fails: a result line per step that ran (#84)" "$results" "-- verify: rc 0 -- lf: rc 0 -- trailers: rc 4 "
+check "a later step fails: the last line names the step and its exit code (#84)" "$(tail -n 1 "$tmp/out")" \
+  "gate-ticket: 25 step trailers failed with exit code 4 (log .logs/25-trailers.log)"
 unset STUB_FAIL
 
 # no changed class: the gate runs as with changed classes
@@ -117,6 +150,10 @@ mkdir -p "$repo/ratchet/oracle"
 printf 'jq.test#a\tinterp\n' > "$repo/ratchet/oracle/jqtest.txt"
 check "ticket: step 4 ratchet fails" "$(ticket 25 query-core base)" 1
 has "ratchet failure shown" "jq.test#a" "$tmp/out"
+hasnt "the ratchet fails: no passed line (#84)" "passed" "$tmp/out"
+check "the ratchet fails: its row with rc 1 (#84)" "$(steps)" "verify:0 lf:0 trailers:0 word:0 ratchet:1 "
+check "the ratchet fails: the last line names it (#84)" "$(tail -n 1 "$tmp/out")" \
+  "gate-ticket: 25 step ratchet failed with exit code 1 (log .logs/25-ratchet.log)"
 rm "$repo/ratchet/oracle/jqtest.txt" "$repo/ratchet/oracle-listed.tmp"
 
 # step 1 runs the compile-mode oracle, so step 4 sees a ratcheted compile-mode case that now fails (F-46, #89)
