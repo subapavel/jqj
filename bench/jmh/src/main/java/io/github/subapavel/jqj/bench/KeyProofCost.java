@@ -32,7 +32,7 @@ import org.openjdk.jmh.annotations.Warmup;
  * diagnostic ({@code .[]} and {@code -c .} on a flat root object of 78 841 keys, ReaderCost's document of #82), G1, G2
  * and {@code -c .} (G6's filter) on orders at 1k, 100k and 10m, and {@code recs20}, an array of 20-key records, under
  * {@code -c .} and {@code .[]|.[]}. Not a gate scenario: no bench id of ADR-0024. {@link #main} writes the flat and
- * {@code recs20} documents for jq-ref.
+ * {@code recs20} documents for jq-ref. The results are in bench/RESULTS.md, "#85".
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -119,7 +119,7 @@ public class KeyProofCost {
     throw new IllegalArgumentException(label);
   }
 
-  /** {@code {"k000000":0,"k000001":1,…}}: ReaderCost's flat object of {@code keys} keys (#82, a01fda2). */
+  /** {@code {"k000000":0,"k000001":1,…}} and an LF: {@link ReaderCost#flat}'s object of {@code keys} keys (#82). */
   static byte[] flat(int keys) {
     StringBuilder doc = new StringBuilder(keys * 16).append('{');
     for (int i = 0; i < keys; i++) {
