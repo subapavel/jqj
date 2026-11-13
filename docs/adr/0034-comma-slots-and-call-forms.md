@@ -32,4 +32,5 @@ Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; desig
 ## Amendment (2026-11-13, ticket #65)
 
 - **A binary arithmetic operator** `l op r` (`+ - * / %`) lowers to `Bind(r, s_r, Bind(l, s_l, Intrinsic(op, [Var s_l, Var s_r])))`: the right operand is the outer loop, as jq 1.8.2 runs a C function's arguments last-first (`expand_call_arglist`). An Identity or Const operand is passed as an argument without a Bind. `-t` lowers to `Pipe(t, Intrinsic(NEGATE, []))`. The order is pinned by a differential case (`[(1,2)+(10,20)]`) recorded on jq-ref.
+- **Ticks (ADR-0008)**: an operator on two scalars ticks nothing. A string concatenation ticks once per started KiB of its result; array difference once per pair compared, stopping at the first match; `split` once per piece; object `+` once per right-hand entry; object merge `*` once per entry and once per level. Each rate is pinned by two adjacent counts (`ArithmeticStepsTest`, red at 65b717b).
 - Considered: the left operand outer (not jq's order); a binary IR node (hides the binds, as `Index` would).
