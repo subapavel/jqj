@@ -58,3 +58,4 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#70) A depth guard that counts per Ast misses nesting built outside the counted branch (value-param Binds, chain Binds); measure the built IR as the verifier walks it, and witness every child arm with its own case — PIT mutates a switch return once.
 - (#70) Deep-recursion edges depend on JVM state (JaCoCo frames ~1 KiB/level, class loading at depth); pin host stack claims in an agent-free child JVM and keep both sides of a bound pair in-suite for PIT.
 - (#70) `assertThat(thrown).isNull()` is a no-exception assertion (Tests §2); `Inlining.MARK`: no test asserts Stub text.
+- (#71) A 'Translated from jq' javadoc sentence is not the copyright header: line 1 must be the `/*` notice.
