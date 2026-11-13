@@ -4,10 +4,9 @@ import io.github.subapavel.jqj.internal.json.JsonStrings;
 import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Copies every view in a value into built values (GLOSSARY "Detach", ADR-0016, ADR-0039), so the copy outlives its
@@ -15,8 +14,9 @@ import java.util.Map;
  * container, a document's or a built one, a built container of its members' copies, an object its keys' too, in its
  * members' order. The walk keeps an explicit stack, so a deep value takes no Java stack. It runs under the host rule
  * of ADR-0016, after the run, where no budget, deadline or interrupt reaches it: it charges no bytes built and no
- * tick, and its time is linear in the value's size. A document's object is read once, its keys decoded into a map, so
- * a repeated key keeps its first position and takes its last value without the scans of {@link ObjectView#next}.
+ * tick, and its time is bounded by the value's size times the log of its widest object's keys. A document's object is
+ * read once, its keys decoded into a map ordered by their bytes, so a repeated key keeps its first position and takes
+ * its last value without the scans of {@link ObjectView#next}.
  */
 public final class Detach {
   /** The capacity of a container's first array of copies. */
@@ -127,18 +127,20 @@ public final class Detach {
 
     /**
      * A document's object, read once: each key decoded and looked up in a map of the keys so far (ObjectView: keys are
-     * one when their decoded bytes are), a new one added, a repeated one's value replaced.
+     * one when their decoded bytes are), a new one added, a repeated one's value replaced. The map is ordered by the
+     * bytes, so a lookup takes log n compares whatever the keys; a hashed map degrades to a scan per key on keys of one
+     * hash that it cannot order (second review of #68).
      */
     private void addDistinct(ObjectView object) {
       Document doc = object.doc();
       long[] tape = doc.live();
       byte[] bytes = doc.bytes();
       int end = Tape.end(tape, object.index());
-      Map<ByteBuffer, Integer> seen = new HashMap<>();
+      Map<byte[], Integer> seen = new TreeMap<>(Arrays::compare);
       for (int k = object.index() + 1; k < end; k = Tape.next(tape, k + 1)) {
         byte[] name = JsonStrings.decode(bytes, tape[k]);
         JqValue member = doc.valueAt(tape, k + 1);
-        Integer first = seen.putIfAbsent(ByteBuffer.wrap(name), length);
+        Integer first = seen.putIfAbsent(name, length);
         if (first == null) {
           add(BuiltString.of(name), member);
         } else {

@@ -16,6 +16,8 @@ import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * The shapes a detached error payload keeps (ADR-0016, ADR-0039), beside ErrorPayloadTest: containers longer than the
@@ -52,6 +54,35 @@ class DetachedPayloadShapesTest {
     JqValue payload = payloadAfterTheNextRead(".a | error", "{\"a\":{\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k1\":6}}");
     assertThat(((JqObject) payload).size()).as("size of the payload").isEqualTo(5);
     assertThat(payload.toJson()).as("the payload's text").isEqualTo("{\"k1\":6,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5}");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"aA", "Aa"})
+  void keysOfOneHashDetachInBoundedTime(String block) {
+    // Second review of #68: 2^15 keys of 15 blocks, each the given block or "BB". With "aA" they share one 31-polynomial
+    // hash of their bytes read last to first (ByteBuffer's), with "Aa" one read first to last (Arrays.hashCode's). A
+    // map that cannot order two colliding keys scans the bin for each key, 2^30 / 2 compares in all (a time witness).
+    int count = 1 << 15;
+    StringBuilder json = new StringBuilder("{");
+    for (int i = 0; i < count; i++) {
+      json.append('"');
+      for (int bit = 0; bit < 15; bit++) {
+        json.append((i >> bit & 1) == 0 ? block : "BB");
+      }
+      json.append("\":").append(i).append(i + 1 < count ? "," : "}");
+    }
+    JqEngine engine = unlimited();
+    Workspace workspace = engine.newWorkspace();
+    JqValue root = read(workspace, json.toString().getBytes(UTF_8)).root();
+    JqFilter filter = engine.compile("error");
+    JqFilterException e =
+        assertTimeoutPreemptively(
+            Duration.ofSeconds(5),
+            () -> assertThatExceptionOfType(JqFilterException.class).isThrownBy(() -> filter.run(root, NONE, new Results(), workspace)).actual(),
+            "error on a read object of 2^15 keys of one hash");
+    JqObject payload = (JqObject) e.value();
+    assertThat(payload.size()).as("size of the payload").isEqualTo(count);
+    assertThat(((JqNumber) payload.get("BB".repeat(15))).longValue()).as("payload of the last key").isEqualTo(count - 1L);
   }
 
   @Test
