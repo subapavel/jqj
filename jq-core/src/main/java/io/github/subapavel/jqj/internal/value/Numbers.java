@@ -22,8 +22,8 @@ public final class Numbers {
 
   /**
    * {@link #compare(JqNumber, JqNumber)} for Order (ADR-0037): the exact path reads both tokens whole, so there it first
-   * charges {@code state}, unless it is null, one tick per started KiB of each token; the long and double paths read a
-   * fixed number of bytes and charge nothing.
+   * charges {@code state}, unless it is null, one tick per started KiB of each token; the long and double paths charge
+   * nothing, as ADR-0037 charges the exact path only.
    */
   static int compare(RunState state, JqNumber a, JqNumber b) {
     if (a instanceof Literal x && b instanceof Literal y) {
