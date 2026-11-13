@@ -171,3 +171,6 @@ interpolation/error-in-part
 interpolation/shorthand-key
 interpolation/field-name
 interpolation/computed-key
+
+# differential: the hand-over from #66 (comment on #67): its NaN comes from #65's arithmetic and needs `as $n`.
+compare/nan-in-an-array

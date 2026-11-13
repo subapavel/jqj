@@ -33,6 +33,7 @@ import io.github.subapavel.jqj.internal.value.BuiltObject;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
 import io.github.subapavel.jqj.query.ir.Operation;
+import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.run.Charges;
 import io.github.subapavel.jqj.query.run.EvaluationException;
 import io.github.subapavel.jqj.query.run.Fn2;
@@ -55,9 +56,10 @@ import java.util.Map;
  * {@code null}; parentheses; a pipe one side of which is {@code .} alone; an array of constants joined by commas that
  * nest to the left only ({@code [(1,2),3]}, not {@code [1,(2,3)]}); and an object whose keys are names, strings or
  * constant strings and whose values are constants, folded as a construction is (a repeated key keeps its first place
- * and its last value). Nothing else folds: {@code 1|2}, {@code -1}, {@code 1?}, {@code [.]} and a key whose value or
- * key is a shorthand or a variable are known only at run time. {@code $__loc__} folds in jq too; it is not built yet, so
- * it is no constant here. An arithmetic operator on two constants folds to its result (#65, {@link #binary}), which the
+ * and its last value). {@code $__loc__} folds too, to its {@link #location} (#67, ADR-0038), and so does the pair
+ * {@code $__loc__} of an object, to the key {@code "__loc__"} and that value (jq-ref: {@code {({$__loc__}): 1}} is rc
+ * 3). Nothing else folds: {@code 1|2}, {@code -1}, {@code 1?}, {@code [.]} and an object with any other shorthand pair
+ * or a variable as a key or a value are known only at run time. An arithmetic operator on two constants folds to its result (#65, {@link #binary}), which the
  * resolver lowers to a Const too; a comparison of two constants folds to its boolean (#66), which the resolver leaves
  * to the run (design approval O6). One instance holds one compile's folds (ADR-0035 amendments, #65 third and fourth
  * reviews): each node is folded at most once, its result kept, and every fold charges one run state with the
@@ -97,6 +99,16 @@ final class ConstantKey {
    */
   static final long FOLD_BYTES = Charges.STRING + 4096;
 
+  /** The keys and the file of every {@link #location}, built once: no fold builds them. */
+  private static final JqString FILE = BuiltString.of("file");
+
+  private static final JqString LINE = BuiltString.of("line");
+
+  private static final JqString TOP_LEVEL = BuiltString.of("<top-level>");
+
+  /** The key of the pair {@code $__loc__}, which a fold builds and charges as any name key. */
+  private static final byte[] LOC_KEY = "__loc__".getBytes(StandardCharsets.UTF_8);
+
   /** The bytes all the folds of one compile may build together, the literals and the key-kind checks included: 1 MiB. */
   static final long COMPILE_BYTES = 1 << 20;
 
@@ -118,12 +130,27 @@ final class ConstantKey {
   /** The bytes of the kept folds a fold has used so far, which its own operators did not build again. */
   private long reused;
 
+  /** The filter's text, which gives a {@code $__loc__} its line. */
+  private final FilterText text;
+
   /** A node's fold: its constant, {@link #DOT} or null, and the bytes the operators of its whole fold built. */
   private record Kept(Object value, long bytes) {}
 
-  /** The folds of one compile, with the whole compile budget left: the parser makes one, the resolver uses it too. */
-  ConstantKey() {
+  /**
+   * The folds of one compile of {@code text}, with the whole compile budget left: the parser makes one, the resolver
+   * uses it too.
+   */
+  ConstantKey(FilterText text) {
+    this.text = text;
     state.begin(COMPILE_STEPS, Long.MAX_VALUE, COMPILE_BYTES, Long.MAX_VALUE);
+  }
+
+  /**
+   * jq's {@code $__loc__} on {@code line} ({@code gen_loc_object}): {@code {"file":"<top-level>","line":line}}, the line
+   * counting LF only (ADR-0038).
+   */
+  static JqValue location(int line) {
+    return new BuiltObject(new JqString[] {FILE, LINE}, new Object[] {TOP_LEVEL, LiteralNumber.ofLexeme(Integer.toString(line))});
   }
 
   /**
@@ -179,8 +206,18 @@ final class ConstantKey {
       case Ast.ArrayCons a -> array(a.body());
       case Ast.ObjectCons o -> object(o.pairs());
       case Ast.Binary b -> binary(b);
+      case Ast.Loc l -> location(l.source());
       default -> null;
     };
+  }
+
+  /**
+   * The {@code $__loc__} at {@code at}: its {@link #location}, charged as an object of two entries, whose strings are
+   * shared.
+   */
+  private JqValue location(Source at) {
+    state.chargeBuilt(Charges.CONTAINER + 2 * Charges.ENTRY);
+    return location(text.line(at.start()));
   }
 
   /** The operation of an arithmetic operator, or null for any other. */
@@ -298,7 +335,7 @@ final class ConstantKey {
 
   /**
    * {@code {pairs}}: each key a constant string and each value a constant, or none. It is charged as a construction
-   * is, a container and an entry per pair, and a name key as a string.
+   * is, a container and an entry per pair, and a name key, like the pair {@code $__loc__}'s, as a string.
    */
   private Object object(List<Ast.Pair> pairs) {
     Object[] entries = new Object[2 * pairs.size()];
@@ -307,11 +344,12 @@ final class ConstantKey {
       Object key =
           switch (pair.key()) {
             case Ast.NameKey k -> string(k.name().getBytes(StandardCharsets.UTF_8));
+            case Ast.LocKey _ -> string(LOC_KEY);
             case Ast.StringKey k -> string(k.string());
             case Ast.QueryKey k -> fold(k.query());
             default -> null;
           };
-      Object value = pair.value() == null ? null : fold(pair.value());
+      Object value = pair.key() instanceof Ast.LocKey k ? location(k.source()) : pair.value() == null ? null : fold(pair.value());
       if (!(key instanceof JqString) || !(value instanceof JqValue)) {
         return null;
       }

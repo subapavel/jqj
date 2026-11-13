@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
  * input. A FilterException from the match, the body or downstream starts alternative k + 1 while a later one remains;
  * the last one's error propagates; an error from the value propagates; a stop or a Termination returns at once.
  * Entering each alternative after the first charges one step, the first none. The toy {@code head} takes a list's first
- * element and raises on anything else, as jq's {@code .[0]} raises on a number.
+ * element and raises on anything else, as the language's {@code .[0]} raises on a number.
  *
  * <p>Shapes as in IrVerifierTest: {@code AltBind(Source, Node value, int slot, List<Alternative> alternatives,
  * List<Integer> slots, Node body)}, {@code Alternative(Node match, List<Integer> from)}.
@@ -229,7 +229,7 @@ class AltBindTest {
 
   @Test
   void aDownstreamErrorStartsTheNextAlternativeAndEarlierResultsStay() {
-    // jq-ref: [[1]] | (.[] as [$a] ?// $a | $a) | .[0] gives 1 (bind/alt-downstream-error), and
+    // The reference binary: [[1]] | (.[] as [$a] ?// $a | $a) | .[0] gives 1 (bind/alt-downstream-error), and
     // . as [$a] ?// $a | $a, ($a | .[0]) on [5] gives 5, [5], 5 (bind/alt-results-before-error-kept).
     Object x = new Object();
     List<Object> in = List.of(x);
@@ -260,7 +260,8 @@ class AltBindTest {
 
   @Test
   void anErrorFromTheValuePropagates() {
-    // jq-ref: (1, ("a"|.[0])) as [$a] ?// $a | $a gives 1, then the value's error (bind/alt-value-error-propagates).
+    // The reference binary: (1, ("a"|.[0])) as [$a] ?// $a | $a gives 1, then the value's error
+    // (bind/alt-value-error-propagates).
     Object x = new Object();
     Object fault = new Object();
     List<Object> ran = new ArrayList<>();
@@ -354,7 +355,7 @@ class AltBindTest {
 
   @Test
   void eachResultOfAMatchSetsTheGroupSlot() {
-    // jq-ref: . as {("a","b"):$v} | $v gives 1, 2 (bind/key-generator).
+    // The reference binary: . as {("a","b"):$v} | $v gives 1, 2 (bind/key-generator).
     Object p = new Object();
     Object q = new Object();
     AltBind root = chain(new Identity(AT), var(GROUP), alternative(call("both", over(p, q)), 1), alternative(never(), 2));
