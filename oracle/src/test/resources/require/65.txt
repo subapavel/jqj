@@ -3,7 +3,8 @@
 
 # jqtest: the census cases whose ticket column is S2a.15 (oracle/src/test/resources/census/jqtest.tsv, written by
 # scripts/census.java), except jq.test#5f103bd8e523 (line 1456) and jq.test#eeb224a1461b (line 1452), which need
-# term? (Try) and moved to #68's list at #64. The ones #64 already requires (they need only S2a.13 and S2a.14) stay.
+# term? (Try) and moved to #68's list at #64, and man.test#795c6f448225 ((1 / .)?), which needs Try too and went to #68
+# by the architect's ruling on #65. The ones #64 already requires (they need only S2a.13 and S2a.14) stay.
 jq.test#000784afc854
 jq.test#0032ccba96bc
 jq.test#0352cf801e48
@@ -68,7 +69,6 @@ man.test#4c503ec50e58
 man.test#4f52aef61f90
 man.test#57fce177cbff
 man.test#63bdfbca2583
-man.test#795c6f448225
 man.test#8e68b00c42c8
 man.test#b36768b23462
 man.test#b6b00326b15a

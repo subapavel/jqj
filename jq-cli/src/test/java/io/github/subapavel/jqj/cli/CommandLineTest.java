@@ -169,12 +169,17 @@ class CommandLineTest {
   @Test
   void aDashWithoutALetterIsTheFilter() {
     // observed 2026-11-11: jq-ref -_ .a in.json -> rc 3, "_/0 is not defined"; printf '{"a":1}\n' | jq-ref -c -1 -> -1.
-    // Each is the filter, which jqj does not compile yet (a call and a negation): exit code 3, not 2.
-    for (List<String> args : List.of(List.of("-_", "in.json"), List.of("-c", "-1"))) {
-      Outcome o = run(args, "{\"a\":1}\n");
-      assertThat(o.rc()).as("exit code of %s", args).isEqualTo(3);
-      assertThat(o.err()).as("stderr of %s", args).startsWith(MARK);
-    }
+    // Each is the filter. jqj does not compile the call yet: exit code 3, not 2.
+    List<String> call = List.of("-_", "in.json");
+    Outcome stub = run(call, "{\"a\":1}\n");
+    assertThat(stub.rc()).as("exit code of %s", call).isEqualTo(3);
+    assertThat(stub.err()).as("stderr of %s", call).startsWith(MARK);
+    // #65 builds the negation. Observed 2026-11-13: printf '{"a":1}\n' | jq-ref -c -1 -> "-1" and an LF, rc 0.
+    List<String> negation = List.of("-c", "-1");
+    Outcome n = run(negation, "{\"a\":1}\n");
+    assertThat(n.rc()).as("exit code of %s", negation).isZero();
+    assertThat(n.out()).as("stdout of %s", negation).isEqualTo("-1\n");
+    assertThat(n.err()).as("stderr of %s", negation).isEmpty();
     // observed 2026-11-12 (#62): jq-ref - . -> rc 3, "jq: error: syntax error, unexpected end of file at <top-level>,
     // line 1, column 1:"; jq-ref -é in.json -> rc 3, "jq: error: syntax error, unexpected INVALID_CHARACTER at
     // <top-level>, line 1, column 2:"; each then "jq: 1 compile error". The filter's syntax error, not "Unknown
