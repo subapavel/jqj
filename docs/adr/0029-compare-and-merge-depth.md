@@ -27,3 +27,11 @@ No earlier ADR covered them.
   change what `==` returns, and jq's check-1 cases would depend on a setting.
 - **Recursive Java code:** simplest, but on the 512 KiB default stack a deep compare ends as a STACK
   termination where jq returns a value or a catchable error.
+
+## Correction (2026-11-13, tickets #65 and #66)
+
+The level counts above were not each recorded. The #65 and #66 reds recorded them on jq-ref 1.8.2, and those cases bind:
+- `==` and `<` on nested arrays: 10 000 levels compare, and 10 001 raise.
+- On objects, the key list sits one level deeper (`jvp_cmp`), so an empty object at depth 10 000 already raises.
+- `*` merges 10 000 levels around `{}` and raises at 10 001; around a non-object innermost value it merges 10 001 and raises at 10 002.
+jq-ref parses only 5 000 nested objects from a document, so the object boundaries are pinned by JUnit over built values and by #69's `reduce` cases.
