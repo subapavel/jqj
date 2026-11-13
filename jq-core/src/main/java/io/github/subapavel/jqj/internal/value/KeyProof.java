@@ -89,48 +89,48 @@ public final class KeyProof {
   private static int[] prove(RunState state, Document doc, long[] tape, int index, long entries, boolean written) {
     int end = Tape.end(tape, index);
     int n = (int) (entries >>> 1);
-    // Each tag-6 key is decoded once, into its ordinal's place, when the proof first needs its bytes (#85 review).
-    Keys keys = new Keys(tape, doc.bytes(), (entries & 1) != 0 ? new byte[n][] : null);
+    byte[] bytes = doc.bytes();
+    // Each tag-6 key is decoded once, into its ordinal's place, when the proof first needs its bytes (#85 review); with
+    // no tag-6 key there is nothing to keep, and no proof allocates for a key's bytes.
+    byte[][] texts = (entries & 1) != 0 ? new byte[n][] : null;
     if (n <= PAIRWISE) {
-      return pairwise(state, keys, index, end, n);
+      return pairwise(state, tape, bytes, texts, index, end, n);
     }
-    int[] hashed = hashed(state, keys, index, end, n);
-    return hashed != OVER ? hashed : sorted(state, keys, index, end, n, written);
+    int[] hashed = hashed(state, tape, bytes, texts, index, end, n);
+    return hashed != OVER ? hashed : sorted(state, tape, bytes, texts, index, end, n, written);
   }
 
   /** What {@link #hashed} gives when its probe budget runs out. */
   private static final int[] OVER = new int[0];
 
   /**
-   * The keys of one proof: a tag-5 key's decoded bytes are the document's, a tag-6 key's are decoded once, by its
-   * ordinal, the first time the proof reads them; {@code texts} is null when the object has no tag-6 key.
+   * The array the decoded bytes of key entry {@code ordinal}, at tape index {@code k}, lie in: a tag-5 key's are the
+   * document's {@code bytes}, a tag-6 key's its place in {@code texts}, decoded there the first time the proof reads
+   * them; {@code texts} is null when the object has no tag-6 key.
    */
-  private record Keys(long[] tape, byte[] bytes, byte[][] texts) {
-    /** The array the decoded bytes of key entry {@code ordinal}, at tape index {@code k}, lie in. */
-    byte[] text(int ordinal, int k) {
-      long entry = tape[k];
-      if (Tape.tag(entry) == Tape.STRING) {
-        return bytes;
-      }
-      byte[] text = texts[ordinal];
-      if (text == null) {
-        text = JsonStrings.decode(bytes, entry);
-        texts[ordinal] = text;
-      }
-      return text;
+  private static byte[] text(long[] tape, byte[] bytes, byte[][] texts, int ordinal, int k) {
+    long entry = tape[k];
+    if (Tape.tag(entry) == Tape.STRING) {
+      return bytes;
     }
+    byte[] text = texts[ordinal];
+    if (text == null) {
+      text = JsonStrings.decode(bytes, entry);
+      texts[ordinal] = text;
+    }
+    return text;
+  }
 
-    /** Where the decoded bytes of the key at tape index {@code k} start in its {@link #text}. */
-    int from(int k) {
-      long entry = tape[k];
-      return Tape.tag(entry) == Tape.STRING ? Tape.off(entry) + 1 : 0;
-    }
+  /** Where the decoded bytes of the key at tape index {@code k} start in its {@link #text}. */
+  private static int from(long[] tape, int k) {
+    long entry = tape[k];
+    return Tape.tag(entry) == Tape.STRING ? Tape.off(entry) + 1 : 0;
+  }
 
-    /** Where the decoded bytes of the key at tape index {@code k} end in {@code text}, its {@link #text}. */
-    int to(byte[] text, int k) {
-      long entry = tape[k];
-      return Tape.tag(entry) == Tape.STRING ? Tape.off(entry) + Tape.span(entry) - 1 : text.length;
-    }
+  /** Where the decoded bytes of the key at tape index {@code k} end in {@code text}, its {@link #text}. */
+  private static int to(long[] tape, byte[] text, int k) {
+    long entry = tape[k];
+    return Tape.tag(entry) == Tape.STRING ? Tape.off(entry) + Tape.span(entry) - 1 : text.length;
   }
 
   /** The members of {@code object} for a filter's walk: a document's after its proof, a built one's as they are. */
@@ -145,21 +145,20 @@ public final class KeyProof {
    * The plan of up to {@link #PAIRWISE} key entries: each compared with the distinct keys before it, kept in the
    * scratch as a pair of its key's first place and its last value, and after the pairs the ordinal of each first place.
    */
-  private static int[] pairwise(RunState state, Keys keys, int index, int end, int n) {
-    long[] tape = keys.tape();
+  private static int[] pairwise(RunState state, long[] tape, byte[] bytes, byte[][] texts, int index, int end, int n) {
     int[] pairs = state.ints(3 * n);
     int size = 0;
     boolean repeated = false;
     int ordinal = 0;
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
-      byte[] key = keys.text(ordinal, k);
-      int from = keys.from(k);
-      int to = keys.to(key, k);
+      byte[] key = text(tape, bytes, texts,ordinal, k);
+      int from = from(tape,k);
+      int to = to(tape,key, k);
       int at = 0;
       while (at < size) {
         int other = pairs[2 * at];
-        byte[] otherKey = keys.text(pairs[2 * n + at], other);
-        if (Arrays.equals(key, from, to, otherKey, keys.from(other), keys.to(otherKey, other))) {
+        byte[] otherKey = text(tape, bytes, texts,pairs[2 * n + at], other);
+        if (Arrays.equals(key, from, to, otherKey, from(tape,other), to(tape,otherKey, other))) {
           break;
         }
         at++;
@@ -182,8 +181,7 @@ public final class KeyProof {
    * holds the table's slots first, each 0 when free or one more than the number of a distinct key, then a pair per
    * distinct key, its first place and its last value, then the ordinal of each distinct key's first place.
    */
-  private static int[] hashed(RunState state, Keys keys, int index, int end, int n) {
-    long[] tape = keys.tape();
+  private static int[] hashed(RunState state, long[] tape, byte[] bytes, byte[][] texts, int index, int end, int n) {
     int slots = slots(n);
     int mask = slots - 1;
     int[] scratch = state.ints(slots + 3 * n);
@@ -194,9 +192,9 @@ public final class KeyProof {
     boolean repeated = false;
     int ordinal = 0;
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
-      byte[] key = keys.text(ordinal, k);
-      int from = keys.from(k);
-      int to = keys.to(key, k);
+      byte[] key = text(tape, bytes, texts,ordinal, k);
+      int from = from(tape,k);
+      int to = to(tape,key, k);
       int slot = hash(key, from, to) & mask;
       for (;;) {
         int held = scratch[slot];
@@ -211,9 +209,9 @@ public final class KeyProof {
           break;
         }
         int other = scratch[slots + 2 * held - 2];
-        byte[] otherKey = keys.text(scratch[ordinals + held - 1], other);
-        int otherFrom = keys.from(other);
-        int otherTo = keys.to(otherKey, other);
+        byte[] otherKey = text(tape, bytes, texts,scratch[ordinals + held - 1], other);
+        int otherFrom = from(tape,other);
+        int otherTo = to(tape,otherKey, other);
         budget -= to - from == otherTo - otherFrom ? Math.max(1, kibibytes(to - from)) : 1;
         if (budget < 0) {
           return OVER;
@@ -235,8 +233,7 @@ public final class KeyProof {
    * then their ordinals, sorted stably by their keys' bytes, then the merge's other half, which afterwards holds, at the
    * ordinal of each distinct key's first place, the tape index of its last value, and 0 at a repeat's.
    */
-  private static int[] sorted(RunState state, Keys keys, int index, int end, int n, boolean written) {
-    long[] tape = keys.tape();
+  private static int[] sorted(RunState state, long[] tape, byte[] bytes, byte[][] texts, int index, int end, int n, boolean written) {
     int[] scratch = state.ints(3 * n);
     int i = 0;
     for (int k = index + 1; k < end; k = Tape.next(tape, k + 1)) {
@@ -250,7 +247,7 @@ public final class KeyProof {
       for (int lo = 0; lo < n; lo += 2 * width) {
         int mid = Math.min(lo + width, n);
         int hi = (int) Math.min((long) lo + 2 * width, n);
-        merge(state, keys, scratch, from, to, lo, mid, hi, written);
+        merge(state, tape, bytes, texts,scratch, from, to, lo, mid, hi, written);
       }
       int merged = to;
       to = from;
@@ -263,7 +260,7 @@ public final class KeyProof {
     while (start < n) {
       int first = scratch[from + start];
       int next = start + 1;
-      while (next < n && compare(state, keys, scratch, first, scratch[from + next], written) == 0) {
+      while (next < n && compare(state, tape, bytes, texts,scratch, first, scratch[from + next], written) == 0) {
         next++;
       }
       scratch[to + first] = scratch[scratch[from + next - 1]] + 1;
@@ -289,14 +286,14 @@ public final class KeyProof {
    * Merges the sorted runs of ordinals {@code [lo, mid)} and {@code [mid, hi)} at {@code from} into {@code to}: the left
    * run's ordinal first unless the right one's key comes strictly before it, so equal keys keep their source order.
    */
-  private static void merge(RunState state, Keys keys, int[] scratch, int from, int to, int lo, int mid, int hi, boolean written) {
+  private static void merge(RunState state, long[] tape, byte[] bytes, byte[][] texts, int[] scratch, int from, int to, int lo, int mid, int hi, boolean written) {
     int i = lo;
     int j = mid;
     int k = lo;
     while (i < mid && j < hi) {
       int left = scratch[from + i];
       int right = scratch[from + j];
-      if (compare(state, keys, scratch, left, right, written) > 0) {
+      if (compare(state, tape, bytes, texts,scratch, left, right, written) > 0) {
         scratch[to + k++] = right;
         j++;
       } else {
@@ -312,15 +309,15 @@ public final class KeyProof {
    * The order of the keys of ordinals {@code a} and {@code b}, whose tape indices {@code scratch} holds at those places,
    * by their unsigned decoded bytes: one sort compare.
    */
-  private static int compare(RunState state, Keys keys, int[] scratch, int a, int b, boolean written) {
+  private static int compare(RunState state, long[] tape, byte[] bytes, byte[][] texts, int[] scratch, int a, int b, boolean written) {
     int x = scratch[a];
     int y = scratch[b];
-    byte[] p = keys.text(a, x);
-    byte[] q = keys.text(b, y);
-    int pf = keys.from(x);
-    int pt = keys.to(p, x);
-    int qf = keys.from(y);
-    int qt = keys.to(q, y);
+    byte[] p = text(tape, bytes, texts,a, x);
+    byte[] q = text(tape, bytes, texts,b, y);
+    int pf = from(tape,x);
+    int pt = to(tape,p, x);
+    int qf = from(tape,y);
+    int qt = to(tape,q, y);
     int ticks = Math.max(1, kibibytes(Math.min(pt - pf, qt - qf)));
     if (written) {
       state.tickWritten(ticks);
