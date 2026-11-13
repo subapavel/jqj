@@ -34,13 +34,13 @@ results.
 In jq, `break $l` raises the error `{"__jq":n}`, where `n` is a per-process label counter. A `try`,
 a `?` or a `?//` around it can catch it. In jqj a break is a stop signal and no catch set holds it:
 
-| filter | jq 1.8.2 | jqj |
-| --- | --- | --- |
-| `[label $f \| 1, (try (break $f) catch .), 2]` | `[1,{"__jq":0},2]` | `[1]` |
-| `[label $f \| 1, (break $f)?, 2]` | `[1,2]` | `[1]` |
-| `[[1]] \| [first(.[] as [$a] ?// $a \| $a)]` | `[1,[1]]` | `[1]` |
-| `[label $f \| 1, error({"__jq":0}), 2]` | `[1]` (a forged error breaks) | error `{"__jq":0}` |
-| `label $a \| label $b \| try (break $b) catch .`, inputs `1`, `2` | `{"__jq":1}`, `{"__jq":3}` | nothing |
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| `control/deviation-try-break` (`deviation break-not-error`) | `[label $f \| 1, (try (break $f) catch .), 2]` | `[1,{"__jq":0},2]` | `[1]` |
+| `control/deviation-postfix-break` (`deviation break-not-error`) | `[label $f \| 1, (break $f)?, 2]` | `[1,2]` | `[1]` |
+| `control/deviation-altbind-break` (`deviation break-not-error`) | `[label $l \| [[1]] \| .[] as [$a] ?// $a \| $a, break $l]` | `[1,[1]]` | `[1]` |
+| `control/deviation-forged-break` (`deviation break-not-error`) | `[label $f \| 1, error({"__jq":0}), 2]` | `[1]` (a forged error breaks) | error `{"__jq":0}` |
+| none yet | `label $a \| label $b \| try (break $b) catch .`, inputs `1`, `2` | `{"__jq":1}`, `{"__jq":3}` | nothing |
 
 Reason: `first`, `limit` and `isempty` keep at most one result even when their argument contains a
 `?//`, and an embedded Workspace cannot reproduce a counter that grows across inputs. jq's own test
@@ -141,6 +141,30 @@ jqj accepts 127 parentheses, brackets or objects and 509 pipes, `-` or `try`. Re
 descent (ADR-0032), so its depth is Java stack, and the engine starts no thread (ADR-0017). 9994 parentheses need
 about 20 MB of stack; 512 levels fit a 512 KiB stack (ADR-0017's `stackBytes`) with about a third to spare.
 
+## Huge constant keys (ADR-0035, issue #65)
+
+jq folds a computed object key whole at parse time, so a key that folds to an array or an object is its compile
+error, rc 3, however much the fold builds. jqj folds each node of a filter at most once, and every fold of one
+compile, the key checks and the literals a fold builds included, shares one budget of 1 MiB of bytes built and 2^20
+steps (ADR-0035, bd34167, 31aca88). A key the budget does not hold is left to the run, which raises the same text
+with rc 5 when it reaches the key, and gives the filter's other outputs, rc 0, when it never does. When another key
+of the same filter already failed its check, the compile still fails with rc 3, one error short. Both sides are
+recorded on 1.8.2. The bound's value is pinned by the edge pair `constant-key-cap/check-edge-under` (1048540 bytes
+built, rc 3 as in jq) and `constant-key-cap/check-edge-over` (1048589 bytes, 13 past the bound, the first row below);
+jq-core HugeConstantKeyTest pins that a compile past the bound allocates no gigabyte, and the compile budget's bytes,
+steps and literal charges:
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| `constant-key-cap/check-edge-over` (`deviation huge-constant-keys`) | `{(("x"*21395)/"x"):1}` | rc 3, `Cannot use array (["","","","","","","","",...]) as object key` at column 3 | rc 5, the same text at run time |
+| `constant-key-cap/huge-split` (`deviation huge-constant-keys`) | `{(("x"*2000000)/"x"):1}` | rc 3, the same text | rc 5, the same text at run time |
+| `constant-key-cap/check-whole-fold` (`deviation huge-constant-keys`) | `{([("x"*1000000),("x"*1000000)]):1}` | rc 3, `Cannot use array (["xxxxxxxxxxxxxxxxxxxxxxx...]) as object key` | rc 5, the same text at run time |
+| `constant-key-cap/check-after-the-compile-budget` (`deviation huge-constant-keys`) | `{(("x"*21394)/"x"):1},{(("x"*5000)/"x"):1}` | rc 3, `Cannot use array` at columns 3 and 25, `jq: 2 compile errors` | rc 3, the error at column 3 only, `jq: 1 compile error` |
+| `constant-key-cap/unreached-huge-key` (`deviation huge-constant-keys`) | `1, (empty \| {(("x"*2000000)/"x"):1})` | rc 3, `Cannot use array (["","","","","","","","",...]) as object key` at column 15 | rc 0, `1` |
+
+Reason: an untrusted filter such as `{(("x"*1e9)/"x"):1}` would otherwise make the compile allocate gigabytes, where
+no budget applies (ADR-0035). A key below the bound keeps jq's rc 3 (`constant-key-cap/split`).
+
 ## `$JQ_BUILD_CONFIGURATION` (ADR-0017, issue #13)
 
 jq prints its configure string; jqj prints its own build string.
@@ -189,6 +213,70 @@ jq-ref compiles 10 921 commas (`depth/comma-10921`, matched) and rejects one mor
 function's code must fit 65 536 bytes. jqj compiles to an IR and an interpreter tree with no such limit, and a long
 chain is bounded at run time by the step budget instead (one tick per right branch, F-32; jq-core
 CommaChainTest pins chains of 10⁴ and 10⁵).
+
+## Long path chains (F-42, F-44, issue #70)
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| jq-core `LongPathChainTest` | `.a.a…`, 10⁵ steps of `.a`, on `null` | rc 3, `jq: error: function compiled to 300002 bytes which is too long` | `null`, on a 512 KiB stack |
+| jq-core `LongPathChainTest` | `.[0][0]…`, 10⁵ steps of `[0]`, on `null` | rc 3, the same message | `null`, on a 512 KiB stack |
+
+jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) prints `null` for 21 844 steps of `.a` and for 21 844
+of `[0]`, and rejects one more of either with the bytecode limit of "Long comma chains". jqj lowers a postfix chain
+by a loop and pipes a chain of more than 64 nodes balanced (`Resolver.PIPE_CHAIN`); a run of more than 512 steps of
+one result or none (field reads, constant indexes and constant slices) becomes one step that takes them in turn
+(F-44). Its cost in ticks is the nested chain's. `LongPathChainTest` pins 10⁵ steps of each of `.a`, `[0]`, `["k"]`,
+`[1:2]`, `[0]??`, `[]?` and `[]` on a 512 KiB stack (ADR-0017's `stackBytes`), 21 844 and 10⁵ steps of `.a` on the
+test thread, and the ticks of the fused and balanced chains. ResolverTest pins that 10⁵ indexes by a variable,
+`[$k]`, are piped balanced, 19 levels deep. A step whose key or bounds are computed, such as `[.a]`, `[.a:]` or
+`."a\(.b)"`, binds them around the chain before it, so such a chain is as deep as it is long ("IR depth").
+
+## Long definition runs (F-44, issue #70)
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| jq-core `LongDefRunTest` | `def f0: 0; …; def f9992: 9992; [f0, f9992]`, 9 993 definitions, on `null` | rc 3, `jq: error: memory exhausted at <top-level>, line 1, column 167660` | `[0,9992]`, rc 0 |
+
+jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) prints `[0,9991]` for 9 992 such definitions and
+rejects one more, rc 3. jqj compiles past that count: `LongDefRunTest` pins 9 993 and 10⁵ definitions compiling
+and running on a 512 KiB stack.
+
+## IR depth (F-44, ADR-0040, issue #70)
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| jq-core `IrDepthTest` | `def f1: [[…[.]…]]; def f2: [[…[f1]…]]; …`, 100 brackets each, 512 brackets around `.` in all: 513 levels, on `null` | 512 nested arrays around `null`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | the same with 30 000 brackets: 30 001 levels | rc 0, printed 10 001 arrays deep and then `<skipped: too deep>` | a Stub |
+| jq-core `IrDepthTest` | `def g1: …; …; def g5: …;` as above, 500 brackets in all, then `def v1($a): g5; def v2($a): v1(.); …; v500(.)`: 500 nested expansions, each binding `$a` | 500 nested arrays around `null`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `.[.a:][.a:]…`, 2 000 steps, on `null` | `null`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `.[.a][.a]…`, 10 000 steps, on `null` | rc 5, `jq: error (at <unknown>): Cannot index null with null (null)` | a Stub |
+| jq-core `IrDepthTest` | `.a+.a+…`, 257 terms, on `null` | `null`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `.a*.a*…`, 257 terms, on `null` | rc 5, `jq: error (at <unknown>): null (null) and null (null) cannot be multiplied` | a Stub |
+| jq-core `IrDepthTest` | `1 as $x \| $x+$x+…`, 600 terms | `600`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `.a and .a and …`, 600 terms, on `null` | `false`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `.a or .a or …`, 600 terms, on `null` | `false`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `{k0: .a, k1: .a, …}`, 600 pairs, on `null` | the object of 600 null values, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `{k0, k1, …}`, 600 keys, on `null` | the same object, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `{"a": "k"} \| {(.a): 1, (.a): 1, …}`, 300 pairs | `{"k":1}`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `"\(.a)\(.a)…"`, 600 interpolations, on `null` | the string of 600 `null`s, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `. as [$a0, $a1, …] \| 1`, 600 variables, on `null` | `1`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `. as {k0: $a0, k1: $a1, …} \| 1`, 600 keys, on `null` | `1`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `. as {$a0, $a1, …} \| 1`, 600 variables, on `null` | `1`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `def f($a0; $a1; …): 1; f(1; 1; …)`, 600 value parameters | `1`, rc 0 | a Stub |
+
+jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) compiles every row and gives its result. jqj stubs a
+filter of more than `Resolver.MAX_IR_DEPTH` = 512 levels of built IR, the leaf counted, as it stubs the 512th nested
+expansion (ADR-0040 "Inline cap"). The depth is the whole IR's, measured once the lowering is done and wherever the
+Resolver built a node (ADR-0040 "What counts"): an Ast's own node, the Bind of each value parameter around an
+expansion's body, the Bind of a computed key or bound around the chain before it, and the Pipe trees of a chain. So
+the bound stubs a construct whose IR is as deep as it is wide: an operator between two filters binds both, two levels
+a term, and one between variables; `and` and `or` are a level a term; an object's computed value is a level and its
+computed key two; an interpolation, a pattern's variable and a value parameter are a level each. Issue #86 is to
+lower left-associative operator chains without recursion. The parser's 512 nesting levels bound one body ("Parse
+depth"); definitions nest one body in another, so without the bound the IR, and the Resolver's recursion over it,
+would be as deep as the inline cap lets them. 30 001 levels overflowed a 512 KiB stack (ADR-0017's `stackBytes`).
+`IrDepthTest` pins 512 levels running and 513, 30 001 levels and the 500 nested expansions a Stub on a 512 KiB stack
+in a fresh JVM, and every row a Stub on a 16 MiB stack. Spec 2b's calls revisit the bound.
 
 ## Array length limit (ADR-0035, issue #64)
 

@@ -13,6 +13,7 @@ import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -126,10 +127,22 @@ class LiteralEdgesTest {
   }
 
   @Test
-  void callsOfConstantsAndFormatStringsAreStubs() {
-    // jq-ref -n 'true(1)' -> "true/1 is not defined" and 'foo' -> "foo/0 is not defined", rc 3; '@text "a"' -> "a"
-    // and '@base64' -> "bnVsbA==", rc 0. A call, another name, a format string and another format are not built in #61.
-    for (String text : new String[] {"true(1)", "foo", "@text \"a\"", "@base64"}) {
+  void callsOfConstantsAreNotDefinedAndFormatStringsAreStubs() {
+    // jq-ref 1.8.2, observed 2026-11-13 with -n: 'true(1)' and 'foo' give rc 3 and exactly these blocks. Since #70 a
+    // call that binds nowhere is jq's compile error (ADR-0040): a constant called with arguments, and another name.
+    Map<String, String> notDefined =
+        Map.of(
+            "true(1)", "jq: error: true/1 is not defined at <top-level>, line 1, column 1:\n    true(1)\n    ^^^^",
+            "foo", "jq: error: foo/0 is not defined at <top-level>, line 1, column 1:\n    foo\n    ^^^");
+    for (Map.Entry<String, String> e : notDefined.entrySet()) {
+      JqCompileException error =
+          assertThatExceptionOfType(JqCompileException.class).as("compile of %s", e.getKey()).isThrownBy(() -> ENGINE.compile(e.getKey())).actual();
+      assertThat(error.blocks()).as("blocks of %s", e.getKey()).containsExactly(e.getValue());
+      assertThat(error.getMessage()).as("message of %s", e.getKey()).isEqualTo(e.getValue() + "\njq: 1 compile error");
+    }
+    // jq-ref -n '@text "a"' -> "a" and '@base64' -> "bnVsbA==", rc 0. A format string and another format are not built
+    // in #61. #67 lowers a format string, so its entry ends with | .., which still stubs.
+    for (String text : new String[] {"@text \"a\" | ..", "@base64"}) {
       assertThatExceptionOfType(JqCompileException.class)
           .as("compile of %s", text)
           .isThrownBy(() -> ENGINE.compile(text))

@@ -31,7 +31,7 @@ public final class IntrinsicManyOp extends Op {
     }
     for (long at = many.first(state, in, values); at != Many.END; at = many.next(state, in, values, at)) {
       state.tick();
-      if (!out.emit(many.value(state, in, at))) {
+      if (!out.emit(many.value(state, in, values, at))) {
         return false;
       }
     }
