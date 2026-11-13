@@ -98,6 +98,16 @@ _Avoid_: accumulator (a kind of Hold), fold (that is parse-time).
 **State slot**:
 The slot a Reduce or Foreach keeps its loop state in. Its one Advance takes the value out, leaving null, and stores each update result back (ADR-0041).
 
+**Native table**:
+Every builtin signature jq writes in C or bytecode, plus jqj's replacing natives, each built or unbuilt; looked up after the user's definitions and before the prelude (ADR-0042).
+
+**Unbuilt native**:
+An entry of the native table that its spec has not built yet. A call binds, and lowering it is a Stub (ADR-0042).
+_Avoid_: missing builtin.
+
+**Replaced definition**:
+A prelude definition whose name and arity a native also has; the native wins (F-31, ADR-0042).
+
 **Pattern**:
 The left side of `as`, which takes a value apart into variables: `$name`, an array pattern or an object pattern. An absent part is null; a non-container part raises (ADR-0038).
 _Avoid_: matcher (jq's internal word).
