@@ -121,10 +121,12 @@ class SyntaxErrorTest {
       assertThat(e.blocks()).as("blocks of %s", show(text)).containsExactly(NOT_GIVEN);
     }
     // Witnesses: a definition followed by a filter is a program (jq-ref 1.8.2, observed 2026-11-12: 'def f: 1; .' on
-    // null -> null, rc 0), here a Stub until #70 lowers def; and . alone compiles.
+    // null -> null, rc 0), which compiles since #70 lowers def; one followed by .., which still stubs, gets past the
+    // not-given check to the Stub; and . alone compiles.
+    assertThat(ENGINE.compile("def f: 1; .")).as("compile of def f: 1; .").isNotNull();
     assertThatExceptionOfType(JqCompileException.class)
-        .as("compile of def f: 1; .")
-        .isThrownBy(() -> ENGINE.compile("def f: 1; ."))
+        .as("compile of def f: 1; ..")
+        .isThrownBy(() -> ENGINE.compile("def f: 1; .."))
         .withMessageStartingWith(MARK);
     assertThat(ENGINE.compile(".")).as("compile of .").isNotNull();
   }
