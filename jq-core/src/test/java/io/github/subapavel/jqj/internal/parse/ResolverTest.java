@@ -238,4 +238,37 @@ class ResolverTest {
       assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
     }
   }
+
+  /**
+   * #68's lowerings (ADR-0039), the positive witnesses of the entries that left the Stub lists above: an elif is the If
+   * of its else and a missing else an Identity; {@code try} without {@code catch} and {@code f?} take {@code empty} as
+   * their handler, a {@code ?} spanning its target; {@code error(f)} is {@code f | error} at the call's Source; a Break
+   * names the innermost Label of its name, and a label's name is apart from a variable's. jq-ref 1.8.2, observed
+   * 2026-11-13 with -nc: {@code [1 as $f | label $f | $f, break $f, 2]}, {@code [label $f | label $f | 1, break $f, 2]}
+   * and {@code [label $a | label $b | 1, break $a, 2]} each give [1], {@code [if false then 1 end]} [null],
+   * {@code [(1, 2)?]} [1,2] and {@code [try error("x") catch .]} ["x"].
+   */
+  @Test
+  void controlFlowLowersToItsIr() {
+    Map<String, String> shapes =
+        Map.ofEntries(
+            Map.entry("if true then 1 else 2 end", "(if true[3,7) then 1[13,14) else 2[20,21))"),
+            Map.entry("if false then 1 end", "(if false[3,8) then 1[14,15) else .[0,19))"),
+            Map.entry(
+                "if false then 1 elif true then 2 else 3 end",
+                "(if false[3,8) then 1[14,15) else (if true[21,25) then 2[31,32) else 3[38,39)))"),
+            Map.entry("try 1 catch 2", "(try 1[4,5) catch 2[12,13))"),
+            Map.entry("try 1", "(try 1[4,5) catch empty[0,5))"),
+            Map.entry("1?", "(try 1[0,1) catch empty[0,2))"),
+            Map.entry("(1, 2)?", "(try (1[1,2), 2[4,5)) catch empty[0,7))"),
+            Map.entry("error", "error[0,5)"),
+            Map.entry("try error(\"x\") catch .", "(try (\"x\"[10,13) | error[4,14)) catch .[21,22))"),
+            Map.entry("label $f | break $f", "(label $0 | break $0[11,19))"),
+            Map.entry("label $f | label $f | break $f", "(label $0 | (label $1 | break $1[22,30)))"),
+            Map.entry("label $a | label $b | break $a", "(label $0 | (label $1 | break $0[22,30)))"),
+            Map.entry("1 as $f | label $f | $f, break $f", "(1[0,1) as $0 | (label $1 | ($0, break $1[25,33))))"));
+    for (Map.Entry<String, String> e : shapes.entrySet()) {
+      assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
+    }
+  }
 }
