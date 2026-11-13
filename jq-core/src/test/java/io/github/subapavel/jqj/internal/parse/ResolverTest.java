@@ -8,12 +8,14 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.github.subapavel.jqj.JqCompileException;
-import io.github.subapavel.jqj.internal.op.FieldRun;
+import io.github.subapavel.jqj.internal.op.StepRun;
+import io.github.subapavel.jqj.query.ir.Bind;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
+import io.github.subapavel.jqj.query.ir.Try;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -389,19 +391,59 @@ class ResolverTest {
   }
 
   /**
-   * F-42: a run of {@link Resolver#FIELD_RUN} field reads stays a Pipe of its reads; one more is one FieldRun, named
-   * and spanning as the reads together. LongPathChainTest runs the fused run.
+   * F-42, F-44: a run of {@link Resolver#STEP_RUN} steps of one result or none stays a Pipe of its steps; one more is
+   * one StepRun, named by and spanning the steps' text. Field reads, constant indexes and constant slices make such a
+   * run; an iterate ends it. LongPathChainTest runs the fused runs.
    */
   @Test
-  void aRunOfFieldReadsPastTheParseDepthIsOneStep() {
-    String kept = ".a".repeat(Resolver.FIELD_RUN);
-    assertThat(ir(kept)).as("IR of %d reads", Resolver.FIELD_RUN).isInstanceOf(Pipe.class);
-    String fused = ".a".repeat(Resolver.FIELD_RUN + 1);
+  void aRunOfStepsOfOneResultPastTheParseDepthIsOneStep() {
+    assertThat(Resolver.STEP_RUN).as("the longest run kept, the parser's nesting bound").isEqualTo(512);
+    String kept = ".a".repeat(Resolver.STEP_RUN);
+    assertThat(ir(kept)).as("IR of %d reads", Resolver.STEP_RUN).isInstanceOf(Pipe.class);
+    String fused = ".a".repeat(Resolver.STEP_RUN + 1);
     Node run = ir(fused);
-    assertThat(run).as("IR of %d reads", Resolver.FIELD_RUN + 1).isInstanceOf(Intrinsic.class);
-    assertThat(shape(run)).as("shape of %d reads", Resolver.FIELD_RUN + 1).isEqualTo(fused + "[0," + fused.length() + ")");
-    assertThat(((Intrinsic) run).op().form()).as("step of %d reads", Resolver.FIELD_RUN + 1).isInstanceOf(FieldRun.class);
-    // The run is the field reads only: a step of another kind ends it, and the reads after it start a new one.
-    assertThat(shape(ir(fused + "[0]"))).as("shape of %d reads and an index", Resolver.FIELD_RUN + 1).isEqualTo("(" + fused + "[0," + fused.length() + ") | .[k](0)[" + fused.length() + "," + (fused.length() + 3) + "))");
+    assertThat(run).as("IR of %d reads", Resolver.STEP_RUN + 1).isInstanceOf(Intrinsic.class);
+    assertThat(shape(run)).as("shape of %d reads", Resolver.STEP_RUN + 1).isEqualTo(fused + "[0," + fused.length() + ")");
+    assertThat(((Intrinsic) run).op().form()).as("step of %d reads", Resolver.STEP_RUN + 1).isInstanceOf(StepRun.class);
+    // Constant indexes and slices on the leading dot, which the run's span takes.
+    String mixed = "." + "[0][1:2][\"k\"]".repeat(171);
+    assertThat(shape(ir(mixed))).as("shape of 513 constant indexes and slices").isEqualTo(mixed + "[0," + mixed.length() + ")");
+    // An iterate has many results, so it ends the run.
+    assertThat(shape(ir(fused + "[]"))).as("shape of %d reads and an iterate", Resolver.STEP_RUN + 1).isEqualTo("(" + fused + "[0," + fused.length() + ") | .[][" + fused.length() + "," + (fused.length() + 2) + "))");
+  }
+
+  /**
+   * F-44: a chain of {@link Resolver#STEP_RUN} nodes stays a Pipe chain, as deep as it is long; one more is piped
+   * balanced, about log2 of its length deep. Each iterate is a node of its own, and so is an index by a variable.
+   */
+  @Test
+  void aChainOfMoreNodesThanTheParseDepthIsPipedBalanced() {
+    assertThat(depth(ir("." + "[]".repeat(Resolver.STEP_RUN)))).as("depth of %d iterates", Resolver.STEP_RUN).isEqualTo(Resolver.STEP_RUN);
+    assertThat(depth(ir("." + "[]".repeat(Resolver.STEP_RUN + 1)))).as("depth of %d iterates", Resolver.STEP_RUN + 1).isEqualTo(11);
+    assertThat(depth(ir("1 as $k | ." + "[$k]".repeat(100_000)))).as("depth of 10⁵ indexes by a variable").isEqualTo(19);
+  }
+
+  /**
+   * F-44: a {@code ?} after another covers the first's Try, so only the last Try is built, around both; jq-ref 1.8.2,
+   * observed 2026-11-13 with -nc: {@code .[0]??[0]??} gives null and {@code [1 | .[0]?? | .a]} [].
+   */
+  @Test
+  void aQuietStepAfterAnotherBuildsOneTry() {
+    assertThat(shape(ir(".[0]??[0]??"))).as("IR of .[0]??[0]??").isEqualTo("(try (.[k]?(0)[0,5) | .[k]?(0)[6,10)) catch empty[6,11))");
+    // A computed key between them binds around the first Try, as the nested form does.
+    assertThat(shape(ir(".[0]??[.a]??")))
+        .as("IR of .[0]??[.a]??")
+        .isEqualTo("(try (.a[7,9) as $0 | ((try .[k]?(0)[0,5) catch empty[1,6)) | .[k]?($0)[6,11))) catch empty[6,12))");
+  }
+
+  /** The depth of {@code node}: the most nodes on a path from it to a leaf, an Intrinsic's arguments not counted. */
+  private static int depth(Node node) {
+    return 1
+        + switch (node) {
+          case Pipe p -> Math.max(depth(p.left()), depth(p.right()));
+          case Bind b -> Math.max(depth(b.value()), depth(b.body()));
+          case Try t -> Math.max(depth(t.body()), depth(t.handler()));
+          default -> 0;
+        };
   }
 }

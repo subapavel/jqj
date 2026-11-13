@@ -6,7 +6,6 @@ import io.github.subapavel.jqj.internal.op.Arithmetic;
 import io.github.subapavel.jqj.internal.op.BuildObject;
 import io.github.subapavel.jqj.internal.op.Empty;
 import io.github.subapavel.jqj.internal.op.Field;
-import io.github.subapavel.jqj.internal.op.FieldRun;
 import io.github.subapavel.jqj.internal.op.Formats;
 import io.github.subapavel.jqj.internal.op.Index;
 import io.github.subapavel.jqj.internal.op.Interpolate;
@@ -17,6 +16,7 @@ import io.github.subapavel.jqj.internal.op.ObjectKey;
 import io.github.subapavel.jqj.internal.op.Raise;
 import io.github.subapavel.jqj.internal.op.Range;
 import io.github.subapavel.jqj.internal.op.Slice;
+import io.github.subapavel.jqj.internal.op.StepRun;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
@@ -41,18 +41,21 @@ import io.github.subapavel.jqj.query.ir.Reduce;
 import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.ir.Try;
 import io.github.subapavel.jqj.query.ir.Var;
+import io.github.subapavel.jqj.query.run.Fn0;
+import io.github.subapavel.jqj.query.run.Fn1;
+import io.github.subapavel.jqj.query.run.Fn2;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 /**
  * Lowers a parsed filter to IR (GLOSSARY "Resolver", ADR-0032), pass 2 after the {@link Binder} (ADR-0040). Built so
@@ -76,8 +79,10 @@ import java.util.function.UnaryOperator;
  * key outside the target and {@code a} outside {@code b} (ADR-0034, jq's {@code gen_index} and {@code
  * gen_slice_index}). A comma chain is lowered without recursion over its length: the parser's left-nested spine is
  * flattened by a loop and built again balanced, so its depth is about log2 of its length, with the same results and
- * ticks (F-32). A chain of postfix steps and a run of definitions are lowered by loops too (F-42, #70), and a run of
- * more than {@link #FIELD_RUN} field reads is one step that reads them in turn ({@link FieldRun}).
+ * ticks (F-32). A chain of postfix steps and a run of definitions are lowered by loops too (F-42, #70): a chain's
+ * nodes are piped balanced past {@link #STEP_RUN} of them, and a run of more than {@link #STEP_RUN} steps of one result
+ * or none is one step that calls them in turn ({@link StepRun}), so a chain's depth does not grow with its length
+ * (F-44), with the same results and ticks.
  *
  * <p>The Binder has bound every reference and thrown jq's binding errors, so each name found here has its declaration
  * in the environment ({@link Env}): a slot, a closure or a definition's body. A call of a definition lowers its body in
@@ -99,10 +104,11 @@ public final class Resolver {
   static final int EXPANSIONS = 512;
 
   /**
-   * The longest run of field reads that stays a Pipe chain: the parser's nesting bound, so a run no longer than it is
-   * no deeper than the nesting the parser takes; a longer run is one {@link FieldRun} (F-42).
+   * The most nodes of a chain that stay a Pipe chain, and the longest run of steps of one result or none that stays
+   * steps of their own: the parser's nesting bound, so neither is deeper than the nesting the parser takes. More nodes
+   * are piped balanced, and a longer run is one {@link StepRun} (F-42, F-44).
    */
-  static final int FIELD_RUN = Parser.MAX_DEPTH;
+  static final int STEP_RUN = Parser.MAX_DEPTH;
 
   /** A key or bound that is passed as a Const argument, so it takes no slot and no Bind. */
   private static final int NO_SLOT = -1;
@@ -151,17 +157,24 @@ public final class Resolver {
   }
 
   /**
-   * A postfix step of a chain, its keys and bounds lowered: a field read, which a long run of them fuses, or any other
-   * step, which wraps the node of its target, null when the step is the chain's start.
+   * A postfix step of a chain, its keys and bounds lowered: a step on its target's results, one whose computed keys are
+   * bound around it and its target, or a {@code ?} on its target (F-44, ADR-0040 "Chains").
    */
   private sealed interface Peeled {}
 
-  /** A field read: its Source, its step's name ({@code .shown}, with {@code ?} when quiet) and its operation. */
-  private record Read(Source source, String name, Field field) implements Peeled {}
+  /**
+   * A step on its target's results: {@code op} on the atomic {@code args}, spanning {@code own}, or {@code alone} when
+   * no node comes before it (a bracket step on the leading dot of {@code .[...]} spans the dot too). {@code read} is
+   * the step as a function of its input alone when it has one result or none and constant arguments, a field read or
+   * a constant index or slice, which a long run of them fuses ({@link StepRun}); else null.
+   */
+  private record Stage(Source own, Source alone, Operation op, List<Node> args, Fn0 read) implements Peeled {}
 
-  /** Any other step: how it wraps its target's node. */
+  /** A step whose keys or bounds are no Const or Var: each value bound to its slot around it and its target, the first outermost. */
+  private record Bound(List<Node> values, List<Integer> slots, Stage stage) implements Peeled {}
 
-  private record Around(UnaryOperator<Node> wrap) implements Peeled {}
+  /** A {@code ?} on a term that is no step, spanning {@code at}: a Try with {@code empty} as its handler around its target. */
+  private record Quiet(Source at) implements Peeled {}
 
   private Resolver(ConstantKey folds, FilterText text, Binder binder) {
     this.folds = folds;
@@ -391,25 +404,25 @@ public final class Resolver {
       Ast target =
           switch (node) {
             case Ast.Field f -> {
-              steps.push(new Read(f.source(), "." + f.name() + (f.optional() ? "?" : ""), new Field(f.name(), f.optional())));
+              steps.push(read(f.source(), "." + f.name() + (f.optional() ? "?" : ""), new Field(f.name(), f.optional())));
               yield f.target();
             }
             case Ast.StringField f when plain(f.name()) -> {
               BuiltString name = BuiltString.of(bytes(f.name()));
-              steps.push(new Read(f.source(), "." + name.toJson() + (f.optional() ? "?" : ""), new Field(name.value(), f.optional())));
+              steps.push(read(f.source(), "." + name.toJson() + (f.optional() ? "?" : ""), new Field(name.value(), f.optional())));
               yield f.target();
             }
             case Ast.StringField f -> {
-              steps.push(keyed(f.source(), f.target(), f.name(), f.optional() ? Index.QUIET : Index.PLAIN, false));
+              steps.push(keyed(f.source(), f.source(), f.name(), f.optional() ? Index.QUIET : Index.PLAIN));
               yield f.target();
             }
             case Ast.Index i -> {
-              steps.push(keyed(i.source(), i.target(), i.index(), i.optional() ? Index.QUIET : Index.PLAIN, true));
+              steps.push(keyed(i.source(), dotted(i.target(), i.source()), i.index(), i.optional() ? Index.QUIET : Index.PLAIN));
               yield i.target();
             }
             case Ast.Each e -> {
               Operation op = e.optional() ? Iterate.QUIET : Iterate.PLAIN;
-              steps.push(new Around(t -> bracket(e.target(), t, e.source(), op, List.of())));
+              steps.push(new Stage(e.source(), dotted(e.target(), e.source()), op, List.of(), null));
               yield e.target();
             }
             case Ast.Slice s -> {
@@ -417,8 +430,7 @@ public final class Resolver {
               yield s.target();
             }
             case Ast.Optional o -> {
-              Source at = new Source(o.target().source().start(), o.source().end());
-              steps.push(new Around(t -> new Try(at, t, new Intrinsic(at, Empty.OP, List.of()))));
+              steps.push(new Quiet(new Source(o.target().source().start(), o.source().end())));
               yield o.target();
             }
             // The term the chain starts from, which is no step.
@@ -437,78 +449,183 @@ public final class Resolver {
     }
     // The leading dot of .[...] is the bracket step's own (bracket).
     boolean own = term instanceof Ast.Dot && (innermost instanceof Ast.Index || innermost instanceof Ast.Each || innermost instanceof Ast.Slice);
-    Node lowered = term == null || own ? null : lower(term);
-    List<Read> run = new ArrayList<>();
+    Links links = new Links(text, term == null || own ? null : lower(term));
     for (Peeled step : steps) {
-      if (step instanceof Read read) {
-        run.add(read);
-      } else {
-        lowered = ((Around) step).wrap().apply(reads(lowered, run));
+      switch (step) {
+        case Stage s -> links.add(s);
+        case Bound b -> links.bound(b);
+        case Quiet q -> links.quiet(q.at());
       }
     }
-    return reads(lowered, run);
+    return links.node();
   }
 
   /**
-   * The field reads of {@code run} after {@code target} (null for none), and {@code run} emptied: each a step of its
-   * own, or more than {@link #FIELD_RUN} of them one {@link FieldRun}, named and spanning as the reads together.
+   * The IR of a chain, its steps added innermost first, so its depth does not grow with its length (F-44): its nodes
+   * piped, a Pipe chain while there are at most {@link #STEP_RUN} of them and balanced past that, as Pipe is
+   * associative; a run of more than {@link #STEP_RUN} steps of one result or none is one {@link StepRun}, which calls
+   * them in turn; and a {@code ?} covers every link before it. A {@code ?} after another covers the first's Try too, so
+   * only the last is built: {@code try (try X catch empty | S) catch empty} gives what {@code try (X | S) catch empty}
+   * gives, as both end at X's first error or S's, and a Try charges nothing (TryOp). A step with computed keys binds
+   * them around the links so far and itself, which then are one node, so each such step nests one Bind deeper.
    */
-  private static Node reads(Node target, List<Read> run) {
-    Node node = target;
-    if (run.size() > FIELD_RUN) {
-      StringBuilder name = new StringBuilder();
-      List<Field> fields = new ArrayList<>(run.size());
-      for (Read read : run) {
-        name.append(read.name());
-        fields.add(read.field());
-      }
-      Source span = new Source(run.getFirst().source().start(), run.getLast().source().end());
-      node = after(node, new Intrinsic(span, new Operation(name.toString(), new FieldRun(fields)), List.of()));
-    } else {
-      for (Read read : run) {
-        node = after(node, new Intrinsic(read.source(), new Operation(read.name(), read.field()), List.of()));
+  private static final class Links {
+    private final FilterText text;
+
+    /** The chain so far, first to last: a node (the term, or a Bind of computed keys) or a step not built yet. */
+    private List<Object> links = new ArrayList<>();
+
+    /** How many of the first links the last {@code ?} covers, 0 for none, and its Source. */
+    private int covered;
+
+    private Source quiet;
+
+    Links(FilterText text, Node term) {
+      this.text = text;
+      if (term != null) {
+        links.add(term);
       }
     }
-    run.clear();
+
+    void add(Stage s) {
+      links.add(s);
+    }
+
+    void bound(Bound b) {
+      links.add(b.stage());
+      Node body = node();
+      for (int i = b.values().size() - 1; i >= 0; i--) {
+        body = bind(b.values().get(i), b.slots().get(i), body);
+      }
+      links = new ArrayList<>(List.of(body));
+      covered = 0;
+    }
+
+    void quiet(Source at) {
+      covered = links.size();
+      quiet = at;
+    }
+
+    /** The chain so far as one node: the covered links in a Try, then the others. */
+    Node node() {
+      List<Node> nodes = new ArrayList<>();
+      if (covered > 0) {
+        nodes.add(new Try(quiet, pipes(built(links.subList(0, covered), new ArrayList<>())), new Intrinsic(quiet, Empty.OP, List.of())));
+      }
+      return pipes(built(links.subList(covered, links.size()), nodes));
+    }
+
+    /**
+     * {@code nodes} with {@code part}'s links after them, each step a node spanning its own text, or alone as the
+     * first; a run of more than {@link #STEP_RUN} steps of one result or none is one node, named by its text.
+     */
+    private List<Node> built(List<Object> part, List<Node> nodes) {
+      int i = 0;
+      while (i < part.size()) {
+        int end = i;
+        while (end < part.size() && part.get(end) instanceof Stage s && s.read() != null) {
+          end++;
+        }
+        if (end - i > STEP_RUN) {
+          Stage first = (Stage) part.get(i);
+          Source span = new Source((nodes.isEmpty() ? first.alone() : first.own()).start(), ((Stage) part.get(end - 1)).own().end());
+          List<Fn0> reads = new ArrayList<>(end - i);
+          for (Object step : part.subList(i, end)) {
+            reads.add(((Stage) step).read());
+          }
+          String name = new String(text.bytes(), span.start(), span.end() - span.start(), StandardCharsets.UTF_8);
+          nodes.add(new Intrinsic(span, new Operation(name, new StepRun(reads)), List.of()));
+        } else {
+          // A short run, or one link that is no such step.
+          end = Math.max(end, i + 1);
+          for (Object link : part.subList(i, end)) {
+            nodes.add(link instanceof Stage s ? new Intrinsic(nodes.isEmpty() ? s.alone() : s.own(), s.op(), s.args()) : (Node) link);
+          }
+        }
+        i = end;
+      }
+      return nodes;
+    }
+  }
+
+  /** {@code nodes} piped in order: a Pipe chain of at most {@link #STEP_RUN} of them, else balanced. */
+  private static Node pipes(List<Node> nodes) {
+    if (nodes.size() > STEP_RUN) {
+      return pipes(nodes, 0, nodes.size());
+    }
+    Node node = nodes.getFirst();
+    for (int i = 1; i < nodes.size(); i++) {
+      node = pipe(node, nodes.get(i));
+    }
     return node;
   }
 
-  /**
-   * A step {@code op} of one key, {@code t[k]} (a bracket step when {@code bracketed}) or {@code t."a\(f)"}, the key
-   * lowered now and bound outside the target.
-   */
-  private Around keyed(Source own, Ast target, Ast keyAst, Operation op, boolean bracketed) {
-    Node key = lower(keyAst);
-    int slot = slotFor(key);
-    List<Node> args = List.of(argument(key, slot));
-    return new Around(t -> bind(key, slot, bracketed ? bracket(target, t, own, op, args) : after(t, new Intrinsic(own, op, args))));
+  /** {@code nodes[from, to)} piped as a balanced tree, about log2 of their number deep. */
+  private static Node pipes(List<Node> nodes, int from, int to) {
+    if (to - from == 1) {
+      return nodes.get(from);
+    }
+    int mid = from + (to - from + 1) / 2;
+    return pipe(pipes(nodes, from, mid), pipes(nodes, mid, to));
   }
 
-  /** {@code t[a:b]}: {@code a} outside {@code b} outside the target, lowered now; a missing bound is a Const null. */
-  private Around slice(Ast.Slice s) {
+  /** A field read: one result from its input alone. */
+  private static Stage read(Source own, String name, Field field) {
+    return new Stage(own, own, new Operation(name, field), List.of(), field);
+  }
+
+  /** The Source of a bracket step that stands alone on the leading dot of {@code .[...]}: the dot too. */
+  private static Source dotted(Ast target, Source own) {
+    return new Source(target.source().start(), own.end());
+  }
+
+  /**
+   * A step {@code op} of one key, {@code t[k]} or {@code t."a\(f)"}, spanning {@code own}, or {@code alone} as the
+   * chain's first: the key lowered now and bound outside the target unless it is a Const or a Var; a Const key makes
+   * the step one of one result or none.
+   */
+  private Peeled keyed(Source own, Source alone, Ast keyAst, Operation op) {
+    Node key = lower(keyAst);
+    int slot = slotFor(key);
+    Fn0 read = null;
+    if (key instanceof Const k) {
+      Fn1 fn = (Fn1) op.form();
+      Object constant = k.value();
+      read = (state, in) -> fn.apply(state, in, constant);
+    }
+    Stage stage = new Stage(own, alone, op, List.of(argument(key, slot)), read);
+    return slot == NO_SLOT ? stage : new Bound(List.of(key), List.of(slot), stage);
+  }
+
+  /**
+   * {@code t[a:b]}: {@code a} outside {@code b} outside the target, lowered now; a missing bound is a Const null; two
+   * Const bounds make the step one of one result or none.
+   */
+  private Peeled slice(Ast.Slice s) {
     Node from = s.from() == null ? new Const(s.source(), JqNull.NULL) : lower(s.from());
     int fromSlot = slotFor(from);
     Node to = s.to() == null ? new Const(s.source(), JqNull.NULL) : lower(s.to());
     int toSlot = slotFor(to);
     Operation op = s.optional() ? Slice.QUIET : Slice.PLAIN;
-    List<Node> args = List.of(argument(from, fromSlot), argument(to, toSlot));
-    return new Around(t -> bind(from, fromSlot, bind(to, toSlot, bracket(s.target(), t, s.source(), op, args))));
-  }
-
-  /** The step {@code step} on {@code target}'s results, or alone when there is no target. */
-  private static Node after(Node target, Intrinsic step) {
-    return target == null ? step : pipe(target, step);
-  }
-
-  /**
-   * The bracket step {@code op} with {@code args} on {@code lowered}, the node of {@code target}, spanning {@code own};
-   * with no node, on the leading dot of {@code .[...]}, it is the step alone, spanning the dot too.
-   */
-  private static Node bracket(Ast target, Node lowered, Source own, Operation op, List<Node> args) {
-    if (lowered == null) {
-      return new Intrinsic(new Source(target.source().start(), own.end()), op, args);
+    Fn0 read = null;
+    if (from instanceof Const a && to instanceof Const b) {
+      Fn2 fn = (Fn2) op.form();
+      Object first = a.value();
+      Object last = b.value();
+      read = (state, in) -> fn.apply(state, in, first, last);
     }
-    return pipe(lowered, new Intrinsic(own, op, args));
+    Stage stage = new Stage(s.source(), dotted(s.target(), s.source()), op, List.of(argument(from, fromSlot), argument(to, toSlot)), read);
+    List<Node> values = new ArrayList<>();
+    List<Integer> bound = new ArrayList<>();
+    if (fromSlot != NO_SLOT) {
+      values.add(from);
+      bound.add(fromSlot);
+    }
+    if (toSlot != NO_SLOT) {
+      values.add(to);
+      bound.add(toSlot);
+    }
+    return values.isEmpty() ? stage : new Bound(values, bound, stage);
   }
 
   /**

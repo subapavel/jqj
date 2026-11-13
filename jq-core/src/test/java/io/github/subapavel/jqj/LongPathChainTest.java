@@ -3,10 +3,12 @@ package io.github.subapavel.jqj;
 import static io.github.subapavel.jqj.Inlining.results;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
@@ -33,19 +35,106 @@ class LongPathChainTest {
   @ParameterizedTest(name = "{0} steps on a 512 KiB thread")
   @ValueSource(ints = {21_844, 100_000})
   void aLongFieldChainCompilesAndRunsOnA512KiBThread(int steps) throws InterruptedException {
+    assertThat(onA512KiBThread(".a".repeat(steps))).as("results of %d steps of .a on null on a 512 KiB thread", steps).isEqualTo(List.of("null"));
+  }
+
+  /**
+   * Every other step kind of a postfix chain, 10⁵ steps on null on a 512 KiB thread (F-44): jq-ref 1.8.2, observed
+   * 2026-11-13 with -nc on two steps of each, gives null for .[0], .["k"], .[1:2] and .[0]??, no result for .[]?, and
+   * the error of .[] caught. With -nc -f, 21 844 steps of .[0] give null (rc 0) and 21 845 its bytecode limit, rc 3
+   * (DEVIATIONS "Long path chains").
+   */
+  @ParameterizedTest(name = "{0}")
+  @CsvSource(
+      delimiter = '|',
+      quoteCharacter = '\'',
+      value = {
+        "'.' | [0] | '' | null",
+        "'.' | [\"k\"] | '' | null",
+        "'.' | [1:2] | '' | null",
+        "'.' | [0]?? | '' | null",
+        "'[.' | []? | ']' | []",
+        "'try (.' | [] | ') catch .' | \"Cannot iterate over null (null)\""
+      })
+  void aLongChainOfEachStepKindCompilesAndRunsOnA512KiBThread(String before, String step, String after, String result) throws InterruptedException {
+    String filter = before + step.repeat(100_000) + after;
+    assertThat(onA512KiBThread(filter)).as("results of 10⁵ steps of %s on null on a 512 KiB thread", step).isEqualTo(List.of(result));
+  }
+
+  /**
+   * F-44: a chain long enough to be fused or piped balanced ticks as the same chain cut in three, whose parts are short
+   * Pipe chains, the nested form: the fewest steps each runs under are equal, and more than {@code .} runs under on the
+   * same input. Each input is JSON text nesting 513 deep, read as a view, which charges the entries a step reads
+   * (ADR-0034), so every piece of the chain ticks.
+   */
+  @ParameterizedTest(name = "{2}")
+  @CsvSource(
+      delimiter = '|',
+      quoteCharacter = '\'',
+      value = {
+        "'{\"b\":0,\"a\":' | '}' | .a",
+        "'[0,' | ']' | [1]",
+        "'[0,' | ']' | [1:2][0]",
+        "'[' | ']' | []",
+        "'[' | ']' | []?",
+        "'[0,' | ']' | [1]??"
+      })
+  void aLongChainTicksAsTheNestedFormDoes(String open, String close, String step) {
+    byte[] input = (open.repeat(FUSED) + "7" + close.repeat(FUSED)).getBytes(StandardCharsets.UTF_8);
+    String chain = chain(step, FUSED);
+    // 256 + 256 + 1 pieces: no part has more than 512 steps, so none is fused or balanced.
+    String parts = "(" + chain(step, 256) + ") | (" + chain(step, 256) + ") | (" + chain(step, 1) + ")";
+    long whole = fewestSteps(chain, input);
+    assertThat(whole).as("fewest steps of %s", Inlining.shown(chain)).isEqualTo(fewestSteps(parts, input));
+    assertThat(whole).as("fewest steps of %s against .'s", Inlining.shown(chain)).isGreaterThan(fewestSteps(".", input));
+  }
+
+  /** {@code n} steps {@code step} on the input: after a leading dot unless the step starts with its own. */
+  private static String chain(String step, int n) {
+    return (step.startsWith(".") ? "" : ".") + step.repeat(n);
+  }
+
+  /** The fewest steps a run of {@code filter} on the JSON text {@code input} ends under, by bisection. */
+  private static long fewestSteps(String filter, byte[] input) {
+    long low = 1;
+    long high = 1L << 24;
+    while (low < high) {
+      long mid = (low + high) >>> 1;
+      if (endsUnder(filter, input, mid)) {
+        high = mid;
+      } else {
+        low = mid + 1;
+      }
+    }
+    return low;
+  }
+
+  private static boolean endsUnder(String filter, byte[] input, long steps) {
+    JqEngine engine = RunBudgets.steps(steps);
+    Workspace workspace = engine.newWorkspace();
+    try {
+      engine.compile(filter).run(RunBudgets.read(workspace, input).root(), RunBudgets.NONE, v -> true, workspace);
+      return true;
+    } catch (JqTermination e) {
+      return false;
+    }
+  }
+
+  /** The results of {@code filter} on null, compiled and run on a thread of ADR-0017's 512 KiB stack. */
+  private static List<String> onA512KiBThread(String filter) throws InterruptedException {
     AtomicReference<Throwable> failure = new AtomicReference<>();
     AtomicReference<List<String>> got = new AtomicReference<>();
     Thread small = new Thread(null, () -> {
       try {
-        got.set(results(".a".repeat(steps)));
+        got.set(results(filter));
       } catch (Throwable t) {
         failure.set(t);
       }
     }, "512 KiB", STACK);
     small.start();
     small.join();
-    assertThat(failure.get()).as("what %d steps of .a threw on a 512 KiB thread", steps).isNull();
-    assertThat(got.get()).as("results of %d steps of .a on null on a 512 KiB thread", steps).isEqualTo(List.of("null"));
+    assertThat(failure.get()).as("what %s threw on a 512 KiB thread", Inlining.shown(filter)).isNull();
+    return got.get();
   }
 
   /** jq-ref 1.8.2, observed 2026-11-13 with -nc -f: 7, rc 0. Each read of the fused run reads its predecessor's result. */
