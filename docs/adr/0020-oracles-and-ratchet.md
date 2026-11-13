@@ -253,8 +253,8 @@ Accepted 2026-11-12, architect under `/run-spec` #56, on the designer's draft fo
   `halt_error` is compared like any result. A run that ends as a budget, stack, cancel or
   stale-view termination is left out: the case fails as `left out:` and is not ratcheted.
 - **Report and ratchet:** the report is `compile-<mode>.tsv`, and `compile.txt` holds the ids that
-  pass under `conservative`. `ratchet.java check` prints `NOT_RUN compile: no report` when no
-  compile report exists, because the ticket gate never produces one (F-27; since #89 it does, F-46). `regen` refuses a
+  pass under `conservative`. Plain `ratchet.java check` (CI) prints `NOT_RUN compile: no report` when no
+  compile report exists; the ticket gate runs the oracle and passes `--require-compile`, so there a missing report fails (#89, F-46). `regen` refuses a
   `disagree:` row; that is F-29's stop. The compile-mode tests carry the JUnit tag `compile-mode`
   and run only under the Maven profile `compile-oracle`.
 - **After every merge:** `scripts/after-merge.sh <ticket>` runs `./mvnw -B -Pbench,compile-oracle
