@@ -79,18 +79,38 @@ class HugeConstantKeyTest {
   }
 
   @Test
+  void anArrayLiteralFoldsInLinearTime() {
+    // ADR-0035 (31aca88): no fold work goes uncharged. The fold of [1,...,1] + . walks the literal's 10^6 elements once
+    // before it charges them (8 000 064 bytes, past the compile's 1 MiB, so it is none); a walk that put each element
+    // in front of the others would move 5 x 10^11 references, far past the limit (a time witness).
+    String filter = "[" + String.join(",", Collections.nCopies(1_000_000, "1")) + "] + .";
+    JqEngine engine = RunBudgets.unlimited();
+    assertTimeoutPreemptively(Duration.ofSeconds(10), () -> engine.compile(filter), "the compile of a literal of 10^6 elements + .");
+  }
+
+  @Test
   void anObjectLiteralIsChargedAsAConstruction() {
     // {a:1} + . charges its name as a string, 40 + 1, and itself as a container and one entry, 64 + 16: 121. After an
     // array literal of m elements and it, ("x"*4096) needs 4177: m = 130526 leaves that (1 048 570 bytes in all), m =
     // 130527 (1 048 578) does not, so the repeat is left to the run.
     JqEngine zero = bytesBuilt(0);
     Results folded = new Results();
-    zero.compile(afterObject(130526)).run(JqNull.NULL, NONE, folded, zero.newWorkspace());
+    zero.compile(afterObject(130526, "{a:1}")).run(JqNull.NULL, NONE, folded, zero.newWorkspace());
     assertThat(folded.values).as("results after an object and a literal of 130526 elements under 0 bytes built").hasSize(1);
     assertBudget(
-        () -> zero.compile(afterObject(130527)).run(JqNull.NULL, NONE, new Results(), zero.newWorkspace()),
+        () -> zero.compile(afterObject(130527, "{a:1}")).run(JqNull.NULL, NONE, new Results(), zero.newWorkspace()),
         Budget.BYTES_BUILT,
         "a repeat after an object and a literal of 130527 elements under 0 bytes built");
+    // {a:1,b:1,c:1} charges three names, 3 x 41, and a container of three entries, 64 + 3 x 16: 235, so m = 130512
+    // leaves 4177 (1 048 572 bytes in all) and m = 130513 (1 048 580) does not. An entry charge not multiplied by the
+    // pairs, divided by them or added to their count would charge 203, 192 or 206, and fold the repeat at 130513.
+    Results three = new Results();
+    zero.compile(afterObject(130512, "{a:1,b:1,c:1}")).run(JqNull.NULL, NONE, three, zero.newWorkspace());
+    assertThat(three.values).as("results after an object of three pairs and a literal of 130512 elements").hasSize(1);
+    assertBudget(
+        () -> zero.compile(afterObject(130513, "{a:1,b:1,c:1}")).run(JqNull.NULL, NONE, new Results(), zero.newWorkspace()),
+        Budget.BYTES_BUILT,
+        "a repeat after an object of three pairs and a literal of 130513 elements under 0 bytes built");
   }
 
   @Test
@@ -174,9 +194,9 @@ class HugeConstantKeyTest {
     return "(empty | [" + String.join(",", Collections.nCopies(m, "1")) + "] + .), (\"x\"*4096)";
   }
 
-  /** {@code (empty | [1,...,1] + ., {a:1} + .), ("x"*4096)}: a repeat after a literal and an object, unreached. */
-  private static String afterObject(int m) {
-    return "(empty | [" + String.join(",", Collections.nCopies(m, "1")) + "] + ., {a:1} + .), (\"x\"*4096)";
+  /** {@code (empty | [1,...,1] + ., object + .), ("x"*4096)}: a repeat after a literal and an object, unreached. */
+  private static String afterObject(int m, String object) {
+    return "(empty | [" + String.join(",", Collections.nCopies(m, "1")) + "] + ., " + object + " + .), (\"x\"*4096)";
   }
 
   /** {@code {(("x"*n)):1} + {(("y"*n)):2}}: two objects whose keys the parser's checks fold. */
