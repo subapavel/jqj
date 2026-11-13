@@ -190,6 +190,14 @@ public final class RunState {
   }
 
   /**
+   * The termination for a builder that needs a longer array than the JVM allocates: whatever its limit, the
+   * bytes-built budget cannot hold that container (ADR-0035). The builder throws it instead of allocating.
+   */
+  public Termination overBuilt() {
+    return Termination.over(Budget.BYTES_BUILT);
+  }
+
+  /**
    * Charges one drain of {@code bytes} before it is written (ADR-0030): a drain that would pass the bytes-written budget
    * is not charged and must not be written, so the output never exceeds the budget.
    *
