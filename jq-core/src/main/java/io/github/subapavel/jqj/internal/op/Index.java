@@ -27,7 +27,7 @@ package io.github.subapavel.jqj.internal.op;
 import io.github.subapavel.jqj.internal.Stub;
 import io.github.subapavel.jqj.internal.value.ArrayView;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
-import io.github.subapavel.jqj.internal.value.ObjectView;
+import io.github.subapavel.jqj.internal.value.Keyed;
 import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.run.CallForm;
 import io.github.subapavel.jqj.query.run.Fn1;
@@ -36,6 +36,7 @@ import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
+import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 
@@ -69,20 +70,20 @@ public final class Index implements Fn1 {
     // checks a case of several patterns again, a branch that is never taken.
     Object value =
         switch (t) {
-          case ObjectView object ->
+          case Keyed object ->
               switch (k) {
                 case JqString name -> orNull(object.get(state, name.value()));
                 case JqNull _ -> null;
                 case JqBool _ -> null;
                 case JqNumber _ -> null;
                 case JqArray _ -> null;
-                case ObjectView _ -> null;
+                case JqObject _ -> null;
               };
           case JqArray array ->
               switch (k) {
                 case JqNumber n -> element(state, array, n.doubleValue());
                 // parse_slice reads both keys; a missing one is jq's invalid, which is no number.
-                case ObjectView bounds ->
+                case Keyed bounds ->
                     Slice.sliced(Slice.of(state, array, bounds.get(state, "start"), bounds.get(state, "end")), quiet);
                 case JqArray _ -> throw Stub.unbuilt("an array index of an array (jq's jv_array_indexes, #72)");
                 case JqNull _ -> null;
@@ -91,7 +92,7 @@ public final class Index implements Fn1 {
               };
           case JqString s ->
               switch (k) {
-                case ObjectView bounds ->
+                case Keyed bounds ->
                     Slice.sliced(Slice.of(state, s, bounds.get(state, "start"), bounds.get(state, "end")), quiet);
                 case JqNull _ -> null;
                 case JqBool _ -> null;
@@ -103,7 +104,7 @@ public final class Index implements Fn1 {
               switch (k) {
                 case JqString _ -> nul;
                 case JqNumber _ -> nul;
-                case ObjectView _ -> nul;
+                case JqObject _ -> nul;
                 case JqNull _ -> null;
                 case JqBool _ -> null;
                 case JqArray _ -> null;

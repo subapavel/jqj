@@ -165,10 +165,6 @@ not build yet, jqj stops, and jq's blocks after that point are missing. These ar
 need parentheses around object key expression` (`. as {1+2: $x} | 1`). They are also the silent
 `'(' error ')'`, `'[' error ']'`, `Term '[' error ']'` and `'{' error '}'`, after which jq goes on
 and reports later errors (`(1 2) | 3 | 4 5`). jqj's blocks are then a prefix of jq's.
-
-Known gap, resolved by #64: jq's parser-action errors are not built yet. Where one comes before
-jq's syntax error, jqj's blocks are not a prefix. For `{(1): 2 3}`, jq gives `Cannot use number (1)
-as object key` at column 3 and then the syntax error at column 9; jqj gives the syntax error alone.
 ParserEdgesTest pins jqj's blocks for each example.
 
 ## `-h`, `-V` and `--build-configuration` print jqj's own text (ADR-0023, issue #17)
@@ -193,3 +189,13 @@ jq-ref compiles 10 921 commas (`depth/comma-10921`, matched) and rejects one mor
 function's code must fit 65 536 bytes. jqj compiles to an IR and an interpreter tree with no such limit, and a long
 chain is bounded at run time by the step budget instead (one tick per right branch, F-32; jq-core
 CommaChainTest pins chains of 10⁴ and 10⁵).
+
+## Array length limit (ADR-0035, issue #64)
+
+jq 1.8.2 raises "Array index too large" when an array grows past an index of 2^29−1, as `jv_array_append` does
+when it collects one more result (`jv_array_set`, src/jv.c:1020). jqj ends a collection that would pass
+`Integer.MAX_VALUE − 8` elements with exit 5 and "Bytes-built budget exceeded". It does so even when the bytes-built
+budget is unlimited, as on the command line. Reason: a JVM array holds no more elements than that. Also, a collector
+charges each element to the bytes-built budget before storing it (ADR-0035), so a collection that large exhausts any
+real budget first. A termination of its own would add a public cause for a case no run can reach. query-core's tests
+of `CollectOp.grown` pin jqj's side.

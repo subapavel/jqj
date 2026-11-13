@@ -2,7 +2,7 @@ package io.github.subapavel.jqj.internal.op;
 
 import io.github.subapavel.jqj.internal.json.ErrorDump;
 import io.github.subapavel.jqj.internal.value.BuiltString;
-import io.github.subapavel.jqj.internal.value.ObjectView;
+import io.github.subapavel.jqj.internal.value.Keyed;
 import io.github.subapavel.jqj.query.run.CallForm;
 import io.github.subapavel.jqj.query.run.FilterException;
 import io.github.subapavel.jqj.query.run.Fn0;
@@ -42,7 +42,7 @@ public final class Field implements Fn0 {
   public Object apply(RunState state, Object in) {
     JqValue v = (JqValue) in;
     return switch (v) {
-      case ObjectView object -> {
+      case Keyed object -> {
         JqValue value = object.get(state, name);
         yield value == null ? JqNull.NULL : value;
       }

@@ -28,7 +28,7 @@ public final class JqFilter {
    * termination, an error or the sink's exception (ADR-0030).
    *
    * @throws JqFilterException with jq's error value when the filter raises an error
-   * @throws JqTermination with exit code 5 when the steps, the deadline or the bytes written run out, or the thread
+   * @throws JqTermination with exit code 5 when the steps, the deadline, the bytes built or written run out, or the thread
    *     is interrupted
    * @throws IllegalStateException when {@code workspace} is running another evaluation, which goes on unchanged
    */
@@ -36,7 +36,7 @@ public final class JqFilter {
     RunState state = workspace.state;
     try {
       // Outside the inner try: a refused run never ends the one running, and a run ended here began none.
-      state.begin(limits.steps(), limits.deadline().toNanos(), limits.bytesWritten());
+      state.begin(limits.steps(), limits.deadline().toNanos(), limits.bytesBuilt(), limits.bytesWritten());
       try {
         // query-core hands values over as Object; every value this filter pushes or raises is a jq value.
         return executable.run(state, input, v -> sink.emit((JqValue) v));
@@ -62,6 +62,7 @@ public final class JqFilter {
     return switch (budget) {
       case STEPS -> JqTermination.Budget.STEPS;
       case DEADLINE -> JqTermination.Budget.DEADLINE;
+      case BYTES_BUILT -> JqTermination.Budget.BYTES_BUILT;
       case BYTES_WRITTEN -> JqTermination.Budget.BYTES_WRITTEN;
     };
   }

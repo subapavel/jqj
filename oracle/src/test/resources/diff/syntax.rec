@@ -461,3 +461,24 @@ rc 3
 stdout
 stderr jq: error: syntax error, unexpected ':', expecting end of file at <top-level>, line 1, column 2:\n    .:\n     ^\njq: 1 compile error\n
 end
+
+case syntax/object-key-number-literal
+def 5a38f76175fe
+rc 3
+stdout
+stderr jq: error: syntax error, unexpected LITERAL at <top-level>, line 1, column 2:\n    {1:2}\n     ^\njq: error: May need parentheses around object key expression at <top-level>, line 1, column 2:\n    {1:2}\n     ^\njq: 2 compile errors\n
+end
+
+case syntax/object-key-error-then-syntax-error
+def 9e29082d7f4f
+rc 3
+stdout
+stderr jq: error: Cannot use number (1) as object key at <top-level>, line 1, column 3:\n    {(1): 2 3}\n      ^\njq: error: syntax error, unexpected LITERAL, expecting '}' at <top-level>, line 1, column 9:\n    {(1): 2 3}\n            ^\njq: 2 compile errors\n
+end
+
+case syntax/object-key-error-after-a-recovery
+def d2be78050655
+rc 3
+stdout
+stderr jq: error: syntax error, unexpected LITERAL at <top-level>, line 1, column 2:\n    {1+2:3} | {(1):2}\n     ^\njq: error: May need parentheses around object key expression at <top-level>, line 1, column 2:\n    {1+2:3} | {(1):2}\n     ^^^\njq: error: Cannot use number (1) as object key at <top-level>, line 1, column 13:\n    {1+2:3} | {(1):2}\n                ^\njq: 3 compile errors\n
+end
