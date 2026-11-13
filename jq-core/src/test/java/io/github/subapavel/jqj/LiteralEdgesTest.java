@@ -129,7 +129,8 @@ class LiteralEdgesTest {
   void callsOfConstantsAndFormatStringsAreStubs() {
     // jq-ref -n 'true(1)' -> "true/1 is not defined" and 'foo' -> "foo/0 is not defined", rc 3; '@text "a"' -> "a"
     // and '@base64' -> "bnVsbA==", rc 0. A call, another name, a format string and another format are not built in #61.
-    for (String text : new String[] {"true(1)", "foo", "@text \"a\"", "@base64"}) {
+    // #67 lowers a format string, so its entry ends with | .., which still stubs.
+    for (String text : new String[] {"true(1)", "foo", "@text \"a\" | ..", "@base64"}) {
       assertThatExceptionOfType(JqCompileException.class)
           .as("compile of %s", text)
           .isThrownBy(() -> ENGINE.compile(text))
