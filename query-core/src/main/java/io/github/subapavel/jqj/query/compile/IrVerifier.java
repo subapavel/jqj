@@ -1,5 +1,6 @@
 package io.github.subapavel.jqj.query.compile;
 
+import io.github.subapavel.jqj.query.ir.Advance;
 import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
@@ -8,12 +9,14 @@ import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
+import io.github.subapavel.jqj.query.ir.Foreach;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Label;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
+import io.github.subapavel.jqj.query.ir.Reduce;
 import io.github.subapavel.jqj.query.ir.Try;
 import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.query.run.Fn0;
@@ -29,12 +32,13 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Checks the rules of the IR (ADR-0005, ADR-0034, ADR-0038, ADR-0039) before a backend sees a tree; a broken rule is an
- * IllegalStateException. The tree uses no node object twice. A slot is bound by one Bind, by one AltBind (its value
- * slot and its group slots), by one Label, or is a parameter, which no node binds and every node may read; a Var reads
- * its slot only inside its Bind's body, an AltBind's value slot only in its alternatives and its body, and a group slot
- * only in its AltBind's body. A Label's slot is read by no Var, only by a Break inside the Label's body, and a Break
- * names no other slot. An AltBind has an alternative at least, each with one from entry per group slot, and each from-slot,
+ * Checks the rules of the IR (ADR-0005, ADR-0034, ADR-0038, ADR-0039, ADR-0041) before a backend sees a tree; a broken
+ * rule is an IllegalStateException. The tree uses no node object twice. A slot is bound by one Bind, by one AltBind
+ * (its value slot and its group slots), by one Label, by one Reduce or Foreach (its state slot), or is a parameter,
+ * which no node binds and every node may read; a Var reads its slot only inside its Bind's body, an AltBind's value
+ * slot only in its alternatives and its body, and a group slot only in its AltBind's body. A Label's slot is read by no
+ * Var, only by a Break inside the Label's body, and a Break names no other slot. A state slot is read by no Var and
+ * named by one Advance at most, inside its loop's each, never in its init. An AltBind has an alternative at least, each with one from entry per group slot, and each from-slot,
  * unless it is -1 for null, is in scope at its match's leaf, the innermost body of the match's chain of Binds. An
  * Intrinsic's arguments are atomic (Identity, Var or Const), as many as its call form's arity: none for Fn0, one for
  * Fn1, two for Fn2, and any number for an FnN or a Many, which take them as an array.
@@ -51,6 +55,9 @@ final class IrVerifier {
 
   /** The slots of the Labels around where the walk is: a Break may name them, a Var may not. */
   private final Set<Integer> labels = new HashSet<>();
+
+  /** The state slots of the loops whose each the walk is in and whose Advance it has not met yet. */
+  private final Set<Integer> loops = new HashSet<>();
 
   /** The leaf of each match whose alternative the walk has not left, by identity, with its alternative's from-slots. */
   private final Map<Node, List<Integer>> leaves = new IdentityHashMap<>();
@@ -144,7 +151,28 @@ final class IrVerifier {
           throw new IllegalStateException("the Break of slot " + b.slot() + " at bytes " + b.source() + " is outside the body of a Label of its slot");
         }
       }
+      case Reduce r -> loop(r, r.init(), r.slot(), r.each());
+      case Foreach f -> loop(f, f.init(), f.slot(), f.each());
+      case Advance a -> {
+        if (!loops.remove(a.slot())) {
+          throw new IllegalStateException(
+              "the Advance of slot " + a.slot() + " at bytes " + a.source() + " is outside the each of a Reduce or Foreach of its slot, or is its second Advance");
+        }
+        visit(a.update());
+      }
     }
+  }
+
+  /**
+   * The Reduce or Foreach {@code node}: its init runs before the state slot is set, so only its each may hold the
+   * slot's one Advance, and no Var reads the slot anywhere.
+   */
+  private void loop(Node node, Node init, int slot, Node each) {
+    take(slot, node);
+    visit(init);
+    loops.add(slot);
+    visit(each);
+    loops.remove(slot);
   }
 
   /**

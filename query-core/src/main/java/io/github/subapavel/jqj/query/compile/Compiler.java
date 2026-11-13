@@ -1,5 +1,6 @@
 package io.github.subapavel.jqj.query.compile;
 
+import io.github.subapavel.jqj.query.internal.interpret.AdvanceOp;
 import io.github.subapavel.jqj.query.internal.interpret.AltBindOp;
 import io.github.subapavel.jqj.query.internal.interpret.AltOp;
 import io.github.subapavel.jqj.query.internal.interpret.Argument;
@@ -8,6 +9,7 @@ import io.github.subapavel.jqj.query.internal.interpret.BreakOp;
 import io.github.subapavel.jqj.query.internal.interpret.CollectOp;
 import io.github.subapavel.jqj.query.internal.interpret.CommaOp;
 import io.github.subapavel.jqj.query.internal.interpret.ConstOp;
+import io.github.subapavel.jqj.query.internal.interpret.ForeachOp;
 import io.github.subapavel.jqj.query.internal.interpret.IdentityOp;
 import io.github.subapavel.jqj.query.internal.interpret.IfOp;
 import io.github.subapavel.jqj.query.internal.interpret.Intrinsic1Op;
@@ -18,8 +20,10 @@ import io.github.subapavel.jqj.query.internal.interpret.IntrinsicOp;
 import io.github.subapavel.jqj.query.internal.interpret.LabelOp;
 import io.github.subapavel.jqj.query.internal.interpret.Op;
 import io.github.subapavel.jqj.query.internal.interpret.PipeOp;
+import io.github.subapavel.jqj.query.internal.interpret.ReduceOp;
 import io.github.subapavel.jqj.query.internal.interpret.TryOp;
 import io.github.subapavel.jqj.query.internal.interpret.VarOp;
+import io.github.subapavel.jqj.query.ir.Advance;
 import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
@@ -28,12 +32,14 @@ import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
+import io.github.subapavel.jqj.query.ir.Foreach;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Label;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
+import io.github.subapavel.jqj.query.ir.Reduce;
 import io.github.subapavel.jqj.query.ir.Try;
 import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.query.run.Fn0;
@@ -85,6 +91,9 @@ public final class Compiler {
       case Try t -> new TryOp(interpreter(t.body()), interpreter(t.handler()));
       case Label l -> new LabelOp(l.slot(), interpreter(l.body()));
       case Break b -> new BreakOp(b.slot());
+      case Reduce r -> new ReduceOp(interpreter(r.init()), r.slot(), interpreter(r.each()));
+      case Foreach f -> new ForeachOp(interpreter(f.init()), f.slot(), interpreter(f.each()));
+      case Advance a -> new AdvanceOp(a.slot(), interpreter(a.update()));
     };
   }
 

@@ -77,12 +77,13 @@ class ParserEdgesTest {
             "import \"a\" as $x; .",
             "import \"a\" as x {a: 1}; .",
             // .a."b"? left with its Stub: #63 lowers it (ResolverTest.navigationAndCommaLowerToTheirIr). #67 lowers
-            // as and its patterns, and #68 if and elif, so those entries end with | .., which still stubs.
+            // as and its patterns, #68 if and elif, and #69 foreach, so those entries end with | .., which still
+            // stubs.
             ". as $x | 1 | ..",
             ". as {\"a\": $b} | 1 | ..",
             ". as {(1|tostring): $e} | 1",
             ". as {$a: [$b]} | 1 | ..",
-            "foreach . as $x (0; 1; 2)",
+            "foreach . as $x (0; 1; 2) | ..",
             "if 1 then 2 elif 3 then 4 else 5 end | ..")) {
       parsesToAStub(text);
     }

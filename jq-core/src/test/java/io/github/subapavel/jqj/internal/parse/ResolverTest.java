@@ -25,8 +25,8 @@ class ResolverTest {
    * #62 does not lower, so each parses and resolves to the Stub; the recording is the owning ticket's red. A filter
    * whose kinds a later ticket lowers (#64 constructions, #65 arithmetic and negation, #66 comparison, {@code and},
    * {@code or}, {@code not} and {@code //}, #67 {@code as}, patterns, {@code ?//}, variables, {@code $__loc__} and
-   * format strings, #68 {@code if}, {@code try}, {@code ?}, {@code error}, {@code label} and {@code break}) ends with
-   * {@code | ..}, which still stubs, here and in {@link #GRAMMAR}.
+   * format strings, #68 {@code if}, {@code try}, {@code ?}, {@code error}, {@code label} and {@code break}, #69
+   * {@code reduce} and {@code foreach}) ends with {@code | ..}, which still stubs, here and in {@link #GRAMMAR}.
    */
   private static final List<String> PRECEDENCE =
       List.of(
@@ -55,14 +55,14 @@ class ResolverTest {
           "2 * 3 as $x | $x + 1 | ..",
           "1 // 2 as $x | $x + 10 | ..",
           "[1, 2 as $x | $x, 3] | ..",
-          "reduce 1 + 2 as $x (0; . + $x)",
-          "foreach 1 + 2 as $x (0; . + $x)",
+          "reduce 1 + 2 as $x (0; . + $x) | ..",
+          "foreach 1 + 2 as $x (0; . + $x) | ..",
           "try 1 catch 2 + 3 | ..",
           "try 1 + error(\"x\") | ..",
           "{a: 1 | . + 1} | ..",
           "[5,6] [1] | ..",
           "if true then 1 else 2 end + 1 | ..",
-          "reduce (1,2) as $x (0; . + $x) * 2",
+          "reduce (1,2) as $x (0; . + $x) * 2 | ..",
           "error(\"x\")? // 1 | ..");
 
   /**
@@ -98,8 +98,8 @@ class ResolverTest {
           "def f: def g: 3; g; f",
           "def f: .; def g: f; g",
           "def f: 1; .",
-          "[foreach (1,2,3) as $x (0; . + $x; [$x, .])]",
-          "reduce empty as $x (0; .)",
+          "[foreach (1,2,3) as $x (0; . + $x; [$x, .])] | ..",
+          "reduce empty as $x (0; .) | ..",
           "if false then 1 elif true then 2 else 3 end | ..",
           "if false then 1 end | ..",
           "try error(\"x\") catch . | ..",
@@ -111,7 +111,7 @@ class ResolverTest {
           ". as [$a, {b: $c}] | $c | ..",
           ".[] as [$a] ?// $a | $a | ..",
           ". as [$a] ?// {$a} ?// $a | $a | ..",
-          "reduce .[] as [$a, $b] (0; . + $a * $b)",
+          "reduce .[] as [$a, $b] (0; . + $a * $b) | ..",
           "1 as $v | $$$$v",
           "module {a:1}; .",
           "import \"nosuch\" as n; .",
@@ -121,6 +121,16 @@ class ResolverTest {
           "@json",
           "1 # c\n+ 2 | ..",
           "[limit(2; 1, 2, 3)]");
+
+  @Test
+  void rangeWithOtherThanTwoBoundsIsAStub() {
+    // #69 lowers range/2 only; range/1 and range/3 are builtin.jq's, from #71's prelude (ADR-0041). jq-ref 1.8.2,
+    // observed 2026-11-13 with -nc: range(5) gives 0 to 4 and range(0; 10; 3) gives 0, 3, 6, 9 (rc 0).
+    parsesToAStub("range(5)");
+    parsesToAStub("range(0; 10; 3)");
+    // Witness: two bounds lower.
+    assertThat(shape(ir("range(0; 5)"))).as("IR of range(0; 5)").isEqualTo("range(0; 5)[0,11)");
+  }
 
   @Test
   void everyUnloweredKindParsesAndResolvesToAStub() {
@@ -267,6 +277,47 @@ class ResolverTest {
             Map.entry("label $f | label $f | break $f", "(label $0 | (label $1 | break $1[22,30)))"),
             Map.entry("label $a | label $b | break $a", "(label $0 | (label $1 | break $0[22,30)))"),
             Map.entry("1 as $f | label $f | $f, break $f", "(1[0,1) as $0 | (label $1 | ($0, break $1[25,33))))"));
+    for (Map.Entry<String, String> e : shapes.entrySet()) {
+      assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
+    }
+  }
+
+  /**
+   * #69's lowerings (ADR-0041), the positive witnesses of the entries that left the Stub lists above: a {@code reduce}
+   * is a Reduce whose state slot its init sets, around the Bind or AltBind of its source and pattern, whose body is the
+   * Advance of the slot on the update, and its result goes through {@code _state}, as the update's input does, which
+   * makes an empty state jq's null; a {@code foreach} the same Foreach, with no {@code _state} after it, the Advance
+   * piped into the extract when there is one; {@code range(a; b)} an Intrinsic of range on its bounds, {@code a} bound
+   * outside {@code b}, an Identity, Const or Var bound an argument. jq-ref 1.8.2, observed 2026-11-13 with -nc: the precedence entries give 3, 3, 6
+   * (precedence/reduce-source-takes-a-sum, foreach-source-takes-a-sum, reduce-is-a-term); {@code [foreach (1,2,3) as
+   * $x (0; . + $x; [$x, .])]} gives [[1,1],[2,3],[3,6]], {@code reduce empty as $x (0; .)} 0, {@code reduce .[] as
+   * [$a, $b] (0; . + $a * $b)} on [[1,2],[3,4]] 14, {@code [foreach . as $x (0; 1; 2)]} [2], {@code reduce . as [$a]
+   * ?// $a (0; $a)} on [5] 5, {@code [range(0; 5)]} [0,1,2,3,4], {@code [range(.a; .b)]} on {"a":1,"b":3} [1,2] and
+   * {@code [1 as $n | range(.; $n)]} on 0 [0].
+   */
+  @Test
+  void loopsAndRangeLowerToTheirIr() {
+    Map<String, String> shapes =
+        Map.ofEntries(
+            Map.entry("reduce 1 + 2 as $x (0; . + $x)", "((reduce $0 = 0[20,21) | (3[7,12) as $1 | (advance $0 | (_state[23,29) | _plus(.; $1)[23,29))))) | _state[0,30))"),
+            Map.entry("foreach 1 + 2 as $x (0; . + $x)", "(foreach $0 = 0[21,22) | (3[8,13) as $1 | (advance $0 | (_state[24,30) | _plus(.; $1)[24,30)))))"),
+            Map.entry(
+                "reduce (1,2) as $x (0; . + $x) * 2",
+                "(((reduce $1 = 0[20,21) | ((1[8,9), 2[10,11)) as $2 | (advance $1 | (_state[23,29) | _plus(.; $2)[23,29))))) | _state[0,30)) as $0 | _multiply($0; 2)[0,34))"),
+            Map.entry(
+                "[foreach (1,2,3) as $x (0; . + $x; [$x, .])]",
+                "[(foreach $0 = 0[24,25) | (((1[10,11), 2[12,13)), 3[14,15)) as $1 | ((advance $0 | (_state[27,33) | _plus(.; $1)[27,33))) | [($1, .[40,41))][35,42))))][0,44)"),
+            Map.entry("reduce empty as $x (0; .)", "((reduce $0 = 0[20,21) | (empty[7,12) as $1 | (advance $0 | (_state[23,24) | .[23,24))))) | _state[0,25))"),
+            Map.entry(
+                "reduce .[] as [$a, $b] (0; . + $a * $b)",
+                "((reduce $0 = 0[24,25) | (.[][7,10) as $1 | (($1 | .[k](1)[19,21)) as $2 | (($1 | .[k](0)[15,17)) as $3 | (advance $0 | (_state[27,38) | (_multiply($3; $2)[31,38) as $4 | _plus(.; $4)[27,38)))))))) | _state[0,39))"),
+            Map.entry("foreach . as $x (0; 1; 2)", "(foreach $0 = 0[17,18) | (.[8,9) as $1 | ((advance $0 | (_state[20,21) | 1[20,21))) | 2[23,24))))"),
+            Map.entry(
+                "reduce . as [$a] ?// $a (0; $a)",
+                "((reduce $0 = 0[25,26) | (.[7,8) as $1 | (($1 | .[k](0)[13,15)) as $2 | .[12,16)) -> [$2] ?// .[21,23) -> [$1] as [$3] | (advance $0 | (_state[28,30) | $3)))) | _state[0,31))"),
+            Map.entry("range(0; 5)", "range(0; 5)[0,11)"),
+            Map.entry("range(.a; .b)", "(.a[6,8) as $0 | (.b[10,12) as $1 | range($0; $1)[0,13)))"),
+            Map.entry("1 as $n | range(.; $n)", "(1[0,1) as $0 | range(.; $0)[10,22))"));
     for (Map.Entry<String, String> e : shapes.entrySet()) {
       assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
     }

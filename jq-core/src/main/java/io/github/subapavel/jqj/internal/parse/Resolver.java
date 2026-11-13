@@ -10,13 +10,16 @@ import io.github.subapavel.jqj.internal.op.Formats;
 import io.github.subapavel.jqj.internal.op.Index;
 import io.github.subapavel.jqj.internal.op.Interpolate;
 import io.github.subapavel.jqj.internal.op.Iterate;
+import io.github.subapavel.jqj.internal.op.LoopState;
 import io.github.subapavel.jqj.internal.op.JqTruth;
 import io.github.subapavel.jqj.internal.op.ObjectKey;
 import io.github.subapavel.jqj.internal.op.Raise;
+import io.github.subapavel.jqj.internal.op.Range;
 import io.github.subapavel.jqj.internal.op.Slice;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
+import io.github.subapavel.jqj.query.ir.Advance;
 import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
@@ -25,6 +28,7 @@ import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
+import io.github.subapavel.jqj.query.ir.Foreach;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
@@ -32,6 +36,7 @@ import io.github.subapavel.jqj.query.ir.Label;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.ir.Pipe;
+import io.github.subapavel.jqj.query.ir.Reduce;
 import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.ir.Try;
 import io.github.subapavel.jqj.query.ir.Var;
@@ -47,6 +52,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Lowers a parsed filter to IR (GLOSSARY "Resolver", ADR-0032). Built so far (#33, #34, #61, #63): {@code .}; a field
@@ -61,8 +67,9 @@ import java.util.Set;
  * Var of its slot, a host variable's a parameter slot; {@code $__loc__}, a Const; and a string with interpolations, an
  * Intrinsic of Interpolate over its parts; and (#68, ADR-0039) {@code if ... elif ... else ... end}, nested Ifs,
  * {@code try}, {@code catch} and a postfix {@code ?} on a term that is no step, a Try, {@code error} and {@code
- * error(f)}, and {@code label $name | ...} and {@code break $name}, a Label and a Break of its slot. Every other kind is
- * a Stub.
+ * error(f)}, and {@code label $name | ...} and {@code break $name}, a Label and a Break of its slot; and (#69, ADR-0041)
+ * {@code reduce} and {@code foreach}, a Reduce or Foreach around its pattern's Binds and the Advance of its state slot,
+ * and {@code range(a; b)}, an Intrinsic of Range. Every other kind is a Stub.
  *
  * <p>A key or bound that is a Const or a Var is the step's argument; any other is bound around the step's target, the
  * key outside the target and {@code a} outside {@code b} (ADR-0034, jq's {@code gen_index} and {@code
@@ -74,7 +81,9 @@ import java.util.Set;
  * label holds over the whole term, and the lowering goes on: the errors
  * are collected in the order the lowering meets them, which is jq's (jq-ref 1.8.2, recorded: diff/bind.rec
  * bind/unbound-two), so every operand left of its right one, and thrown together once the whole filter is lowered
- * (ADR-0036, ADR-0038). A Stub is thrown at once, whatever was collected before it.
+ * (ADR-0036, ADR-0038). Each is collected in its compile level, and a level reports its inner levels' errors only when
+ * it has none (ADR-0040): the bounds of {@code range/2} are inner levels. A Stub is thrown at once, whatever was
+ * collected before it.
  */
 public final class Resolver {
   /** jq's message for a program with no top-level filter, which is no syntax error (ADR-0032). */
@@ -111,14 +120,36 @@ public final class Resolver {
   /** The label names in scope where the lowering is, innermost first: a scope apart from the variables' (ADR-0039). */
   private Scope labels;
 
-  /** The compile errors met so far, in jq's order, and the line and column of the first. */
-  private final List<String> blocks = new ArrayList<>();
-
-  private int firstLine;
-  private int firstColumn;
+  /** The compile level where the lowering is: the main filter's, or that of an argument of {@code range/2}. */
+  private Level level = new Level();
 
   /** A name in scope, its slot or {@link #UNSTORED}, and the names outside it. */
   private record Scope(String name, int slot, Scope outer) {}
+
+  /** A compile error's block, and the line and column of its start. */
+  private record Located(String block, int line, int column) {}
+
+  /**
+   * A compile level (ADR-0040, GLOSSARY "Compile level"): the binding errors its own text holds, in the order the
+   * lowering meets them, which is jq's, and its inner levels, in the same order, which it reports only when it has
+   * none of its own (jq-ref 1.8.2, observed 2026-11-13: {@code $a, range($b; 1)} reports $a alone, {@code range($a;
+   * range($b; 1))} both).
+   */
+  private static final class Level {
+    final List<Located> errors = new ArrayList<>();
+    final List<Level> inner = new ArrayList<>();
+
+    /** Adds to {@code out} the errors the level reports: its own, or if it has none those its inner levels report. */
+    void report(List<Located> out) {
+      if (!errors.isEmpty()) {
+        out.addAll(errors);
+        return;
+      }
+      for (Level l : inner) {
+        l.report(out);
+      }
+    }
+  }
 
   /** A Bind a pattern's match lowers to: its value, its slot, and the part of the pattern it spans. */
   private record Step(Node value, int slot, Source source) {}
@@ -172,8 +203,14 @@ public final class Resolver {
       resolver.scope = new Scope(name, resolver.slots++, resolver.scope);
     }
     Node root = resolver.lower(program.main());
-    if (!resolver.blocks.isEmpty()) {
-      throw new JqCompileException(resolver.blocks, resolver.firstLine, resolver.firstColumn);
+    List<Located> errors = new ArrayList<>();
+    resolver.level.report(errors);
+    if (!errors.isEmpty()) {
+      List<String> blocks = new ArrayList<>(errors.size());
+      for (Located e : errors) {
+        blocks.add(e.block());
+      }
+      throw new JqCompileException(blocks, errors.getFirst().line(), errors.getFirst().column());
     }
     return root;
   }
@@ -218,6 +255,9 @@ public final class Resolver {
       case Ast.Call c when c.args().size() == 1 && c.name().equals("error") -> new Pipe(c.source(), lower(c.args().getFirst()), new Intrinsic(c.source(), Raise.OP, List.of()));
       case Ast.Label l -> label(l);
       case Ast.Break b -> breakTo(b);
+      case Ast.Reduce r -> reduce(r);
+      case Ast.Foreach f -> foreach(f);
+      case Ast.Call c when c.args().size() == 2 && c.name().equals("range") -> range(c);
       // Each other kind, and each guarded one outside its guard, belongs to a later ticket (spec 2a and 2b).
       default -> throw Stub.unbuilt("the " + ast.getClass().getSimpleName() + " at byte " + ast.source().start());
     };
@@ -381,6 +421,79 @@ public final class Resolver {
     return new Intrinsic(b.source(), Empty.OP, List.of());
   }
 
+  /**
+   * {@code reduce SRC as P (I; U)} (ADR-0041): {@code Reduce(I, s, bindP(SRC, Advance(s, U)))}, with a state slot s of
+   * its own and {@link #bound}'s Bind or AltBind as bindP; U runs on {@link #state} of the slot's value, and so does
+   * what the Reduce emits, so a state an empty update left is jq's null. SRC and I see the scope outside, U the
+   * pattern's names too. They are lowered in jq's order, I first, then SRC, P's keys and U, as jq reports their unbound
+   * variables (jq-ref 1.8.2, observed 2026-11-13: {@code reduce $a as [$x, {($k): $y}] ($b; $c)} reports $b, $a, $k,
+   * $c).
+   */
+  private Node reduce(Ast.Reduce r) {
+    Node init = lower(r.init());
+    int state = slots++;
+    Node source = lower(r.input());
+    Node each = bound(r.source(), source, r.patterns(), () -> advance(state, r.update()));
+    return pipe(new Reduce(r.source(), init, state, each), state(r.source()));
+  }
+
+  /**
+   * {@code foreach SRC as P (I; U; E)} (ADR-0041): {@code Foreach(I, s, bindP(SRC, Advance(s, U) | E))}, and without
+   * an extract {@code Foreach(I, s, bindP(SRC, Advance(s, U)))}; U runs on {@link #state} of the slot's value, and
+   * scopes and order are {@link #reduce}'s, E last (jq-ref 1.8.2, observed 2026-11-13: {@code foreach $a as $x ($b; $c;
+   * $d)} reports $b, $a, $c, $d). Each result is an update's, so none is an empty state.
+   */
+  private Node foreach(Ast.Foreach f) {
+    Node init = lower(f.init());
+    int state = slots++;
+    Node source = lower(f.input());
+    Node each =
+        bound(
+            f.source(),
+            source,
+            f.patterns(),
+            () -> {
+              Node advance = advance(state, f.update());
+              return f.extract() == null ? advance : pipe(advance, lower(f.extract()));
+            });
+    return new Foreach(f.source(), init, state, each);
+  }
+
+  /** The Advance of the state slot {@code state} on {@code update}, which runs on the slot's value as jq sees it. */
+  private Node advance(int state, Ast update) {
+    Source at = update.source();
+    return new Advance(at, state, pipe(state(at), lower(update)));
+  }
+
+  /** {@link LoopState}: jq's null for the empty state an Advance leaves (founding §14), any other value as it is. */
+  private static Intrinsic state(Source at) {
+    return new Intrinsic(at, LoopState.OP, List.of());
+  }
+
+  /**
+   * {@code range(A; B)} (ADR-0041): the call of {@link Range} on its bounds, B bound inside A, so the start is the outer
+   * loop, an Identity, Const or Var bound passed as an argument without a Bind, as an operator's operand is (ADR-0034
+   * amendment for #65). range/2 is a bytecoded native, so each bound is an inner compile level (ADR-0040).
+   */
+  private Node range(Ast.Call c) {
+    Node start = inner(c.args().get(0));
+    Node end = inner(c.args().get(1));
+    int startSlot = operandSlot(start);
+    int endSlot = operandSlot(end);
+    Intrinsic call = new Intrinsic(c.source(), Range.OP, List.of(argument(start, startSlot), argument(end, endSlot)));
+    return bind(start, startSlot, bind(end, endSlot, call));
+  }
+
+  /** {@code arg} lowered as an inner compile level of the current one, the next of its inner levels (ADR-0040). */
+  private Node inner(Ast arg) {
+    Level outer = level;
+    level = new Level();
+    outer.inner.add(level);
+    Node node = lower(arg);
+    level = outer;
+    return node;
+  }
+
   /** {@code if cond then then else otherwise} on jq's truth, spanning {@code at}. */
   private static If when(Source at, Node cond, Node then, Node otherwise) {
     return new If(at, cond, then, otherwise, JqTruth.TRUTHY);
@@ -424,13 +537,9 @@ public final class Resolver {
     return new Const(at, JqNull.NULL);
   }
 
-  /** Collects jq's compile error {@code <shown> is not defined} over {@code error}, the first one placing the throw. */
+  /** Collects jq's compile error {@code <shown> is not defined} over {@code error} in the current level. */
   private void notDefined(String shown, Source error) {
-    if (blocks.isEmpty()) {
-      firstLine = text.line(error.start());
-      firstColumn = text.column(error.start());
-    }
-    blocks.add(text.block(shown + " is not defined", error.start(), error.end()));
+    level.errors.add(new Located(text.block(shown + " is not defined", error.start(), error.end()), text.line(error.start()), text.column(error.start())));
   }
 
   /** {@code $__loc__} at {@code at}: its location, a constant (ADR-0038, jq's {@code gen_loc_object}). */
@@ -444,8 +553,17 @@ public final class Resolver {
    */
   private Node binding(Ast.Bind b) {
     Node value = lower(b.value());
+    return bound(b.source(), value, b.patterns(), () -> lower(b.body()));
+  }
+
+  /**
+   * {@code value}, lowered already, bound to a slot of its own and taken apart by {@code patterns} around the node
+   * {@code body} lowers in the patterns' scope (ADR-0038): a Bind for one pattern, an AltBind for a {@code ?//} chain.
+   * {@code E as p | body} and the source and pattern of a {@code reduce} or {@code foreach} (ADR-0041) lower so.
+   */
+  private Node bound(Source source, Node value, List<Ast.Pattern> patterns, Supplier<Node> body) {
     int slot = slots++;
-    return b.patterns().size() == 1 ? destructure(b, value, slot) : alternatives(b, value, slot);
+    return patterns.size() == 1 ? destructure(source, value, slot, patterns.getFirst(), body) : alternatives(source, value, slot, patterns, body);
   }
 
   /**
@@ -453,16 +571,16 @@ public final class Resolver {
    * first store (jq-ref, recorded: bind/repeat-array, bind/repeat-object). The match's key expressions see only the
    * scope outside the pattern (bind/key-sees-outer-variable). {@code E as $x | body} is so one Bind.
    */
-  private Node destructure(Ast.Bind b, Node value, int slot) {
+  private Node destructure(Source source, Node value, int slot, Ast.Pattern pattern, Supplier<Node> lowerBody) {
     Match match = new Match(false);
-    match(b.patterns().getFirst(), slot, match);
+    match(pattern, slot, match);
     Scope outer = scope;
     for (Map.Entry<String, Integer> name : match.first.entrySet()) {
       scope = new Scope(name.getKey(), name.getValue(), scope);
     }
-    Node body = lower(b.body());
+    Node body = lowerBody.get();
     scope = outer;
-    return new Bind(b.source(), value, slot, nest(match.steps, body));
+    return new Bind(source, value, slot, nest(match.steps, body));
   }
 
   /**
@@ -472,15 +590,15 @@ public final class Resolver {
    * group slot takes the slot of the name's latest store, or, for a name the alternative never stores, the slot of one
    * Const null bound around the chain: jq-core never passes -1, since query-core's null is no jq value (§14).
    */
-  private Node alternatives(Ast.Bind b, Node value, int slot) {
+  private Node alternatives(Source source, Node value, int slot, List<Ast.Pattern> patterns, Supplier<Node> lowerBody) {
     Set<String> names = new LinkedHashSet<>();
-    for (Ast.Pattern pattern : b.patterns()) {
+    for (Ast.Pattern pattern : patterns) {
       names(pattern, names);
     }
     Scope outer = scope;
     List<Alternative> alternatives = new ArrayList<>();
     int nil = NO_SLOT;
-    for (Ast.Pattern pattern : b.patterns()) {
+    for (Ast.Pattern pattern : patterns) {
       for (String name : names) {
         scope = new Scope(name, UNSTORED, scope);
       }
@@ -505,10 +623,10 @@ public final class Resolver {
       groups.add(slots);
       scope = new Scope(name, slots++, scope);
     }
-    Node body = lower(b.body());
+    Node body = lowerBody.get();
     scope = outer;
-    Node chain = new AltBind(b.source(), value, slot, alternatives, groups, body);
-    return nil == NO_SLOT ? chain : new Bind(b.source(), new Const(b.source(), JqNull.NULL), nil, chain);
+    Node chain = new AltBind(source, value, slot, alternatives, groups, body);
+    return nil == NO_SLOT ? chain : new Bind(source, new Const(source, JqNull.NULL), nil, chain);
   }
 
   /** The names {@code pattern} stores, added to {@code names} in source order. */
