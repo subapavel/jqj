@@ -15,6 +15,9 @@ over its cost bar). The owner chose to prove them on the walk side instead.
   index and its last value's index) when a key repeats. A walker that skips the proof fails
   loudly, not slowly. `ObjectView` keeps `Keyed.get`; a field read scans as before and pays
   nothing.
+  The Printer is the one walker that enters through `KeyProof.plan(RunState, Document, int, boolean)`
+  instead (#85): the same proof and ticks, without an `ObjectWalk` per printed object. It walks the
+  tape when `plan` is null and the plan's pairs otherwise; no other walker may call `plan`.
 - **Walkers**: `.[]`, Equality's left side (its right side's count becomes `size`), Order's key
   lists, ObjectMerge (both sides), the Printer, Detach (replaces its TreeMap), `keys`,
   `keys_unsorted`, `length`, `flatten`, `to_entries` (now a native, replacing the prelude definition), and the
