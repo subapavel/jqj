@@ -11,6 +11,8 @@ import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.ir.Source;
 import io.github.subapavel.jqj.query.ir.Var;
+import io.github.subapavel.jqj.query.run.CallForm;
+import io.github.subapavel.jqj.query.run.Fn0;
 import io.github.subapavel.jqj.query.run.FnN;
 import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.query.run.Truth;
@@ -20,8 +22,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * A Binds is a tail emitter only when its values and its body all are (ADR-0043), over plain strings (founding §14): a
- * Binds of tail values whose body is a Comma gives two results, so as a Binds value or an If condition it runs the rest
- * once per result, as the nested chain does, in both compile modes.
+ * Binds with a Comma for its body or for a value gives two results, so as a Binds value or an If condition it runs the
+ * rest once per result, as the nested chain does, in both compile modes. And a tail value with no result ends the
+ * Binds, even after a tail value with one.
  */
 class TailEmitterTest {
   private static final Source AT = new Source(0, 1);
@@ -60,6 +63,33 @@ class TailEmitterTest {
       // if (pair) then list(.) else "no" end
       If cond = new If(AT, pair(1, 2), list(new Const(AT, "then")), new Const(AT, "no"), ALL);
       assertThat(results(cond, mode)).as("%s: results of an If on the pair", mode).containsExactly(List.of("then"), List.of("then"));
+    }
+  }
+
+  @Test
+  void aBindsWhoseValueIsAGeneratorRunsTheRestPerResult() {
+    for (CompileMode mode : CompileMode.values()) {
+      // ("a", "b") as $1 | "c" as $2 | list($1; $2): a generator value, a tail body.
+      Binds generator =
+          new Binds(AT, List.of(new Comma(AT, new Const(AT, "a"), new Const(AT, "b")), new Const(AT, "c")), List.of(1, 2), list(new Var(AT, 1), new Var(AT, 2)));
+      Binds value = new Binds(AT, List.of(generator, new Const(AT, "d")), List.of(0, 3), list(new Var(AT, 0), new Var(AT, 3)));
+      assertThat(results(value, mode))
+          .as("%s: results of a Binds whose first value is the Binds of a generator value", mode)
+          .containsExactly(List.of(List.of("a", "c"), "d"), List.of(List.of("b", "c"), "d"));
+      Binds again =
+          new Binds(AT, List.of(new Comma(AT, new Const(AT, "a"), new Const(AT, "b")), new Const(AT, "c")), List.of(1, 2), list(new Var(AT, 1), new Var(AT, 2)));
+      If cond = new If(AT, again, list(new Const(AT, "then")), new Const(AT, "no"), ALL);
+      assertThat(results(cond, mode)).as("%s: results of an If on the Binds of a generator value", mode).containsExactly(List.of("then"), List.of("then"));
+    }
+  }
+
+  @Test
+  void aTailValueWithNoResultAfterOneWithAResultEndsTheBinds() {
+    for (CompileMode mode : CompileMode.values()) {
+      // "a" as $1 | nothing as $2 | "c" as $3 | list($1; $2; $3): the second value gives no result.
+      Intrinsic nothing = new Intrinsic(AT, new Operation("nothing", (Fn0) (state, in) -> CallForm.NONE), List.of());
+      Binds binds = new Binds(AT, List.of(new Const(AT, "a"), nothing, new Const(AT, "c")), List.of(1, 2, 3), list(new Var(AT, 1), new Var(AT, 2), new Var(AT, 3)));
+      assertThat(results(binds, mode)).as("%s: results of a Binds whose second tail value gives none", mode).isEmpty();
     }
   }
 }

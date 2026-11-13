@@ -179,7 +179,7 @@ final class IrVerifier {
   }
 
   /**
-   * The Binds {@code b} (ADR-0043), as the chain of nested Binds it means: two values at least and one slot per value,
+   * The Binds {@code b} (ADR-0043), as the chain of nested Bind nodes it means: two values at least and one slot per value,
    * each slot taken before
    * its value is walked, and each value sees the slots of the values before it, the body all of them. The walk loops
    * over the values, so it does not go deeper with their number.

@@ -128,6 +128,8 @@ public final class Compiler {
       case If i -> tail(i.cond()) && tail(i.then()) && tail(i.otherwise());
       case Bind b -> tail(b.value()) && tail(b.body());
       case Binds b -> b.values().stream().allMatch(Compiler::tail) && tail(b.body());
+      // False is safe for any kind: a node not taken for a tail emitter runs in push form, which is right for every
+      // node and only runs the rest inside its emit, one recursion deeper. True is safe only for the kinds above.
       default -> false;
     };
   }

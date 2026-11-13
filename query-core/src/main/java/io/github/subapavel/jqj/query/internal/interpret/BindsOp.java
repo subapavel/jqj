@@ -16,26 +16,30 @@ public final class BindsOp extends Op {
   /** Whether each value is a tail emitter: one result at most, and it never breaks out (ADR-0043). */
   private final boolean[] tails;
 
-  private final int[] slots;
+  /** The slot each value sets. */
+  private final int[] targets;
+
   private final Op body;
 
-  public BindsOp(Op[] values, boolean[] tails, int[] slots, Op body) {
+  public BindsOp(Op[] values, boolean[] tails, int[] targets, Op body) {
     this.values = values;
     this.tails = tails;
-    this.slots = slots;
+    this.targets = targets;
     this.body = body;
   }
 
   @Override
   public boolean run(RunState state, Object[] slots, Object in, Sink out) {
-    return from(0, state, slots, in, out);
+    return from(0, state, slots, in, out, new Holder());
   }
 
-  /** The values from {@code first} on, then the body, with the slots of the values before {@code first} set. */
-  private boolean from(int first, RunState state, Object[] slots, Object in, Sink out) {
-    Holder holder = new Holder();
+  /**
+   * The values from {@code first} on, then the body, with the slots of the values before {@code first} set. The one
+   * {@code holder} of the run serves every tail value: each is taken, leaving it empty, before the next one runs.
+   */
+  private boolean from(int first, RunState state, Object[] slots, Object in, Sink out, Holder holder) {
     for (int k = first; k < values.length; k++) {
-      int slot = this.slots[k];
+      int slot = targets[k];
       if (!tails[k]) {
         int next = k + 1;
         return values[k].run(
@@ -44,7 +48,7 @@ public final class BindsOp extends Op {
             in,
             v -> {
               slots[slot] = v;
-              return from(next, state, slots, in, out);
+              return from(next, state, slots, in, out, holder);
             });
       }
       // The holder never stops and a tail emitter never breaks out, so this run's answer is always true.
