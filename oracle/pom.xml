@@ -11,8 +11,8 @@
   <artifactId>oracle</artifactId>
   <name>oracle</name>
 
-  <!-- The compile-mode oracle's tests (JUnit tag compile-mode) run only under -Pcompile-oracle: after every merge and
-       in the spec gate, never in the ticket gate (F-27, F-29, ADR-0020 amendment for #60). -->
+  <!-- The compile-mode oracle's tests (JUnit tag compile-mode) run only under -Pcompile-oracle: after every merge, in
+       the spec gate, and in the ticket gate since #89 (F-29, F-46, ADR-0020 amendment for #60). -->
   <properties>
     <oracle.excludedGroups>compile-mode</oracle.excludedGroups>
   </properties>
