@@ -189,3 +189,13 @@ jq-ref compiles 10 921 commas (`depth/comma-10921`, matched) and rejects one mor
 function's code must fit 65 536 bytes. jqj compiles to an IR and an interpreter tree with no such limit, and a long
 chain is bounded at run time by the step budget instead (one tick per right branch, F-32; jq-core
 CommaChainTest pins chains of 10⁴ and 10⁵).
+
+## Array length limit (ADR-0035, issue #64)
+
+jq 1.8.2 raises "Array index too large" when an array grows past an index of 2^29−1, as `jv_array_append` does
+when it collects one more result (`jv_array_set`, src/jv.c:1020). jqj ends a collection that would pass
+`Integer.MAX_VALUE − 8` elements with exit 5 and "Bytes-built budget exceeded". It does so even when the bytes-built
+budget is unlimited, as on the command line. Reason: a JVM array holds no more elements than that. Also, a collector
+charges each element to the bytes-built budget before storing it (ADR-0035), so a collection that large exhausts any
+real budget first. A termination of its own would add a public cause for a case no run can reach. query-core's tests
+of `CollectOp.grown` pin jqj's side.
