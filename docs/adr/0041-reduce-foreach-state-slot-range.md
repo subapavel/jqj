@@ -36,15 +36,17 @@ jq 1.8.2's `gen_reduce` and `gen_foreach` keep the loop state in a fresh variabl
 
 - **The state read**:
   - jq-core reads the state through a `_state` operation. It maps the slot's Java null, the state after an empty update, to `null`.
-  - The built lowering is `Pipe(Reduce(I, s, bindP(SRC, Advance(s, Pipe(_state, U)))), _state)`; Foreach is the same, with E after the Advance.
-  - On jq-ref, `reduce (1,2) as $x (0; empty)` gives `null`, and foreach's next update after an empty one sees `null`.
+  - The built lowerings are `Pipe(Reduce(I, s, bindP(SRC, Advance(s, Pipe(_state, U)))), _state)` and `Foreach(I, s, bindP(SRC, Pipe(Advance(s, Pipe(_state, U)), E)))`. No `_state` follows a Foreach: each of its results comes from an update.
+  - On jq-ref, `reduce (1,2) as $x (0; empty)` gives `null`, and foreach's next update after an empty one sees `null` (recorded: `reduce/foreach-update-empty-then-next` gives `[[null,3]]`).
   - query-core's null stays no jq value (§14).
-- **Bounds**: a range bound that is already atomic (Identity, Const or Var) is passed as an argument with no Bind, following ADR-0034's convention. The order is unchanged: start outer, and `[range((1,2);(3,4))]` gives `[1,2,1,2,3,2,2,3]` on jq-ref.
+- **Bounds**: a range bound that is already atomic (Identity, Const or Var) is passed as an argument with no Bind, following ADR-0034's convention. The order is unchanged: start outer (recorded: `reduce/range2-generators`, where `[range(0,1;3,4)]` gives `[0,1,2,0,1,2,3,1,2,1,2,3]`).
 - **The Many args contract**:
-  - The call site allocates a new args array for each loop. IntrinsicManyOp does so on every run, and a future bytecode backend or trampoline (ADR-0011) must do the same.
+  - The call site allocates a new args array for each loop. IntrinsicManyOp does so on every run, except for a call with no arguments, which shares one empty array that has nothing to replace. A future bytecode backend or trampoline (ADR-0011) must do the same.
   - `first` may replace an argument in that array with a form the later calls read more cheaply. Range stores its end's double once, because a NumberView recomputes it on every read (ADR-0012).
   - A Const is never written: only the array's element is replaced.
 - **The verifier**: it accepts at most one Advance per loop node. The jq lowering always places exactly one; a hand-built IR loop with none is valid.
+
+## Considered options
 
 
 - **Pattern Binds inside the update**: a retried alternative would rerun U on the old state.
