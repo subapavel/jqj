@@ -1,6 +1,6 @@
 # Comma, slots and atomic arguments in the IR; call forms as a sealed CallForm
 
-Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; designer draft); completes ADR-0005 and ADR-0009; amends ADR-0008 (`run` takes the slots); amended for #64 (`FnN`, `Collect`), see the end; slot rule amended by ADR-0038 (group and parameter slots, #67)
+Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; designer draft); completes ADR-0005 and ADR-0009; amends ADR-0008 (`run` takes the slots); amended for #64 (`FnN`, `Collect`), see the end; slot rule amended by ADR-0038 (group and parameter slots, #67); state slots by ADR-0041 (#69)
 
 #63 is the first ticket to lower constructs that #62's parser builds: comma, indexing, slicing and iteration. They need a sequencing node, a way to hold a computed key while its target runs, and the call forms ADR-0009 names. This ADR fixes those IR and protocol shapes; later tickets extend them with their first user.
 
@@ -32,5 +32,12 @@ Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; desig
 ## Amendment (2026-11-13, ticket #65)
 
 - **A binary arithmetic operator** `l op r` (`+ - * / %`) lowers to `Bind(r, s_r, Bind(l, s_l, Intrinsic(op, [Var s_l, Var s_r])))`: the right operand is the outer loop, as jq 1.8.2 runs a C function's arguments last-first (`expand_call_arglist`). An Identity or Const operand is passed as an argument without a Bind. `-t` lowers to `Pipe(t, Intrinsic(NEGATE, []))`. The order is pinned by a differential case (`[(1,2)+(10,20)]`) recorded on jq-ref.
-- **Ticks (ADR-0008)**: an operator on two scalars ticks nothing. A string concatenation ticks once per started KiB of its result; array difference once per pair compared, stopping at the first match; `split` once per piece; object `+` once per right-hand entry; object merge `*` once per entry and once per level. Each rate is pinned by two adjacent counts (`ArithmeticStepsTest`, red at 65b717b).
+- **Ticks (ADR-0008)**: an operator on two scalars ticks nothing. A string concatenation ticks once per started KiB of its result; array difference once per pair compared, stopping at the first match; `split` once per piece; object `+` once per right-hand entry; object merge `*` once per right-hand entry at every level. Also (#65 standards review), each a loop whose length depends on the data (ADR-0008):
+  - array `+` ticks once per element it copies;
+  - array difference ticks once per left element even against `[]`;
+  - `split` ticks once per started KiB of the input times the started KiB of the separator (at least one), as well as once per piece;
+  - object merge `*` and object `+` tick once per left entry they copy;
+  - Equality ticks once per key it counts when it compares object sizes, once per member pair, and once per started KiB of the shorter string when it compares two strings (as ADR-0037's Order);
+  - string repeat ticks once per started KiB of its result.
+Each rate is pinned by two adjacent counts (`ArithmeticStepsTest`, red at 65b717b, completed by the implementer for the rates added here).
 - Considered: the left operand outer (not jq's order); a binary IR node (hides the binds, as `Index` would).

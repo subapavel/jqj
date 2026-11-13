@@ -263,6 +263,26 @@ class RunStateTest {
     assertThat(state.steps()).as("ticks of the next run").isZero();
   }
 
+  /**
+   * The bytes built count each charge since the last begin and none that is refused (ADR-0035): what a caller reads to
+   * share one budget among several runs, as the parse-time folds of one compile do (#65).
+   */
+  @Test
+  void builtCountsTheChargesSinceTheLastBegin() {
+    RunState state = new RunState();
+    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, 10, Long.MAX_VALUE);
+    state.chargeBuilt(4);
+    state.chargeBuilt(3);
+    assertThatExceptionOfType(Termination.class).as("4 bytes with 3 left").isThrownBy(() -> state.chargeBuilt(4));
+    assertThat(state.built()).as("bytes built after a refused charge").isEqualTo(7);
+    state.end();
+    assertThat(state.built()).as("bytes built after end").isEqualTo(7);
+
+    // Witness: the next begin counts from zero.
+    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, 10, Long.MAX_VALUE);
+    assertThat(state.built()).as("bytes built at the next begin").isZero();
+  }
+
   /** Asserts that {@code call} ends the run with {@code Termination(BUDGET, budget)} and the budget's message. */
   private static void assertBudget(ThrowingCallable call, Budget budget, String what) {
     Termination t = assertThatExceptionOfType(Termination.class).as("%s", what).isThrownBy(call).actual();
