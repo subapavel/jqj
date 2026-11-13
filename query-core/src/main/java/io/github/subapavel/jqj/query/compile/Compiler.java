@@ -28,6 +28,7 @@ import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Binds;
 import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
@@ -82,6 +83,8 @@ public final class Compiler {
       case Pipe p -> new PipeOp(interpreter(p.left()), interpreter(p.right()));
       case Comma c -> new CommaOp(interpreter(c.left()), interpreter(c.right()));
       case Bind b -> new BindOp(interpreter(b.value()), b.slot(), interpreter(b.body()));
+      // Scaffold of the #92 test-author, for the implementer to replace.
+      case Binds _ -> throw new UnsupportedOperationException("scaffold #92: no BindsOp yet");
       case Var v -> new VarOp(v.slot());
       case Intrinsic i -> intrinsic(i);
       case Collect c -> new CollectOp(interpreter(c.body()), c.collector());

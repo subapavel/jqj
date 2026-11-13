@@ -5,6 +5,7 @@ import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Binds;
 import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
@@ -135,6 +136,9 @@ final class IrVerifier {
         visit(b.body());
         scope.remove(b.slot());
       }
+      // Scaffold of the #92 test-author, for the implementer to replace. Not an IllegalStateException, so no
+      // rejection test passes on it.
+      case Binds _ -> throw new UnsupportedOperationException("scaffold #92: no Binds rule yet");
       case AltBind a -> altBind(a);
       case Try t -> {
         visit(t.body());

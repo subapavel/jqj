@@ -10,6 +10,7 @@ import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.AltBind;
 import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Binds;
 import io.github.subapavel.jqj.query.ir.Break;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
@@ -114,6 +115,8 @@ final class ParseAssertions {
         inner.put(b.slot(), name);
         yield "(" + value + " as " + name + " | " + shape(b.body(), inner, met) + ")";
       }
+      // Scaffold of the #92 test-author: no lowering builds a Binds yet, so no shape is fixed for it.
+      case Binds _ -> throw new UnsupportedOperationException("scaffold #92: no shape for a Binds yet");
       case Var v -> scope.getOrDefault(v.slot(), "$?");
       case Collect c -> "[" + shape(c.body(), scope, met) + "]" + chars(c.source());
       case If i -> "(if " + shape(i.cond(), scope, met) + " then " + shape(i.then(), scope, met) + " else " + shape(i.otherwise(), scope, met) + ")";
