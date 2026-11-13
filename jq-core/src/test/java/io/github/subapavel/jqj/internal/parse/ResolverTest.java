@@ -11,7 +11,12 @@ import io.github.subapavel.jqj.Bindings;
 import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.JqEngine;
 import io.github.subapavel.jqj.internal.op.StepRun;
+import io.github.subapavel.jqj.query.ir.AltBind;
+import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Binds;
+import io.github.subapavel.jqj.query.ir.Collect;
+import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
@@ -22,7 +27,13 @@ import io.github.subapavel.jqj.value.JqNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * The parser builds an AST for every construct of jq 1.8.2's grammar, and the resolver lowers only what is built,
@@ -470,6 +481,221 @@ class ResolverTest {
     assertThat(shape(ir(".[0]??[.a]??")))
         .as("IR of .[0]??[.a]??")
         .isEqualTo("(try (.a[7,9) as $0 | ((try .[k]?(0)[0,5) catch empty[1,6)) | .[k]?($0)[6,11))) catch empty[6,12))");
+  }
+
+  /**
+   * ADR-0043 (#93): past {@code BIND_RUN} (= {@link Resolver#PIPE_CHAIN}, 64) nested Binds the Resolver builds one
+   * Binds whose values are the nested form's, in its order: for an object the key, the value and the key check of each
+   * pair (each a value of the Binds, the check bound to a slot no node reads), BuildObject the body; for an
+   * interpolation the last part first; for a pattern the value and its steps, and each {@code ?//} alternative's match
+   * {@code Binds(steps, Identity)}; for a value parameter's expansion one Binds of its arguments, the first outermost.
+   * {@link ParseAssertions#shape} prints a Binds as the chain of Binds it means, so each expected text is the nested
+   * form's (ADR-0034, ADR-0038, ADR-0040, as {@link #variablesPatternsAndInterpolationsLowerToTheirIr} and {@link
+   * #definitionsLowerToTheirIr} pin it for few parts), Sources left out. jq-ref's results for such constructs of 70
+   * parts with two generators are recorded in diff/binds.rec.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("wideConstructs")
+  void aWideConstructLowersToOneBindsInJqsOrder(String construct, String filter, String nested, Consumer<Node> oneBinds) {
+    Node node = ir(filter);
+    assertThat(stripped(node)).as("IR of the %s, Sources left out", construct).isEqualTo(nested);
+    oneBinds.accept(node);
+  }
+
+  static Stream<Arguments> wideConstructs() {
+    // An object of 70 constant keys, each value a field read: the 70 values, BuildObject on their slots the body.
+    StringBuilder pairs = new StringBuilder();
+    for (int i = 0; i < 70; i++) {
+      pairs.append("(.v").append(i).append(" as $").append(i).append(" | ");
+    }
+    // An object of 70 computed keys: per pair its key, its value and the check of its key, before the next pair.
+    StringBuilder checked = new StringBuilder();
+    StringJoiner arguments = new StringJoiner("; ");
+    for (int i = 0; i < 70; i++) {
+      int key = 3 * i;
+      checked.append("(.k").append(i).append(" as $").append(key).append(" | (.v").append(i).append(" as $").append(key + 1).append(" | ");
+      checked.append("(object key($").append(key).append(") as $").append(key + 2).append(" | ");
+      arguments.add("$" + key).add("$" + (key + 1));
+    }
+    // An interpolation of 70 parts: the last part outermost, the Interpolate on the parts in their order the body.
+    StringBuilder lastFirst = new StringBuilder();
+    for (int i = 69; i >= 0; i--) {
+      lastFirst.append("(.v").append(i).append(" as $").append(69 - i).append(" | ");
+    }
+    return Stream.of(
+        Arguments.of(
+            "object of 70 constant keys",
+            "{" + terms(70, ", ", "k%d: .v%d") + "}",
+            pairs + "{...}(" + names(0, 70, 1) + ")" + ")".repeat(70),
+            body(70, "{...}")),
+        Arguments.of(
+            "object of 70 computed keys",
+            "{" + terms(70, ", ", "(.k%d): .v%d") + "}",
+            checked + "{...}(" + arguments + ")" + ")".repeat(210),
+            body(210, "{...}")),
+        Arguments.of(
+            "interpolation of 70 parts",
+            "\"" + terms(70, "", "\\(.v%d)") + "\"",
+            lastFirst + "interpolation(" + names(69, -1, -1) + ")" + ")".repeat(70),
+            body(70, "interpolation")),
+        // An array pattern of 70 variables: the value, then each element's index, the last element first, in one Binds
+        // (the value's own Bind may stay outside it).
+        Arguments.of(
+            "array pattern of 70 variables",
+            ". as [" + terms(70, ", ", "$a%d") + "] | $a0",
+            "(. as $0 | " + steps(0, 1) + "$70" + ")".repeat(71),
+            (Consumer<Node>)
+                node -> {
+                  assertThat(count(node, Binds.class)).as("Binds nodes in the IR of the array pattern of 70 variables").isEqualTo(1);
+                  assertThat(count(node, Bind.class)).as("Bind nodes in the IR of the array pattern of 70 variables, the value's at most").isLessThanOrEqualTo(1);
+                }),
+        // Two alternatives of 70 variables each: each match is one Binds of its 70 steps around the Identity leaf.
+        Arguments.of(
+            "two alternatives of 70 variables",
+            ". as [" + terms(70, ", ", "$a%d") + "] ?// [" + terms(70, ", ", "$a%d") + "] | $a0",
+            "(. as $0 | " + steps(0, 1) + "." + ")".repeat(70) + " -> [" + names(70, 0, -1).replace(";", ",") + "] ?// " + steps(0, 71) + "." + ")".repeat(70) + " -> ["
+                + names(140, 70, -1).replace(";", ",") + "] as [" + names(141, 211, 1).replace(";", ",") + "] | $141)",
+            (Consumer<Node>)
+                node -> {
+                  assertThat(node).as("IR of the two alternatives of 70 variables").isInstanceOf(AltBind.class);
+                  for (Alternative alternative : ((AltBind) node).alternatives()) {
+                    assertThat(alternative.match()).as("match of an alternative of 70 variables").isInstanceOf(Binds.class);
+                    assertThat(((Binds) alternative.match()).values()).as("values of the match of an alternative of 70 variables").hasSize(70);
+                    assertThat(((Binds) alternative.match()).body()).as("leaf of the match of an alternative of 70 variables").isInstanceOf(Identity.class);
+                  }
+                }),
+        // An expansion of 70 value parameters: one Binds of its arguments, the first outermost, around the body.
+        Arguments.of(
+            "expansion of 70 value parameters",
+            "def f(" + terms(70, "; ", "$a%d") + "): [$a0, $a69]; f(" + terms(70, "; ", ".v%d") + ")",
+            pairs + "[($0, $69)]" + ")".repeat(70),
+            body(70, null)));
+  }
+
+  /**
+   * The check that an IR is one Binds of {@code values} values, whose body is an Intrinsic of the operation named
+   * {@code operation} unless it is null.
+   */
+  private static Consumer<Node> body(int values, String operation) {
+    return node -> {
+      assertThat(node).as("IR of %d values", values).isInstanceOf(Binds.class);
+      Binds binds = (Binds) node;
+      assertThat(binds.values()).as("values of the Binds").hasSize(values);
+      if (operation != null) {
+        assertThat(binds.body()).as("body of the Binds").isInstanceOf(Intrinsic.class);
+        assertThat(((Intrinsic) binds.body()).op().name()).as("operation of the body of the Binds").isEqualTo(operation);
+      }
+    };
+  }
+
+  /**
+   * ADR-0043: below {@code BIND_RUN} nothing changes, so 64 nested Binds stay a chain of Bind nodes, and 65 are one
+   * Binds of 65 values: an object of computed values, an interpolation and a value parameter's expansion, each part a
+   * Bind of its own.
+   */
+  @Test
+  void sixtyFourBindsStayNestedAndSixtyFiveAreOneBinds() {
+    for (int n : new int[] {64, 65}) {
+      List<String> filters =
+          List.of(
+              "{" + terms(n, ", ", "k%d: .v%d") + "}",
+              "\"" + terms(n, "", "\\(.v%d)") + "\"",
+              "def f(" + terms(n, "; ", "$a%d") + "): $a0; f(" + terms(n, "; ", ".v%d") + ")");
+      for (String filter : filters) {
+        Node node = ir(filter);
+        String shown = ParseAssertions.show(filter.substring(0, 20)) + "… of " + n + " parts";
+        if (n == 64) {
+          assertThat(count(node, Binds.class)).as("Binds nodes in the IR of %s", shown).isZero();
+          assertThat(count(node, Bind.class)).as("Bind nodes in the IR of %s", shown).isEqualTo(64);
+        } else {
+          assertThat(node).as("IR of %s", shown).isInstanceOf(Binds.class);
+          assertThat(((Binds) node).values()).as("values of the Binds of %s", shown).hasSize(65);
+          assertThat(count(node, Bind.class)).as("Bind nodes in the IR of %s", shown).isZero();
+        }
+      }
+    }
+  }
+
+  /**
+   * The same boundary for the other parts the lowering binds (#93, implementer, the hand mutants of the pattern bound):
+   * a pattern of n variables is the value's Bind and n steps, so 63 variables stay 64 Bind nodes and 64 are one Binds
+   * of 65 values; each {@code ?//} alternative's match of 64 steps stays nested and of 65 is one Binds; and an
+   * interpolation's text parts are passed as arguments, so 64 interpolations between text stay nested and 65 are one
+   * Binds of the 65 interpolations alone.
+   */
+  @Test
+  void theBoundCountsThePatternsValueEachMatchAndOnlyTheBoundParts() {
+    for (int n : new int[] {64, 65}) {
+      Node pattern = ir(". as [" + terms(n - 1, ", ", "$a%d") + "] | 1");
+      Node alternatives = ir(". as [" + terms(n, ", ", "$a%d") + "] ?// [" + terms(n, ", ", "$a%d") + "] | 1");
+      Node text = ir("\"" + terms(n, "-", "\\(.v%d)") + "\"");
+      if (n == 64) {
+        assertThat(count(pattern, Binds.class)).as("Binds nodes in the IR of a pattern of 63 variables").isZero();
+        assertThat(count(pattern, Bind.class)).as("Bind nodes in the IR of a pattern of 63 variables").isEqualTo(64);
+        assertThat(count(alternatives, Binds.class)).as("Binds nodes in the IR of two alternatives of 64 variables").isZero();
+        assertThat(count(alternatives, Bind.class)).as("Bind nodes in the IR of two alternatives of 64 variables").isEqualTo(128);
+        assertThat(count(text, Binds.class)).as("Binds nodes in the IR of 64 interpolations between text").isZero();
+        assertThat(count(text, Bind.class)).as("Bind nodes in the IR of 64 interpolations between text").isEqualTo(64);
+      } else {
+        assertThat(pattern).as("IR of a pattern of 64 variables").isInstanceOf(Binds.class);
+        assertThat(((Binds) pattern).values()).as("values of the Binds of a pattern of 64 variables").hasSize(65);
+        assertThat(count(pattern, Bind.class)).as("Bind nodes in the IR of a pattern of 64 variables").isZero();
+        assertThat(count(alternatives, Binds.class)).as("Binds nodes in the IR of two alternatives of 65 variables").isEqualTo(2);
+        assertThat(count(alternatives, Bind.class)).as("Bind nodes in the IR of two alternatives of 65 variables").isZero();
+        assertThat(text).as("IR of 65 interpolations between text").isInstanceOf(Binds.class);
+        assertThat(((Binds) text).values()).as("values of the Binds of 65 interpolations between text").hasSize(65);
+      }
+    }
+  }
+
+  /**
+   * The steps of an array pattern of 70 variables on the level {@code $<level>}, named from {@code $<first>}, as the
+   * nested form prints them: the element 69 first, each {@code ($level | .[k](i)) as $name | }.
+   */
+  private static String steps(int level, int first) {
+    StringBuilder chain = new StringBuilder();
+    for (int i = 69; i >= 0; i--) {
+      chain.append("(($").append(level).append(" | .[k](").append(i).append(")) as $").append(first + 69 - i).append(" | ");
+    }
+    return chain.toString();
+  }
+
+  /** {@code $from; …} up to {@code to}, exclusive, by {@code by}. */
+  private static String names(int from, int to, int by) {
+    StringJoiner joined = new StringJoiner("; ");
+    for (int i = from; i != to; i += by) {
+      joined.add("$" + i);
+    }
+    return joined.toString();
+  }
+
+  /** {@link ParseAssertions#shape} of {@code node} without its Sources. */
+  private static String stripped(Node node) {
+    return shape(node).replaceAll("\\[\\d+,\\d+\\)", "");
+  }
+
+  /** The nodes of {@code kind} in {@code node}'s tree, over the kinds the wide constructs build. */
+  private static int count(Node node, Class<? extends Node> kind) {
+    int own = kind.isInstance(node) ? 1 : 0;
+    return own
+        + switch (node) {
+          case Pipe p -> count(p.left(), kind) + count(p.right(), kind);
+          case Comma c -> count(c.left(), kind) + count(c.right(), kind);
+          case Collect c -> count(c.body(), kind);
+          case Bind b -> count(b.value(), kind) + count(b.body(), kind);
+          case Binds b -> b.values().stream().mapToInt(v -> count(v, kind)).sum() + count(b.body(), kind);
+          case AltBind a -> count(a.value(), kind) + a.alternatives().stream().mapToInt(m -> count(m.match(), kind)).sum() + count(a.body(), kind);
+          default -> 0;
+        };
+  }
+
+  /** {@code n} copies of {@code term}, each {@code %d} in it the copy's number from 0, joined by {@code separator}. */
+  private static String terms(int n, String separator, String term) {
+    StringJoiner joined = new StringJoiner(separator);
+    for (int i = 0; i < n; i++) {
+      joined.add(term.replace("%d", Integer.toString(i)));
+    }
+    return joined.toString();
   }
 
   /** The depth of {@code node}: the most nodes on a path from it to a leaf, an Intrinsic's arguments not counted. */
