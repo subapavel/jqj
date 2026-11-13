@@ -2,6 +2,7 @@ package io.github.subapavel.jqj.internal.parse;
 
 import io.github.subapavel.jqj.JqCompileException;
 import io.github.subapavel.jqj.internal.Stub;
+import io.github.subapavel.jqj.internal.op.Arithmetic;
 import io.github.subapavel.jqj.internal.op.BuildObject;
 import io.github.subapavel.jqj.internal.op.Empty;
 import io.github.subapavel.jqj.internal.op.Field;
@@ -39,7 +40,8 @@ import java.util.Map;
  * (ADR-0034), and a chain of them and {@code |}, which nest as {@code Pipe(term, Intrinsic)}; {@code ,}; parentheses,
  * which make no node; a number or plain string literal, and {@code true}, {@code false} and {@code null}, each a Const;
  * a bare {@code @text}; {@code empty}; and (#64) {@code [e]}, a Collect, and {@code {k: v, ...}}, its pairs bound
- * key-outer around one construction. Every other kind is a Stub.
+ * key-outer around one construction; and (#65) {@code + - * / %}, right operand outer, and {@code -t}, each result of
+ * {@code t} negated. Every other kind is a Stub.
  *
  * <p>A key or bound that is a Const is the step's argument; any other is bound around the step's target, the key
  * outside the target and {@code a} outside {@code b} (ADR-0034, jq's {@code gen_index} and {@code gen_slice_index}).
@@ -97,6 +99,8 @@ public final class Resolver {
       case Ast.Format f when Formats.lookup(f.name()) != null -> new Intrinsic(f.source(), Formats.lookup(f.name()), List.of());
       case Ast.ArrayCons a -> array(a);
       case Ast.ObjectCons o -> object(o);
+      case Ast.Binary b when ConstantKey.arithmetic(b.op()) != null -> binary(b);
+      case Ast.Neg n -> pipe(lower(n.operand()), new Intrinsic(n.source(), Arithmetic.NEGATE, List.of()));
       // Each other kind, and each guarded one outside its guard, belongs to a later ticket (spec 2a and 2b).
       default -> throw Stub.unbuilt("the " + ast.getClass().getSimpleName() + " at byte " + ast.source().start());
     };
@@ -140,6 +144,23 @@ public final class Resolver {
     Operation op = s.optional() ? Slice.QUIET : Slice.PLAIN;
     Node step = bracket(s.target(), s.source(), op, List.of(argument(from, fromSlot), argument(to, toSlot)));
     return bind(from, fromSlot, bind(to, toSlot, step));
+  }
+
+  /**
+   * {@code l op r} for {@code + - * / %} (#65): the constant it folds to, when both sides are constants and the fold
+   * succeeds ({@link ConstantKey#constant}); otherwise {@code r} bound outside {@code l}, so the right operand is the
+   * outer loop, as jq's {@code gen_binop} runs it, an Identity or Const operand passed as an argument without a Bind.
+   */
+  private Node binary(Ast.Binary b) {
+    if (ConstantKey.constant(b) instanceof JqValue folded) {
+      return new Const(b.source(), folded);
+    }
+    Node right = lower(b.right());
+    int rightSlot = right instanceof Identity ? NO_SLOT : slotFor(right);
+    Node left = lower(b.left());
+    int leftSlot = left instanceof Identity ? NO_SLOT : slotFor(left);
+    Intrinsic op = new Intrinsic(b.source(), ConstantKey.arithmetic(b.op()), List.of(argument(left, leftSlot), argument(right, rightSlot)));
+    return bind(right, rightSlot, bind(left, leftSlot, op));
   }
 
   /** A new slot for a computed key or bound, or {@link #NO_SLOT} for a Const. */
