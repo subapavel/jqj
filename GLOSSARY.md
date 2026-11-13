@@ -67,7 +67,7 @@ A compile error jq adds after a syntax error at a known place, such as "May need
 object key expression"; its text matches jq.
 
 **Slot**:
-The place a `Bind`, an `AltBind` or a parameter keeps a value while its scope runs; each has its own (ADR-0034, ADR-0038).
+The place a `Bind`, an `AltBind`, a `Reduce` or `Foreach` (its state slot) or a parameter keeps a value while its scope runs; each has its own (ADR-0034, ADR-0038, ADR-0041).
 
 **Downstream error**:
 An error raised by what runs on a Try's result after its body emitted it. That Try lets it through; an outer Try, or an AltBind inside the body, may still catch it (ADR-0039).
@@ -75,6 +75,38 @@ An error raised by what runs on a Try's result after its body emitted it. That T
 **Wrap depth**:
 How many Try results an error is still inside on its way out; a Try catches only an error at depth zero (ADR-0039).
 _Avoid_: downstream flag.
+
+**Live definition**:
+A definition the main filter reaches through calls, closure arguments included; jq checks and compiles only these (ADR-0040).
+_Avoid_: used definition.
+
+**Compile level**:
+The main filter, a live definition's body, or a closure argument of a jq-defined function. Its binding errors are reported, and those of its inner levels only when it has none (ADR-0040).
+_Avoid_: scope (that is lexical).
+
+**Inline cap**:
+How many nodes one compile may lower from definition bodies and closures; past it, the filter is a Stub in spec 2a (ADR-0040).
+
+**Value parameter**:
+A `$name` parameter: it wraps the body in `name as $name | …` and binds per result, and `name` stays a filter parameter (ADR-0040).
+_Avoid_: variable parameter.
+
+**Loop state**:
+The value a `reduce` or `foreach` carries from one source binding to the next: an init result, then each update result in turn, or null after an update that gave none (ADR-0041).
+_Avoid_: accumulator (a kind of Hold), fold (that is parse-time).
+
+**State slot**:
+The slot a Reduce or Foreach keeps its loop state in. Its one Advance takes the value out, leaving null, and stores each update result back (ADR-0041).
+
+**Native table**:
+Every builtin signature jq writes in C or bytecode, plus jqj's replacing natives, each built or unbuilt; looked up after the user's definitions and before the prelude (ADR-0042).
+
+**Unbuilt native**:
+An entry of the native table that its spec has not built yet. A call binds, and lowering it is a Stub (ADR-0042).
+_Avoid_: missing builtin.
+
+**Replaced definition**:
+A prelude definition whose name and arity a native also has; the native wins (F-31, ADR-0042).
 
 **Pattern**:
 The left side of `as`, which takes a value apart into variables: `$name`, an array pattern or an object pattern. An absent part is null; a non-container part raises (ADR-0038).

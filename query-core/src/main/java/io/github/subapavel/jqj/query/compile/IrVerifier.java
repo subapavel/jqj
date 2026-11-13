@@ -1,10 +1,14 @@
 package io.github.subapavel.jqj.query.compile;
 
+import io.github.subapavel.jqj.query.ir.Alt;
+import io.github.subapavel.jqj.query.ir.AltBind;
+import io.github.subapavel.jqj.query.ir.Alternative;
 import io.github.subapavel.jqj.query.ir.Bind;
 import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.If;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
 import io.github.subapavel.jqj.query.ir.Node;
 import io.github.subapavel.jqj.query.ir.Pipe;
@@ -17,39 +21,64 @@ import io.github.subapavel.jqj.query.run.Many;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * Checks the rules of the IR (ADR-0005, ADR-0034) before a backend sees a tree; a broken rule is an
- * IllegalStateException. The tree uses no node object twice; a tree has one Bind per slot, and a Var reads its slot
- * only inside its Bind's body; an Intrinsic's arguments are atomic (Identity, Var or Const), as many as its call form's
- * arity: none for Fn0, one for Fn1, two for Fn2, and any number for an FnN or a Many, which take them as an array.
+ * Checks the rules of the IR (ADR-0005, ADR-0034, ADR-0038) before a backend sees a tree; a broken rule is an
+ * IllegalStateException. The tree uses no node object twice. A slot is bound by one Bind, by one AltBind (its value
+ * slot and its group slots), or is a parameter, which no node binds and every node may read; a Var reads its slot only
+ * inside its Bind's body, an AltBind's value slot only in its alternatives and its body, and a group slot only in its
+ * AltBind's body. An AltBind has an alternative at least, each with one from entry per group slot, and each from-slot,
+ * unless it is -1 for null, is in scope at its match's leaf, the innermost body of the match's chain of Binds. An
+ * Intrinsic's arguments are atomic (Identity, Var or Const), as many as its call form's arity: none for Fn0, one for
+ * Fn1, two for Fn2, and any number for an FnN or a Many, which take them as an array.
  */
 final class IrVerifier {
   /** The nodes seen so far, compared by identity, not by equality. */
   private final Set<Node> seen = Collections.newSetFromMap(new IdentityHashMap<>());
 
-  /** The slots a Bind of the tree took so far. */
+  /** The slots the parameters, a Bind or an AltBind of the tree took so far. */
   private final Set<Integer> bound = new HashSet<>();
 
-  /** The slots whose Bind's body the walk is in. */
+  /** The slots in scope where the walk is: the parameters, and those of each Bind and AltBind around it. */
   private final Set<Integer> scope = new HashSet<>();
+
+  /** The leaf of each match whose alternative the walk has not left, by identity, with its alternative's from-slots. */
+  private final Map<Node, List<Integer>> leaves = new IdentityHashMap<>();
 
   /** One more than the largest slot so far. */
   private int slots;
 
-  private IrVerifier() {}
+  private IrVerifier(int parameters) {
+    for (int p = 0; p < parameters; p++) {
+      bound.add(p);
+      scope.add(p);
+    }
+  }
 
-  /** Checks {@code root}; returns the number of slots a run of it needs, one more than its largest slot. */
-  static int verify(Node root) {
-    IrVerifier verifier = new IrVerifier();
+  /**
+   * Checks {@code root}, whose slots {@code 0 .. parameters - 1} are its parameter slots; returns the number of slots a
+   * run of it needs, one more than its largest slot, the parameter slots included.
+   */
+  static int verify(Node root, int parameters) {
+    IrVerifier verifier = new IrVerifier(parameters);
     verifier.visit(root);
-    return verifier.slots;
+    return Math.max(verifier.slots, parameters);
   }
 
   private void visit(Node node) {
     if (!seen.add(node)) {
       throw new IllegalStateException("the node at bytes " + node.source() + " is used twice: the IR must be a tree");
+    }
+    List<Integer> from = leaves.remove(node);
+    if (from != null) {
+      for (int f : from) {
+        if (f != Alternative.NULL && !scope.contains(f)) {
+          throw new IllegalStateException("the from-slot " + f + " is not in scope at the leaf of its match at bytes " + node.source());
+        }
+      }
     }
     // One arm per kind: javac compiles a case of two patterns to a second dispatch for a node that matches neither,
     // a path no node can take.
@@ -62,7 +91,7 @@ final class IrVerifier {
       }
       case Var v -> {
         if (!scope.contains(v.slot())) {
-          throw new IllegalStateException("the Var of slot " + v.slot() + " at bytes " + v.source() + " is outside the body of its Bind");
+          throw new IllegalStateException("the Var of slot " + v.slot() + " at bytes " + v.source() + " is outside the scope of its slot");
         }
       }
       case Intrinsic i -> arguments(i);
@@ -75,18 +104,65 @@ final class IrVerifier {
         visit(c.right());
       }
       case Collect c -> visit(c.body());
+      case If i -> {
+        visit(i.cond());
+        visit(i.then());
+        visit(i.otherwise());
+      }
+      case Alt a -> {
+        visit(a.left());
+        visit(a.right());
+      }
       case Bind b -> {
-        if (!bound.add(b.slot())) {
-          throw new IllegalStateException("the slot " + b.slot() + " of the Bind at bytes " + b.source() + " is bound twice in the tree");
-        }
-        slots = Math.max(slots, b.slot() + 1);
+        take(b.slot(), node);
         // The value runs before the slot is set, so only the body may read it.
         visit(b.value());
         scope.add(b.slot());
         visit(b.body());
         scope.remove(b.slot());
       }
+      case AltBind a -> altBind(a);
     }
+  }
+
+  /**
+   * The chain {@code a}: its value sees neither its value slot nor its group slots, its alternatives see the value
+   * slot, and its body sees both.
+   */
+  private void altBind(AltBind a) {
+    if (a.alternatives().isEmpty()) {
+      throw new IllegalStateException("the AltBind at bytes " + a.source() + " has no alternative");
+    }
+    take(a.slot(), a);
+    for (int g : a.slots()) {
+      take(g, a);
+    }
+    visit(a.value());
+    scope.add(a.slot());
+    for (Alternative alternative : a.alternatives()) {
+      if (alternative.from().size() != a.slots().size()) {
+        throw new IllegalStateException(
+            "an alternative of the AltBind at bytes " + a.source() + " has " + alternative.from().size() + " from entries for " + a.slots().size() + " group slots");
+      }
+      Node leaf = alternative.match();
+      while (leaf instanceof Bind b) {
+        leaf = b.body();
+      }
+      leaves.put(leaf, alternative.from());
+      visit(alternative.match());
+    }
+    scope.addAll(a.slots());
+    visit(a.body());
+    scope.removeAll(a.slots());
+    scope.remove(a.slot());
+  }
+
+  /** The slot {@code slot} that {@code node} binds: taken by no parameter and no other node. */
+  private void take(int slot, Node node) {
+    if (!bound.add(slot)) {
+      throw new IllegalStateException("the slot " + slot + " of the node at bytes " + node.source() + " is a parameter or is bound twice in the tree");
+    }
+    slots = Math.max(slots, slot + 1);
   }
 
   private void arguments(Intrinsic i) {

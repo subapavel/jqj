@@ -141,6 +141,30 @@ jqj accepts 127 parentheses, brackets or objects and 509 pipes, `-` or `try`. Re
 descent (ADR-0032), so its depth is Java stack, and the engine starts no thread (ADR-0017). 9994 parentheses need
 about 20 MB of stack; 512 levels fit a 512 KiB stack (ADR-0017's `stackBytes`) with about a third to spare.
 
+## Huge constant keys (ADR-0035, issue #65)
+
+jq folds a computed object key whole at parse time, so a key that folds to an array or an object is its compile
+error, rc 3, however much the fold builds. jqj folds each node of a filter at most once, and every fold of one
+compile, the key checks and the literals a fold builds included, shares one budget of 1 MiB of bytes built and 2^20
+steps (ADR-0035, bd34167, 31aca88). A key the budget does not hold is left to the run, which raises the same text
+with rc 5 when it reaches the key, and gives the filter's other outputs, rc 0, when it never does. When another key
+of the same filter already failed its check, the compile still fails with rc 3, one error short. Both sides are
+recorded on 1.8.2. The bound's value is pinned by the edge pair `constant-key-cap/check-edge-under` (1048540 bytes
+built, rc 3 as in jq) and `constant-key-cap/check-edge-over` (1048589 bytes, 13 past the bound, the first row below);
+jq-core HugeConstantKeyTest pins that a compile past the bound allocates no gigabyte, and the compile budget's bytes,
+steps and literal charges:
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| `constant-key-cap/check-edge-over` (`deviation huge-constant-keys`) | `{(("x"*21395)/"x"):1}` | rc 3, `Cannot use array (["","","","","","","","",...]) as object key` at column 3 | rc 5, the same text at run time |
+| `constant-key-cap/huge-split` (`deviation huge-constant-keys`) | `{(("x"*2000000)/"x"):1}` | rc 3, the same text | rc 5, the same text at run time |
+| `constant-key-cap/check-whole-fold` (`deviation huge-constant-keys`) | `{([("x"*1000000),("x"*1000000)]):1}` | rc 3, `Cannot use array (["xxxxxxxxxxxxxxxxxxxxxxx...]) as object key` | rc 5, the same text at run time |
+| `constant-key-cap/check-after-the-compile-budget` (`deviation huge-constant-keys`) | `{(("x"*21394)/"x"):1},{(("x"*5000)/"x"):1}` | rc 3, `Cannot use array` at columns 3 and 25, `jq: 2 compile errors` | rc 3, the error at column 3 only, `jq: 1 compile error` |
+| `constant-key-cap/unreached-huge-key` (`deviation huge-constant-keys`) | `1, (empty \| {(("x"*2000000)/"x"):1})` | rc 3, `Cannot use array (["","","","","","","","",...]) as object key` at column 15 | rc 0, `1` |
+
+Reason: an untrusted filter such as `{(("x"*1e9)/"x"):1}` would otherwise make the compile allocate gigabytes, where
+no budget applies (ADR-0035). A key below the bound keeps jq's rc 3 (`constant-key-cap/split`).
+
 ## `$JQ_BUILD_CONFIGURATION` (ADR-0017, issue #13)
 
 jq prints its configure string; jqj prints its own build string.
