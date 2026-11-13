@@ -35,9 +35,9 @@ Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; desig
 - **Ticks (ADR-0008)**: an operator on two scalars ticks nothing. A string concatenation ticks once per started KiB of its result; array difference once per pair compared, stopping at the first match; `split` once per piece; object `+` once per right-hand entry; object merge `*` once per right-hand entry at every level. Also (#65 standards review), each a loop whose length depends on the data (ADR-0008):
   - array `+` ticks once per element it copies;
   - array difference ticks once per left element even against `[]`;
-  - `split` ticks once per started KiB of the input it searches, as well as once per piece;
-  - object merge ticks once per left entry it copies;
-  - Equality ticks once per key it counts when it compares object sizes, and once per member pair;
+  - `split` ticks once per started KiB of the input times the started KiB of the separator (at least one), as well as once per piece;
+  - object merge `*` and object `+` tick once per left entry they copy;
+  - Equality ticks once per key it counts when it compares object sizes, once per member pair, and once per started KiB of the shorter string when it compares two strings (as ADR-0037's Order);
   - string repeat ticks once per started KiB of its result.
 Each rate is pinned by two adjacent counts (`ArithmeticStepsTest`, red at 65b717b, completed by the implementer for the rates added here).
 - Considered: the left operand outer (not jq's order); a binary IR node (hides the binds, as `Index` would).
