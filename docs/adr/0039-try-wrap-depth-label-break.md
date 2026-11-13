@@ -17,7 +17,7 @@ jq 1.8.2 implements `try` as `TRY_BEGIN`, body, `TRY_END`. An error that leaves 
 - **`error`** is an Fn0 raising its input as the value, null included. `error(f)` is `f | error`, as builtin.jq defines it. Raising builds nothing and charges nothing.
 - **The error payload** leaves `JqFilter.run` detached (ADR-0016). #68 builds `detach()`, which copies a view into built values on an explicit stack at no charge, under ADR-0016's host rule.
 - **The CLI message**:
-  - a string prints `jq: error (at <name>:N): <text>`;
+  - a string prints `jq: error (at <name>:N): <text>`, cut at its first NUL as jq's `%s` does (jq-ref, `control/error-nul-string`);
   - any other value prints `jq: error (at <name>:N) (not a string): <compact dump>`;
   - rc 5.
 - **`Label(source, slot, body)` and `Break(source, slot)`**:
