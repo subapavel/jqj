@@ -47,9 +47,15 @@ class IrDepthTest {
   /** The brackets of each definition: fewer than the parser's 127 (DEVIATIONS "Parse depth"). */
   private static final int PER = 100;
 
+  /** jq-ref 1.8.2's result for {@code nested(512)} on null (observed 2026-11-13, -nc -f): 511 nested arrays. */
+  private static final String NESTED_512 = "[".repeat(511) + "null" + "]".repeat(511);
+
+  /** 300 indexes by a computed key, each bound around the chain before it: past the bound alone. */
+  private static final String DEEP = "." + "[.a]".repeat(300);
+
   /** What {@link Child} prints for its edges, in its order. */
   private static final String EDGES =
-      "512 levels: " + "[".repeat(511) + "null" + "]".repeat(511) + "\n" + "513 levels: a Stub\n" + "30001 levels: a Stub\n" + "500 value parameters: a Stub\n";
+      "512 levels: " + NESTED_512 + "\n" + "513 levels: a Stub\n" + "30001 levels: a Stub\n" + "500 value parameters: a Stub\n" + "10000 computed indexes: a Stub\n";
 
   @TempDir Path dir;
 
@@ -78,11 +84,13 @@ class IrDepthTest {
     }
   }
 
-  /** 512 levels are not past the bound; their 512 KiB stack claim is pinned by the child JVM's test. */
+  /**
+   * 512 levels are not past the bound: jq-ref 1.8.2 (observed 2026-11-13, the filter read with -f) prints the 511
+   * nested arrays around null. Their 512 KiB stack claim is pinned by the child JVM's test.
+   */
   @Test
-  void aFilterOf512LevelsCompiles() throws InterruptedException {
-    String filter = nested(512);
-    assertThat(on(LARGE, () -> Inlining.ENGINE.compile(filter))).as("what compiling %s threw on a 16 MiB thread", shown(filter)).isNull();
+  void aFilterOf512LevelsRuns() throws InterruptedException {
+    assertThat(resultsOnA16MiBThread(nested(512))).as("results of 512 levels on null").isEqualTo(List.of(NESTED_512));
   }
 
   /** The bound's Stub; its 512 KiB stack claim is pinned by the child JVM's test. */
@@ -120,14 +128,63 @@ class IrDepthTest {
 
   /**
    * The bound on the built IR's levels where the lowering counts fewer: each {@code .a+} binds both its operands, two
-   * levels a term, so 256 terms are 512 levels and compile, and in brackets they are 513, a Stub, while the lowering is
-   * inside 257 Asts at most.
+   * levels a term, so 256 terms are 512 levels and run, null on null as jq-ref 1.8.2 prints (observed 2026-11-13, the
+   * filter read with -f), and in brackets they are 513, a Stub, while the lowering is inside 257 Asts at most.
    */
   @Test
-  void anOperatorChainOf512LevelsCompilesAndOf513IsAStub() throws InterruptedException {
+  void anOperatorChainOf512LevelsRunsAndOf513IsAStub() throws InterruptedException {
     String chain = terms(256, "+", ".a");
-    assertThat(on(LARGE, () -> Inlining.ENGINE.compile(chain))).as("what compiling 256 terms of .a+ threw on a 16 MiB thread").isNull();
+    assertThat(resultsOnA16MiBThread(chain)).as("results of 256 terms of .a+ on null").isEqualTo(List.of("null"));
     assertStubOnA16MiBThread("[" + chain + "]");
+  }
+
+  /**
+   * A value parameter's level ends with its expansion: 600 calls of {@code def f($a): .} side by side each bind
+   * {@code $a} once, so the lowering is inside one such level at a time and the filter runs. jq-ref 1.8.2 (observed
+   * 2026-11-13, the filter read with -f) prints the array of 600 nulls.
+   */
+  @Test
+  void callsOfAValueParameterDefinitionSideBySideRun() {
+    String filter = "def f($a): .; [" + terms(600, ", ", "f(1)") + "]";
+    assertThat(results(filter)).as("results of 600 calls of f($a) on null").isEqualTo(List.of("[" + terms(600, ",", "null") + "]"));
+  }
+
+  /**
+   * The bound counts every part of a node that IrVerifier visits: {@link #DEEP}, a chain past the bound, placed in
+   * one part of one node kind, is a Stub, whichever the part.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("deepParts")
+  void aChainPastTheBoundInAnyPartOfANodeIsAStub(String part, String filter) throws InterruptedException {
+    assertStubOnA16MiBThread(filter);
+  }
+
+  static Stream<Arguments> deepParts() {
+    return Stream.of(
+        Arguments.of("a Pipe's left", DEEP + " | .a"),
+        Arguments.of("a Pipe's right", ".a | " + DEEP),
+        Arguments.of("a Comma's left", DEEP + ", 1"),
+        Arguments.of("a Comma's right", "1, " + DEEP),
+        Arguments.of("a Collect's body", "[" + DEEP + "]"),
+        Arguments.of("an If's condition", "if " + DEEP + " then . else . end"),
+        Arguments.of("an If's then", "if . then " + DEEP + " else . end"),
+        Arguments.of("an If's otherwise", "if . then . else " + DEEP + " end"),
+        Arguments.of("an Alt's left", DEEP + " // 1"),
+        Arguments.of("an Alt's right", "1 // " + DEEP),
+        Arguments.of("a Bind's value", DEEP + " as $v | ."),
+        Arguments.of("a Bind's body", ". as $v | " + DEEP),
+        Arguments.of("an AltBind's value", DEEP + " as [$a] ?// $a | ."),
+        Arguments.of("an AltBind's match", ". as [$a] ?// {(" + DEEP + "): $a} | ."),
+        Arguments.of("an AltBind's body", ". as [$a] ?// $a | " + DEEP),
+        Arguments.of("a Try's body", "try " + DEEP),
+        Arguments.of("a Try's handler", "try . catch " + DEEP),
+        Arguments.of("a Label's body", "label $l | " + DEEP),
+        Arguments.of("a Reduce's init", "reduce . as $x (" + DEEP + "; .)"),
+        Arguments.of("a Reduce's each", "reduce " + DEEP + " as $x (0; .)"),
+        Arguments.of("an Advance's update in a Reduce", "reduce . as $x (0; " + DEEP + ")"),
+        Arguments.of("a Foreach's init", "foreach . as $x (" + DEEP + "; .)"),
+        Arguments.of("a Foreach's each", "foreach " + DEEP + " as $x (0; .)"),
+        Arguments.of("an Advance's update in a Foreach", "foreach . as $x (0; " + DEEP + ")"));
   }
 
   /**
@@ -170,8 +227,9 @@ class IrDepthTest {
 
   /**
    * The child JVM of {@link #onA512KiBThreadInAFreshJvm512LevelsRunAndDeeperFiltersAreStubs}: on a 512 KiB thread
-   * each, it runs 512 levels on null and compiles 513 levels, 30 001 levels and 500 value parameters, in that order,
-   * and prints a line for each.
+   * each, it runs 512 levels on null and compiles 513 levels, 30 001 levels, 500 value parameters and 10 000 computed
+   * indexes, in that order, and prints a line for each. The lowering's count stops the first three Stubs; only the walk
+   * of the built IR stops the last.
    */
   static final class Child {
     private Child() {}
@@ -183,6 +241,7 @@ class IrDepthTest {
       stub("513 levels", nested(513));
       stub("30001 levels", nested(30_001));
       stub("500 value parameters", valueParameters(500));
+      stub("10000 computed indexes", "." + "[.a]".repeat(10_000));
     }
 
     private static void stub(String name, String filter) throws InterruptedException {
@@ -234,6 +293,16 @@ class IrDepthTest {
     Throwable thrown = on(LARGE, () -> Inlining.ENGINE.compile(filter));
     assertThat(thrown).as("what compiling %s threw on a 16 MiB thread", shown(filter)).isInstanceOf(JqCompileException.class);
     assertThat(thrown.getMessage()).as("message of the compile error of %s", shown(filter)).startsWith(MARK);
+  }
+
+  /** The results of {@code filter} on null on a 16 MiB thread; what the run threw fails the test with it as the cause. */
+  private static List<String> resultsOnA16MiBThread(String filter) throws InterruptedException {
+    AtomicReference<List<String>> got = new AtomicReference<>();
+    Throwable thrown = on(LARGE, () -> got.set(results(filter)));
+    if (thrown != null) {
+      throw new AssertionError("running " + shown(filter) + " on a 16 MiB thread threw", thrown);
+    }
+    return got.get();
   }
 
   /** What {@code work} threw on a thread of {@code stack} bytes, or null. */
