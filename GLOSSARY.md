@@ -132,8 +132,16 @@ The keys of an object construction in source order, with a repeated key keeping 
 _Avoid_: key set (it has an order).
 
 **Distinct-key object**:
-A read object whose tape entry is tag 10: the reader proved no key repeats, so its walks take each member once (ADR-0002, #82).
-_Avoid_: dedup flag, unique object.
+A read object whose key proof found no repeated key, so its walk needs no plan and takes each key entry once; there is no tag for it (ADR-0044, #85).
+_Avoid_: dedup flag, unique object, tag 10 (it stays reserved).
+
+**Key proof**:
+What every walk of a read object does first: it finds which key entries repeat an earlier key, pairwise up to 8 keys, then in a reused table, and by a sort when the table's probe budget runs out (ADR-0044).
+_Avoid_: dedup, key check.
+
+**Object walk**:
+A read object's members as its key proof gives them, each key at its first place with its last value, valid for that one walk; a walker that skips the proof cannot take the object's members at all (ADR-0044).
+_Avoid_: object cursor, members view.
 
 **Repeated key**:
 A key equal, by its decoded bytes, to an earlier key of the same object; jq keeps the first place with the last value.
