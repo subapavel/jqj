@@ -25,3 +25,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#67) A test cited as the witness of an error order may produce only one error (one name declared, the other not). Check that it has two items to order.
 - (#69) Count the ids in a require file against the evidence's "N of N". When an issue body gains a blocker edge, check that census.java's BLOCKED_BY mirrors it.
 - (#70) A new global bound can stub other tickets' constructs (operator chains, wide objects); grep what it counts and compare DEVIATIONS widths with the finding, not the ruling's prose.
+- (#71) An acceptance line in the ticket body (a bench/RESULTS.md measurement) can be missing from every approval comment: check the body's checklist, not only the rulings.
+- (F-46) A ratcheted compile-mode PASS can be vacuous (both runs fail to compile identically). When a ticket changes an error into a Stub, expect compile-mode ratchet fallout the ticket gate does not see (until #89).
