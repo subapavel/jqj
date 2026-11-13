@@ -4,14 +4,19 @@ import io.github.subapavel.jqj.internal.json.JsonStrings;
 import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Copies every view in a value into built values (GLOSSARY "Detach", ADR-0016, ADR-0039), so the copy outlives its
  * document: a document's string becomes a built string of its decoded bytes, a number a literal of its token, and each
  * container, a document's or a built one, a built container of its members' copies, an object its keys' too, in its
  * members' order. The walk keeps an explicit stack, so a deep value takes no Java stack. It runs under the host rule
- * of ADR-0016, after the run: it charges no bytes built and no tick.
+ * of ADR-0016, after the run, where no budget, deadline or interrupt reaches it: it charges no bytes built and no
+ * tick, and its time is linear in the value's size. A document's object is read once, its keys decoded into a map, so
+ * a repeated key keeps its first position and takes its last value without the scans of {@link ObjectView#next}.
  */
 public final class Detach {
   /** The capacity of a container's first array of copies. */
@@ -30,19 +35,18 @@ public final class Detach {
    * @throws io.github.subapavel.jqj.JqTermination with cause {@code STALE_VIEW} when a view in it is stale
    */
   public static JqValue of(JqValue value) {
-    // The walks charge their scans to a run state no run began: every budget of it is unlimited.
+    // The walks of built containers and arrays charge their scans to a run state no run began: every budget of it is
+    // unlimited, and none of those walks scans.
     RunState free = new RunState();
     Frame top = null;
     JqValue next = value;
     for (;;) {
       JqValue copied;
       if (next instanceof Members container) {
-        Frame frame = new Frame(container, top);
-        int first = container.first();
-        if (first != END) {
-          frame.cursor = first;
+        Frame frame = Frame.of(container, top, free);
+        if (frame.length > 0) {
           top = frame;
-          next = container.member(free, first);
+          next = (JqValue) frame.values[0];
           continue;
         }
         copied = frame.build();
@@ -54,11 +58,9 @@ public final class Detach {
         if (top == null) {
           return copied;
         }
-        top.add(copied);
-        int cursor = top.container.next(free, top.cursor);
-        if (cursor != END) {
-          top.cursor = cursor;
-          next = top.container.member(free, cursor);
+        top.values[top.at++] = copied;
+        if (top.at < top.length) {
+          next = (JqValue) top.values[top.at];
           break;
         }
         copied = top.build();
@@ -87,14 +89,13 @@ public final class Detach {
     return BuiltString.of(JsonStrings.decode(s.doc().bytes(), entry));
   }
 
-  /** A container on the stack: the copies of its members so far, and for an object their keys. */
+  /**
+   * A container on the stack: its members, each replaced by its copy in turn, and for an object their keys' copies.
+   */
   private static final class Frame {
-    final Members container;
     final Frame parent;
 
-    /** The cursor of the member being copied. */
-    int cursor;
-
+    /** The members, {@code [0, length)}: the copies before {@link #at}, the members still to copy from it on. */
     Object[] values = NONE;
 
     /** The copied keys, for an object; null for an array. */
@@ -102,14 +103,52 @@ public final class Detach {
 
     int length;
 
-    Frame(Members container, Frame parent) {
-      this.container = container;
+    /** The member being copied. */
+    int at;
+
+    private Frame(Frame parent, boolean keyed) {
       this.parent = parent;
-      this.keys = container instanceof Keyed ? new JqString[0] : null;
+      this.keys = keyed ? new JqString[0] : null;
     }
 
-    /** Adds the copy of the member at the cursor, and for an object the copy of its key. */
-    void add(JqValue copied) {
+    /** The frame of {@code container}'s members, each object key once, at its first position with its last value. */
+    static Frame of(Members container, Frame parent, RunState free) {
+      Frame frame = new Frame(parent, container instanceof Keyed);
+      if (container instanceof ObjectView object) {
+        frame.addDistinct(object);
+      } else {
+        // An array's or a built object's walk steps from member to member: a built object's keys are distinct.
+        for (int c = container.first(); c != END; c = container.next(free, c)) {
+          frame.add(container instanceof Keyed keyed ? key(keyed.key(c)) : null, container.member(free, c));
+        }
+      }
+      return frame;
+    }
+
+    /**
+     * A document's object, read once: each key decoded and looked up in a map of the keys so far (ObjectView: keys are
+     * one when their decoded bytes are), a new one added, a repeated one's value replaced.
+     */
+    private void addDistinct(ObjectView object) {
+      Document doc = object.doc();
+      long[] tape = doc.live();
+      byte[] bytes = doc.bytes();
+      int end = Tape.end(tape, object.index());
+      Map<ByteBuffer, Integer> seen = new HashMap<>();
+      for (int k = object.index() + 1; k < end; k = Tape.next(tape, k + 1)) {
+        byte[] name = JsonStrings.decode(bytes, tape[k]);
+        JqValue member = doc.valueAt(tape, k + 1);
+        Integer first = seen.putIfAbsent(ByteBuffer.wrap(name), length);
+        if (first == null) {
+          add(BuiltString.of(name), member);
+        } else {
+          values[first] = member;
+        }
+      }
+    }
+
+    /** Adds a member, and for an object the copy of its key. */
+    private void add(JqString key, JqValue member) {
       if (length == values.length) {
         int capacity = Math.max(FIRST, 2 * length);
         values = Arrays.copyOf(values, capacity);
@@ -118,12 +157,12 @@ public final class Detach {
         }
       }
       if (keys != null) {
-        keys[length] = key(((Keyed) container).key(cursor));
+        keys[length] = key;
       }
-      values[length++] = copied;
+      values[length++] = member;
     }
 
-    /** The built container of the copies; an object's keys are distinct, as its members' walk gives them. */
+    /** The built container of the copies; an object's keys are distinct, as {@link #of} gives them. */
     JqValue build() {
       return keys == null ? new BuiltArray(values, length) : new BuiltObject(keys, values, length);
     }
