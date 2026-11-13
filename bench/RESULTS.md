@@ -4,6 +4,25 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## Fixed charges of bytes built, CONTAINER and STRING (ticket #64, ADR-0035, F-39), 2026-11-13
+
+- Machine: `claude-cloud-4vcpu` (4 vCPU, Linux 6.18.44-fc-v445), JDK 25.0.5.0.3 (HotSpot 64-Bit
+  Server VM), JMH 1.37. Commit measured: `20e4d59` plus the uncommitted `BuiltSizes` benchmark
+  (committed with this section). Other worktrees' load was not checked.
+- Command: `java -jar bench/jmh/target/benchmarks.jar BuiltSizes -prof gc -foe true -rf json -rff
+  .logs/64-builtsizes.json` (the class's settings: 1 fork, 3 x 1 s warm-up, 3 x 1 s measurement,
+  default heap). Log `.logs/64-builtsizes.log`. Each method builds one empty value; the result is
+  `gc.alloc.rate.norm`, the bytes allocated per value besides its elements, entries or bytes.
+
+| method | what is built | gc.alloc.rate.norm |
+| --- | --- | --- |
+| `sizes_array` | `new BuiltArray(new Object[0], 0)` | 40.000 ± 0.001 B/op |
+| `sizes_shaped` | `new BuiltObject(shape, new Object[0])` | 48.000 ± 0.001 B/op |
+| `sizes_growable` | `BuiltObject.ofPairs(new Object[0])` | 64.000 ± 0.001 B/op |
+| `sizes_string` | `BuiltString.of(new byte[0])` | 40.000 ± 0.001 B/op |
+
+`Charges.CONTAINER` is the largest container, 64 B; `Charges.STRING` is 40 B.
+
 ## Ticket-gate steps 1 and 2 and PIT per 1000 seeds (ticket #40, F-19), 2026-11-12
 
 - Machine: `claude-cloud-4vcpu` (4 vCPU, 15 GiB, Linux 6.18.44-fc-v378), `java version

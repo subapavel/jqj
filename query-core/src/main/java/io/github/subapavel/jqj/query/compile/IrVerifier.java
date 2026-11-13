@@ -1,6 +1,7 @@
 package io.github.subapavel.jqj.query.compile;
 
 import io.github.subapavel.jqj.query.ir.Bind;
+import io.github.subapavel.jqj.query.ir.Collect;
 import io.github.subapavel.jqj.query.ir.Comma;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
@@ -11,6 +12,7 @@ import io.github.subapavel.jqj.query.ir.Var;
 import io.github.subapavel.jqj.query.run.Fn0;
 import io.github.subapavel.jqj.query.run.Fn1;
 import io.github.subapavel.jqj.query.run.Fn2;
+import io.github.subapavel.jqj.query.run.FnN;
 import io.github.subapavel.jqj.query.run.Many;
 import java.util.Collections;
 import java.util.HashSet;
@@ -21,7 +23,7 @@ import java.util.Set;
  * Checks the rules of the IR (ADR-0005, ADR-0034) before a backend sees a tree; a broken rule is an
  * IllegalStateException. The tree uses no node object twice; a tree has one Bind per slot, and a Var reads its slot
  * only inside its Bind's body; an Intrinsic's arguments are atomic (Identity, Var or Const), as many as its call form's
- * arity: none for Fn0, one for Fn1, two for Fn2, and any number for a Many, which takes them as an array.
+ * arity: none for Fn0, one for Fn1, two for Fn2, and any number for an FnN or a Many, which take them as an array.
  */
 final class IrVerifier {
   /** The nodes seen so far, compared by identity, not by equality. */
@@ -72,6 +74,7 @@ final class IrVerifier {
         visit(c.left());
         visit(c.right());
       }
+      case Collect c -> visit(c.body());
       case Bind b -> {
         if (!bound.add(b.slot())) {
           throw new IllegalStateException("the slot " + b.slot() + " of the Bind at bytes " + b.source() + " is bound twice in the tree");
@@ -92,6 +95,7 @@ final class IrVerifier {
           case Fn0 _ -> 0;
           case Fn1 _ -> 1;
           case Fn2 _ -> 2;
+          case FnN _ -> i.args().size();
           case Many _ -> i.args().size();
         };
     if (i.args().size() != arity) {

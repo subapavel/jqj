@@ -16,10 +16,11 @@ public final class Termination extends EvaluationException {
     CANCELLED
   }
 
-  /** The budget that ran out, and the message it carries: the texts are the engine's own (ADR-0030). */
+  /** The budget that ran out, and the message it carries: the texts are the engine's own (ADR-0030, ADR-0035). */
   public enum Budget {
     STEPS("Step budget exceeded"),
     DEADLINE("Deadline exceeded"),
+    BYTES_BUILT("Bytes-built budget exceeded"),
     BYTES_WRITTEN("Bytes-written budget exceeded");
 
     private final String message;

@@ -1,6 +1,7 @@
 package io.github.subapavel.jqj.internal.value;
 
 import io.github.subapavel.jqj.internal.json.Printer;
+import io.github.subapavel.jqj.query.run.Charges;
 import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqValue;
@@ -70,21 +71,23 @@ public record ArrayView(Document doc, int index) implements JqArray, Members {
 
   /**
    * The elements {@code [from, to)}, {@code 0 <= from <= to <= length()}, as a built array of their values: {@code to}
-   * ticks, for the walk to {@code from} and the copy, charged before either.
+   * ticks, for the walk to {@code from} and the copy, charged before either, and the copy charged as a built container
+   * of as many elements before it is allocated (ADR-0035).
    */
   public BuiltArray slice(RunState state, int from, int to) {
     state.tick(to);
+    state.chargeBuilt(Charges.CONTAINER + Charges.ELEMENT * (to - from));
     long[] tape = doc.live();
     int at = index + 1;
     for (int i = 0; i < from; i++) {
       at = Tape.next(tape, at);
     }
-    JqValue[] elements = new JqValue[to - from];
+    Object[] elements = new Object[to - from];
     for (int i = 0; i < elements.length; i++) {
       elements[i] = doc.valueAt(tape, at);
       at = Tape.next(tape, at);
     }
-    return new BuiltArray(elements);
+    return new BuiltArray(elements, elements.length);
   }
 
   /** The cursor of the first element, its tape index, or -1 for an empty array. */

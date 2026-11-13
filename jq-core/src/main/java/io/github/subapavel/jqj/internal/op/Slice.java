@@ -31,7 +31,6 @@ import io.github.subapavel.jqj.internal.json.Printer;
 import io.github.subapavel.jqj.internal.value.ArrayView;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltString;
-import io.github.subapavel.jqj.internal.value.ObjectView;
 import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.run.CallForm;
 import io.github.subapavel.jqj.query.run.Fn2;
@@ -40,6 +39,7 @@ import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqNumber;
+import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 import java.io.ByteArrayOutputStream;
@@ -81,7 +81,7 @@ public final class Slice implements Fn2 {
       // One pattern per case: javac checks a case of several patterns again, a branch that is never taken.
       case JqBool _ -> cannotSlice(t, from, to);
       case JqNumber _ -> cannotSlice(t, from, to);
-      case ObjectView _ -> cannotSlice(t, from, to);
+      case JqObject _ -> cannotSlice(t, from, to);
     };
   }
 
@@ -156,7 +156,7 @@ public final class Slice implements Fn2 {
       case JqBool _ -> false;
       case JqString _ -> false;
       case JqArray _ -> false;
-      case ObjectView _ -> false;
+      case JqObject _ -> false;
     };
   }
 
