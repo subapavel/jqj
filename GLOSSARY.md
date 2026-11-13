@@ -67,8 +67,20 @@ A compile error jq adds after a syntax error at a known place, such as "May need
 object key expression"; its text matches jq.
 
 **Slot**:
-The place a `Bind` keeps the value it bound while its body runs; each Bind of a tree has its own
-(ADR-0034).
+The place a `Bind`, an `AltBind` or a parameter keeps a value while its scope runs; each has its own (ADR-0034, ADR-0038).
+
+**Pattern**:
+The left side of `as`, which takes a value apart into variables: `$name`, an array pattern or an object pattern. An absent part is null; a non-container part raises (ADR-0038).
+_Avoid_: matcher (jq's internal word).
+
+**Alternative**:
+One pattern of a `?//` chain. The next one runs when it, the body or anything downstream raises; the last one's error propagates (ADR-0038).
+
+**Group slot**:
+A slot an `AltBind` keeps for one name across all its alternatives, set at each match from that alternative's own slot, or null (ADR-0038).
+
+**Parameter slot**:
+A slot a host variable takes, set from the Bindings before the run and bound by no node (ADR-0038).
 _Avoid_: register, local (that is the JVM's).
 
 **Quiet variant**:

@@ -1,6 +1,6 @@
 # Comma, slots and atomic arguments in the IR; call forms as a sealed CallForm
 
-Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; designer draft); completes ADR-0005 and ADR-0009; amends ADR-0008 (`run` takes the slots); amended for #64 (`FnN`, `Collect`), see the end
+Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; designer draft); completes ADR-0005 and ADR-0009; amends ADR-0008 (`run` takes the slots); amended for #64 (`FnN`, `Collect`), see the end; slot rule amended by ADR-0038 (group and parameter slots, #67)
 
 #63 is the first ticket to lower constructs that #62's parser builds: comma, indexing, slicing and iteration. They need a sequencing node, a way to hold a computed key while its target runs, and the call forms ADR-0009 names. This ADR fixes those IR and protocol shapes; later tickets extend them with their first user.
 
