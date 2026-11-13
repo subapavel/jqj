@@ -32,7 +32,7 @@ licence text ships in the jq-core jar under META-INF/.
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/json/ErrorDump.java, translated from
   jq 1.8.2's jv_dump_string_trunc (src/jv_print.c) (#63)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Index.java, translated from
-  jq 1.8.2's jv_get (src/jv_aux.c) (#63)
+  jq 1.8.2's jv_get (src/jv_aux.c) (#63) and jv_array_indexes (src/jv.c) (#72)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Slice.java, translated from
   jq 1.8.2's parse_slice and the slice of jv_get (src/jv_aux.c) (#63)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/parse/ConstantKey.java, translated from
@@ -71,6 +71,18 @@ licence text ships in the jq-core jar under META-INF/.
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/parse/NativeTable.java, translated from
   jq 1.8.2's function_list, bind_bytecoded_builtins and gen_builtin_list (src/builtin.c), BINOPS
   (src/builtin.h) and the function list of src/libm.h (#71)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Basics.java, translated from
+  jq 1.8.2's f_length, f_type, f_tostring, f_dump and f_tonumber (src/builtin.c) (#72)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Keys.java, translated from
+  jq 1.8.2's f_has, f_keys and f_keys_unsorted (src/builtin.c) and jv_has, jv_keys and
+  jv_keys_unsorted (src/jv_aux.c) (#72)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/op/NumberTests.java, translated from
+  jq 1.8.2's f_nan, f_infinite, f_isnan, f_isinfinite, f_isnormal and f_have_decnum
+  (src/builtin.c) (#72)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Flatten.java, translated from
+  jq 1.8.2's _flatten/1, flatten/1 and flatten/0 (src/builtin.jq) (#72)
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Last.java, translated from
+  jq 1.8.2's gen_last_1 (src/builtin.c) (#72)
 
 jq's man.test and manonig.test are generated from the examples of the jq manual
 (https://jqlang.org), Creative Commons Attribution 3.0 Unported
