@@ -44,8 +44,9 @@ import org.junit.jupiter.params.provider.EnumSource;
  * wins and no result leaves null. A retried ?// alternative rolls nothing back. A false passes at once, and Reduce
  * emits nothing after one (ADR-0039). None of the three ticks: the source's producer does.
  *
- * <p>The toy {@code pair($x)} is jq's {@code [., $x]} and {@code swap($x)} its {@code [$x, .]}; each expected value is
- * the jq-ref recording of the jq filter named beside it (oracle/src/test/resources/diff/reduce.rec, 2026-11-13).
+ * <p>The toy {@code pair($x)} is the filter {@code [., $x]} and {@code swap($x)} is {@code [$x, .]}; each expected value
+ * is the reference binary's recording of the filter named beside it (oracle/src/test/resources/diff/reduce.rec,
+ * 2026-11-13).
  *
  * <p>Shapes the test-author fixed from ADR-0041's lowering (no draft text reached the red): {@code Reduce(Source, Node
  * init, int slot, Node each)}, {@code Foreach(Source, Node init, int slot, Node each)} and {@code Advance(Source, int
@@ -80,17 +81,17 @@ class ReduceOpTest {
     return new Intrinsic(AT, new Operation(name, form), List.of(args));
   }
 
-  /** jq's {@code [., $x]}: a list that may hold null. */
+  /** The filter {@code [., $x]}: a list that may hold null. */
   private static Intrinsic pair() {
     return call("pair", (Fn1) (state, in, a) -> Arrays.asList(in, a), new Var(AT, X));
   }
 
-  /** jq's {@code [$x, .]}. */
+  /** The filter {@code [$x, .]}. */
   private static Intrinsic swap() {
     return call("swap", (Fn1) (state, in, a) -> Arrays.asList(a, in), new Var(AT, X));
   }
 
-  /** jq's {@code .[1]} on a list. */
+  /** The filter {@code .[1]} on a list. */
   private static Intrinsic second() {
     return call("second", (Fn0) (state, in) -> ((List<?>) in).get(1));
   }
@@ -129,7 +130,7 @@ class ReduceOpTest {
           }
 
           @Override
-          public Object value(RunState state, Object in, long cursor) {
+          public Object value(RunState state, Object in, Object[] args, long cursor) {
             return values[(int) cursor];
           }
         };
@@ -226,7 +227,7 @@ class ReduceOpTest {
           }
 
           @Override
-          public Object value(RunState state, Object in, long cursor) {
+          public Object value(RunState state, Object in, Object[] args, long cursor) {
             return ((List<?>) in).get((int) cursor);
           }
         };

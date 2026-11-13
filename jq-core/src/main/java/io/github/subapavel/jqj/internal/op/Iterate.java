@@ -57,7 +57,7 @@ public final class Iterate implements Many {
 
   /** {@link #first} gives a cursor only to {@link Members}, so only they come here. */
   @Override
-  public Object value(RunState state, Object in, long cursor) {
+  public Object value(RunState state, Object in, Object[] args, long cursor) {
     return ((Members) in).member(state, (int) cursor);
   }
 }
