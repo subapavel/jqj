@@ -65,8 +65,12 @@ licence text ships in the jq-core jar under META-INF/.
   binop_lesseq and binop_greatereq (src/builtin.c) (#66)
 - jq-core/src/main/java/io/github/subapavel/jqj/internal/op/Range.java, translated from
   jq 1.8.2's RANGE opcode (src/execute.c) and its range/2 (src/builtin.c) (#69)
-- jq-core/src/test/resources/jq/builtin.jq, copied byte for byte from jq 1.8.2's src/builtin.jq,
-  a test resource; its SHA-256 is in jq-core/src/test/resources/jq/SOURCES.sha256 (#62)
+- jq-core/src/main/resources/io/github/subapavel/jqj/internal/parse/builtin.jq, copied byte for
+  byte from jq 1.8.2's src/builtin.jq (#62), the prelude since #71 (ADR-0042); its SHA-256 is in
+  jq-core/src/test/resources/jq/SOURCES.sha256
+- jq-core/src/main/java/io/github/subapavel/jqj/internal/parse/NativeTable.java, translated from
+  jq 1.8.2's function_list, bind_bytecoded_builtins and gen_builtin_list (src/builtin.c), BINOPS
+  (src/builtin.h) and the function list of src/libm.h (#71)
 
 jq's man.test and manonig.test are generated from the examples of the jq manual
 (https://jqlang.org), Creative Commons Attribution 3.0 Unported
