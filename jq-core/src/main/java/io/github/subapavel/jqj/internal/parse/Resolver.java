@@ -879,10 +879,10 @@ public final class Resolver {
   /**
    * {@code top}, a {@link #chained} operator, and the chained operators down its left operands, by a loop (#86): the
    * parser builds a left-associative chain in a loop, as long as the filter. Each operator lowers as its own {@link
-   * #lower} would, outermost first: it spends a node and a level, and an arithmetic one whose operands fold
-   * ({@link ConstantKey#constant}) is that Const and ends the chain there. The term the chain starts from is lowered
-   * next, then each operator's right operand from the innermost operator out, each inside the levels of the operators
-   * around it, so the IR, its slots and its ticks are those of the operators lowered one by one. {@link #lower} has
+   * #lower} would, outermost first: it spends a node and a level. An arithmetic one whose operands fold ({@link
+   * ConstantKey#constant}) ends the chain: it is the term the chain starts from, and {@link #lower} makes it that
+   * Const. That term is lowered next, then each operator's right operand from the innermost operator out, each inside the levels of the operators
+   * around it, so the IR, its slots and its ticks are those of the operators lowered one by one. {@link #built} has
    * spent {@code top}'s node and level.
    */
   private Node operators(Ast.Binary top) {
@@ -891,23 +891,14 @@ public final class Resolver {
     }
     List<Ast.Binary> chain = new ArrayList<>();
     chain.add(top);
-    Node node = null;
-    while (chain.getLast().left() instanceof Ast.Binary next && chained(next.op())) {
+    while (chain.getLast().left() instanceof Ast.Binary next && chained(next.op()) && folded(next) == null) {
       spend();
       if (++levels > MAX_IR_DEPTH) {
         throw TOO_DEEP;
       }
-      if (folded(next) instanceof Const prefix) {
-        // The folded operator's level ends with its Const.
-        levels--;
-        node = prefix;
-        break;
-      }
       chain.add(next);
     }
-    if (node == null) {
-      node = lower(chain.getLast().left());
-    }
+    Node node = lower(chain.getLast().left());
     for (int i = chain.size() - 1; i >= 0; i--) {
       node = operator(chain.get(i), node, lower(chain.get(i).right()));
       if (i > 0) {
