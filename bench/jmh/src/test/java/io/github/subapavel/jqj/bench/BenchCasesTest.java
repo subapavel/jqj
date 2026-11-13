@@ -22,7 +22,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * The 1 KB differential cases of the bench scenarios (ADR-0019, ADR-0024) in {@code oracle/.../diff/bench.cases}: jqj
  * is timed on the same work jq does only while each case's inline stdin is still its generator's 1 KB document
- * ({@code Inputs.orders}, {@code recs} or {@code ints} of {@code Size.K1}), byte for byte, and its command line is the
+ * ({@code Inputs.orders}, {@code recs} or {@code ints} of {@code Size.K1}, or #85's {@code KeyProofCost.recs20} of
+ * 1 024 bytes), byte for byte, and its command line is the
  * scenario's. The case file has to hold a literal copy, because {@code scripts/oracle-record.sh} records from the file;
  * this test is what ties the copy to the generator.
  */
@@ -43,7 +44,9 @@ class BenchCasesTest {
         argumentSet("bench/G4.1k", "bench/G4.1k", List.of("-c", Gates.G4), Inputs.ints(Size.K1)),
         argumentSet("bench/G6.compact.1k", "bench/G6.compact.1k", List.of("-c", "."), orders),
         argumentSet("bench/G6.pretty.1k", "bench/G6.pretty.1k", List.of("."), orders),
-        argumentSet("bench/G7.1k", "bench/G7.1k", List.of("-c", ".a"), orders));
+        argumentSet("bench/G7.1k", "bench/G7.1k", List.of("-c", ".a"), orders),
+        argumentSet("bench/recs20-print.1k", "bench/recs20-print.1k", List.of("-c", "."), KeyProofCost.recs20(Size.K1.bytes())),
+        argumentSet("bench/recs20-iterate.1k", "bench/recs20-iterate.1k", List.of("-c", ".[]|.[]"), KeyProofCost.recs20(Size.K1.bytes())));
   }
 
   @Test
@@ -56,7 +59,9 @@ class BenchCasesTest {
             "bench/G7.1k",
             "bench/G2.1k",
             "bench/G3.1k",
-            "bench/G4.1k");
+            "bench/G4.1k",
+            "bench/recs20-print.1k",
+            "bench/recs20-iterate.1k");
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
