@@ -162,8 +162,6 @@ interpolation/object
 interpolation/string-escapes
 interpolation/nested
 interpolation/text-format
-interpolation/sorted-keys
-interpolation/ascii-output
 interpolation/two-generators-in-array
 interpolation/two-generators-spaced
 interpolation/no-text-around
