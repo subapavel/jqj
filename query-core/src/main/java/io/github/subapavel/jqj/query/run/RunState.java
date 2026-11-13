@@ -79,7 +79,10 @@ public final class RunState {
   /** The monotonic clock in nanoseconds that the deadline reads: {@link System#nanoTime()} outside the tests. */
   private final LongSupplier clock;
 
-  /** {@link #ints}'s scratch: it grows to the largest length asked and lives as long as this run state. */
+  /** The longest scratch {@link #ints} keeps: 2^20 ints, 4 MiB. */
+  static final int KEPT_INTS = 1 << 20;
+
+  /** {@link #ints}'s scratch: it grows to the largest length asked, at most {@link #KEPT_INTS}, and lives as long as this run state. */
   private int[] ints = {};
 
   /** An idle run state: no run, no tick, every budget unlimited. */
@@ -263,11 +266,15 @@ public final class RunState {
 
   /**
    * A reused scratch of at least {@code n} ints for one operation's positions within one call (ADR-0030 as amended by
-   * ADR-0044): the same array until a longer one is asked for, its contents whatever the last caller left. It holds no
+   * ADR-0044): the same array until a longer one is asked for, its contents whatever the last caller left. The run state
+   * keeps at most {@link #KEPT_INTS}; a longer ask gets a new array of its own, which it does not keep. It holds no
    * value and is never charged to bytes built; a caller asks for no more than it bounds itself to, and does not keep it
    * past its call.
    */
   public int[] ints(int n) {
+    if (n > KEPT_INTS) {
+      return new int[n];
+    }
     if (ints.length < n) {
       ints = new int[n];
     }

@@ -302,6 +302,14 @@ class NavigationBudgetTest {
   }
 
   @Test
+  void toEntriesOfAnArrayChargesEachEntry() {
+    // Keys.entries: an array has no key proof, so to_entries charges one tick per entry: 1 read tick and 3. jq-ref
+    // 1.8.2, observed 2026-11-13: [10,20,30] | to_entries gives [{"key":0,"value":10},{"key":1,"value":20},
+    // {"key":2,"value":30}].
+    assertExactSteps("to_entries", "[10,20,30]", 4, "[{\"key\":0,\"value\":10},{\"key\":1,\"value\":20},{\"key\":2,\"value\":30}]");
+  }
+
+  @Test
   void aMergeChargesItsReadSidesProofAndEachEntryCopied() {
     // ADR-0044: ObjectMerge walks both sides; the read side's proof is one tick per key entry, and the merge one per
     // entry copied (ArithmeticStepsTest): 1 + 20 + 20 = 41 whichever side the read object is on, for + as for *
