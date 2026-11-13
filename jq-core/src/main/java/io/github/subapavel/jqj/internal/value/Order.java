@@ -159,8 +159,11 @@ public final class Order {
     return bytes(a, b);
   }
 
-  /** jq's {@code string_cmp}: the first byte that differs, unsigned, within the shorter length, then the lengths. */
-  private static int bytes(MemorySegment a, MemorySegment b) {
+  /**
+   * jq's {@code string_cmp}: the first byte that differs, unsigned, within the shorter length, then the lengths. It
+   * charges nothing; {@code keys} charges its own sort (Keys).
+   */
+  public static int bytes(MemorySegment a, MemorySegment b) {
     long n = Math.min(a.byteSize(), b.byteSize());
     long at = MemorySegment.mismatch(a, 0, n, b, 0, n);
     if (at == -1) {

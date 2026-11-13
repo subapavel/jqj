@@ -7,9 +7,9 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 
 /**
- * A literal number written in a filter, or a negated literal (ADR-0012, ADR-0028, ADR-0031; GLOSSARY "Literal
- * number"): its canonical form, its double and whether it fits a long, all computed once, when it is made. Public only
- * so the kind can permit it.
+ * A literal number written in a filter, a negated literal, or one that {@code tonumber} read (ADR-0012, ADR-0028,
+ * ADR-0031; GLOSSARY "Literal number"): its canonical form, its double and whether it fits a long, all computed once,
+ * when it is made. Public only so the kind can permit it.
  */
 public final class LiteralNumber implements JqNumber, Literal {
   /** {@link Long#MAX_VALUE}'s digits: a 19-digit integer fits a long when it is at most these. */
@@ -21,9 +21,12 @@ public final class LiteralNumber implements JqNumber, Literal {
   /** A short token's most bytes (ADR-0012 "Flags"). */
   private static final int SHORT = 15;
 
+  /** The strict token of an Infinity literal, without its sign: an adjusted exponent above decNumber's limit. */
+  private static final String INFINITY = "1e1000000000";
+
   /**
-   * A strict token of ADR-0012's grammar: a normalised lexeme, which has no sign, or the token of a negated literal,
-   * which has one unless its value is a zero.
+   * A strict token of ADR-0012's grammar: a normalised lexeme, which has no sign; the token of a negated literal, which
+   * has one unless its value is a zero; or a normalised text of {@link #ofText}, which keeps its minus sign.
    */
   private final byte[] token;
 
@@ -104,6 +107,109 @@ public final class LiteralNumber implements JqNumber, Literal {
     }
     token.append(lexeme, fractionEnd, lexeme.length());
     return new LiteralNumber(token.toString());
+  }
+
+  /**
+   * jq's {@code tonumber} of a string, its {@code jv_number_with_literal}: the number that the numeric-string grammar
+   * of the General Decimal Arithmetic specification, decNumber's, reads from all of {@code text}, or Java {@code null}
+   * when it reads none (written from the grammar, not from decNumber's code; ADR-0012 "tonumber", ADR-0015). That is an
+   * optional sign, then digits with at most one point and at least one digit, then an optional exponent {@code e} or
+   * {@code E} with an optional sign and at least one digit; or {@code Inf} or {@code Infinity}; or {@code NaN} or
+   * {@code sNaN} with a payload of zeros, each in any case. The number is a literal of the strict token the text
+   * normalises to, as {@link #ofLexeme} normalises: {@code +} and the integer part's leading zeros go, a missing integer
+   * part is {@code 0}, a point without digits after it goes, and {@code -} stays, on a zero too ({@code "-0"} gives
+   * {@code -0}). An infinity is an Infinity literal of its sign; a NaN is a computed NaN, as jq makes it (jq-ref 1.8.2,
+   * recorded: natives/tonumber-strings, natives/tonumber-nonfinite). It reads each byte once.
+   */
+  public static JqNumber ofText(byte[] text) {
+    int n = text.length;
+    int p = 0;
+    boolean negative = false;
+    if (p < n && (text[p] == '+' || text[p] == '-')) {
+      negative = text[p] == '-';
+      p++;
+    }
+    StringBuilder token = new StringBuilder(n + 1);
+    if (negative) {
+      token.append('-');
+    }
+    if (p < n && !digit(text[p]) && text[p] != '.') {
+      if (starts(text, p, "inf") && p + 3 == n || starts(text, p, "infinity") && p + 8 == n) {
+        return new LiteralNumber(token.append(INFINITY).toString(), false);
+      }
+      int payload = starts(text, p, "nan") ? p + 3 : starts(text, p, "snan") ? p + 4 : -1;
+      if (payload < 0) {
+        return null;
+      }
+      while (payload < n && text[payload] == '0') {
+        payload++;
+      }
+      return payload == n ? new DoubleNumber(Double.NaN) : null;
+    }
+    int integer = p;
+    while (p < n && digit(text[p])) {
+      p++;
+    }
+    int integerEnd = p;
+    int fraction = p;
+    if (p < n && text[p] == '.') {
+      fraction = ++p;
+      while (p < n && digit(text[p])) {
+        p++;
+      }
+    }
+    int fractionEnd = p;
+    if (integerEnd == integer && fractionEnd == fraction) {
+      return null;
+    }
+    int exponent = p;
+    if (p < n && (text[p] == 'e' || text[p] == 'E')) {
+      p++;
+      if (p < n && (text[p] == '+' || text[p] == '-')) {
+        p++;
+      }
+      int digits = p;
+      while (p < n && digit(text[p])) {
+        p++;
+      }
+      if (p == digits) {
+        return null;
+      }
+    }
+    if (p != n) {
+      return null;
+    }
+    while (integer < integerEnd - 1 && text[integer] == '0') {
+      integer++;
+    }
+    token.append(integer == integerEnd ? "0" : new String(text, integer, integerEnd - integer, US_ASCII));
+    if (fractionEnd > fraction) {
+      token.append('.').append(new String(text, fraction, fractionEnd - fraction, US_ASCII));
+    }
+    token.append(new String(text, exponent, n - exponent, US_ASCII));
+    String strict = token.toString();
+    // An integer token fits a long by its digits, but -0 never does (ADR-0012 FITS_LONG).
+    return new LiteralNumber(strict, fitsLong(strict) && !strict.equals("-0"));
+  }
+
+  private static boolean digit(byte b) {
+    return b >= '0' && b <= '9';
+  }
+
+  /**
+   * Whether {@code text} has {@code lower}, a word of ASCII small letters, at {@code p}, in any case: {@code | 0x20}
+   * turns an ASCII capital into its small letter, keeps a small letter, and turns no other byte into a letter.
+   */
+  private static boolean starts(byte[] text, int p, String lower) {
+    if (text.length - p < lower.length()) {
+      return false;
+    }
+    for (int i = 0; i < lower.length(); i++) {
+      if ((text[p + i] | 0x20) != lower.charAt(i)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
