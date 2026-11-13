@@ -165,10 +165,6 @@ not build yet, jqj stops, and jq's blocks after that point are missing. These ar
 need parentheses around object key expression` (`. as {1+2: $x} | 1`). They are also the silent
 `'(' error ')'`, `'[' error ']'`, `Term '[' error ']'` and `'{' error '}'`, after which jq goes on
 and reports later errors (`(1 2) | 3 | 4 5`). jqj's blocks are then a prefix of jq's.
-
-Known gap, resolved by #64: jq's parser-action errors are not built yet. Where one comes before
-jq's syntax error, jqj's blocks are not a prefix. For `{(1): 2 3}`, jq gives `Cannot use number (1)
-as object key` at column 3 and then the syntax error at column 9; jqj gives the syntax error alone.
 ParserEdgesTest pins jqj's blocks for each example.
 
 ## `-h`, `-V` and `--build-configuration` print jqj's own text (ADR-0023, issue #17)
