@@ -388,14 +388,17 @@ class NavigationBudgetTest {
   void anErrorsDumpChargesTheProofToTheRun() {
     // ADR-0044 as amended at 878595e: an error text's dump of a read object (ErrorDump) prints it through its proof on
     // the run's state: 1 read tick and 20 proof ticks, so 21 complete and 20 end (1 before #85 round 3: the dump proved
-    // the object on a throwaway state). One row per kind of caller: an operator's (Arithmetic, two operands and one),
-    // an index's key, a slice's bounds and an object key. jq-ref 1.8.2, observed 2026-11-13: these texts.
+    // the object on a throwaway state). One row per kind of caller: an operator's (Arithmetic, the object as either of
+    // two operands and as the one), an index's key, a slice's either bound and an object key. jq-ref 1.8.2, observed
+    // 2026-11-13: these texts.
     String head = "{\\\"k0\\\":0,\\\"k1\\\":1,\\\"k2\\\":2,\\\"k3...}";
     assertAll(
         () -> assertExactSteps("try (. + 1) catch .", TWENTY_KEYS, 21, "\"object (" + head + ") and number (1) cannot be added\""),
+        () -> assertExactSteps("try (1 - .) catch .", TWENTY_KEYS, 21, "\"number (1) and object (" + head + ") cannot be subtracted\""),
         () -> assertExactSteps("try sort catch .", TWENTY_KEYS, 21, "\"object (" + head + ") cannot be sorted, as it is not an array\""),
         () -> assertExactSteps(". as $o | try (1 | .[$o]) catch .", TWENTY_KEYS, 21, "\"Cannot index number with object (" + head + ")\""),
         () -> assertExactSteps("try .[.:] catch .", TWENTY_KEYS, 21, "\"Cannot index object with object ({\\\"start\\\":{\\\"k0\\\":0,\\\"k1\\\":1,\\\"...})\""),
+        () -> assertExactSteps("try .[:.] catch .", TWENTY_KEYS, 21, "\"Cannot index object with object ({\\\"start\\\":null,\\\"end\\\":{\\\"k0\\\"...})\""),
         () -> assertExactSteps("try {(.): 1} catch .", TWENTY_KEYS, 21, "\"Cannot use object (" + head + ") as object key\""));
   }
 
