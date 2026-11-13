@@ -115,10 +115,11 @@ class ArithmeticBudgetTest {
 
   @Test
   void numbersAndAnOperandReturnedUnchangedChargeNothing() {
-    // 1 + 2 builds a number; null + . and . + null return the document's array (arith-containers/
-    // input-object-plus-null-keeps-order). The witness: [.[]] on the same array ends under 0 bytes built.
+    // .a + .b on {"a":1,"b":2} builds a number at run time (1 + 2 would fold at parse time); null + . and . + null
+    // return the document's array (arith-containers/input-object-plus-null-keeps-order). The witness: [.[]] on the
+    // same array ends under 0 bytes built.
     JqValue three = document("[1,2,3]");
-    assertThat(results("1 + 2", JqNull.NULL, 0)).as("1 + 2 under 0 bytes built").containsExactly("3");
+    assertThat(results(".a + .b", document("{\"a\":1,\"b\":2}"), 0)).as(".a + .b under 0 bytes built").containsExactly("3");
     assertThat(results("null + .", three, 0)).as("null + . under 0 bytes built").containsExactly("[1,2,3]");
     assertThat(results(". + null", three, 0)).as(". + null under 0 bytes built").containsExactly("[1,2,3]");
     JqEngine zero = bytesBuilt(0);

@@ -20,7 +20,10 @@ import org.junit.jupiter.api.Test;
  * once per element, a collect none; documents are read on another engine's Workspace, so a run has no read tick
  * (ADR-0015). The rates: a string concat one tick per started KiB of its result; an array difference one per pair
  * compared, stopping at the first equal element as jq's binop_minus does; a split one per piece; an object + or a merge
- * one per entry of the right operand, at every merge level.
+ * one per entry of the right operand, at every merge level. The #65 standards review added (ADR-0034, 5e4e90b): a
+ * repeat one per started KiB of its result; an array + one per element copied; a difference one per left element; a
+ * split one per started KiB searched; a merge one per left entry copied; an equality one per member pair and one per
+ * key of the right object it counts.
  */
 class ArithmeticStepsTest {
   private static final long CEILING = 1 << 16;
@@ -40,10 +43,11 @@ class ArithmeticStepsTest {
   @Test
   void aDifferenceChargesOneStepPerPairCompared() {
     // [.a[]] - [.b[]]: 2 x 3 disjoint numbers compare 6 pairs, 4 x 5 compare 20; collecting them ticks once per element,
-    // 5 and 9. So the boundaries differ by 14 + 4.
+    // 5 and 9; and the difference ticks once per left element, 2 and 4 (ADR-0034 amendment, 5e4e90b). So the
+    // boundaries differ by 14 + 4 + 2.
     long twoByThree = boundary("[.a[]] - [.b[]]", document("{\"a\":[1,2],\"b\":[3,4,5]}"));
     long fourByFive = boundary("[.a[]] - [.b[]]", document("{\"a\":[1,2,3,4],\"b\":[5,6,7,8,9]}"));
-    assertThat(fourByFive - twoByThree).as("4 x 5 pairs against 2 x 3").isEqualTo(18);
+    assertThat(fourByFive - twoByThree).as("4 x 5 pairs against 2 x 3").isEqualTo(20);
     // [1,2] - [1,2,3]: 1 meets 1 at once, 2 meets 1 then 2: 3 pairs, against 6 for [1,2] - [3,4,5].
     long matching = boundary("[.a[]] - [.b[]]", document("{\"a\":[1,2],\"b\":[1,2,3]}"));
     assertThat(twoByThree - matching).as("6 pairs against 3 that stop at the first equal element").isEqualTo(3);
@@ -71,15 +75,94 @@ class ArithmeticStepsTest {
     long one = boundary("{x:.p} * {y:.q}", pq);
     long two = boundary("{x:.p} * {y:.q,z:.q}", pq);
     assertThat(two - one).as("two right entries against one").isEqualTo(3);
-    // The same lookups, one more level of one entry each side.
+    // The same lookups, one more level of one entry each side: its right entry and its left entry copied (ADR-0034
+    // amendment, 5e4e90b).
     long twoLevels = boundary("{k:{x:.p}} * {k:{y:.q}}", pq);
     long threeLevels = boundary("{k:{k:{x:.p}}} * {k:{k:{y:.q}}}", pq);
-    assertThat(threeLevels - twoLevels).as("three merge levels against two").isEqualTo(1);
+    assertThat(threeLevels - twoLevels).as("three merge levels against two").isEqualTo(2);
+  }
+
+  // The rates the #65 standards review added to ADR-0034 (5e4e90b), pinned by the implementer. An operand written as a
+  // literal ([3,4], [[1,9,9]], [{"x":1}]) is built by the run, not folded, as the other operand is not constant; it is
+  // a built value, so the operator walks it without a view's ticks, and its own cost is taken out by the same literal
+  // run alone ({@link #operator}).
+
+  @Test
+  void aRepeatChargesOneStepPerStartedKibibyteOfItsResult() {
+    // "x" * 1023, 1024 and 1025: one, one and two KiB started.
+    long r1023 = boundary(".s * .n", document("{\"s\":\"x\",\"n\":1023}"));
+    long r1024 = boundary(".s * .n", document("{\"s\":\"x\",\"n\":1024}"));
+    long r1025 = boundary(".s * .n", document("{\"s\":\"x\",\"n\":1025}"));
+    assertThat(r1024 - r1023).as("a 1024-byte result against a 1023-byte one").isEqualTo(0);
+    assertThat(r1025 - r1024).as("a 1025-byte result against a 1024-byte one").isEqualTo(1);
+  }
+
+  @Test
+  void anArrayPlusChargesOneStepPerElementCopied() {
+    // .a + [3] and .a + [3,4]: the same document, one more element copied from the constant.
+    JqValue a = document("{\"a\":[1,2]}");
+    assertThat(operator(".a + %s", "[3,4]", a) - operator(".a + %s", "[3]", a)).as("four elements copied against three").isEqualTo(1);
+  }
+
+  @Test
+  void aDifferenceChargesOneStepPerLeftElementEvenAgainstTheEmptyArray() {
+    // [.a[]] - []: .[] ticks once per element, and the difference once more per left element, with no pair compared.
+    long two = boundary("[.a[]] - []", document("{\"a\":[1,2]}"));
+    long three = boundary("[.a[]] - []", document("{\"a\":[1,2,3]}"));
+    assertThat(three - two).as("three left elements against two").isEqualTo(2);
+  }
+
+  @Test
+  void aSplitChargesOneStepPerStartedKibibyteSearched() {
+    // No separator in 1023, 1024 and 1025 letters: one piece each, one, one and two KiB searched.
+    long r1023 = boundary(".s / .d", document("{\"s\":\"" + "y".repeat(1023) + "\",\"d\":\",\"}"));
+    long r1024 = boundary(".s / .d", document("{\"s\":\"" + "y".repeat(1024) + "\",\"d\":\",\"}"));
+    long r1025 = boundary(".s / .d", document("{\"s\":\"" + "y".repeat(1025) + "\",\"d\":\",\"}"));
+    assertThat(r1024 - r1023).as("1024 bytes searched against 1023").isEqualTo(0);
+    assertThat(r1025 - r1024).as("1025 bytes searched against 1024").isEqualTo(1);
+  }
+
+  @Test
+  void aMergeChargesOneStepPerLeftEntryCopied() {
+    // The same right object; one more left entry looked up (.q, 2 ticks over the two keys) and copied (1).
+    JqValue pq = document("{\"p\":1,\"q\":2}");
+    long one = boundary("{x:.p} * {y:.q}", pq);
+    long two = boundary("{x:.p,z:.q} * {y:.q}", pq);
+    assertThat(two - one).as("two left entries against one").isEqualTo(3);
+    // Object + copies its left entries without a tick of their own: the lookup only.
+    long plusOne = boundary("{x:.p} + {y:.q}", pq);
+    long plusTwo = boundary("{x:.p,z:.q} + {y:.q}", pq);
+    assertThat(plusTwo - plusOne).as("object + of two left entries against one").isEqualTo(2);
+  }
+
+  @Test
+  void anEqualityChargesOneStepPerMemberPairCompared() {
+    // [.a + []] - [[1,9,9]]: the left array is built, so its walk ticks nothing; 1 = 1, then 2 against 9 ends it after
+    // two pairs. Against [[1,2,9]] three pairs: 1, 2, then 3 against 9.
+    JqValue a = document("{\"a\":[1,2,3]}");
+    long two = operator("[.a + []] - %s", "[[1,9,9]]", a);
+    long three = operator("[.a + []] - %s", "[[1,2,9]]", a);
+    assertThat(three - two).as("three member pairs against two").isEqualTo(1);
+  }
+
+  @Test
+  void anEqualityChargesOneStepPerKeyItCountsOfTheRightObject() {
+    // [.a] - [{"x":1}] and [.a] - [{"x":1,"y":2}]: one member pair each, the key x first in both, then the right
+    // object's keys counted, one against two.
+    JqValue a = document("{\"a\":{\"x\":1}}");
+    long one = operator("[.a] - %s", "[{\"x\":1}]", a);
+    long two = operator("[.a] - %s", "[{\"x\":1,\"y\":2}]", a);
+    assertThat(two - one).as("two right keys counted against one").isEqualTo(1);
   }
 
   /** {"a":"x","b":<letters>}: under 2 KiB whatever the letters. */
   private static JqValue concat(int letters) {
     return document("{\"a\":\"x\",\"b\":\"" + "y".repeat(letters) + "\"}");
+  }
+
+  /** The boundary of {@code shape} with {@code literal} in it, less the boundary of {@code literal} alone. */
+  private static long operator(String shape, String literal, JqValue input) {
+    return boundary(shape.formatted(literal), input) - boundary(literal, input);
   }
 
   /** The least step budget under which {@code filter} on {@code input} completes. */

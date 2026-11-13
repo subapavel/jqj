@@ -98,13 +98,15 @@ final class Strings {
    * {@code s / separator}, jq's {@code jv_string_split}: an empty separator gives each character of {@code s}; any
    * other gives the pieces between its occurrences, found left to right without overlap, and one empty piece more
    * when {@code s} ends with it; an empty {@code s} gives no piece. The array is charged as a container, each piece as
-   * an element and a string before it is built (ADR-0035 amendment), and each piece ticks once (ADR-0034 amendment).
+   * an element and a string before it is built (ADR-0035 amendment). The search ticks once per started KiB of
+   * {@code s}, and each piece once more (ADR-0034 amendment).
    */
   static BuiltArray split(RunState state, JqString s, JqString separator) {
     MemorySegment str = s.utf8();
     MemorySegment sep = separator.utf8();
     long n = str.byteSize();
     long m = sep.byteSize();
+    state.tick(Built.kibibytes(n));
     state.chargeBuilt(Charges.CONTAINER);
     Pieces pieces = new Pieces();
     if (m == 0) {

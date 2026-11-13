@@ -82,7 +82,8 @@ final class Plus implements Fn2 {
 
   /**
    * jq's {@code jv_array_concat}: the elements of {@code a}, then those of {@code b}, charged as a container and an
-   * element each before it is allocated; a view's length walk charges its elements (ADR-0034).
+   * element each before it is allocated; a view's length walk charges its elements (ADR-0034), and the copy ticks once
+   * per element it copies (ADR-0034 amendment for #65).
    */
   private static BuiltArray concat(RunState state, JqArray a, JqArray b) {
     int n = Slice.length(state, a);
@@ -92,9 +93,10 @@ final class Plus implements Fn2 {
     return new BuiltArray(elements, elements.length);
   }
 
-  /** {@code array}'s elements into {@code out} from {@code at}. */
+  /** {@code array}'s elements into {@code out} from {@code at}, one tick each. */
   private static void copy(RunState state, Members array, Object[] out, int at) {
     for (int c = array.first(); c != -1; c = array.next(state, c)) {
+      state.tick();
       out[at++] = array.member(state, c);
     }
   }
