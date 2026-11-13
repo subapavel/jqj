@@ -510,15 +510,24 @@ constant-key-fold/zero-plus-one
 # constant-key-cap: the key check past the fold cap, added by the implementer at the #65 standards review.
 constant-key-cap/array
 constant-key-cap/array-plus
+constant-key-cap/array-plus-null
+constant-key-cap/check-edge-over
+constant-key-cap/check-edge-under
+constant-key-cap/check-whole-fold
 constant-key-cap/difference
+constant-key-cap/fold-whole-array
 constant-key-cap/huge-split
 constant-key-cap/merge
 constant-key-cap/merge-of-a-merge
 constant-key-cap/merge-of-a-plus
 constant-key-cap/merge-of-a-split
+constant-key-cap/merge-of-an-object-plus-null
 constant-key-cap/merge-of-null-plus-an-object
 constant-key-cap/null-plus-array
 constant-key-cap/object
+constant-key-cap/pipe-of-a-constant-and-dot
+constant-key-cap/pipe-of-dot-and-a-constant
+constant-key-cap/pipe-of-dots
 constant-key-cap/remainder-of-a-string
 constant-key-cap/split
 constant-key-cap/split-after-dot

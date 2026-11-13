@@ -74,19 +74,23 @@ final class ConstantKey {
           BinOp.MODULO, Arithmetic.MODULO);
 
   /**
-   * The bytes a fold may build (ADR-0035 amendment: no value larger than 4 KiB): a string of 4096 bytes with its fixed
-   * charge, so 4096 bytes fold and 4097 do not; any other value is held to the same charges.
+   * The bytes a whole fold may build, all its operators together (ADR-0035 amendment: no value larger than 4 KiB): a
+   * string of 4096 bytes with its fixed charge, so 4096 bytes fold and 4097 do not; any other value is held to the
+   * same charges.
    */
   static final long FOLD_BYTES = Charges.STRING + 4096;
 
-  /** The bytes the key-kind check's second fold may build (ADR-0035, #65 standards review): 1 MiB. */
+  /** The bytes the key-kind check's whole second fold may build (ADR-0035, #65 standards review): 1 MiB. */
   static final long CHECK_BYTES = 1 << 20;
 
-  /** The bytes each arithmetic fold of this walk may build. */
-  private final long budget;
+  /**
+   * The run state every arithmetic fold of this walk charges: one bytes-built budget for the whole constant
+   * expression, not one per operator, so a container of folds is held to it too (ADR-0035).
+   */
+  private final RunState state = new RunState();
 
   private ConstantKey(long budget) {
-    this.budget = budget;
+    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, budget, Long.MAX_VALUE);
   }
 
   /**
@@ -98,9 +102,8 @@ final class ConstantKey {
    * not folded again; the run builds it.
    */
   static String error(Ast query) {
-    ConstantKey capped = new ConstantKey(FOLD_BYTES);
-    Object key = capped.fold(query);
-    if (key == null && capped.container(query)) {
+    Object key = new ConstantKey(FOLD_BYTES).fold(query);
+    if (key == null && container(query)) {
       key = new ConstantKey(CHECK_BYTES).fold(query);
     }
     return key instanceof JqValue value && !(value instanceof JqString) ? ObjectKey.message(value) : null;
@@ -113,7 +116,7 @@ final class ConstantKey {
    * an object when the fold succeeds. Any other {@code +} or {@code *} past the cap builds a string, a {@code %} builds
    * nothing, and no other kind folds.
    */
-  private boolean container(Ast ast) {
+  private static boolean container(Ast ast) {
     return switch (spine(ast)) {
       case Ast.ArrayCons _ -> true;
       case Ast.ObjectCons _ -> true;
@@ -125,7 +128,7 @@ final class ConstantKey {
   }
 
   /** Whether {@code ast} gives an object: a construction of one, a {@code +} with one, or a merge {@code *}. */
-  private boolean isObject(Ast ast) {
+  private static boolean isObject(Ast ast) {
     return switch (spine(ast)) {
       case Ast.ObjectCons _ -> true;
       case Ast.Binary b when b.op() == BinOp.ADD -> isObject(b.left()) || isObject(b.right());
@@ -163,18 +166,16 @@ final class ConstantKey {
 
   /**
    * jq's {@code constant_fold} of {@code + - * / %} (GLOSSARY "Fold"): the operator on two constants, computed now as
-   * the run would, under this walk's bytes-built budget: {@link #FOLD_BYTES} (ADR-0035 amendment), or {@link
-   * #CHECK_BYTES} for a key's second check ({@link #error}). A fold that raises, or that would build past the budget, is none: the run computes
-   * it, raising or building and charging there. The other
-   * operators fold in jq too; comparison is #66's, and {@code and}, {@code or} and {@code //} are not folded.
+   * the run would, charging this walk's one bytes-built budget: {@link #FOLD_BYTES} (ADR-0035 amendment), or {@link
+   * #CHECK_BYTES} for a key's second check ({@link #error}). A fold that raises, or that would build past what is left
+   * of the budget, is none: the run computes it, raising or building and charging there. The other operators fold in
+   * jq too; comparison is #66's, and {@code and}, {@code or} and {@code //} are not folded.
    */
   private Object binary(Ast.Binary b) {
     Operation op = ARITHMETIC.get(b.op());
     if (op == null || !(fold(b.left()) instanceof JqValue left) || !(fold(b.right()) instanceof JqValue right)) {
       return null;
     }
-    RunState state = new RunState();
-    state.begin(Long.MAX_VALUE, Long.MAX_VALUE, budget, Long.MAX_VALUE);
     try {
       return ((Fn2) op.form()).apply(state, JqNull.NULL, left, right);
     } catch (EvaluationException e) {
@@ -225,18 +226,31 @@ final class ConstantKey {
   }
 
   /** {@code ast} without the parentheses and the pipes with {@code .} around it, as jq's blocks join them away. */
-  private Ast spine(Ast ast) {
+  private static Ast spine(Ast ast) {
     for (;;) {
       if (ast instanceof Ast.Paren p) {
         ast = p.body();
-      } else if (ast instanceof Ast.Pipe p && fold(p.left()) == DOT) {
+      } else if (ast instanceof Ast.Pipe p && dot(p.left())) {
         ast = p.right();
-      } else if (ast instanceof Ast.Pipe p && fold(p.right()) == DOT) {
+      } else if (ast instanceof Ast.Pipe p && dot(p.right())) {
         ast = p.left();
       } else {
         return ast;
       }
     }
+  }
+
+  /**
+   * Whether {@code ast} folds to {@link #DOT}: {@code .} alone, in parentheses or piped to itself. It is told by the
+   * shape, without a fold, so no fold is computed, and charged, twice.
+   */
+  private static boolean dot(Ast ast) {
+    return switch (ast) {
+      case Ast.Dot _ -> true;
+      case Ast.Paren p -> dot(p.body());
+      case Ast.Pipe p -> dot(p.left()) && dot(p.right());
+      default -> false;
+    };
   }
 
   /** {@code {pairs}}: each key a constant string and each value a constant, or none. */

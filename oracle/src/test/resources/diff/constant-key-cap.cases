@@ -81,6 +81,47 @@ filter {(({a:("x"*5000)} * {}) * {}):1}
 stdin null\n
 end
 
+case constant-key-cap/array-plus-null
+arg -c
+filter {([("x"*5000)] + null):1}
+stdin null\n
+end
+
+case constant-key-cap/merge-of-an-object-plus-null
+arg -c
+filter {(({a:("x"*5000)} + null) * {}):1}
+stdin null\n
+end
+
+# A pipe of a pipe in an array: (. | .) is . alone, so the outer pipe joins away and [1] folds; (1 | .) | 2 and
+# (. | 1) | 2 are no fold, and their keys fail at run time (rc 5)
+
+case constant-key-cap/pipe-of-dots
+arg -c
+filter {([(. | .) | 1]):1}
+stdin null\n
+end
+
+case constant-key-cap/pipe-of-a-constant-and-dot
+arg -c
+filter {([(1 | .) | 2]):1}
+stdin null\n
+end
+
+case constant-key-cap/pipe-of-dot-and-a-constant
+arg -c
+filter {([(. | 1) | 2]):1}
+stdin null\n
+end
+
+# The 1 MiB edge: ("x"*N)/"x" builds 40 + N, then 64 + 48 x (N + 1): 1048556 bytes for N = 21396, under the bound
+
+case constant-key-cap/check-edge-under
+arg -c
+filter {(("x"*21396)/"x"):1}
+stdin null\n
+end
+
 # rc 0: a string past the cap is a valid key; a pipe of two non-dot sides is no fold
 
 case constant-key-cap/string-repeat
@@ -124,4 +165,35 @@ filter {(("x"*2000000)/"x"):1}
 stdin null\n
 jqj-rc 5
 jqj-stderr jq: error (at <stdin>:1): Cannot use array (["","","","","","","","",...]) as object key\n
+end
+
+# N = 21397 builds 1048605 bytes, 29 past the bound
+
+case constant-key-cap/check-edge-over
+deviation huge-constant-keys
+arg -c
+filter {(("x"*21397)/"x"):1}
+stdin null\n
+jqj-rc 5
+jqj-stderr jq: error (at <stdin>:1): Cannot use array (["","","","","","","","",...]) as object key\n
+end
+
+# The bound holds for the whole fold: two strings of 1000040 bytes each, together past 1 MiB
+
+case constant-key-cap/check-whole-fold
+deviation huge-constant-keys
+arg -c
+filter {([("x"*1000000),("x"*1000000)]):1}
+stdin null\n
+jqj-rc 5
+jqj-stderr jq: error (at <stdin>:1): Cannot use array (["xxxxxxxxxxxxxxxxxxxxxxx...]) as object key\n
+end
+
+# Outside a key the 4 KiB cap holds for the whole fold too: two strings of 4040 bytes are no 8 KiB Const, so the run
+# builds them (jq-core HugeConstantKeyTest); the output is the same
+
+case constant-key-cap/fold-whole-array
+arg -c
+filter [("x"*4000),("x"*4000)] + []
+stdin null\n
 end

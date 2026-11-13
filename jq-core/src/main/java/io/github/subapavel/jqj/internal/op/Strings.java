@@ -99,14 +99,16 @@ final class Strings {
    * other gives the pieces between its occurrences, found left to right without overlap, and one empty piece more
    * when {@code s} ends with it; an empty {@code s} gives no piece. The array is charged as a container, each piece as
    * an element and a string before it is built (ADR-0035 amendment). The search ticks once per started KiB of
-   * {@code s}, and each piece once more (ADR-0034 amendment).
+   * {@code s} times the started KiB of the separator, which counts as one at least, as an empty one does; each piece
+   * ticks once more (ADR-0034 amendment).
    */
   static BuiltArray split(RunState state, JqString s, JqString separator) {
     MemorySegment str = s.utf8();
     MemorySegment sep = separator.utf8();
     long n = str.byteSize();
     long m = sep.byteSize();
-    state.tick(Built.kibibytes(n));
+    // The product can pass an int (64 MiB searched for a 33 MiB separator); the charge saturates at Integer.MAX_VALUE.
+    state.tick((int) Math.min((long) Built.kibibytes(n) * Math.max(1, Built.kibibytes(m)), Integer.MAX_VALUE));
     state.chargeBuilt(Charges.CONTAINER);
     Pieces pieces = new Pieces();
     if (m == 0) {

@@ -23,7 +23,9 @@ import org.junit.jupiter.api.Test;
  * one per entry of the right operand, at every merge level. The #65 standards review added (ADR-0034, 5e4e90b): a
  * repeat one per started KiB of its result; an array + one per element copied; a difference one per left element; a
  * split one per started KiB searched; a merge one per left entry copied; an equality one per member pair and one per
- * key of the right object it counts.
+ * key of the right object it counts. The re-review (94509b6) added: object + one per left entry copied too; a string
+ * equality one per started KiB of the shorter string; a split's search the started KiB of the input times those of
+ * the separator.
  */
 class ArithmeticStepsTest {
   private static final long CEILING = 1 << 16;
@@ -129,10 +131,36 @@ class ArithmeticStepsTest {
     long one = boundary("{x:.p} * {y:.q}", pq);
     long two = boundary("{x:.p,z:.q} * {y:.q}", pq);
     assertThat(two - one).as("two left entries against one").isEqualTo(3);
-    // Object + copies its left entries without a tick of their own: the lookup only.
+    // Object + copies its left entries at the same rate (ADR-0034 amendment, 94509b6): the lookup and the copy.
     long plusOne = boundary("{x:.p} + {y:.q}", pq);
     long plusTwo = boundary("{x:.p,z:.q} + {y:.q}", pq);
-    assertThat(plusTwo - plusOne).as("object + of two left entries against one").isEqualTo(2);
+    assertThat(plusTwo - plusOne).as("object + of two left entries against one").isEqualTo(3);
+  }
+
+  @Test
+  void aStringEqualityChargesOneStepPerStartedKibibyteOfTheShorterString() {
+    // [.a] - [.b] on two equal strings: one left element, one pair, then the string compare, one KiB started for 1023
+    // and 1024 bytes and two for 1025. A longer right string changes nothing: the shorter one counts.
+    long r1023 = boundary("[.a] - [.b]", strings(1023, 1023));
+    long r1024 = boundary("[.a] - [.b]", strings(1024, 1024));
+    long r1025 = boundary("[.a] - [.b]", strings(1025, 1025));
+    assertThat(r1024 - r1023).as("1024 bytes compared against 1023").isEqualTo(0);
+    assertThat(r1025 - r1024).as("1025 bytes compared against 1024").isEqualTo(1);
+    assertThat(boundary("[.a] - [.b]", strings(1024, 3000)) - r1024).as("the shorter string of 1024 bytes against 3000").isEqualTo(0);
+  }
+
+  @Test
+  void aSplitChargesTheKibibytesSearchedTimesTheKibibytesOfTheSeparator() {
+    // 1025 letters (two KiB) without the separator: one piece; a separator of 1024 bytes (one KiB) charges 2 x 1, one
+    // of 1025 bytes (two KiB) 2 x 2.
+    long one = boundary(".s / .d", document("{\"s\":\"" + "y".repeat(1025) + "\",\"d\":\"" + "z".repeat(1024) + "\"}"));
+    long two = boundary(".s / .d", document("{\"s\":\"" + "y".repeat(1025) + "\",\"d\":\"" + "z".repeat(1025) + "\"}"));
+    assertThat(two - one).as("a two-KiB separator against a one-KiB one").isEqualTo(2);
+  }
+
+  /** {"a":<a letters x>,"b":<b letters x>}. */
+  private static JqValue strings(int a, int b) {
+    return document("{\"a\":\"" + "x".repeat(a) + "\",\"b\":\"" + "x".repeat(b) + "\"}");
   }
 
   @Test
