@@ -1,3 +1,28 @@
+/*
+ * Translated from jq 1.8.2 (https://github.com/jqlang/jq): function_list, bind_bytecoded_builtins and
+ * gen_builtin_list in src/builtin.c, BINOPS in src/builtin.h, and the function list of src/libm.h.
+ *
+ * jq is copyright (C) 2012 Stephen Dolan
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 package io.github.subapavel.jqj.internal.parse;
 
 import java.util.HashMap;
@@ -57,18 +82,20 @@ final class NativeTable {
   private static final List<String> CLOSURE_LIST =
       List.of("empty/0", "not/0", "path/1", "last/1", "range/2", "builtins/0", "flatten/0", "flatten/1", "inputs/0");
 
-  private static final Map<String, Kind> TABLE = new HashMap<>();
-
-  static {
-    for (String signature : FUNCTION_LIST) {
-      TABLE.put(signature, Kind.C);
-    }
-    for (String signature : CLOSURE_LIST) {
-      TABLE.put(signature, Kind.CLOSURES);
-    }
-  }
+  private static final Map<String, Kind> TABLE = table();
 
   private NativeTable() {}
+
+  private static Map<String, Kind> table() {
+    Map<String, Kind> table = new HashMap<>();
+    for (String signature : FUNCTION_LIST) {
+      table.put(signature, Kind.C);
+    }
+    for (String signature : CLOSURE_LIST) {
+      table.put(signature, Kind.CLOSURES);
+    }
+    return Map.copyOf(table);
+  }
 
   /** The table's signatures, {@code name/arity}. */
   static Set<String> signatures() {
