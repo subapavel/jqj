@@ -154,6 +154,34 @@ class LongPathChainTest {
     assertThat(results(filter)).as("results of a fused run whose quiet read has no result").isEqualTo(List.of("[]"));
   }
 
+  /**
+   * jq-ref 1.8.2, observed 2026-11-13 with -nc -f: 7. The fused run comes after a step of the same chain, so it spans
+   * its own reads only.
+   */
+  @Test
+  void aFusedRunAfterAnIterateReadsEachResult() {
+    String filter = "[reduce range(0; " + FUSED + ") as $i (7; {a: .})] | .[]" + ".a".repeat(FUSED);
+    assertThat(results(filter)).as("results of %d reads after .[]", FUSED).isEqualTo(List.of("7"));
+  }
+
+  /**
+   * A field named by a string with an interpolation is a step whose key is bound around it (F-44), plain or quiet:
+   * jq-ref 1.8.2, observed 2026-11-13 with -nc, gives each result here.
+   */
+  @ParameterizedTest(name = "{0}")
+  @CsvSource(
+      delimiter = '|',
+      quoteCharacter = '\'',
+      value = {
+        "'{\"ab\":1} | .\"a\\(\"b\")\"' | 1",
+        "'{\"ab\":1} | .\"a\\(\"b\")\"?' | 1",
+        "'[1 | .\"a\\(\"b\")\"?]' | []",
+        "'try (1 | .\"a\\(\"b\")\") catch .' | '\"Cannot index number with string (\\\"ab\\\")\"'"
+      })
+  void aFieldNamedByAnInterpolationIsAStep(String filter, String result) {
+    assertThat(results(filter)).as("results of %s on null", filter).isEqualTo(List.of(result));
+  }
+
   /** jq-ref 1.8.2, observed 2026-11-13 with -nc -f: the second read's error, caught. */
   @Test
   void aPlainReadThatFailsRaisesFromTheFusedRun() {
