@@ -128,7 +128,13 @@ hasnt "the compile-mode oracle is not NOT_RUN" "NOT_RUN compile" "$tmp/out"
 export STUB_COMPILE_REPORT='x\tPASS\t\td1\n'
 check "ticket: a ratcheted compile-mode case that passes" "$(ticket 25 query-core base)" 0
 hasnt "the passing compile-mode oracle is not NOT_RUN" "NOT_RUN compile" "$tmp/out"
+# step 1 had the profile but wrote no compile report: the ticket gate requires it, so the listed id is missing
 unset STUB_COMPILE_REPORT
+rm -rf "$repo/oracle/target"
+check "ticket: the profile without a compile report fails the gate" "$(ticket 25 query-core base)" 1
+has "step 1 had the profile" "mvnw -B -Pbench,compile-oracle verify" "$STUB_CALLS"
+has "the compile-mode case missing from the report is named" "compile: x conservative is missing from the report" "$tmp/out"
+hasnt "no NOT_RUN compile in the ticket gate" "NOT_RUN compile" "$tmp/out"
 rm -rf "$repo/ratchet/oracle/compile.txt" "$repo/oracle/target"
 
 # step 3 record: the recordings changed since ref are verified (ADR-0020)
