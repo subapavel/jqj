@@ -81,9 +81,9 @@ import java.util.function.Supplier;
  * gen_slice_index}). A comma chain is lowered without recursion over its length: the parser's left-nested spine is
  * flattened by a loop and built again balanced, so its depth is about log2 of its length, with the same results and
  * ticks (F-32). A chain of postfix steps and a run of definitions are lowered by loops too (F-42, #70): a chain's
- * nodes are piped balanced past {@link #STEP_RUN} of them, and a run of more than {@link #STEP_RUN} steps of one result
- * or none is one step that calls them in turn ({@link StepRun}), so a chain's depth does not grow with its length
- * (F-44), with the same results and ticks.
+ * nodes are piped balanced past {@link #PIPE_CHAIN} of them, and a run of more than {@link #STEP_RUN} steps of one
+ * result or none is one step that calls them in turn ({@link StepRun}), so a chain's depth does not grow with its
+ * length (F-44), with the same results and ticks.
  *
  * <p>The Binder has bound every reference and thrown jq's binding errors, so each name found here has its declaration
  * in the environment ({@link Env}): a slot, a closure or a definition's body. A call of a definition lowers its body in
@@ -105,18 +105,20 @@ public final class Resolver {
   static final int EXPANSIONS = 512;
 
   /**
-   * ADR-0040 "IR depth" (F-44): the most levels of built IR a filter may have, the leaf counted ({@code [[.]]} has
-   * three); past it the filter is a Stub, as the 512th nested expansion is, since nested expansions would otherwise
-   * stack the IR, and the Resolver's recursion, as deep as the inline cap lets them. A level is counted for each Ast
-   * that builds a node of its own (all but a parenthesis, a run of definitions and a call), around its parts' levels;
-   * the nodes a call builds and those a construct builds around its parts are not counted, so the count is at most the
-   * IR's depth.
+   * ADR-0040 "IR depth" and "What counts" (F-44): the most levels of built IR a filter may have, the leaf counted
+   * ({@code [[.]]} has three); past it the filter is a Stub, as the 512th nested expansion is, since nested expansions
+   * and chains of computed keys would otherwise stack the IR, and the Resolver's, IrVerifier's and the Compiler's
+   * recursion on it, as deep as the inline cap lets them. The depth is the whole built IR's, as IrVerifier recurses on
+   * it ({@link #within}), so every node counts wherever the Resolver built it: in an Ast's lowering, as a value
+   * parameter's Bind around an expansion, as a chain's Bind of a computed key, or in a balanced Pipe or Comma tree. The
+   * lowering also stops when it is inside more levels than this ({@link #levels}), so that its own recursion ends
+   * before it builds the IR that would be measured too deep.
    */
   static final int MAX_IR_DEPTH = 512;
 
   /**
-   * What the lowering throws past {@link #MAX_IR_DEPTH}, at the deepest level: one instance, made with the class, with
-   * no message, cause or stack trace, so the throw allocates and loads nothing there; {@link #resolve(Program, List)}
+   * What the lowering and the measure throw past {@link #MAX_IR_DEPTH}: one instance, made with the class, with no
+   * message, cause or stack trace, so the throw allocates and loads nothing at depth; {@link #resolve(Program, List)}
    * turns it into the Stub where the compile has unwound (F-44).
    */
   private static final TooDeep TOO_DEEP = new TooDeep();
@@ -131,11 +133,18 @@ public final class Resolver {
   }
 
   /**
-   * The most nodes of a chain that stay a Pipe chain, and the longest run of steps of one result or none that stays
-   * steps of their own: the parser's nesting bound, so neither is deeper than the nesting the parser takes. More nodes
-   * are piped balanced, and a longer run is one {@link StepRun} (F-42, F-44).
+   * The longest run of steps of one result or none that stays steps of their own: the parser's nesting bound, so a
+   * run nests no more calls when it runs than the nesting the parser takes. A longer run is one {@link StepRun} (F-42,
+   * F-44).
    */
   static final int STEP_RUN = Parser.MAX_DEPTH;
+
+  /**
+   * The most nodes of a chain that stay a Pipe chain, as deep as they are many; more are piped balanced, about log2 of
+   * their number deep (F-44). An eighth of {@link #MAX_IR_DEPTH}, so a chain's own nesting leaves most of the bound
+   * to what it is inside: a Pipe chain of {@link #STEP_RUN} steps with arguments would be past the bound alone.
+   */
+  static final int PIPE_CHAIN = MAX_IR_DEPTH / 8;
 
   /** A key or bound that is passed as a Const argument, so it takes no slot and no Bind. */
   private static final int NO_SLOT = -1;
@@ -161,7 +170,10 @@ public final class Resolver {
   /** The nodes lowered inside expansions so far. */
   private int inlined;
 
-  /** The levels of built IR the lowering is inside ({@link #MAX_IR_DEPTH}). Every throw ends the compile, so none restores it. */
+  /**
+   * The levels of IR the lowering is inside ({@link #MAX_IR_DEPTH}): one for each Ast that builds a node of its own and
+   * one for each value parameter Bound around an expansion's body. Every throw ends the compile, so none restores it.
+   */
   private int levels;
 
   /**
@@ -242,7 +254,10 @@ public final class Resolver {
       resolver.env = new Env(host, resolver.slots++, null, resolver.env);
     }
     try {
-      return resolver.lower(program.main());
+      Node root = resolver.lower(program.main());
+      // The whole IR, measured once at the top of the stack (ADR-0040 "What counts").
+      within(root, MAX_IR_DEPTH);
+      return root;
     } catch (TooDeep e) {
       throw Stub.unbuilt("a filter of more than " + MAX_IR_DEPTH + " levels of IR");
     }
@@ -263,6 +278,53 @@ public final class Resolver {
         levels--;
         yield node;
       }
+    };
+  }
+
+  /**
+   * Throws {@link #TOO_DEEP} when a path from {@code node} to a leaf, as IrVerifier recurses on it, has more than
+   * {@code room} nodes: a leaf is one level, and an Intrinsic with arguments two. The walk stops there, so it is never
+   * more than {@code room} nodes deep.
+   */
+  private static void within(Node node, int room) {
+    if (room == 0) {
+      throw TOO_DEEP;
+    }
+    for (Node part : parts(node)) {
+      within(part, room - 1);
+    }
+  }
+
+  /** The nodes IrVerifier visits right below {@code node}: an Intrinsic's arguments too. */
+  private static List<Node> parts(Node node) {
+    // One arm per kind: javac compiles a case of two patterns to a second dispatch for a node that matches neither,
+    // a path no node can take (IrVerifier).
+    return switch (node) {
+      case Identity _ -> List.of();
+      case Const _ -> List.of();
+      case Var _ -> List.of();
+      case Break _ -> List.of();
+      case Intrinsic i -> i.args();
+      case Pipe p -> List.of(p.left(), p.right());
+      case Comma c -> List.of(c.left(), c.right());
+      case Collect c -> List.of(c.body());
+      case If i -> List.of(i.cond(), i.then(), i.otherwise());
+      case Alt a -> List.of(a.left(), a.right());
+      case Bind b -> List.of(b.value(), b.body());
+      case AltBind a -> {
+        List<Node> parts = new ArrayList<>();
+        parts.add(a.value());
+        for (Alternative alternative : a.alternatives()) {
+          parts.add(alternative.match());
+        }
+        parts.add(a.body());
+        yield parts;
+      }
+      case Try t -> List.of(t.body(), t.handler());
+      case Label l -> List.of(l.body());
+      case Reduce r -> List.of(r.init(), r.each());
+      case Foreach f -> List.of(f.init(), f.each());
+      case Advance a -> List.of(a.update());
     };
   }
 
@@ -363,6 +425,7 @@ public final class Resolver {
     List<Ast.Param> params = def.params();
     Node[] values = new Node[params.size()];
     int[] valueSlots = new int[params.size()];
+    int binds = 0;
     for (int i = 0; i < params.size(); i++) {
       Ast.Param p = params.get(i);
       Closure argument = argument(c.args().get(i));
@@ -370,12 +433,17 @@ public final class Resolver {
       if (p.value()) {
         values[i] = closure(argument);
         valueSlots[i] = slots++;
+        binds++;
       }
       inner = new Env(p, valueSlots[i], argument, inner);
     }
+    // Each value parameter's Bind is a level around the body, so the body's first node of its own, which every body
+    // builds, stops the lowering past MAX_IR_DEPTH as early as its levels do.
+    levels += binds;
     env = inner;
     Node body = lower(def.body());
     env = caller;
+    levels -= binds;
     for (int i = params.size() - 1; i >= 0; i--) {
       body = bind(values[i], valueSlots[i], body);
     }
@@ -501,12 +569,13 @@ public final class Resolver {
 
   /**
    * The IR of a chain, its steps added innermost first, so its depth does not grow with its length (F-44): its nodes
-   * piped, a Pipe chain while there are at most {@link #STEP_RUN} of them and balanced past that, as Pipe is
+   * piped, a Pipe chain while there are at most {@link #PIPE_CHAIN} of them and balanced past that, as Pipe is
    * associative; a run of more than {@link #STEP_RUN} steps of one result or none is one {@link StepRun}, which calls
    * them in turn; and a {@code ?} covers every link before it. A {@code ?} after another covers the first's Try too, so
    * only the last is built: {@code try (try X catch empty | S) catch empty} gives what {@code try (X | S) catch empty}
    * gives, as both end at X's first error or S's, and a Try charges nothing (TryOp). A step with computed keys binds
-   * them around the links so far and itself, which then are one node, so each such step nests one Bind deeper.
+   * them around the links so far and itself, which then are one node, so each such step nests one Bind deeper, and its
+   * depth counts toward {@link #MAX_IR_DEPTH} (F-44).
    */
   private static final class Links {
     private final FilterText text;
@@ -587,9 +656,9 @@ public final class Resolver {
     }
   }
 
-  /** {@code nodes} piped in order: a Pipe chain of at most {@link #STEP_RUN} of them, else balanced. */
+  /** {@code nodes} piped in order: a Pipe chain of at most {@link #PIPE_CHAIN} of them, else balanced. */
   private static Node pipes(List<Node> nodes) {
-    if (nodes.size() > STEP_RUN) {
+    if (nodes.size() > PIPE_CHAIN) {
       return pipes(nodes, 0, nodes.size());
     }
     Node node = nodes.getFirst();

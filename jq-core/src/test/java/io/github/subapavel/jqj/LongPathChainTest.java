@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -62,9 +63,9 @@ class LongPathChainTest {
   }
 
   /**
-   * F-44: a chain long enough to be fused or piped balanced ticks as the same chain cut in three, whose parts are short
-   * Pipe chains, the nested form: the fewest steps each runs under are equal, and more than {@code .} runs under on the
-   * same input. Each input is JSON text nesting 513 deep, read as a view, which charges the entries a step reads
+   * F-44: a chain long enough to be fused or piped balanced ticks as the same chain cut in pieces, which are short Pipe
+   * chains, the nested form: the fewest steps each runs under are equal, and more than {@code .} runs under on the same
+   * input. Each input is JSON text nesting 513 deep, read as a view, which charges the entries a step reads
    * (ADR-0034), so every piece of the chain ticks.
    */
   @ParameterizedTest(name = "{2}")
@@ -82,8 +83,9 @@ class LongPathChainTest {
   void aLongChainTicksAsTheNestedFormDoes(String open, String close, String step) {
     byte[] input = (open.repeat(FUSED) + "7" + close.repeat(FUSED)).getBytes(StandardCharsets.UTF_8);
     String chain = chain(step, FUSED);
-    // 256 + 256 + 1 pieces: no part has more than 512 steps, so none is fused or balanced.
-    String parts = "(" + chain(step, 256) + ") | (" + chain(step, 256) + ") | (" + chain(step, 1) + ")";
+    // Pieces of 30 steps, at most 60 nodes: none has more than the Resolver's PIPE_CHAIN of 64, so none is fused or
+    // balanced.
+    String parts = pieces(step, FUSED, 30);
     long whole = fewestSteps(chain, input);
     assertThat(whole).as("fewest steps of %s", Inlining.shown(chain)).isEqualTo(fewestSteps(parts, input));
     assertThat(whole).as("fewest steps of %s against .'s", Inlining.shown(chain)).isGreaterThan(fewestSteps(".", input));
@@ -92,6 +94,15 @@ class LongPathChainTest {
   /** {@code n} steps {@code step} on the input: after a leading dot unless the step starts with its own. */
   private static String chain(String step, int n) {
     return (step.startsWith(".") ? "" : ".") + step.repeat(n);
+  }
+
+  /** {@code n} steps {@code step} in parenthesised pieces of {@code per} steps, the last of the rest, piped. */
+  private static String pieces(String step, int n, int per) {
+    StringJoiner piped = new StringJoiner(" | ");
+    for (int done = 0; done < n; done += per) {
+      piped.add("(" + chain(step, Math.min(per, n - done)) + ")");
+    }
+    return piped.toString();
   }
 
   /** The fewest steps a run of {@code filter} on the JSON text {@code input} ends under, by bisection. */
@@ -179,6 +190,17 @@ class LongPathChainTest {
         "'try (1 | .\"a\\(\"b\")\") catch .' | '\"Cannot index number with string (\\\"ab\\\")\"'"
       })
   void aFieldNamedByAnInterpolationIsAStep(String filter, String result) {
+    assertThat(results(filter)).as("results of %s on null", filter).isEqualTo(List.of(result));
+  }
+
+  /**
+   * A quiet step after another, whose IR ResolverTest pins as one Try around both (F-44): jq-ref 1.8.2, observed
+   * 2026-11-13 with -nc, gives each result here. On 1 the quiet read has no result, so the read piped after it never
+   * runs.
+   */
+  @ParameterizedTest(name = "{0}")
+  @CsvSource(delimiter = '|', quoteCharacter = '\'', value = {"'.[0]??[0]??' | null", "'[.[0]??[.a]??]' | []", "'[1 | .[0]?? | .a]' | []"})
+  void aQuietStepAfterAnotherRunsAsJqDoes(String filter, String result) {
     assertThat(results(filter)).as("results of %s on null", filter).isEqualTo(List.of(result));
   }
 

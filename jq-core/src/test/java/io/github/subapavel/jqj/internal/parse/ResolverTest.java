@@ -413,19 +413,21 @@ class ResolverTest {
   }
 
   /**
-   * F-44: a chain of {@link Resolver#STEP_RUN} nodes stays a Pipe chain, as deep as it is long; one more is piped
+   * F-44: a chain of {@link Resolver#PIPE_CHAIN} nodes stays a Pipe chain, as deep as it is long; one more is piped
    * balanced, about log2 of its length deep. Each iterate is a node of its own, and so is an index by a variable.
    */
   @Test
-  void aChainOfMoreNodesThanTheParseDepthIsPipedBalanced() {
-    assertThat(depth(ir("." + "[]".repeat(Resolver.STEP_RUN)))).as("depth of %d iterates", Resolver.STEP_RUN).isEqualTo(Resolver.STEP_RUN);
-    assertThat(depth(ir("." + "[]".repeat(Resolver.STEP_RUN + 1)))).as("depth of %d iterates", Resolver.STEP_RUN + 1).isEqualTo(11);
+  void aChainOfMoreNodesThanThePipeChainIsPipedBalanced() {
+    assertThat(Resolver.PIPE_CHAIN).as("the most nodes kept a Pipe chain, an eighth of the IR depth bound").isEqualTo(64);
+    assertThat(depth(ir("." + "[]".repeat(Resolver.PIPE_CHAIN)))).as("depth of %d iterates", Resolver.PIPE_CHAIN).isEqualTo(Resolver.PIPE_CHAIN);
+    assertThat(depth(ir("." + "[]".repeat(Resolver.PIPE_CHAIN + 1)))).as("depth of %d iterates", Resolver.PIPE_CHAIN + 1).isEqualTo(8);
+    assertThat(depth(ir("." + "[]".repeat(513)))).as("depth of 513 iterates").isEqualTo(11);
     assertThat(depth(ir("1 as $k | ." + "[$k]".repeat(100_000)))).as("depth of 10⁵ indexes by a variable").isEqualTo(19);
   }
 
   /**
-   * F-44: a {@code ?} after another covers the first's Try, so only the last Try is built, around both; jq-ref 1.8.2,
-   * observed 2026-11-13 with -nc: {@code .[0]??[0]??} gives null and {@code [1 | .[0]?? | .a]} [].
+   * F-44: a {@code ?} after another covers the first's Try, so only the last Try is built, around both;
+   * LongPathChainTest runs both filters, and {@code [1 | .[0]?? | .a]}, against jq-ref's results.
    */
   @Test
   void aQuietStepAfterAnotherBuildsOneTry() {
