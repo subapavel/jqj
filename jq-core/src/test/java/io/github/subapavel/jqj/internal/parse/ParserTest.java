@@ -3,17 +3,16 @@ package io.github.subapavel.jqj.internal.parse;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.ir;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.notGiven;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.parsesToAStub;
+import static io.github.subapavel.jqj.internal.parse.ParseAssertions.shape;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.syntaxError;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.subapavel.jqj.JqEngine;
-import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
 import io.github.subapavel.jqj.query.ir.Intrinsic;
-import io.github.subapavel.jqj.query.ir.Node;
-import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
+import io.github.subapavel.jqj.query.run.Fn0;
 import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqValue;
@@ -38,24 +37,6 @@ class ParserTest {
     assertThat(ir(".")).as("IR of '.'").isEqualTo(new Identity(new Source(0, 1)));
   }
 
-  /**
-   * The tree as text: an Identity is {@code .[s,e)}, a Const its value's JSON text and {@code [s,e)} (#61), an
-   * Intrinsic its Operation's name and {@code [s,e)}, a Pipe {@code (left | right)}. A Pipe's own Source is left out:
-   * the design does not fix it.
-   */
-  private static String shape(Node node) {
-    return switch (node) {
-      case Identity i -> "." + chars(i.source());
-      case Const c -> ((JqValue) c.value()).toJson() + chars(c.source());
-      case Intrinsic f -> f.op().name() + chars(f.source());
-      case Pipe p -> "(" + shape(p.left()) + " | " + shape(p.right()) + ")";
-    };
-  }
-
-  private static String chars(Source s) {
-    return "[" + s.start() + "," + s.end() + ")";
-  }
-
   @Test
   void keywordsAfterADotAreNames() {
     // jq-ref 1.8.2, recorded in diff/field.rec: .and on {"and":1} -> 1, .if on {"if":2} -> 2, .__loc__ on
@@ -78,7 +59,7 @@ class ParserTest {
                 .root();
     for (Map.Entry<String, String> e : Map.of(".and", "1", ".if", "2", ".__loc__", "3", "._1", "4", ".def", "5").entrySet()) {
       Intrinsic field = (Intrinsic) ir(e.getKey());
-      JqValue result = (JqValue) field.op().fn().apply(new RunState(), all);
+      JqValue result = (JqValue) ((Fn0) field.op().form()).apply(new RunState(), all);
       assertThat(result.toJson()).as("%s applied to the object", e.getKey()).isEqualTo(e.getValue());
     }
   }
@@ -115,11 +96,11 @@ class ParserTest {
 
   @Test
   void unbuiltTokensAreStubs() {
-    // Each is jq syntax the resolver does not lower in #62 (jq-ref 1.8.2, observed 2026-11-11 on {"a":...}: .a? .[0]
-    // .. $__loc__ ".a, .b" ".a |= .b" run; observed 2026-11-12 on {"a":[5]}: .["a"], .[] and .a[0] give [5], [5] and
-    // 5, rc 0 each), so each parses and resolves to the Stub. The inputs jq rejects (and, ",", .é, .a.é, #c) moved to
-    // unbuiltTokensThatJqRejectsAreErrors when #62 built the syntax errors; none was dropped.
-    for (String text : List.of(".a?", ".[0]", ".[\"a\"]", "..", ".[]", "$__loc__", ".a and .b", ".a, .b", ".a[0]", ".a |= .b")) {
+    // Each is jq syntax the resolver does not lower yet (jq-ref 1.8.2, observed 2026-11-11 on {"a":...}: .. $__loc__
+    // ".a |= .b" run), so each parses and resolves to the Stub. The inputs jq rejects (and, ",", .é, .a.é, #c) moved to
+    // unbuiltTokensThatJqRejectsAreErrors when #62 built the syntax errors; #63 lowers .a?, .[0], .["a"], .[], ".a, .b"
+    // and .a[0], whose IR ResolverTest.navigationAndCommaLowerToTheirIr asserts. None was dropped.
+    for (String text : List.of("..", "$__loc__", ".a and .b", ".a |= .b")) {
       parsesToAStub(text);
     }
     // Witness: the built prefixes resolve to IR.

@@ -2,15 +2,11 @@ package io.github.subapavel.jqj.internal.parse;
 
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.ir;
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.parsesToAStub;
+import static io.github.subapavel.jqj.internal.parse.ParseAssertions.shape;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.Identity;
-import io.github.subapavel.jqj.query.ir.Intrinsic;
-import io.github.subapavel.jqj.query.ir.Node;
-import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
-import io.github.subapavel.jqj.value.JqValue;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -63,8 +59,7 @@ class ResolverTest {
           "[5,6] [1]",
           "if true then 1 else 2 end + 1",
           "reduce (1,2) as $x (0; . + $x) * 2",
-          "error(\"x\")? // 1",
-          ".a[0].b");
+          "error(\"x\")? // 1");
 
   /**
    * One filter per other construct of the grammar. jq-ref 1.8.2, observed 2026-11-12 (.logs/62-jqref-accept.log of
@@ -74,24 +69,11 @@ class ResolverTest {
    */
   private static final List<String> GRAMMAR =
       List.of(
-          ".a?",
-          ".[0]",
-          ".[\"a\"]",
           "..",
-          ".[]",
-          ".[1:2], .[:1], .[1:]",
-          ".a[1:]?",
-          ".[]?.a",
-          ".a.[0]",
-          ".a?.b",
-          ".\"a\"?",
-          ".[.a]",
           "..?",
           "$__loc__",
           ".a and .b",
-          ".a, .b",
           ".a // .b",
-          ".a[0]",
           ".a |= .b",
           ".a |= 1 | .b += 2 | .d *= 2 | .e /= 1 | .g //= 3 | .h = 4",
           ".f %= 1 | .c -= 1",
@@ -186,19 +168,40 @@ class ResolverTest {
   }
 
   /**
-   * The tree as text: an Identity is {@code .[s,e)}, a Const its value's JSON text and {@code [s,e)}, an Intrinsic
-   * its Operation's name and {@code [s,e)}, a Pipe {@code (left | right)} (as in ParserTest).
+   * The entries #63 lowers left the Stub lists above (their Stub ended, ADR-0032; no input was dropped) and are
+   * asserted here with the key-outer and bound orders of ADR-0034, each recorded on jq-ref 1.8.2 (diff/index.rec,
+   * iterate.rec, slice.rec, comma.rec; precedence/postfix-chain; ParserTest's and ParserEdgesTest's entries). An
+   * operation is named by its jq step with {@code ?} for the quiet variant: {@code .a}, {@code ."a"}, {@code .[k]}
+   * (index), {@code .[a:b]} (slice, a missing bound a Const null) and {@code .[]} (iterate). A constant key or bound is
+   * a Const argument; a computed one is a Bind around the target (the key outer; a outside b outside t). A navigation
+   * {@code ?} is the quiet variant, never a Try.
    */
-  private static String shape(Node node) {
-    return switch (node) {
-      case Identity i -> "." + chars(i.source());
-      case Const c -> ((JqValue) c.value()).toJson() + chars(c.source());
-      case Intrinsic f -> f.op().name() + chars(f.source());
-      case Pipe p -> "(" + shape(p.left()) + " | " + shape(p.right()) + ")";
-    };
-  }
-
-  private static String chars(Source s) {
-    return "[" + s.start() + "," + s.end() + ")";
+  @Test
+  void navigationAndCommaLowerToTheirIr() {
+    Map<String, String> shapes =
+        Map.ofEntries(
+            Map.entry(".a?", ".a?[0,3)"),
+            Map.entry(".\"a\"?", ".\"a\"?[0,5)"),
+            Map.entry(".a?.b", "(.a?[0,3) | .b[3,5))"),
+            Map.entry(".a.\"b\"?", "(.a[0,2) | .\"b\"?[2,7))"),
+            Map.entry(".[0]", ".[k](0)[0,4)"),
+            Map.entry(".[\"a\"]", ".[k](\"a\")[0,6)"),
+            Map.entry(".a[0]", "(.a[0,2) | .[k](0)[2,5))"),
+            Map.entry(".a.[0]", "(.a[0,2) | .[k](0)[2,6))"),
+            Map.entry(".a[0].b", "((.a[0,2) | .[k](0)[2,5)) | .b[5,7))"),
+            Map.entry(".[]", ".[][0,3)"),
+            Map.entry(".[]?.a", "(.[]?[0,4) | .a[4,6))"),
+            Map.entry(".[1:2], .[:1], .[1:]", "((.[a:b](1; 2)[0,6), .[a:b](null; 1)[8,13)), .[a:b](1; null)[15,20))"),
+            Map.entry(".a[1:]?", "(.a[0,2) | .[a:b]?(1; null)[2,7))"),
+            Map.entry(".a, .b", "(.a[0,2), .b[4,6))"),
+            Map.entry(".[.a]", "(.a[2,4) as $0 | .[k]($0)[0,5))"),
+            Map.entry(".a[.b]", "(.b[3,5) as $0 | (.a[0,2) | .[k]($0)[2,6)))"),
+            Map.entry(".[.b]?", "(.b[2,4) as $0 | .[k]?($0)[0,6))"),
+            Map.entry(".[.a:.b]", "(.a[2,4) as $0 | (.b[5,7) as $1 | .[a:b]($0; $1)[0,8)))"),
+            Map.entry(".a[.s:.e]", "(.s[3,5) as $0 | (.e[6,8) as $1 | (.a[0,2) | .[a:b]($0; $1)[2,9))))"),
+            Map.entry(".[(0,1):(2,3)]", "((0[3,4), 1[5,6)) as $0 | ((2[9,10), 3[11,12)) as $1 | .[a:b]($0; $1)[0,14)))"));
+    for (Map.Entry<String, String> e : shapes.entrySet()) {
+      assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
+    }
   }
 }

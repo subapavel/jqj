@@ -56,11 +56,11 @@ class ApiJqjTest {
   void compilingReadingAndRereadingEndWithTheStubsAsJqjExceptions() {
     ApiJqj jqj = new ApiJqj();
 
-    // #33 built compile("."), and #34 compile(".a"), so this line now compiles .[0], a construct that stays a Stub
-    // until spec 2 (#33 design C12, #34 design C4). #36 built doubleValue(), so read and reread of "1" no longer end
-    // in a Stub; they now read the malformed document "[1,", whose JqSyntaxException carries the Stub mark until
-    // spec 5 (ADR-0024's malformed-input Stub; the Stub ending approved for #36 under #33's C12 rule).
-    assertThatThrownBy(() -> jqj.compile(".[0]")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
+    // #33 built compile("."), and #34 compile(".a"), and #63 builds .[0], so this line now compiles .., a construct
+    // that stays a Stub after #63 (#33 design C12, #34 design C4). #36 built doubleValue(), so read and reread of "1"
+    // no longer end in a Stub; they now read the malformed document "[1,", whose JqSyntaxException carries the Stub
+    // mark until spec 5 (ADR-0024's malformed-input Stub; the Stub ending approved for #36 under #33's C12 rule).
+    assertThatThrownBy(() -> jqj.compile("..")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
     assertThatThrownBy(() -> jqj.read("[1,")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
     assertThatThrownBy(() -> jqj.reread("[1,")).isInstanceOfSatisfying(JqjException.class, e -> assertThat(e.stub()).isTrue());
   }
@@ -68,20 +68,21 @@ class ApiJqjTest {
   @Test
   void stubConstructScoresFailThroughTheApi() {
     // #33 acceptance: "A Stub construct such as 1 throws JqCompileException at the API, and the jqtest runner scores
-    // it FAIL" (ADR-0024, F-20: before any other verdict rule). #61 built the literal 1, so the Stub construct is now
-    // .[0], a Stub until #63 (jq-ref 1.8.2, observed 2026-11-12: printf '[1]' | jq-ref -c '.[0]' -> 1, rc 0).
+    // it FAIL" (ADR-0024, F-20: before any other verdict rule). #61 built the literal 1 and #63 builds .[0], so the
+    // Stub construct is now .., a Stub after #63 (jq-ref 1.8.2, recorded 2026-11-12 as diff/basics.rec's
+    // basics/recurse-of-array: -c .. on [1] -> [1] then 1, rc 0).
     ApiJqj jqj = new ApiJqj();
-    assertThatThrownBy(() -> jqj.compile(".[0]"))
+    assertThatThrownBy(() -> jqj.compile(".."))
         .isInstanceOfSatisfying(
             JqjException.class,
             e -> {
-              assertThat(e.kind()).as("kind of compile(\".[0]\")").isEqualTo(JqjException.Kind.COMPILE);
-              assertThat(e.stub()).as("compile(\".[0]\") carries the Stub mark").isTrue();
+              assertThat(e.kind()).as("kind of compile(\"..\")").isEqualTo(JqjException.Kind.COMPILE);
+              assertThat(e.stub()).as("compile(\"..\") carries the Stub mark").isTrue();
             });
     JqTestRunner runner = new JqTestRunner(jqj);
-    Verdict index = runner.run(JqTestFile.parse("api.test", ".[0]\n[1]\n1\n").getFirst());
-    assertThat(index.kind()).as("verdict of the case .[0]").isEqualTo(Verdict.Kind.FAIL);
-    assertThat(index.detail()).as("detail of the case .[0]").startsWith("jqj ended with a Stub");
+    Verdict recurse = runner.run(JqTestFile.parse("api.test", "..\n[1]\n[1]\n1\n").getFirst());
+    assertThat(recurse.kind()).as("verdict of the case ..").isEqualTo(Verdict.Kind.FAIL);
+    assertThat(recurse.detail()).as("detail of the case ..").startsWith("jqj ended with a Stub");
 
     // Witness: through the same API a built case passes, so the FAIL above is the Stub's. jq-ref 1.8.2, observed
     // 2026-11-11: printf -- '[null,true,{"a":"b"}]' | jq-ref -c . -> [null,true,{"a":"b"}] (rc 0).

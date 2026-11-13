@@ -3,6 +3,7 @@ package io.github.subapavel.jqj.internal.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import io.github.subapavel.jqj.internal.value.ArrayView;
+import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.CanonicalForm;
 import io.github.subapavel.jqj.internal.value.Document;
@@ -25,8 +26,8 @@ import java.util.Arrays;
  * <p>null, the booleans and tag-5 strings are their bytes. A number is copied when it is CANONICAL (ADR-0012) and is
  * written in its canonical form otherwise (#36); a filter's literal number is its canonical form (#61); a tag-6 string, a tag-6 key and a built string are re-escaped as
  * jq's {@code jvp_dump_string} (#35). An object prints each key at its first position with its
- * last value (ADR-0002). A target's exception, or a document found stale after a drain, in the middle of a value
- * leaves what was drained before it written.
+ * last value (ADR-0002). A built array prints as a document's array does (#63). A target's exception, or a document
+ * found stale after a drain, in the middle of a value leaves what was drained before it written.
  *
  * <p>Pretty (#37) changes only the layout of containers: each entry of a non-empty container starts on a new line,
  * indented by two spaces a level, a key is followed by {@code ": "}, and the closing bracket is on its own line at the
@@ -63,13 +64,19 @@ public final class Printer implements CanonicalForm.Out {
   /** Whether the value being printed is laid out as jq's default pretty output; false for compact. */
   private boolean pretty;
 
+  /** The levels of the built arrays around the value being printed: a document's value indents below them. */
+  private int base;
+
   /** Two slots per open container: its tape index, then the index of its next entry to print. */
   private int[] stack = new int[32];
 
   private int pos;
   private Target target;
 
-  /** The document being printed, checked again after a drain in the middle of a value; null for a built value. */
+  /**
+   * The document being printed, checked again after a drain in the middle of a value; null for a built value until
+   * one of its elements is a view, then that view's document.
+   */
   private Document doc;
 
   /** Prints {@code v}, pretty or compact, and one LF, then drains everything into {@code target} (ADR-0027). */
@@ -80,6 +87,14 @@ public final class Printer implements CanonicalForm.Out {
     this.target = target;
     // A value that ended in a target's exception or a stale document may have left bytes behind.
     pos = 0;
+    base = 0;
+    element(v);
+    put('\n');
+    drain();
+  }
+
+  /** Prints {@code v} at {@link #base} levels. */
+  private void element(JqValue v) {
     switch (v) {
       case JqNull _ -> put(NULL);
       case JqBool b -> put(b.value() ? TRUE : FALSE);
@@ -88,10 +103,31 @@ public final class Printer implements CanonicalForm.Out {
       case StringView s -> value(s.doc(), s.index());
       case BuiltString s -> built(s);
       case ArrayView a -> value(a.doc(), a.index());
+      case BuiltArray a -> array(a);
       case ObjectView o -> value(o.doc(), o.index());
     }
-    put('\n');
-    drain();
+  }
+
+  /**
+   * A built array: its elements one level below {@link #base}, laid out as {@link #value} lays out a document's array.
+   * An element is a view or a built value; a slice's never holds a built array, so this recursion is one level deep.
+   */
+  private void array(BuiltArray a) {
+    put('[');
+    int n = a.length();
+    base++;
+    for (int i = 0; i < n; i++) {
+      if (i > 0) {
+        put(',');
+      }
+      newline(0);
+      element(a.get(i));
+    }
+    base--;
+    if (n > 0) {
+      newline(0);
+    }
+    put(']');
   }
 
   /**
@@ -116,6 +152,52 @@ public final class Printer implements CanonicalForm.Out {
     printer.built(s);
     printer.drain();
     return text.toString(UTF_8);
+  }
+
+  /**
+   * The compact text of a built array, its {@code toJson()}.
+   *
+   * @throws io.github.subapavel.jqj.JqTermination with cause {@code STALE_VIEW} when an element's document is dropped
+   */
+  public static String json(BuiltArray a) {
+    ByteArrayOutputStream text = new ByteArrayOutputStream();
+    Printer printer = new Printer();
+    printer.target = (buffer, length) -> text.write(buffer, 0, length);
+    printer.array(a);
+    printer.drain();
+    return text.toString(UTF_8);
+  }
+
+  /**
+   * The first {@code n} bytes of {@code v}'s compact text, or all of it when it is shorter: what an error shows of a
+   * value (ErrorDump). It prints no more than the first drain, a buffer at most, so a long value costs no more.
+   */
+  public static byte[] head(JqValue v, int n) {
+    byte[][] first = new byte[1][];
+    try {
+      new Printer()
+          .line(
+              v,
+              false,
+              (buffer, length) -> {
+                // The last drain ends with the LF; a full one is CAPACITY bytes, longer than any head.
+                first[0] = Arrays.copyOf(buffer, Math.min(n, length - 1));
+                throw Cut.CUT;
+              });
+    } catch (Cut _) {
+      // The head is in first[0].
+    }
+    return first[0];
+  }
+
+  /** Ends {@link #head}'s print at its first drain; it has no stack trace, so it costs nothing to throw. */
+  private static final class Cut extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+    private static final Cut CUT = new Cut();
+
+    private Cut() {
+      super(null, null, false, false);
+    }
   }
 
   /** The byte length of the scratch this printer keeps between values (#35 Open 3). */
@@ -305,13 +387,13 @@ public final class Printer implements CanonicalForm.Out {
     put(bracket);
   }
 
-  /** Pretty only: an LF and {@code levels} indents. Compact output has neither. */
+  /** Pretty only: an LF and {@code levels} indents below {@link #base}. Compact output has neither. */
   private void newline(int levels) {
     if (!pretty) {
       return;
     }
     put('\n');
-    for (int n = levels * INDENT; n > 0; n -= SPACES.length) {
+    for (int n = (base + levels) * INDENT; n > 0; n -= SPACES.length) {
       put(SPACES, 0, Math.min(n, SPACES.length));
     }
   }
@@ -346,9 +428,9 @@ public final class Printer implements CanonicalForm.Out {
 
   /**
    * Drains a full buffer in the middle of a value, then checks the document again when the value has one: the target
-   * is host code and may have read into the same Workspace (ADR-0027). Only a document's value, a built string or a
-   * filter's literal number fills the buffer: null and a boolean are at most five bytes and start in an empty one. A
-   * built string and a literal number have no document.
+   * is host code and may have read into the same Workspace (ADR-0027). Only a document's value, a built string, a
+   * built array or a filter's literal number fills the buffer: null and a boolean alone are at most five bytes and
+   * start in an empty one. A built string and a literal number have no document; a built array has its views'.
    */
   private void drainFull() {
     drain();

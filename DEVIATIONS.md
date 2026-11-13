@@ -182,3 +182,14 @@ ParserEdgesTest pins jqj's blocks for each example.
 Reason: these flags describe the program, not a filter's result; jqj is not jq. jq's rc-2 usage
 lines (`jq: Unknown option …`, `Use jq --help for help with command-line options,`) stay
 byte-identical. shtest's cases for these flags become deviation cases.
+
+## Long comma chains (ADR-0034, issue #63)
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| `depth/comma-10922` (`deviation long-comma-chains`) | `1,1,…,1`, 10 922 commas, on `null` | rc 3, `jq: error: function compiled to 65536 bytes which is too long` | the 10 923 ones, rc 0 |
+
+jq-ref compiles 10 921 commas (`depth/comma-10921`, matched) and rejects one more with its own bytecode limit: a
+function's code must fit 65 536 bytes. jqj compiles to an IR and an interpreter tree with no such limit, and a long
+chain is bounded at run time by the step budget instead (one tick per right branch, F-32; jq-core
+CommaChainTest pins chains of 10⁴ and 10⁵).

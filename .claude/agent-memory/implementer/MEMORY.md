@@ -125,3 +125,7 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#81) The java launcher's and surefire's main threads are 1 MiB here (`ThreadStackSize=1024`); warm JIT frames are larger than `-Xint` ones (512 KiB: 269 parens warm, 418 interpreted). Measure stack bounds warm.
 - (#81) A single argv over 128 KiB fails with E2BIG; probe long filters through `JqEngine`.
 - (#81) A merge commit needs `Signed-off-by` (hook): after `merge -F`, commit with `-s` or include the line.
+- (#63) jq 1.8.2 `jv_dump_string_trunc`, measured: strings keep 25 bytes + `..."`, arrays and objects 25 + `...]`/`...}`, numbers 26 + `...`.
+- (#63) `-Dchecks.skip=true` skips the root word check for intermediate builds; `-pl query-core` alone skips the root check-core-neutral execution, so run the full verify before hand-back.
+- (#63) Required oracle cases with NaN on stdin cannot pass in 2a (lenient tokens are a reader Stub until spec 5); kill NaN guards with host-built inputs instead.
+- (#63) Class-C implementers exceed 200 turns: commit green work early.
