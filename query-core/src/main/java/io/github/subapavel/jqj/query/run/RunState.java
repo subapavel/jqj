@@ -67,11 +67,14 @@ public final class RunState {
   /** The bytes charged since the last begin. */
   private long written;
 
-  /** The last label token handed out since the last begin: the tokens of a run count from 1 (ADR-0039). */
-  private int labels;
+  /**
+   * The last label token handed out since the last begin: the tokens of a run count from 1 (ADR-0039). A long, so no
+   * run reaches its wrap and a token is never 0 or one handed out before.
+   */
+  private long labels;
 
   /** The token a Break marked and its Label has not taken back yet, or 0 for none: a false then is a stop. */
-  private int breakTo;
+  private long breakTo;
 
   /** The monotonic clock in nanoseconds that the deadline reads: {@link System#nanoTime()} outside the tests. */
   private final LongSupplier clock;
@@ -221,15 +224,23 @@ public final class RunState {
   }
 
   /** A new Label activation's token (ADR-0039): the next number of the run, from 1 after each {@link #begin}. */
-  public int label() {
+  public long label() {
     return ++labels;
+  }
+
+  /**
+   * For tests only: the next {@link #label} token is {@code last + 1}, so a test reaches the tokens past 2^32
+   * activations without running them. No engine code calls it.
+   */
+  void labelsAfter(long last) {
+    labels = last;
   }
 
   /**
    * A Break to the activation of {@code token} (ADR-0008, ADR-0039): marks it and returns false, which every node
    * passes on until the Label of that token takes it back with {@link #caught}.
    */
-  public boolean breakTo(int token) {
+  public boolean breakTo(long token) {
     breakTo = token;
     return false;
   }
@@ -239,7 +250,7 @@ public final class RunState {
    * Label's run goes on as if the body ran out. Otherwise the false is a stop or a Break to an outer Label, which the
    * Label passes on.
    */
-  public boolean caught(int token) {
+  public boolean caught(long token) {
     if (breakTo != token) {
       return false;
     }

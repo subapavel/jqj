@@ -19,7 +19,7 @@ public final class LabelOp extends Op {
 
   @Override
   public boolean run(RunState state, Object[] slots, Object in, Sink out) {
-    int token = state.label();
+    long token = state.label();
     slots[slot] = token;
     return body.run(state, slots, in, out) || state.caught(token);
   }
