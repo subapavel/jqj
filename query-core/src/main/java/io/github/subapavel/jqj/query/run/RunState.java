@@ -5,9 +5,9 @@ import java.util.function.LongSupplier;
 
 /**
  * The budgets of one evaluation (ADR-0030, ADR-0008, ADR-0035): its fuel, the step budget, the deadline and the
- * bytes-built and bytes-written counts, in a phase that is idle, primed or running; and its label tokens and break
- * target (ADR-0039). The engine's Workspace owns one and hands it to each run, so it
- * is never shared between two running evaluations; it is not thread-safe.
+ * bytes-built and bytes-written counts, in a phase that is idle, primed or running; its label tokens and break
+ * target (ADR-0039); and a reused scratch of ints (ADR-0044). The engine's Workspace owns one and hands it to each
+ * run, so it is never shared between two running evaluations; it is not thread-safe.
  *
  * <p>A main read primes it: the run that begins next keeps the ticks counted since, less those the writer charged
  * through {@link #tickWritten} outside a run, so a large document counts against the run that consumes it and a print
@@ -78,6 +78,9 @@ public final class RunState {
 
   /** The monotonic clock in nanoseconds that the deadline reads: {@link System#nanoTime()} outside the tests. */
   private final LongSupplier clock;
+
+  /** {@link #ints}'s scratch: it grows to the largest length asked and lives as long as this run state. */
+  private int[] ints = {};
 
   /** An idle run state: no run, no tick, every budget unlimited. */
   public RunState() {
@@ -256,6 +259,19 @@ public final class RunState {
     }
     breakTo = 0;
     return true;
+  }
+
+  /**
+   * A reused scratch of at least {@code n} ints for one operation's positions within one call (ADR-0030 as amended by
+   * ADR-0044): the same array until a longer one is asked for, its contents whatever the last caller left. It holds no
+   * value and is never charged to bytes built; a caller asks for no more than it bounds itself to, and does not keep it
+   * past its call.
+   */
+  public int[] ints(int n) {
+    if (ints.length < n) {
+      ints = new int[n];
+    }
+    return ints;
   }
 
   /** The bytes built since the last begin (ADR-0035): each charge {@link #chargeBuilt} counted, none it refused. */
