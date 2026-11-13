@@ -15,15 +15,19 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The bytes-built budget at the public API (ADR-0035, ADR-0017 amendment, #64). The builder charges before it
- * allocates: an array element 8 B, an object entry 16 B, and a fixed {@code CONTAINER} charge per built container whose
- * value #64 measures with {@code -prof gc} (F-39). That value is not known here, so no test pins an absolute limit:
- * each finds a construction's boundary, the least limit under which its run completes, by bisection over fresh engines
- * (as {@code StepBudgetTest.stepBudgetCutsExactly} cuts at its exact count), checks the run just under it ends with
- * {@code JqTermination(BUDGET, BYTES_BUILT)}, exit code 5 and "Bytes-built budget exceeded", and then compares the
- * boundaries of constructions whose charges differ by a known number of elements or entries. Every input is a
- * document, read on another engine's Workspace, so its views are not built values and the read charges nothing. The
- * expected results are jq-ref 1.8.2's, observed 2026-11-12 ({@code [.[]]}, {@code [[.[]]]}, {@code .[1:]} and
- * {@code .[2:]} on [1,2,3]; the objects on {"a":1,"b":2,"c":3}).
+ * allocates: an array element 8 B, an object entry 16 B, and a fixed {@code CONTAINER} charge per built container,
+ * 64 B, the largest empty container #64 measured with {@code -prof gc} (F-39, bench/RESULTS.md "Fixed charges of bytes
+ * built", 2026-11-13). So a known value has a known charge: {@code [.[]]} on [1,2,3] is 64 + 3 x 8 = 88 B and
+ * {@code {a:.a}} 64 + 16 = 80 B, and each such pin is an adjacent pair, the run completes under N and ends under N - 1
+ * with {@code JqTermination(BUDGET, BYTES_BUILT)}, exit code 5 and "Bytes-built budget exceeded". The other tests find a
+ * construction's boundary, the least limit under which its run completes, by bisection over fresh engines (as
+ * {@code StepBudgetTest.stepBudgetCutsExactly} cuts at its exact count), and compare the boundaries of constructions
+ * whose charges differ by a known number of elements or entries. Every input is a document, read on another engine's
+ * Workspace, so its views are not built values and the read charges nothing. The expected results are jq-ref 1.8.2's,
+ * observed 2026-11-12 ({@code [.[]]}, {@code [[.[]]]}, {@code .[1:]} and {@code .[2:]} on [1,2,3]; the objects on
+ * {"a":1,"b":2,"c":3}) and 2026-11-13 ({@code [.[]] | .[1:]} and {@code [.[]] | .[2:]} on [1,2,3] give [2,3] and [3];
+ * {@code {(.k):.a}}, {@code {(.k):.a,(.l):.b}} and {@code {(.k):.a,(.l):.b,(.m):.c}} on
+ * {"k":"x","l":"y","m":"z","a":1,"b":2,"c":3} give {"x":1}, {"x":1,"y":2} and {"x":1,"y":2,"z":3}).
  */
 class BytesBuiltBudgetTest {
   /** Far above any construction here: every boundary search starts from a limit that completes. */
@@ -36,8 +40,7 @@ class BytesBuiltBudgetTest {
   void aConstructionOverTheLimitEndsWithBytesBuilt() {
     JqValue input = document("[1,2,3]");
     long boundary = boundary("[.[]]", input);
-    // The container's fixed charge is above zero, so three elements cost more than their 24 B.
-    assertThat(boundary).as("boundary of [.[]] on [1,2,3]: CONTAINER + 3 x 8 with CONTAINER > 0").isGreaterThan(24);
+    assertThat(boundary).as("boundary of [.[]] on [1,2,3]: CONTAINER 64 + 3 x 8").isEqualTo(88);
     assertThat(results("[.[]]", input, boundary)).as("results of [.[]] at its boundary").containsExactly("[1,2,3]");
 
     JqEngine under = bytesBuilt(boundary - 1);
@@ -47,6 +50,41 @@ class BytesBuiltBudgetTest {
     assertThat(none.values).as("results of [.[]] one byte under its boundary").isEmpty();
     // The Workspace is free after the termination (ADR-0030): the next run on it with room to spare completes.
     assertThat(bytesBuilt(boundary).compile("[.[]]").run(input, NONE, new Results(), workspace)).as("a later run on the same Workspace").isTrue();
+  }
+
+  /**
+   * The charge of a known value (#64's acceptance): CONTAINER is 64 B (bench/RESULTS.md, 2026-11-13), so the collected
+   * {@code [.[]]} on [1,2,3] costs 64 + 3 x 8 = 88 B and the shape site's {@code {a:.a}} 64 + 16 = 80 B; each completes
+   * under its charge and ends one byte under it.
+   */
+  @Test
+  void theMeasuredChargesPinAKnownValue() {
+    assertCut("[.[]]", document("[1,2,3]"), 88, "[1,2,3]");
+    assertCut("{a:.a}", document("{\"a\":1,\"b\":2,\"c\":3}"), 80, "{\"a\":1}");
+  }
+
+  /**
+   * A growable object, a site with a computed key, charges a CONTAINER and an entry per key and value pair it is given
+   * (ADR-0035, BuildObject): one pair 64 + 16 = 80 B, as the shape site of one key, two pairs 96 B and three 112 B.
+   */
+  @Test
+  void aGrowableObjectChargesAContainerAndAnEntryPerPair() {
+    JqValue keys = document("{\"k\":\"x\",\"l\":\"y\",\"m\":\"z\",\"a\":1,\"b\":2,\"c\":3}");
+    assertCut("{(.k):.a}", keys, 80, "{\"x\":1}");
+    assertCut("{(.k):.a,(.l):.b}", keys, 96, "{\"x\":1,\"y\":2}");
+    assertCut("{(.k):.a,(.l):.b,(.m):.c}", keys, 112, "{\"x\":1,\"y\":2,\"z\":3}");
+  }
+
+  /**
+   * A slice of a built array copies its elements and charges CONTAINER + 8 x its length before it allocates (ADR-0035,
+   * BuiltArray.slice): after the collector's 88 B, {@code .[1:]} on [1,2,3] adds 64 + 2 x 8 = 80 B and {@code .[2:]}
+   * 64 + 8 = 72 B.
+   */
+  @Test
+  void aSliceOfABuiltArrayChargesItsCopy() {
+    JqValue three = document("[1,2,3]");
+    assertCut("[.[]] | .[1:]", three, 168, "[2,3]");
+    assertCut("[.[]] | .[2:]", three, 160, "[3]");
   }
 
   /**
@@ -135,6 +173,18 @@ class BytesBuiltBudgetTest {
       assertThat(filter.run(three, NONE, results, workspace)).as("run %d at the boundary on one Workspace", run).isTrue();
       assertThat(results.values.stream().map(JqValue::toJson).toList()).as("results of run %d", run).containsExactly("[1,2,3]");
     }
+  }
+
+  /**
+   * The adjacent pair: {@code filter} on {@code input} completes under {@code limit} bytes built, giving {@code texts},
+   * and one byte under it ends with {@code JqTermination(BUDGET, BYTES_BUILT)} before it emits anything.
+   */
+  private static void assertCut(String filter, JqValue input, long limit, String... texts) {
+    assertThat(results(filter, input, limit)).as("results of %s under %d bytes built", filter, limit).containsExactly(texts);
+    JqEngine under = bytesBuilt(limit - 1);
+    Results none = new Results();
+    assertBudget(() -> under.compile(filter).run(input, NONE, none, under.newWorkspace()), Budget.BYTES_BUILT, filter + " under " + (limit - 1) + " bytes built");
+    assertThat(none.values).as("results of %s under %d bytes built", filter, limit - 1).isEmpty();
   }
 
   /**
