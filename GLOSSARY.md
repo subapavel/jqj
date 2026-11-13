@@ -96,6 +96,17 @@ _Avoid_: constant propagation.
 `*` on two objects: each entry of the right one into the left, merged again where both values are objects; past 10 000 levels it raises "Object merge too deep" (ADR-0029).
 _Avoid_: deep add.
 
+**Value order**:
+jq's order of all values (`jv_cmp`): null, false, true, numbers, strings by UTF-8 bytes, arrays element by element, objects by sorted key list then values; not transitive across literal and computed numbers (ADR-0012, ADR-0037).
+_Avoid_: total order, natural order.
+
+**Truthy**:
+Neither false nor null; what If, Alt, `and` and `or` test (ADR-0037).
+
+**Comparison depth**:
+How many containers enclose a pair being compared; past 10 000 jq raises its too-deep error (ADR-0029).
+_Avoid_: nesting depth (that is the parse limit).
+
 **Constant key**:
 An object-construction key known at parse time: a computed key jq folds to a constant (a number, string or container); a non-string one is a parser-action error (ADR-0036).
 _Avoid_: static key, literal key (a folded key is not a literal).
