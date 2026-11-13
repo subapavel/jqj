@@ -476,25 +476,33 @@ final class Binder {
    * operators too (#86): the parser builds a left-associative chain in a loop, as long as the filter. The term the chain
    * starts from is walked first, then each operator's right operand from the innermost operator out. All of them start
    * at the same place among the level's inner levels, so before a {@link #rightFirst} operator's right operand the
-   * inner levels of its left one are cut and put back after it, as walking each operator on its own would.
+   * inner levels of its left one are cut and put back after it, as walking each operator on its own would. A {@code //}
+   * nests to the right and is always its chain's outermost operator, its left operand never being one unparenthesised,
+   * so its right operand is walked last: when that is an operator too, this loop walks it as the next chain, as walking
+   * it would (#94).
    */
   private void operands(Ast.Binary chain) {
-    List<Ast.Binary> spine = new ArrayList<>();
-    Ast left = chain;
-    while (left instanceof Ast.Binary b && inLevel(b.op())) {
-      spine.add(b);
-      left = b.left();
-    }
-    int from = level.inner.size();
-    walk(left);
-    for (int i = spine.size() - 1; i >= 0; i--) {
-      Ast.Binary b = spine.get(i);
-      if (rightFirst(b.op())) {
-        List<Level> before = cut(from);
-        walk(b.right());
-        level.inner.addAll(before);
-      } else {
-        walk(b.right());
+    for (Ast.Binary next = chain; next != null; ) {
+      List<Ast.Binary> spine = new ArrayList<>();
+      Ast left = next;
+      next = null;
+      while (left instanceof Ast.Binary b && inLevel(b.op())) {
+        spine.add(b);
+        left = b.left();
+      }
+      int from = level.inner.size();
+      walk(left);
+      for (int i = spine.size() - 1; i >= 0; i--) {
+        Ast.Binary b = spine.get(i);
+        if (rightFirst(b.op())) {
+          List<Level> before = cut(from);
+          walk(b.right());
+          level.inner.addAll(before);
+        } else if (b.op() == BinOp.ALTERNATIVE && b.right() instanceof Ast.Binary right) {
+          next = right;
+        } else {
+          walk(b.right());
+        }
       }
     }
   }
