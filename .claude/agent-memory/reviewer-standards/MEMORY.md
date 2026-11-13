@@ -38,3 +38,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#64) DiffRunner skips stderr only for `jq: error: syntax error`; action-only compile errors are compared byte for byte.
 
 - (#65) A constant-operand row (`1 + 2`) in a run-budget test is folded at parse time: check every filter in a budget test for a fold. An ADR rate list covers only the loops it names: grep each new loop over Members for a tick and match it to a rate. Diff NOTICE against `git grep -l "Translated from jq"` on every ticket.
+
+- (#65) A budget started per operator inside a recursive fold does not bound the fold: a container of folds adds them up; check where each fold RunState begins. A time or out-of-memory test witnesses only that a bound exists; the bound value needs a pair at the bound. A shared helper with a flag that skips a tick for one caller: check that caller against ADR-0008.
