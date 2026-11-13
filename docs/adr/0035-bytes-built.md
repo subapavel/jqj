@@ -32,7 +32,8 @@ Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #64; desig
 - **One fold budget per compile** (#65, third standards review):
   - Every parse-time fold of one compile, the key-kind check included, shares one RunState.
   - That RunState holds 1 MiB of bytes built and 2²⁰ steps; it never runs unlimited.
-  - Each fold result is still capped at 4 KiB, and the key-kind check at 1 MiB.
+  - Each fold result is still capped at 4 KiB; the key-kind check is bounded by the compile budget itself.
   - Once the compile budget is spent, later folds are left to the run, so the output is the same. A key-kind error past it follows DEVIATIONS "Huge constant keys".
   - "Builds no value larger than 4 KiB" means no fold result; literals written in the filter text are not folds.
+  - Each AST node is folded at most once per compile: folding is bottom-up and its result is kept. A literal a fold builds is charged like any other built value, so no fold work goes uncharged (#65, fourth standards review).
 - Considered: a counting pre-pass (twice the work); upper-bound charges (they depend on the operands); folding any size, as jq does (an unbounded allocation at compile time).
