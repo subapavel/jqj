@@ -80,6 +80,15 @@ class BuiltObjectIndexTest {
   }
 
   @Test
+  void sixteenKeysShareThirtyTwoSlots() {
+    // a to o take the slots 1 to 15 and A, at slot 1 of 32, the first free one, 16: 15 + 16 to build, 16 to probe.
+    // In 64 slots A would have slot 1 to itself.
+    String sixteen = "{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12,m:13,n:14,o:15,A:16}";
+    assertExactSteps(sixteen + " | .A", JqNull.NULL, 47, "16");
+    assertExactSteps(sixteen + " | .o", JqNull.NULL, 32, "15");
+  }
+
+  @Test
   void aGrowableObjectIndexesItsDistinctKeys() {
     JqValue input = document("{\"k\":\"a\"}");
     // .k twice, 9 to place the 9 distinct keys and 1 to probe.
