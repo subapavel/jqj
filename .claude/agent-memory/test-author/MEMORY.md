@@ -42,3 +42,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#82) A random-input property must not demand more than the design guarantees (a probe limit can legitimately leave an object unproved); pin safety, and completeness only where the bound makes it certain.
 - (#64) Targeted PIT (`-DtargetClasses/-DtargetTests`) leaves `<module>/target/pit-reports`, which `ratchet check` then reads and fails on: delete it first. PIT skips under `-DskipTests`; use `test-compile org.pitest:pitest-maven:mutationCoverage`.
 - (#64) `DeviationsTest` reads DEVIATIONS.md: re-verify after merging a DEVIATIONS change.
+
+- (#67) The worktree guard refuses `git commit -m $'…'`; write the message to a scratch file and use `git commit -q -F <file> -s`. CaseFormat unescape knows only `\n \t \\ \x`: write CR as `\x0d`, é as `\xc3\xa9`. jq-ref parses only 5000 nested objects from a document.
