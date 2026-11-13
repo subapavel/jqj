@@ -5,9 +5,11 @@
 //   java scripts/ratchet.java regen --oracles        after every merge: the oracle pass lists only
 //   java scripts/ratchet.java regen --all            spec gate: every report required, no drop allowed
 //   java scripts/ratchet.java floor-mutation <m>...  PIT score of the modules against quality/floors.tsv
+//   java scripts/ratchet.java drop compile <file>    an owner-approved drop of the listed compile.txt ids (F-46)
 //
 // The compile-mode oracle never runs in the ticket gate (F-27): check prints it NOT_RUN when it wrote no report, and
-// regen refuses any report row that is a Disagreement (F-29, ADR-0020 amendment for #60).
+// regen refuses any report row that is a Disagreement (F-29, ADR-0020 amendment for #60). drop removes only the ids
+// its file lists, each only while its compile report row is FAIL stub:, and writes nothing if any listed id is not.
 //
 // Environment: RATCHET_ROOT (default: the current directory), RATCHET_JMH (JMH json result, default
 // bench/jmh/target/jmh-result.json), RATCHET_MACHINE (the machine label of bench.tsv lines).
@@ -24,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,13 +83,15 @@ public class ratchet {
       case "regen" -> rc = args.length == 2 && args[1].equals("--oracles") ? regen(false)
           : args.length == 2 && args[1].equals("--all") ? regen(true) : usage();
       case "floor-mutation" -> rc = args.length >= 2 ? floorMutation(List.of(args).subList(1, args.length)) : usage();
+      case "drop" -> rc = args.length == 3 && args[1].equals("compile") ? drop(root.resolve(args[2])) : usage();
       default -> rc = usage();
     }
     System.exit(rc);
   }
 
   static int usage() {
-    System.err.println("usage: java scripts/ratchet.java check | regen --oracles | regen --all | floor-mutation <module>...");
+    System.err.println(
+        "usage: java scripts/ratchet.java check | regen --oracles | regen --all | floor-mutation <module>... | drop compile <file>");
     return 2;
   }
 
@@ -202,6 +207,15 @@ public class ratchet {
     return false;
   }
 
+  /** The report key of a pass-list entry's columns: its id, and its suffix column if the oracle has one. */
+  static String keyOf(Oracle o, String[] c) {
+    String key = c[0];
+    for (int i = 0; i < o.cols().size(); i++) {
+      if (o.cols().get(i).reportColumn() == Col.SUFFIX) key = c[0] + "\t" + c[i];
+    }
+    return key;
+  }
+
   /** Checks one pass list; returns the entries that survive (not retired). */
   static List<String> checkOracle(Oracle o) throws IOException {
     PassList pl = passList(o);
@@ -210,10 +224,7 @@ public class ratchet {
     for (String entry : pl.entries()) {
       String[] c = entry.split("\t", -1);
       String id = c[0];
-      String key = id;
-      for (int i = 0; i < o.cols().size(); i++) {
-        if (o.cols().get(i).reportColumn() == Col.SUFFIX) key = id + "\t" + c[i];
-      }
+      String key = keyOf(o, c);
       Row r = rep.get(key);
       if (r == null) {
         if (retirable(id, pl.headers())) {
@@ -633,6 +644,61 @@ public class ratchet {
       return "# source " + t[2] + " sha256 " + sha256(root.resolve(t[2]));
     }
     return h;
+  }
+
+  // ---------------------------------------------------------------- drop
+
+  /** The first line of a drop file: the finding that records the owner's decision (F-46). */
+  static final Pattern FINDING = Pattern.compile("# finding (F-[0-9]+)(?:[: ].*)?");
+
+  /** The detail prefix of the compile-mode oracle's FAIL on a Stub, the only row drop accepts. */
+  static final String STUB = "stub:";
+
+  /**
+   * Drops the compile.txt entries of the ids that {@code file} lists, one per line after its finding header. Refuses
+   * the whole drop, writing nothing, if the header names no existing finding, or if a listed id is not in compile.txt
+   * or any of its entries' report rows is not FAIL with a {@code stub:} detail. Every other line of compile.txt stays.
+   */
+  static int drop(Path file) throws IOException {
+    Oracle o = ORACLES.stream().filter(x -> x.name().equals("compile")).findFirst().orElseThrow();
+    List<String> lines = lines(file);
+    Matcher h = FINDING.matcher(lines.isEmpty() ? "" : lines.get(0));
+    List<String> dropped = new ArrayList<>();
+    if (!h.matches()) {
+      fail("drop: the first line of " + file.getFileName() + " must be '# finding F-<n>', the finding that records the owner's decision");
+    } else if (!Files.exists(root.resolve("docs/findings/" + h.group(1) + ".md"))) {
+      fail("drop: docs/findings/" + h.group(1) + ".md does not exist");
+    } else {
+      PassList pl = passList(o);
+      Map<String, Row> rep = reports(o);
+      for (String id : new LinkedHashSet<>(lines.subList(1, lines.size()))) {
+        boolean listed = false;
+        for (String entry : pl.entries()) {
+          String[] c = entry.split("\t", -1);
+          if (!c[0].equals(id)) continue;
+          listed = true;
+          String name = keyOf(o, c).replace('\t', ' ');
+          Row r = rep.get(keyOf(o, c));
+          if (r == null) fail(o.name() + ": " + name + " is missing from the report");
+          else if (!r.verdict().equals("FAIL") || r.cells().length < 3 || !r.cells()[2].startsWith(STUB)) {
+            fail(o.name() + ": " + name + " is " + r.verdict() + ", not FAIL " + STUB);
+          } else dropped.add(entry);
+        }
+        if (!listed) fail(o.name() + ": " + id + " is not in " + o.name() + ".txt");
+      }
+    }
+    if (!failures.isEmpty()) {
+      System.out.println("drop refused: nothing written");
+      return finish("drop");
+    }
+    Path f = root.resolve("ratchet/oracle/" + o.name() + ".txt");
+    Set<String> gone = new HashSet<>(dropped);
+    StringBuilder kept = new StringBuilder();
+    for (String l : lines(f)) if (!gone.contains(l)) kept.append(l).append('\n');
+    Files.writeString(f, kept.toString(), StandardCharsets.UTF_8);
+    for (String entry : dropped) System.out.println("dropped " + o.name() + ": " + keyOf(o, entry.split("\t", -1)).replace('\t', ' '));
+    System.out.println("drop " + o.name() + ": " + dropped.size() + " dropped (" + h.group(1) + ")");
+    return finish("drop");
   }
 
   // ---------------------------------------------------------------- JSON (JMH results only)
