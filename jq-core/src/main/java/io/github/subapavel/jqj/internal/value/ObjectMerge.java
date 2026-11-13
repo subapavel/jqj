@@ -42,8 +42,8 @@ import java.util.Map;
  * both are objects, building their merge in place of the left value; past {@link #MAX_DEPTH} levels of that it raises
  * jq's catchable "Object merge too deep" (ADR-0029). Each level is a frame of its own stack, never a Java frame. Each
  * level charges a container, then an entry per distinct key as it enters (ADR-0035 amendment), and one tick per entry
- * of its right object; a merge's levels also tick once per left entry they copy, which object {@code +} does not
- * (ADR-0034 amendment). A view's own walks charge theirs.
+ * of its right object and one per left entry it copies, for object {@code +} and merge {@code *} alike (ADR-0034
+ * amendment). A view's own walks charge theirs.
  */
 public final class ObjectMerge {
   /** jq's {@code MAX_OBJECT_MERGE_DEPTH}. */
@@ -71,7 +71,7 @@ public final class ObjectMerge {
   }
 
   private static BuiltObject merge(RunState state, JqObject a, JqObject b, boolean deep) {
-    Level level = new Level(state, a, b, 0, null, deep);
+    Level level = new Level(state, a, b, 0, null);
     for (;;) {
       if (level.cursor == -1) {
         BuiltObject merged = level.build();
@@ -90,7 +90,7 @@ public final class ObjectMerge {
       Integer at = level.index.get(name);
       if (deep && at != null && level.values[at] instanceof JqObject inner && value instanceof JqObject other) {
         level.pending = at;
-        level = new Level(state, inner, other, level.depth + 1, level, true);
+        level = new Level(state, inner, other, level.depth + 1, level);
       } else if (at != null) {
         level.values[at] = value;
       } else {
@@ -123,10 +123,10 @@ public final class ObjectMerge {
     final Map<String, Integer> index = new HashMap<>();
 
     /**
-     * The level at {@code depth} of {@code left} and {@code right}: the depth checked, then the left entries entered, a
-     * merge's ({@code ticks}) with one tick each.
+     * The level at {@code depth} of {@code left} and {@code right}: the depth checked, then the left entries entered,
+     * one tick each.
      */
-    Level(RunState state, JqObject left, JqObject right, int depth, Level outer, boolean ticks) {
+    Level(RunState state, JqObject left, JqObject right, int depth, Level outer) {
       if (depth > MAX_DEPTH) {
         throw new FilterException(BuiltString.of(TOO_DEEP));
       }
@@ -139,9 +139,7 @@ public final class ObjectMerge {
       Members entries = (Members) left;
       Keyed names = (Keyed) left;
       for (int c = entries.first(); c != -1; c = entries.next(state, c)) {
-        if (ticks) {
-          state.tick();
-        }
+        state.tick();
         JqString key = names.key(c);
         add(state, key, key.value(), entries.member(state, c));
       }

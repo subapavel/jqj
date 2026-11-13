@@ -34,6 +34,7 @@ import io.github.subapavel.jqj.value.JqNumber;
 import io.github.subapavel.jqj.value.JqObject;
 import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
+import java.lang.foreign.MemorySegment;
 
 /**
  * jq 1.8.2's {@code jv_equal} (ADR-0029, design approval K1 of #65): depth first, then left to right, each pair of
@@ -43,8 +44,9 @@ import io.github.subapavel.jqj.value.JqValue;
  * whose document is checked first (ADR-0026). Numbers compare by {@link Numbers#compare}, strings by their UTF-8 bytes,
  * arrays by their lengths, then element by element; an object by each of its keys, in its key order, found in the
  * other object with an equal value, and then by the two key counts. The walk keeps its open containers on a stack of
- * its own, never in Java frames, and charges one tick per member pair it compares and one per key of the right object
- * it counts (ADR-0008, ADR-0034 amendment for #65); a view's own walks charge theirs.
+ * its own, never in Java frames, and charges one tick per member pair it compares, one per key of the right object it
+ * counts and one per started KiB of the shorter of two strings it compares (ADR-0008, ADR-0034 amendment for #65); a
+ * view's own walks charge theirs.
  */
 public final class Equality {
   /** jq's {@code MAX_EQUAL_DEPTH}. */
@@ -74,7 +76,7 @@ public final class Equality {
             case JqNull _ -> y instanceof JqNull;
             case JqBool _ -> x == y;
             case JqNumber n -> y instanceof JqNumber m && Numbers.compare(n, m) == 0;
-            case JqString s -> y instanceof JqString t && s.utf8().mismatch(t.utf8()) == -1;
+            case JqString s -> y instanceof JqString t && same(state, s, t);
             case JqArray p -> {
               if (!(y instanceof JqArray q) || length(state, p) != length(state, q)) {
                 yield false;
@@ -120,6 +122,14 @@ public final class Equality {
         open = open.outer;
       }
     }
+  }
+
+  /** Whether two strings have the same UTF-8 bytes: one tick per started KiB of the shorter (ADR-0034 amendment). */
+  private static boolean same(RunState state, JqString s, JqString t) {
+    MemorySegment a = s.utf8();
+    MemorySegment b = t.utf8();
+    state.tick((int) ((Math.min(a.byteSize(), b.byteSize()) + 1023) >>> 10));
+    return a.mismatch(b) == -1;
   }
 
   /** An array's length; a view's walk charges its elements (ADR-0034). */
