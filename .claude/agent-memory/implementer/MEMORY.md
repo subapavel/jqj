@@ -133,3 +133,5 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#64) `-prof gc` on JDK 25 here: empty BuiltArray 40 B, shaped object 48, growable 64, BuiltString 40. jq folds a constant pipe only when one side is `.`, and an array only when its commas nest to the left.
 - (#83) The gate's ratchet step reads a stale `<module>/target/pit-reports` left by a targeted PIT run and fails the floor: delete it before the gate.
 - (#83) A lazily built cache on a shared value must be published through final fields; its charge then depends on history (who built it first), which a review should hear about.
+
+- (#65) When t/NN is checked out in another worktree, branch impl/NN from origin/t/NN and push HEAD:t/NN. The worktree guard refuses `-m $'..'` and compound or piped git commands: use `commit -F file -s`, one git command per call. Pass `-Doracle.require` as an absolute path. Record-pattern switches leave one null-component branch per nested type-switch for JaCoCo; a null-operand test covers them. The CLI reads non-ASCII args as U+FFFD with no locale; probe through stdin.
