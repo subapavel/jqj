@@ -5,7 +5,11 @@ import static io.github.subapavel.jqj.internal.parse.ParseAssertions.parsesToASt
 import static io.github.subapavel.jqj.internal.parse.ParseAssertions.shape;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.subapavel.jqj.internal.op.FieldRun;
 import io.github.subapavel.jqj.query.ir.Identity;
+import io.github.subapavel.jqj.query.ir.Intrinsic;
+import io.github.subapavel.jqj.query.ir.Node;
+import io.github.subapavel.jqj.query.ir.Pipe;
 import io.github.subapavel.jqj.query.ir.Source;
 import java.util.List;
 import java.util.Map;
@@ -26,12 +30,13 @@ class ResolverTest {
    * whose kinds a later ticket lowers (#64 constructions, #65 arithmetic and negation, #66 comparison, {@code and},
    * {@code or}, {@code not} and {@code //}, #67 {@code as}, patterns, {@code ?//}, variables, {@code $__loc__} and
    * format strings, #68 {@code if}, {@code try}, {@code ?}, {@code error}, {@code label} and {@code break}, #69
-   * {@code reduce} and {@code foreach}) ends with {@code | ..}, which still stubs, here and in {@link #GRAMMAR}.
+   * {@code reduce} and {@code foreach}, #70 {@code def}) ends with {@code | ..}, which still stubs, here and in
+   * {@link #GRAMMAR}.
    */
   private static final List<String> PRECEDENCE =
       List.of(
-          "def f: 1; 2 | f",
-          "1 | def f: 2; f",
+          "def f: 1; 2 | f | ..",
+          "1 | def f: 2; f | ..",
           "1 as $x | 2 | $x | ..",
           "\"x\" as $x | \"y\" as $y | $x + $y | ..",
           "label $out | 1, break $out, 2 | ..",
@@ -94,10 +99,10 @@ class ResolverTest {
           "true(1)",
           "foo",
           "$x | ..",
-          "def f(g; $x): g + $x; f(1; 2)",
-          "def f: def g: 3; g; f",
-          "def f: .; def g: f; g",
-          "def f: 1; .",
+          "def f(g; $x): g + $x; f(1; 2) | ..",
+          "def f: def g: 3; g; f | ..",
+          "def f: .; def g: f; g | ..",
+          "def f: 1; . | ..",
           "[foreach (1,2,3) as $x (0; . + $x; [$x, .])] | ..",
           "reduce empty as $x (0; .) | ..",
           "if false then 1 elif true then 2 else 3 end | ..",
@@ -321,5 +326,54 @@ class ResolverTest {
     for (Map.Entry<String, String> e : shapes.entrySet()) {
       assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
     }
+  }
+
+  /**
+   * #70's lowerings (ADR-0040), the positive witnesses of the entries that left the Stub lists above: a definition
+   * makes no node, and a call of it is its body, inlined, at the body's Sources; a filter parameter's call is its
+   * argument lowered where the call is written, a parameter passed on as it is; a value parameter's argument is
+   * lowered once and bound around the body, its name also callable; a definition sees the definitions before it; a
+   * user definition hides the native of its name; a label is seen through a definition; a definition the main filter
+   * never calls is not lowered. jq-ref 1.8.2, observed 2026-11-13 with -c, in order: 1 on null, 5 on {"a":{"a":5}}, 2
+   * and 2 on null, 1 on {"a":1,"b":2}, 3 on {"a":3}, then on null 5, 7, [] for the label one inside [...], 3, 2, 1 and
+   * null. The shadowing of {@code not} and {@code range/2} is also recorded (diff/defs.rec).
+   */
+  @Test
+  void definitionsLowerToTheirIr() {
+    Map<String, String> shapes =
+        Map.ofEntries(
+            Map.entry("def f: 1; f", "1[7,8)"),
+            Map.entry("def f(g): g | g; f(.a)", "(.a[19,21) | .a[19,21))"),
+            Map.entry("def f($x): $x + $x; f(1)", "(1[22,23) as $0 | _plus($0; $0)[11,18))"),
+            Map.entry("def f(g): 1 as $x | g; 2 as $x | f($x)", "(2[23,24) as $0 | (1[10,11) as $1 | $0))"),
+            Map.entry("def f: .a; def g: f; def f: .b; g", ".a[7,9)"),
+            Map.entry("def f(g): g; def h(g): f(g); h(.a)", ".a[31,33)"),
+            Map.entry("def not: 5; not", "5[9,10)"),
+            Map.entry("def range(a; b): 7; range(1; 2)", "7[17,18)"),
+            Map.entry("label $l | def f: break $l; f", "(label $0 | break $0[18,26))"),
+            Map.entry("def f: def g: 3; g; f", "3[14,15)"),
+            Map.entry("def f($a): a + $a; f(1)", "(1[21,22) as $0 | _plus(1; $0)[11,17))"),
+            Map.entry("def f: ..; 1", "1[11,12)"),
+            Map.entry(".?", "(try .[0,1) catch empty[0,2))"));
+    for (Map.Entry<String, String> e : shapes.entrySet()) {
+      assertThat(shape(ir(e.getKey()))).as("IR of %s", e.getKey()).isEqualTo(e.getValue());
+    }
+  }
+
+  /**
+   * F-42: a run of {@link Resolver#FIELD_RUN} field reads stays a Pipe of its reads; one more is one FieldRun, named
+   * and spanning as the reads together. LongPathChainTest runs the fused run.
+   */
+  @Test
+  void aRunOfFieldReadsPastTheParseDepthIsOneStep() {
+    String kept = ".a".repeat(Resolver.FIELD_RUN);
+    assertThat(ir(kept)).as("IR of %d reads", Resolver.FIELD_RUN).isInstanceOf(Pipe.class);
+    String fused = ".a".repeat(Resolver.FIELD_RUN + 1);
+    Node run = ir(fused);
+    assertThat(run).as("IR of %d reads", Resolver.FIELD_RUN + 1).isInstanceOf(Intrinsic.class);
+    assertThat(shape(run)).as("shape of %d reads", Resolver.FIELD_RUN + 1).isEqualTo(fused + "[0," + fused.length() + ")");
+    assertThat(((Intrinsic) run).op().form()).as("step of %d reads", Resolver.FIELD_RUN + 1).isInstanceOf(FieldRun.class);
+    // The run is the field reads only: a step of another kind ends it, and the reads after it start a new one.
+    assertThat(shape(ir(fused + "[0]"))).as("shape of %d reads and an index", Resolver.FIELD_RUN + 1).isEqualTo("(" + fused + "[0," + fused.length() + ") | .[k](0)[" + fused.length() + "," + (fused.length() + 3) + "))");
   }
 }
