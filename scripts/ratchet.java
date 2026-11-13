@@ -7,8 +7,8 @@
 //   java scripts/ratchet.java floor-mutation <m>...  PIT score of the modules against quality/floors.tsv
 //   java scripts/ratchet.java drop compile <file>    an owner-approved drop of the listed compile.txt ids (F-46)
 //
-// The compile-mode oracle never runs in the ticket gate (F-27): check prints it NOT_RUN when it wrote no report, and
-// regen refuses any report row that is a Disagreement (F-29, ADR-0020 amendment for #60). drop removes only the ids
+// The compile-mode oracle runs only under -Pcompile-oracle: in the ticket gate (F-46), after a merge and in the spec
+// gate, not in the CI build. check prints it NOT_RUN when it wrote no report, and regen refuses any report row that is a Disagreement (F-29, ADR-0020 amendment for #60). drop removes only the ids
 // its file lists, each only while its compile report row is FAIL stub:, and writes nothing if any listed id is not.
 //
 // Environment: RATCHET_ROOT (default: the current directory), RATCHET_JMH (JMH json result, default
@@ -112,17 +112,17 @@ public class ratchet {
   // ---------------------------------------------------------------- check
 
   /**
-   * The oracles that run only after a merge and in the spec gate, never in the ticket gate (F-27): check reports them
-   * NOT_RUN when they wrote no report (ADR-0020 amendment for #60).
+   * The oracles that run only under a Maven profile (compile-oracle: the ticket gate since F-46, after a merge, the spec
+   * gate; not the CI build): check reports them NOT_RUN when they wrote no report (ADR-0020 amendment for #60).
    */
-  static final Set<String> OUTSIDE_TICKET_GATE = Set.of("compile");
+  static final Set<String> ONLY_UNDER_PROFILE = Set.of("compile");
 
   /** The detail prefix of the compile-mode oracle's Disagreement, which regen refuses (F-29). */
   static final String DISAGREE = "disagree:";
 
   static int check() throws IOException {
     for (Oracle o : ORACLES) {
-      if (OUTSIDE_TICKET_GATE.contains(o.name()) && reportFiles(o).isEmpty()) System.out.println("NOT_RUN " + o.name() + ": no report");
+      if (ONLY_UNDER_PROFILE.contains(o.name()) && reportFiles(o).isEmpty()) System.out.println("NOT_RUN " + o.name() + ": no report");
       else checkOracle(o);
     }
     List<Floor> floors = floors();

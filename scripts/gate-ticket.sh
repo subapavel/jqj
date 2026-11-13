@@ -12,7 +12,8 @@
 #
 # Steps, numbered as in ADR-0014 (its step 2, PIT on the changed classes, left the ticket gate by F-27; PIT
 # runs only in the spec gate, on whole class-C modules):
-#        1 verify       ./mvnw -B -Pbench verify (the whole reactor; the oracle needs every module)
+#        1 verify       ./mvnw -B -Pbench,compile-oracle verify (the whole reactor; the oracle needs every module; the
+#                       compile-mode oracle runs here too, so step 4 sees a compile.txt regression before the merge, F-46)
 #        3 lf, trailers, word, record   LF check, trailer check, word check, oracle recordings changed since <ref>
 #        4 ratchet      java scripts/ratchet.java check
 # Environment: ORACLE_REQUIRE, a file of the ticket's required case ids, becomes -Doracle.require=<file> (ADR-0020).
@@ -48,7 +49,7 @@ step() {
 require=()
 if [ -n "${ORACLE_REQUIRE:-}" ]; then require=("-Doracle.require=$ORACLE_REQUIRE"); fi
 
-step verify 0 ./mvnw -B -Pbench "${require[@]}" verify
+step verify 0 ./mvnw -B -Pbench,compile-oracle "${require[@]}" verify
 step lf 0 scripts/check-lf-checkout.sh
 step trailers 0 scripts/check-trailers.sh "$ref..HEAD"
 step word 0 scripts/check-core-neutral.sh

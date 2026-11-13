@@ -71,7 +71,7 @@ ticket() { : > "$STUB_CALLS"; rm -rf "$repo/.logs"; (cd "$repo" && scripts/gate-
 
 check "ticket: usage" "$(ticket 25)" 2
 check "ticket: green" "$(ticket 25 query-core,jq-core base)" 0
-has "step 1 is the whole reactor with -Pbench" "mvnw -B -Pbench verify" "$STUB_CALLS"
+has "step 1 is the whole reactor with -Pbench and the compile-mode oracle (F-46)" "mvnw -B -Pbench,compile-oracle verify" "$STUB_CALLS"
 # F-27: PIT left the ticket gate, even with changed classes in class-C modules
 hasnt "no PIT call with changed query-core and jq-core classes" "pitest" "$STUB_CALLS"
 hasnt "no class list for PIT" "targetClasses" "$STUB_CALLS"
@@ -83,8 +83,8 @@ check "log of step 1, no PIT log" "$(ls "$repo/.logs" | grep -c '^25-\(verify\|p
 has "step 1 log written" "25-verify.log" "$(ls "$repo/.logs" > "$tmp/ls"; echo "$tmp/ls")"
 has "step timings recorded" "^verify	" "$repo/.logs/25-steps.tsv"
 hasnt "no pit timing recorded" "^pit" "$repo/.logs/25-steps.tsv"
-order=$(grep -o 'mvnw -B -Pbench verify\|test org.pitest\|check-lf\|check-trailers\|check-core\|java ' "$STUB_CALLS" | tr '\n' ' ')
-check "steps in ADR order" "$order" "mvnw -B -Pbench verify check-lf check-trailers check-core "
+order=$(grep -o 'mvnw -B -Pbench,compile-oracle verify\|test org.pitest\|check-lf\|check-trailers\|check-core\|java ' "$STUB_CALLS" | tr '\n' ' ')
+check "steps in ADR order" "$order" "mvnw -B -Pbench,compile-oracle verify check-lf check-trailers check-core "
 
 : > "$STUB_CALLS"; rm -rf "$repo/.logs"
 (cd "$repo" && ORACLE_REQUIRE=/x/req.txt scripts/gate-ticket.sh 25 query-core base > "$tmp/out" 2>&1)
