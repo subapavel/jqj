@@ -47,3 +47,6 @@ Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 - (#65) In every builder loop, check the collection call and where the charge sits: `addFirst` in a loop is O(n²), and a charge after the loop bounds nothing.
 - (#65) `chargeBuilt` does not add the bytes when a charge fails, so a later, smaller fold can still fit; changing the fold order changes which nodes fold at the edge.
 - (#65) A mutant argued but not run counts as killed if it under-charges more than a mutant already killed at the same check.
+- (#66) `NumberView.doubleValue` re-scans its token on every call, while `LiteralNumber` caches its double. A "charges nothing" test built on a filter literal says nothing about a document literal.
+- (#66) Under ADR-0014, required oracle cases count toward jq-core's mutation score (PIT crossModule), so a mutant killed only by such a case counts as killed.
+- (#66) DiffRunner compares stderr unless the expected output has `jq: error: syntax error`.
