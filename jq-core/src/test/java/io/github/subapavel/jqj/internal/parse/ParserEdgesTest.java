@@ -81,7 +81,9 @@ class ParserEdgesTest {
             // stubs.
             ". as $x | 1 | ..",
             ". as {\"a\": $b} | 1 | ..",
-            ". as {(1|tostring): $e} | 1",
+            // A call of a jq builtin #71 binds, wrapped in a user definition whose body .. still stubs (jq-ref 1.8.2,
+            // observed 2026-11-13 with -nc: 1, rc 0). unwrap at #71 (ADR-0042 native table)
+            "def tostring: ..; . as {(1|tostring): $e} | 1",
             ". as {$a: [$b]} | 1 | ..",
             "foreach . as $x (0; 1; 2) | ..",
             "if 1 then 2 elif 3 then 4 else 5 end | ..")) {
