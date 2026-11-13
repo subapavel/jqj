@@ -83,8 +83,8 @@ final class Binder {
   record Predefined(String name) {}
 
   /**
-   * The built entries of the {@link NativeTable}: ADR-0040's, ADR-0041's {@code range/2} and #72's language natives,
-   * one constant a line. Each declares {@code keepsArgs} (ADR-0005 amendment, ADR-0022), which spec 3's {@code
+   * The built entries of the {@link NativeTable}: ADR-0040's, ADR-0041's {@code range/2}, #72's language natives and
+   * #73's sort and its kin, one constant a line. Each declares {@code keepsArgs} (ADR-0005 amendment, ADR-0022), which spec 3's {@code
    * keepsArgsIsSound} checks: whether its result may share a container or string with an argument or its input.
    */
   enum Native implements Callee {
@@ -110,6 +110,15 @@ final class Binder {
     ISNORMAL("isnormal", 0, false),
     HAVE_DECNUM("have_decnum", 0, false),
     HAVE_LITERAL_NUMBERS("have_literal_numbers", 0, false),
+    SORT("sort", 0, true),
+    SORT_BY("_sort_by_impl", 1, true),
+    GROUP_BY("_group_by_impl", 1, true),
+    UNIQUE("unique", 0, true),
+    UNIQUE_BY("_unique_by_impl", 1, true),
+    MIN("min", 0, true),
+    MAX("max", 0, true),
+    MIN_BY("_min_by_impl", 1, true),
+    MAX_BY("_max_by_impl", 1, true),
     ;
 
     private final String signature;

@@ -227,3 +227,49 @@ arg -c
 filter [range(40) | [nan, (. * 7) % 40]] | sort | map(.[1])
 stdin null\n
 end
+
+# DEVIATIONS.md "Order inside a comparison cycle" (ADR-0012): two literals of one double and a computed number equal to
+# both form a cycle of jq's pairwise rule. jq's order there is its libc qsort's, jqj's its own merge sort's; min and
+# max are jq's left-to-right scan, so they match, and so does unique where both merges end with the same run.
+
+case sort/deviation-cycle-sort
+arg -c
+filter [100000000000000000001,(1e20+0),100000000000000000000] | sort
+stdin null\n
+deviation comparison-cycle
+jqj-rc 0
+jqj-stdout [100000000000000000000,100000000000000000001,1e+20]\n
+jqj-stderr
+end
+
+case sort/deviation-cycle-unique
+arg -c
+filter [100000000000000000001,(1e20+0),100000000000000000000] | unique
+stdin null\n
+deviation comparison-cycle
+jqj-rc 0
+jqj-stdout [100000000000000000000,100000000000000000001]\n
+jqj-stderr
+end
+
+case sort/deviation-cycle-group-by
+arg -c
+filter [100000000000000000001,(1e20+0),100000000000000000000] | group_by(.)
+stdin null\n
+deviation comparison-cycle
+jqj-rc 0
+jqj-stdout [[100000000000000000000],[100000000000000000001,1e+20]]\n
+jqj-stderr
+end
+
+case sort/cycle-min-max
+arg -c
+filter [100000000000000000001,(1e20+0),100000000000000000000] | min, max, min_by(.), max_by(.)
+stdin null\n
+end
+
+case sort/cycle-unique-one-run
+arg -c
+filter [(1e20+0),100000000000000000001,100000000000000000000] | unique
+stdin null\n
+end
