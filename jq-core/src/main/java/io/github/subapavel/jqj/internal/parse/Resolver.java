@@ -935,7 +935,7 @@ public final class Resolver {
   /**
    * The operators {@code run} of one {@link BinOp}, outermost first, on {@code left}, the innermost one's lowered left
    * operand: each right operand is lowered from the innermost operator out, then the run is built (ADR-0043). A {@code
-   * //} is a run's only operator, the outermost of its chain, and nests to the right ({@link #alternatives}). A run of
+   * //} is a run's only operator, the outermost of its chain, and nests to the right ({@link #definedOr}). A run of
    * {@code and} or {@code or} of more than {@link #PIPE_CHAIN} terms is joined balanced ({@link #tree}), both being
    * associative under ADR-0037's lowering; one of an arithmetic or comparison operator whose nested form has more than
    * {@link #BIND_RUN} Binds is one Binds ({@link #binds}); any other run is its operators lowered one by one, as {@link
@@ -944,7 +944,7 @@ public final class Resolver {
   private Node run(List<Ast.Binary> run, Node left) {
     BinOp op = run.getFirst().op();
     if (op == BinOp.ALTERNATIVE) {
-      return alternatives(run.getFirst(), left);
+      return definedOr(run.getFirst(), left);
     }
     List<Node> terms = new ArrayList<>(run.size() + 1);
     terms.add(left);
@@ -1024,7 +1024,7 @@ public final class Resolver {
    * joined balanced ({@link #tree}): Alt is associative, as it emits each truthy left result and runs its right side
    * only if there was none, catching nothing (ADR-0037).
    */
-  private Node alternatives(Ast.Binary top, Node first) {
+  private Node definedOr(Ast.Binary top, Node first) {
     List<Ast.Binary> run = new ArrayList<>();
     run.add(top);
     List<Node> terms = new ArrayList<>();
