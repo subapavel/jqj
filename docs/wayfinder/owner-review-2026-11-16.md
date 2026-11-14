@@ -19,6 +19,17 @@ names its record; the reasons are there. A "no" on an item reopens that record, 
    lines stay identical, and the short usage is jqj's own under the `-h` row. A yes takes the
    `deviation` lines from S7.12's deviation case (`docs/wayfinder/spec-7-grilling.md`).
 
+## Spec 2a gate (#56, #190; `docs/findings/F-84.md` on `spec/56-core-language-2a`)
+
+Proposed by the grilling-adviser for the owner under the delegation of 2026-11-14:
+- The gate's PIT step was stopped by hand after 4 h 04 min. Its target is 45 min (F-28).
+- Two jq-core test classes leave PIT's test set: `WideConstructStepsTest` and `OperatorChainTest`.
+  - The ruling: this is not weakening a test. Both still run in step 1 of both gates, and leaving a
+    test out of PIT's set can only lower the score.
+- ADR-0014's fallback text changes: the seed fallback does not reach a module's own tests. From now
+  on, slow test classes come out first, then `threads` 2.
+- Not decided under the delegation: `floors.tsv`, the 45-min target and the PIT scope.
+
 ## Spec 2b (#106; `docs/wayfinder/spec-2b-grilling.md`)
 
 - GATE check 2's compile-mode list gains the `trampoline` run (F-58).
