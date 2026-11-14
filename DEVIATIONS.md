@@ -62,7 +62,9 @@ the same double, plus a computed number equal to both, form a cycle. Inside such
 of `sort`, `sort_by`, `unique`, `unique_by` and `group_by` is jqj's own; `unique` and `group_by`
 can also group differently (`[(1e20+0),100000000000000000001,100000000000000000000] | unique` →
 `[1e+20]` on jq). `min`, `max` and their `_by` forms match jq. jq's order comes from libc `qsort`,
-jqj's from its own bottom-up merge sort (#73: runs of 1, 2, 4, … merged pairwise):
+jqj's from its own bottom-up merge sort (#73: runs of 1, 2, 4, … merged pairwise). Outside a cycle
+the two agree, NaN pairs included: jq-ref keeps a NaN pair in input order because its `qsort` takes
+the left entry there, which a different libc need not do; jqj's merge sort keeps it by rule:
 
 | case | filter | jq 1.8.2 | jqj |
 | --- | --- | --- | --- |

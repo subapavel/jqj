@@ -1,6 +1,6 @@
 # Push protocol: emit's false stops, a break is a Workspace token, two exception classes
 
-Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); amends ADR-0004, ADR-0005 and ADR-0007; amended by ADR-0015 (issue #11) and ADR-0017 (issue #13); amended by F-32 (two more tick sites); amended by ADR-0030 (run state, #59); amended by ADR-0034 (`run` takes the slots, #63); catch set and label tokens amended by ADR-0039 (#68); reduce and foreach tick at their producer, ADR-0041 (#69); the key proof's ticks, ADR-0044 (#85); Equality's key index, ADR-0044 (#95)
+Status: accepted (2026-11-10, owner, issue #7 "What is the execution protocol?"); amends ADR-0004, ADR-0005 and ADR-0007; amended by ADR-0015 (issue #11) and ADR-0017 (issue #13); amended by F-32 (two more tick sites); amended by ADR-0030 (run state, #59); amended by ADR-0034 (`run` takes the slots, #63); catch set and label tokens amended by ADR-0039 (#68); reduce and foreach tick at their producer, ADR-0041 (#69); the key proof's ticks, ADR-0044 (#85); Equality's key index, ADR-0044 (#95); a number token's re-scan is uncharged until #97, F-50
 
 Results are pushed. `interface Sink { boolean emit(Object v); }` lives in `query-core`. If emit
 returns `false`, that is a stop: the producer emits nothing more and returns `false` at once. The

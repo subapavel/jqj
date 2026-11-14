@@ -1,6 +1,6 @@
 # Try marks downstream errors by a wrap depth; Label and Break are slot tokens
 
-Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #68; designer draft); amends ADR-0005 (Try, Label and Break fields), ADR-0008 (catch set, run state), ADR-0037 (Alt and Collect after a break) and ADR-0038 (AltBind rethrow)
+Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #68; designer draft); amends ADR-0005 (Try, Label and Break fields), ADR-0008 (catch set, run state), ADR-0037 (Alt and Collect after a break) and ADR-0038 (AltBind rethrow); the internal Detach versus the public `detach()` corrected at the spec 2a review (#100)
 
 jq 1.8.2 implements `try` as `TRY_BEGIN`, body, `TRY_END`. An error that leaves the body's output (a downstream error) is wrapped on its way back, and `TRY_BEGIN` unwraps and re-raises a wrapped error instead of running the handler. jq 1.8.2 has neither FORK_OPT nor gen_try_handler. The jq facts here were read from jq-1.8.2 source; #68's red records them on jq-ref, and jq-ref wins.
 
@@ -15,7 +15,7 @@ jq 1.8.2 implements `try` as `TRY_BEGIN`, body, `TRY_END`. An error that leaves 
   - AltBind catches an error of any depth, and its last alternative rethrows the instance it caught.
   - `JqFilter.run` sees depth 0.
 - **`error`** is an Fn0 raising its input as the value, null included. `error(f)` is `f | error`, as builtin.jq defines it. Raising builds nothing and charges nothing.
-- **The error payload** leaves `JqFilter.run` detached (ADR-0016). #68 builds `detach()`, which copies a view into built values on an explicit stack at no charge, under ADR-0016's host rule.
+- **The error payload** leaves `JqFilter.run` detached (ADR-0016). #68 builds the internal Detach, which copies a view into built values on an explicit stack at no charge, under ADR-0016's host rule (#85 replaced it with the shared walk). The public `JqValue.detach()` is not built in 2a (#100, spec 7).
 - **The CLI message**:
   - a string prints `jq: error (at <name>:N): <text>`, cut at its first NUL as jq's `%s` does (jq-ref, `control/error-nul-string`);
   - any other value prints `jq: error (at <name>:N) (not a string): <compact dump>`;
