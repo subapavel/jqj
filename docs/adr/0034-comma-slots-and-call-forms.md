@@ -65,9 +65,9 @@ rate is pinned by two adjacent counts.
 - `_strindices` and string `contains`: `split`'s rate plus one per index.
 - Array and object `contains`: one per pair plus Equality's. `bsearch`: one per probe plus the
   compare's.
-- Regex (ADR-0053): one per search call, one per started KiB from the search start to the match
-  end, one per started KiB of the pattern at each lookup, compiled or cached (so a run's steps never
-  depend on the cache).
+- Regex (ADR-0053): one per search call, one per started KiB from the search start to the match end
+  (or to the input's end when nothing matches, the range `f_match` passes), one per started KiB of
+  the pattern at each lookup, compiled or cached (so a run's steps never depend on the cache).
 - Scalar math: none, except `jn` and `yn`, once per 1 024 steps of any loop that grows with the
   order (ADR-0051, F-69).
 

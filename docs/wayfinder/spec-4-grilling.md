@@ -241,3 +241,24 @@ For the owner on 2026-11-16, in addition to round 1's list:
 - the designer's choices: least-recently-used eviction, the run-scoped pattern identity, the
   `fromjson` charge rule, the 25/18/6/12 lists, the order conversion for `jn` and `yn`, and F-70's
   row going to spec 4's strings ticket.
+
+## Ticket approval (grilling-adviser for the owner, 2026-11-14)
+
+The adviser approved the 15 tickets with changes (2 class A, 11 class B, 2 class C):
+1. `builtins-dates-v1` stays in the strptime ticket and calls no zone reader (ADR-0020 sentence).
+2. The diagnostics ticket is also blocked by `fromjson`'s ticket and by main with 3b merged.
+3. `fromjson` charges an escaped string's decoded UTF-8 length; a search that finds nothing ticks
+   to the input's end (ADR-0034); a computed math result that is not normal prints as
+   `[class, copysign(1; .)]`, NaN as `"nan"` (ADR-0020); the cache is turned off by the Workspace's
+   internal capacity 0, reached as the compile-mode switch is.
+4. No 400-year cycles for far instants. jq-ref applies the daylight rule through year 5 881 580
+   and none after (July of 5 881 581, 10⁷ and 2·10⁹ print `EST -0500` under America/New_York,
+   `CET +0100` under Europe/Berlin), while the JDK gives `-04:00` for July of 10⁷. After jq-ref's
+   last daylight instant jqj uses the zone's standard offset and name; the host-zone ticket
+   bisects the instant in a northern and a southern zone.
+5. `%s` is built with each table under the run's zone (UTC until the host-zone ticket); `strftime`
+   and `strptime` are not pure. `"12 rest"|strptime("%s")` → `[1970,0,1,0,0,12,4,0," rest"]`.
+6. The coverage ticket is class B (a Resolver hook in jq-core); its first run assigns every
+   unbuilt signature outside the 13 to a ticket (`toboolean/0` is in no list). The formats ticket
+   names `@urid` (`"%41"|@urid` → `"A"`). The hand-cases ticket is also blocked by the `fromjson`,
+   12-math and host-zone tickets.

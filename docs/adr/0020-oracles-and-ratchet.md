@@ -276,11 +276,15 @@ Accepted 2026-11-12, architect under `/run-spec` #56, on the designer's draft fo
 - Each `builtins-<family>-v1` calls its family's spec-4 builtins and the family's earlier ones, and
   none of spec 3's path builtins.
 - Every builtin is also called on the other kinds under `try … catch .`, so error text is compared.
-- `builtins-dates-v1` runs under `TZ=UTC` and draws only recorded conversions (ADR-0052).
+- `builtins-dates-v1` runs under `TZ=UTC` and draws only recorded conversions (ADR-0052). It calls
+  no zone reader: not `localtime`, not `strflocaltime`, and no `%s` in a format. The host-zone
+  ticket's recorded cases, under `TZ=UTC`, Asia/Tokyo and America/New_York, are their check.
 - `builtins-regex-v1` draws only constructs that ADR-0053's matrix shows identical.
 - `builtins-math-v1` prints an exact builtin's result raw. A computed one's, when normal, prints as
   `[logb, (significand * 4294967296 | rint)]`, made of exact functions only (ADR-0051). It never
-  calls the 12 of the last math ticket.
+  calls the 12 of the last math ticket. A computed result that is not normal prints as
+  `[class, copysign(1; .)]` for zero, subnormal and infinite, and as `"nan"` for NaN, so its sign
+  is checked too.
 - Each generator ticket records enough seeds to keep 200 after drops.
 
 ## Amendment (spec 5 round 1)

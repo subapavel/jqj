@@ -40,9 +40,9 @@ jq-ref's C library is glibc, which is LGPL; musl is not what jq-ref runs. `java.
 - **The zone readers** are `localtime`, `strflocaltime`, and `strptime` and `strftime` for `%s`
   (`0|strftime("%s")` → `"-32400"` under Asia/Tokyo, F-67); `strptime` reads the host zone for `%s`
   (A: `"1425599507"|strptime("%s")` → `[2015,2,5,23,51,47,4,63]` under `TZ=UTC`,
-  `[2015,2,6,8,51,47,5,64]` under Asia/Tokyo; F-67). They are not pure (spec 3's Facts). They come
-  in one host-zone ticket, whose passing jq.test and man.test cases also pass under Asia/Tokyo and
-  America/New_York (GATE check 1).
+  `[2015,2,6,8,51,47,5,64]` under Asia/Tokyo; F-67). They are not pure (spec 3's Facts), `strftime`
+  and `strptime` included. They come in one host-zone ticket, whose passing jq.test and man.test
+  cases also pass under Asia/Tokyo and America/New_York (GATE check 1).
 - **An unknown `TZ`** is UTC (ADR-0020) with an empty zone name (A: `strflocaltime("%Z")` →
   "unknown system failure"). The host-zone ticket either mirrors it or adds a row.
 - `DEVIATIONS.md` "zone abbreviations" covers LMT eras (P4: `LMT +0918`; the JDK never names one
