@@ -1,6 +1,6 @@
 # Build, CI and gates
 
-Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15); amended by ADR-0023 (issue #17: the fallbacks fire at any spec gate); amended by F-19 (spec 1 grilling: who measures the gate steps); amended by F-27 (PIT leaves the ticket gate); amended by F-28 (owner at PR #48: step-1 target, spec-gate PIT target, trailer waiver); amended by F-46 (#89: the ticket gate's step 1 adds `-Pcompile-oracle`); F-38 require path amended by #84
+Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and built?"); replaces `docs/WORKFLOW.md` §6 together with ADR-0020; amended by ADR-0020 (issue #15); amended by ADR-0023 (issue #17: the fallbacks fire at any spec gate); amended by F-19 (spec 1 grilling: who measures the gate steps); amended by F-27 (PIT leaves the ticket gate); amended by F-28 (owner at PR #48: step-1 target, spec-gate PIT target, trailer waiver); amended by F-46 (#89: the ticket gate's step 1 adds `-Pcompile-oracle`); F-38 require path amended by #84; amended by F-84 (spec-gate PIT: the two slow test classes leave PIT's test set, oracle's classpath join, `threads`)
 
 - **Toolchain:**
   - Maven wrapper 3.3.4 (`only-script`) with Maven 3.9.x, `--release 25`, `-Xlint:all -Werror`, no
@@ -42,7 +42,7 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
 - **The spec gate** is `scripts/gate-spec.sh <spec>`:
   1. `clean verify -Pbench`;
   2. PIT on whole class-C modules (with oracle's crossModule run, #45). **Target (F-28): under 45 min
-     alone on `claude-cloud-4vcpu`; above that, ADR-0020's seed fallback by a finding.**
+     alone on `claude-cloud-4vcpu`; above that, ADR-0020's seed fallback by a finding.** **F-84: the seed fallback does not reach a module's own tests; there, the slow test classes leave PIT's test set first, then `threads` 2.**
   3. JMH (`benchmarks.jar -prof gc -rf json '\.Gates\.'`): the `Gates` benchmarks only, so a
      diagnostic class never reaches `bench.tsv` (#102, ADR-0019, ADR-0024);
   4. `ratchet.java regen --all`.
