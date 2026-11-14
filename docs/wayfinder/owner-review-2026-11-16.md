@@ -85,7 +85,7 @@ names its record; the reasons are there. A "no" on an item reopens that record, 
 - Ticket approval, spec 5b (2026-11-14, grilling-adviser for the owner under the delegation of
   2026-11-14): R1, R2, R4 and R6 change owner-accepted ADR-0022 and a published 5a ticket.
 
-## Spec 7 (not yet published; `docs/wayfinder/spec-7-grilling.md`)
+## Spec 7 (#174; `docs/wayfinder/spec-7-grilling.md`)
 
 Round 1 (2026-11-14), proposed by the grilling-adviser for the owner under the delegation of
 2026-11-14:
