@@ -24,7 +24,7 @@ names its record; the reasons are there. A "no" on an item reopens that record, 
 - The pending jump carries closure arguments (ADR-0047).
 - `stackBytes` 0 is a public setting: everything runs on the trampoline (ADR-0046).
 
-## Spec 3 (`docs/wayfinder/spec-3-grilling.md`; not yet published)
+## Spec 3 (3a #152, 3b #164; `docs/wayfinder/spec-3-grilling.md`)
 
 - ADR-0010's Bind rule ("bound values run in value mode") gives way to `Tracking` (F-59, ADR-0048).
 - `debug` and `stderr` arrive in spec 3a, not in specs 5 and 7; GATE check 2 says so (F-61).
@@ -52,7 +52,7 @@ names its record; the reasons are there. A "no" on an item reopens that record, 
   row in the strings ticket, far instants at the zone's standard offset after jq-ref's last daylight
   instant.
 
-## Spec 5 (`docs/wayfinder/spec-5-grilling.md`; not yet published)
+## Spec 5 (5a #136, 5b after round 2; `docs/wayfinder/spec-5-grilling.md`)
 
 - ADR-0016 (F-71): `Workspace.read(JsonInputs)`, `-n` leaves `InputOptions`, the `OutputOptions`
   withers.
