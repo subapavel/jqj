@@ -125,7 +125,7 @@ applies to it.
 | none yet | `-c .` | `1\x002` | `1` | nothing printed, "Invalid character" at the NUL, rc 5 |
 | none yet | `-c .` | `[1\x00x,2]` | `[1,2]` | error at the NUL |
 | `json/n_multidigit_number_then_00` (`deviation nul`) | `-c .` | JSONTestSuite `n_multidigit_number_then_00.json` (`123\x00`) | `123`, rc 0 | empty stdout, `jq: parse error: Invalid character at line 1, column 4`, rc 5 |
-| none yet | `try fromjson catch .` | `"1\u0000]"` | to probe on jq-ref | the text ends `(while parsing '1')`, cut at the NUL as jq's `%.*s` cuts it |
+| none yet | `try fromjson catch .` | `"1\u0000]"` | `"Unmatched ']' at line 1, column 3 (while parsing '1')"` (jq-ref 1.8.2) | "Invalid character" at the NUL; the text also ends `(while parsing '1')` |
 
 Reason: bytes would hide behind a NUL in a host's message. jq's master makes one change to
 `classify`: NUL is class INVALID, and nothing else differs. jq 1.8.2's `scan` already holds

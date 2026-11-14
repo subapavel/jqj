@@ -267,7 +267,7 @@ Facts were observed on jq-ref 1.8.2 (P1–P7 and the adviser's probes), with jq 
   - `-e` and `--unbuffered` stay in jq-cli. `-e` reads the last output (`true false` → rc 1;
     `select(.)` on `true false` → rc 0).
   - jq's interactions, each a required case:
-    - under `-a` a string is written as JSON even when raw (`-r -a` on `"é","abc"` → `"é"`,
+    - under `-a` a string is written as JSON even when raw (`-r -a` on `"é","abc"` → `"\u00e9"`,
       `"abc"`), and `--raw-output0 -a` prints a string holding NUL;
     - `--seq` writes RS before every result except a raw string (`--seq -r '"a",1'` →
       `a\n\x1e1\n`);
