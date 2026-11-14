@@ -292,6 +292,10 @@ null
 ?
 jq: error: syntax error, unexpected '?', expecting end of file at <top-level>, line 1, column 1:
 
+null | "a"?
+null
+"a"
+
 CASES
 out=$tmp/fixture.tsv
 CENSUS_TESTS=$fx java "$tool" write "$out" > "$tmp/write.log" 2>&1
@@ -371,7 +375,8 @@ check "? after end is a try" "$(awk -F'\t' '$4 == "x.test:259" { print $6 }' "$o
 check "end before : in a postfix bracket closes its if: the outer ] builds an array" \
   "$(awk -F'\t' '$4 == "x.test:263" { print $6 }' "$out")" "if term?"
 check "%%FAIL a leading ?: the parser" "$(at "$out" x.test:267)" "2a S2a.12"
-check "every fixture case has a line" "$(grep -vc '^#' "$out")" 67
+check "? after a string after another token is a try" "$(tix "$out" x.test:271)" "S2a.11,S2a.18"
+check "every fixture case has a line" "$(grep -vc '^#' "$out")" 68
 has "why names the deciding builtin" "_match_impl" "$out"
 CENSUS_TESTS=$fx java "$tool" verify "$out" > "$tmp/verify.log" 2>&1
 check "fixture: the list is reproduced" "$?" 0
