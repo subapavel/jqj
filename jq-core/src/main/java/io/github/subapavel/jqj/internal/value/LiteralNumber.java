@@ -36,6 +36,9 @@ public final class LiteralNumber implements JqNumber, Literal {
   private final double doubleValue;
   private final boolean fitsLong;
 
+  /** {@link #isShort(byte[], byte[])} of the token, computed once. */
+  private final boolean isShort;
+
   private LiteralNumber(String token) {
     this(token, fitsLong(token));
   }
@@ -62,6 +65,7 @@ public final class LiteralNumber implements JqNumber, Literal {
     this.canonical = text.toString().getBytes(US_ASCII);
     this.doubleValue = CanonicalForm.toDouble(this.token, 0, this.token.length);
     this.fitsLong = fitsLong;
+    this.isShort = isShort(this.token, this.canonical);
   }
 
   /**
@@ -284,6 +288,23 @@ public final class LiteralNumber implements JqNumber, Literal {
 
   @Override
   public boolean isShort() {
-    return token.length <= SHORT && Arrays.equals(token, canonical);
+    return isShort;
+  }
+
+  /**
+   * ADR-0012's short token, as the reader's CANONICAL flag gives it to a view: at most {@link #SHORT} bytes, equal to
+   * the canonical form and without an exponent. A canonical exponent token such as {@code 1E+400}, {@code 1E-400} or
+   * {@code 1.5E-323} has a double (+Infinity, 0, a rounded subnormal) that does not order it as its decimal does.
+   */
+  private static boolean isShort(byte[] token, byte[] canonical) {
+    if (token.length > SHORT || !Arrays.equals(token, canonical)) {
+      return false;
+    }
+    for (byte b : token) {
+      if (b == 'E') {
+        return false;
+      }
+    }
+    return true;
   }
 }
