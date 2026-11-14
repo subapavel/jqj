@@ -174,7 +174,10 @@ final class ParseAssertions {
     return "(" + kind + " " + name + " = " + first + " | " + shape(each, inner, met) + ")";
   }
 
-  /** An alternative's match, its Binds as {@link #shape} prints them; {@code leaf} gets the scope at its leaf. */
+  /**
+   * An alternative's match, its Bind and Binds nodes as {@link #shape} prints them (a Binds as its chain of Binds,
+   * ADR-0043); {@code leaf} gets the scope at its leaf, the innermost body of that chain.
+   */
   private static String match(Node node, Map<Integer, String> scope, int[] met, Map<Integer, String> leaf) {
     if (node instanceof Bind b) {
       String name = "$" + met[0]++;
@@ -182,6 +185,16 @@ final class ParseAssertions {
       Map<Integer, String> inner = new HashMap<>(scope);
       inner.put(b.slot(), name);
       return "(" + value + " as " + name + " | " + match(b.body(), inner, met, leaf) + ")";
+    }
+    if (node instanceof Binds b) {
+      StringBuilder chain = new StringBuilder();
+      Map<Integer, String> inner = new HashMap<>(scope);
+      for (int k = 0; k < b.values().size(); k++) {
+        String name = "$" + met[0]++;
+        chain.append('(').append(shape(b.values().get(k), inner, met)).append(" as ").append(name).append(" | ");
+        inner.put(b.slots().get(k), name);
+      }
+      return chain + match(b.body(), inner, met, leaf) + ")".repeat(b.values().size());
     }
     leaf.putAll(scope);
     return shape(node, scope, met);

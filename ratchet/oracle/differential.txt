@@ -515,6 +515,10 @@ bind/var-body-sees-input-and-slot	63aa1ac276ea	interpreter
 bind/var-empty-source	bdddf48eb5d8	interpreter
 bind/var-inner-shadows-outer	4446431c8630	interpreter
 bind/var-per-result	76d1858303b8	interpreter
+binds/interpolation-of-70-parts-last-part-outermost	2d1e0d033ca8	interpreter
+binds/object-of-70-computed-keys-in-jq-order	b84c04f1da76	interpreter
+binds/object-of-70-constant-keys-in-jq-order	4bafd4244040	interpreter
+binds/pattern-of-70-keys-first-key-outermost	e57c537830a8	interpreter
 chains/and-or-of-generators-in-jq-order	5183a0f807f9	interpreter
 chains/assignment-under-alternative-is-inner-levels	9da2fad7ecaa	interpreter
 chains/comparisons-in-and-or	fb8a9bfd11b5	interpreter
