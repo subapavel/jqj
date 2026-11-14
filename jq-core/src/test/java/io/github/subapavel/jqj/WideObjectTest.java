@@ -95,6 +95,14 @@ class WideObjectTest {
    */
   private static final byte[] WIDE_PAIR = pair(WIDE_OBJECT, reversed(WIDE, i -> "k" + i));
 
+  /**
+   * {@link #WIDE_PAIR} with the right side's {@code k99999}, its first member, renamed {@code x99999}: one length, so
+   * one byte size. jq-ref 1.8.2, observed 2026-11-14 ({@code .logs/95-jqref.log}): built as {@link #WIDE_PAIR} with that
+   * key, {@code -sc .} prints it in 2 955 566 bytes with the LF, the second object's first member
+   * {@code "x99999":99999}, and {@code .[0] == .[1]} gives false.
+   */
+  private static final byte[] WIDE_PAIR_RENAMED = pair(WIDE_OBJECT, reversed(WIDE, i -> (i == WIDE - 1 ? "x" : "k") + i));
+
   /** {@code 0} to {@code n - 1}, the texts of the members' values. */
   private static List<String> indexes(int n) {
     String[] texts = new String[n];
@@ -219,6 +227,19 @@ class WideObjectTest {
     assertThat(WIDE_PAIR).as("[W,Wrev] of 10^5 keys, jq-ref's -c line without its LF").hasSize(2_955_565);
     assertGives(".[0] == .[1]", WIDE_PAIR, 302_888, "true", "[W,Wrev] of 10^5 keys");
     assertEnds(".[0] == .[1]", false, WIDE_PAIR, 302_887, "[W,Wrev] of 10^5 keys");
+  }
+
+  @Test
+  @Timeout(value = 5, unit = SECONDS, threadMode = ThreadMode.SEPARATE_THREAD)
+  void missesTheLastKeyTenToTheFiveKeys() {
+    // ADR-0044 as amended by #95: the left side's last key, k99999, is the first one the right side lacks. Read 2 887,
+    // .[1] 1, the left proof 10^5, the right side's proof 10^5, the lookups of k0 to k99999 in its table none (found or
+    // not), then the 99 999 member pairs before the miss, in left key order, as jq compares (no size check first):
+    // 2 887 + 1 + 2 * 10^5 + 99 999 = 302 887 complete and 302 886 end. Before #95 the run ends in the second pair's
+    // scan of the right side's 10^5 keys.
+    assertThat(WIDE_PAIR_RENAMED).as("[W,Wrev] with x99999 for k99999 on the right, jq-ref's -c line without its LF").hasSize(2_955_565);
+    assertGives(".[0] == .[1]", WIDE_PAIR_RENAMED, 302_887, "false", "[W,Wrev] with x99999 on the right");
+    assertEnds(".[0] == .[1]", false, WIDE_PAIR_RENAMED, 302_886, "[W,Wrev] with x99999 on the right");
   }
 
   @Test
