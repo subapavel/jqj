@@ -46,8 +46,8 @@ import java.lang.foreign.MemorySegment;
  * other object with an equal value, and then by the two key counts. The walk keeps its open containers on a stack of
  * its own, never in Java frames, and charges one tick per member pair it compares, one per key of a built right object
  * it counts and one per started KiB of the shorter of two strings it compares (ADR-0008, ADR-0034 amendment for #65); a
- * view's own walks charge theirs, a view's key proofs included (ADR-0044): its left side's walk and its right side's
- * count.
+ * view's own walks charge theirs, a view's key proofs included (ADR-0044): its left side's walk, and a read right
+ * side's {@link KeyIndex}, which looks each left key up once (ADR-0044 as amended by #95).
  */
 public final class Equality {
   /** jq's {@code MAX_EQUAL_DEPTH}. */
@@ -94,7 +94,11 @@ public final class Equality {
               // The proof checks a view's document before the identity check, as length does an array's.
               Members left = KeyProof.members(state, p);
               if (!p.equals(q)) {
-                inner = new Values(left, q, depth + 1);
+                inner =
+                    switch (q) {
+                      case ObjectView view -> new Indexed(left, KeyProof.index(state, view, left), depth + 1);
+                      case BuiltObject built -> new Values(left, built, depth + 1);
+                    };
               }
               yield true;
             }
@@ -197,17 +201,17 @@ public final class Equality {
   }
 
   /**
-   * jq's {@code jvp_object_equal}: each key of the left object in its key order with its value, the right object's value
-   * of the same key; a key the right object lacks makes them unequal at once. After the last key they are equal when
-   * the right object has no other key: a built one counts its keys with one tick each, a view's size is its proof's.
+   * jq's {@code jvp_object_equal} against a built right object: each key of the left object in its key order with its
+   * value, the right object's value of the same key; a key the right object lacks makes them unequal at once. After the
+   * last key they are equal when the right object has no other key, which it counts with one tick per key.
    */
   private static final class Values extends Walk {
     private final Members left;
-    private final JqObject right;
+    private final BuiltObject right;
     private int cursor;
     private int matched;
 
-    Values(Members left, JqObject right, int depth) {
+    Values(Members left, BuiltObject right, int depth) {
       super(depth);
       this.left = left;
       this.right = right;
@@ -217,17 +221,46 @@ public final class Equality {
     @Override
     int next(RunState state) {
       if (cursor == -1) {
-        int keys =
-            switch (right) {
-              case ObjectView view -> KeyProof.walk(state, view, false).size();
-              case BuiltObject built -> {
-                state.tick(built.size());
-                yield built.size();
-              }
-            };
-        return keys == matched ? DONE : UNEQUAL;
+        state.tick(right.size());
+        return right.size() == matched ? DONE : UNEQUAL;
       }
-      JqValue value = ((Keyed) right).get(state, ((Keyed) left).key(cursor).value());
+      JqValue value = right.get(state, ((Keyed) left).key(cursor).value());
+      if (value == null) {
+        return UNEQUAL;
+      }
+      x = left.member(state, cursor);
+      y = value;
+      cursor = left.next(state, cursor);
+      matched++;
+      return PAIR;
+    }
+  }
+
+  /**
+   * jq's {@code jvp_object_equal} against a read right object, through its {@link KeyIndex} (ADR-0044 as amended by
+   * #95): each key of the left object in its key order with its value, the right object's last value of the same key,
+   * which the index found; a key the right object lacks makes them unequal at once. After the last key they are equal
+   * when the right object has no other key, as the index's size tells.
+   */
+  private static final class Indexed extends Walk {
+    private final Members left;
+    private final KeyIndex right;
+    private int cursor;
+    private int matched;
+
+    Indexed(Members left, KeyIndex right, int depth) {
+      super(depth);
+      this.left = left;
+      this.right = right;
+      this.cursor = left.first();
+    }
+
+    @Override
+    int next(RunState state) {
+      if (cursor == -1) {
+        return right.size() == matched ? DONE : UNEQUAL;
+      }
+      JqValue value = right.value(matched);
       if (value == null) {
         return UNEQUAL;
       }
