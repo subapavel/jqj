@@ -103,6 +103,15 @@ class WideObjectTest {
    */
   private static final byte[] WIDE_PAIR_RENAMED = pair(WIDE_OBJECT, reversed(WIDE, i -> (i == WIDE - 1 ? "x" : "k") + i));
 
+  /**
+   * {@code [C,Crev]}: {@link #COLLIDING_OBJECT}, then its members in reverse order. jq-ref 1.8.2, observed 2026-11-14
+   * ({@code .logs/95-jqref.log}): the two objects built by {@code from_entries} from {@link #blocks}' rule, over
+   * {@code range(32768)} and {@code range(32767; -1; -1)}, slurped by {@code -sc .}, print it in 2 533 690 bytes with the
+   * LF, the second object's first member {@code "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB":32767}, {@code map(length)} gives
+   * {@code [32768,32768]} and {@code .[0] == .[1]} gives true.
+   */
+  private static final byte[] COLLIDING_PAIR = pair(COLLIDING_OBJECT, reversed(COLLIDING, WideObjectTest::blocks));
+
   /** {@code 0} to {@code n - 1}, the texts of the members' values. */
   private static List<String> indexes(int n) {
     String[] texts = new String[n];
@@ -253,5 +262,26 @@ class WideObjectTest {
     assertAll(
         () -> assertIterates(COLLIDING_OBJECT, 558_294, indexes(COLLIDING), "2^15 colliding keys"),
         () -> assertPrints(COLLIDING_OBJECT, 558_294, line(COLLIDING_OBJECT), "2^15 colliding keys"));
+  }
+
+  @Test
+  @Timeout(value = 5, unit = SECONDS, threadMode = ThreadMode.SEPARATE_THREAD)
+  void equalsAReorderedCopyOfCollidingKeys() {
+    // ADR-0044 as amended by #95, on keys that share one hash: 2 533 689 bytes read, 2 475 ticks; .[1] 1. Each side's
+    // proof runs out of probes and sorts: n = 2^15 entries, the merge sort's compares, then n - 1 compares of neighbours.
+    // Block b of a key is bit b of its index and the blocks compare first to last, so a merge at width w joins two runs
+    // that differ only in bit log2 w, the last block that orders them: it interleaves them in 2w - 1 compares, 14 n + 1
+    // over the 15 widths, in either order. Each proof is 16 n = 524 288 (measured before #95: .[0] | length takes
+    // 2 475 + 16 n, .[1] | length 2 476 + 16 n, and collidingKeys' .[] exactly its 558 294). The right side's key index
+    // then finds each left key by a binary search among its 2^15 sorted keys, one tick per compare; the ADR leaves the
+    // search's shape open, so its count is bounded, not pinned. At least the depths of 2^15 nodes of a search tree, the
+    // sum of floor(log2 i) + 1 for i = 1 to 2^15 = 458 769 (a midpoint search takes exactly that); then 2^15 member
+    // pairs: 2 476 + 2 * 524 288 + 458 769 + 32 768 = 1 542 589, so 1 542 588 end. The completing bound is the
+    // designer's, from the ADR's worst cases: read and .[1] 2 476, each proof n + n + n * 15 = 17 n, the lookups
+    // n * ceil(log2(d + 1)) = 16 n, the pairs n: 1 673 644. Before #95 each pair's field read scans the right side's
+    // 2^15 keys, and the run ends within 35 of them.
+    assertThat(COLLIDING_PAIR).as("[C,Crev] of 2^15 colliding keys, jq-ref's -c line without its LF").hasSize(2_533_689);
+    assertGives(".[0] == .[1]", COLLIDING_PAIR, 1_673_644, "true", "[C,Crev] of 2^15 colliding keys");
+    assertEnds(".[0] == .[1]", false, COLLIDING_PAIR, 1_542_588, "[C,Crev] of 2^15 colliding keys");
   }
 }
