@@ -1,6 +1,6 @@
 # Milestone 1: the final gate and the specs in build order
 
-Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`); amended by F-19 (spec 1 grilling: the API slice and the last ticket's measurements); amended by F-27 (both fallbacks fired at spec 1); amended by F-33 (G3 in spec 2a); amended by spec 4 grilling round 1 (one spec, builtin coverage at spec 4's gate, GATE's check 2 host-facing list and spec rows 2 and 4); amended by spec 5 round 1 (the 5a/5b split, F-76's census rows, `$__prog_args`, ADR-0054's hand-out); amended by spec 3 grilling rounds 1–2 (3a and 3b, G5 in 3a, spec 4 beside 3b) and F-61 (`debug` and `stderr` in 3a)
+Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`); amended by F-19 (spec 1 grilling: the API slice and the last ticket's measurements); amended by F-27 (both fallbacks fired at spec 1); amended by F-33 (G3 in spec 2a); amended by spec 4 grilling round 1 (one spec, builtin coverage at spec 4's gate, GATE's check 2 host-facing list and spec rows 2 and 4); amended by spec 5 round 1 (the 5a/5b split, F-76's census rows, `$__prog_args`, ADR-0054's hand-out); amended by spec 3 grilling rounds 1–2 (3a and 3b, G5 in 3a, spec 4 beside 3b) and F-61 (`debug` and `stderr` in 3a); amended by F-78 (`malformed-v1`'s minimum, spec 5a tickets)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #17 round 1 and the ADR
 review). Each rule says whether it is the owner's answer or the architect's choice.
@@ -191,3 +191,14 @@ Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026
   branch, shares AGENTS.md's three-writer cap, and edits no Operation, licence or Owner code. 3b
   lands first, and spec 4 merges main before its diagnostics ticket and gate (`sub` needs 3b's
   append). This reads spec 4's "It needs spec 3a, not 3b" above as "to start".
+
+## Amendment (spec 5a tickets; F-78)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14.
+
+- **Generator minimums** (check 2) gain `malformed-v1`: at least 200 cases per form in
+  `differential.txt`, counted after ADR-0020's drops, as for each builtin family. Its six forms
+  are ADR-0020's (`-c .`, `try input catch .`, `-s`, `--seq`, `--stream`, `fromjson`).
+- `docs/GATE.md` check 2 names it. Changing a GATE check is the owner's to confirm (2026-11-16).
+- **A missing input file** (spec 5a, above) ends the run with rc 2, which replaces a parse error's
+  5 and `-e`'s code; with the missing file first the main loop stops after one value (ADR-0015).

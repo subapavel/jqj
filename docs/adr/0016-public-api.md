@@ -1,6 +1,6 @@
 # Public API: engine, filter, Workspace, documents and values
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12), ADR-0020 (issue #15) and ADR-0024 (#24: kinds, exception shapes, F-20); amended by ADR-0026 (accessor edges); amended by ADR-0027 (JsonWriter sinks); amended by ADR-0031 (compile-error blocks, #61); amended by ADR-0053 (the Workspace's regex pattern cache, spec 4); amended by spec 5 round 1 (F-71: `Workspace.read(JsonInputs)`, `-n` out of `InputOptions`, `JsonInputs`' position; the `OutputOptions` withers) and ADR-0054 (`stream`)
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12), ADR-0020 (issue #15) and ADR-0024 (#24: kinds, exception shapes, F-20); amended by ADR-0026 (accessor edges); amended by ADR-0027 (JsonWriter sinks); amended by ADR-0031 (compile-error blocks, #61); amended by ADR-0053 (the Workspace's regex pattern cache, spec 4); amended by spec 5 round 1 (F-71: `Workspace.read(JsonInputs)`, `-n` out of `InputOptions`, `JsonInputs`' position; the `OutputOptions` withers) and ADR-0054 (`stream`); spec 5a tickets (position, read results, resume, bad arguments)
 
 Type and method names are binding from the first publish; until then a rename is one mechanical
 ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1).
@@ -164,3 +164,43 @@ Proposed 2026-11-14 by the grilling-adviser for the owner under the delegation o
   - element documents on one reused tape;
   - a whole read and `run` when the target is no array or the path is missing;
   - nothing read after a stop.
+
+## Amendment (spec 5a tickets)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14. Facts:
+jq-ref 1.8.2; `util.c` and `jv_parse.c` at the tag.
+
+- **Position.** `InputPosition JsonInputs.position()`, with
+  `record InputPosition(String fileName, long line)`.
+  - It is null before the first read (`(at <unknown>)`; `-n`
+    `[input_filename, input_line_number]` → `[null,0]`).
+  - `fileName` is the current `JsonSource`'s name, and jq-cli names standard input `<stdin>`
+    (`echo 1 | jq -c '[input_filename, input_line_number]'` → `["<stdin>",1]`). It is null only
+    for `JsonInputs.of(List<MemorySegment>)`.
+  - `line` counts the current source's read blocks that end in LF, so it is the reader's
+    position, not the returned document's (files `[4,\n` and `5]\n6` → `[[4,5],"d",1]`). After
+    the end of the stream it stays at the last source.
+- **What `read(JsonInputs)` returns.** Always a `JsonDoc` under the Workspace-document rule.
+  - `-s`: one document with the synthetic root array (`[]` on empty input), then null.
+  - `-Rs`: one, its root the built string (`""` on empty input), then null.
+  - `-R`: one per line, its root a built string.
+  - `--stream`: one per event, its root the built event. `-s --stream`: one, the array of events.
+  - A `JsonDoc` with a built root has no tape.
+- **A read after a `JqSyntaxException`** continues as jq's parser does after a caught `input`
+  error; the main read and `input` share the rule.
+  - Outside `--seq` the rest of the current read block is dropped, and line and column do not
+    advance over it (`1 x]\n2\n` under `[., (try input catch .)]` →
+    `[1,"Invalid numeric literal at line 1, column 4"]`, `[2,"break"]`).
+  - Under `--seq` nothing is dropped and the parser waits for the next RS.
+  - An error at EOF ends the stream, so the next read returns null. "Malformed BOM" is thrown
+    again by every later read.
+  - Under `-s` a syntax error ends the read with the error and no array (`1 x] 2\n3\n` →
+    "Invalid numeric literal at line 1, column 4", rc 5).
+- **Bad arguments.** `indent(int)` outside 0..7 and a `color(String)` that `jq_set_colors`
+  rejects throw `IllegalArgumentException`. jq-cli prints jq's lines: "jq: --indent takes a number
+  between -1 and 7" (rc 2); "Failed to set $JQ_COLORS", default colours kept.
+
+All probes in this text were observed; the architect re-ran them and corrected the `-s` sentence
+(the draft's `[1,3]` was not observed). Reason for the changes: the draft's "null on stdin" and
+unconditional block drop contradict jq-ref, and `int line` can overflow on an unbounded channel.
+Cost: none.

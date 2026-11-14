@@ -1,6 +1,6 @@
 # JSON reader and writer: jq's grammar, jq's messages by replay, a byte[] loop
 
-Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits); amended by F-22 (depth counting); F-24 open (whole-container copy and whitespace); amended by ADR-0030 (run state, #59); amended by spec 4 grilling round 1 (`fromjson` in spec 4, #99); amended by spec 5 round 1 (F-71 to F-76: `JvParser`'s two modes, the replay start, lenient tokens, virtual read blocks, NUL, `-R` per block, `--seq`, the main loop, writer options) and ADR-0054 (host streaming)
+Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits); amended by F-22 (depth counting); F-24 open (whole-container copy and whitespace); amended by ADR-0030 (run state, #59); amended by spec 4 grilling round 1 (`fromjson` in spec 4, #99); amended by spec 5 round 1 (F-71 to F-76: `JvParser`'s two modes, the replay start, lenient tokens, virtual read blocks, NUL, `-R` per block, `--seq`, the main loop, writer options) and ADR-0054 (host streaming); amended by the spec 5a ticket approval (missing files)
 
 jq-ref 1.8.2 decides what the reader accepts and what it prints. The adviser ran every rule below
 on it (issue #11 round 1, commands K1–K8) and read jq-1.8.2's `jv_parse.c`, `jv_unicode.c`,
@@ -252,8 +252,8 @@ Facts were observed on jq-ref 1.8.2 (P1–P7 and the adviser's probes), with jq 
   - `-n` belongs to the command line: it runs once on null (`-ns .` → `null`, `-ns [inputs]` →
     `[[1,2]]`; `[input_filename, input_line_number]` → `[null,0]`).
   - Before any read the position is `(at <unknown>)`.
-  - A missing file prints "jq: error: Could not open file nope: No such file or directory"; the
-    other files still run, rc 2.
+  - A missing file prints "jq: error: Could not open file nope: No such file or directory", and
+    rc 2 ends the run (corrected at the spec 5a ticket approval, below).
   - `-s` with a parse error prints nothing, rc 5; `-s --stream` with an error prints no events;
     `-s --seq` skips bad texts and still prints its one array.
   - `path(input)` → "Invalid path expression with result 1".
@@ -280,3 +280,17 @@ Facts were observed on jq-ref 1.8.2 (P1–P7 and the adviser's probes), with jq 
     - a raw string is never coloured, and `[]` and `{}` are coloured as one unit.
 - `NOTICE` lists `JvParser` (`jv_parse.c`), the colour layout and `jq_set_colors` (`jv_print.c`),
   and the shtest translation.
+
+## Amendment (spec 5a ticket approval: missing files)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14. Observed
+on jq-ref 1.8.2 by the adviser and the architect, with `ok1` = `1\n2\n` and `ok2` = `3\n`. This
+replaces "the other files still run" in the spec 5 round 1 amendment above.
+
+- A missing file prints "jq: error: Could not open file <f>: No such file or directory".
+- The run ends with rc 2, which replaces a parse error's 5 and `-e`'s code (`main.c` 704).
+- With the missing file first, the main loop stops after one value: `jq -c . nope ok1 ok2` → `1`.
+  The loop tests the open-failure count before each read (`main.c` 679).
+- With the missing file later, the other files run: `jq -c . ok1 nope ok2` → `1`, `2`, `3`.
+- `[inputs]` reads all the files that exist: `jq -nc '[inputs]' ok1 nope ok2` → `[1,2,3]`.
+- jq-cli can do this with a `JsonSource` channel that opens at its first read.

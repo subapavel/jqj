@@ -181,3 +181,46 @@ Open for the tickets: what `Workspace.read(JsonInputs)` returns under `-R`, `-Rs
 where a read after a `JqSyntaxException` starts outside `--seq`; the names of `JsonInputs`'
 position accessors; bad `indent` and `JQ_COLORS` values; whether today's reader writes NONFINITE;
 whether `malformed-v1` gets a GATE check 2 minimum.
+
+## Ticket approval (grilling-adviser for the owner, 2026-11-14)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14. 5a's 15
+tickets are approved for publishing with the changes below; 5b is not published yet (6f). The
+architect re-ran the probes on jq-ref 1.8.2; where the two differ, the architect's run stands.
+1. Order and edges stand as tabled, with three changes: S5a.9 names the one 3a ticket that makes
+   `tostream` pass; T6, T9 and T14 publish without `ready-for-agent` until their spec 3a and spec 4
+   blockers have issue numbers; T7 ← T4 and T7 ← T11 are serialising edges (one jq-cli main loop
+   and option parser). S5a.5 before S5a.4 and S5a.7 before S5a.6 are approved.
+2. ADR-0016 gains "Amendment (spec 5a tickets)": `InputPosition(String fileName, long line)`,
+   what `read(JsonInputs)` returns per mode, the read after a `JqSyntaxException`, bad arguments.
+   The architect's run corrected its `-s` sentence: `1 x] 2\n3\n` under `-s` prints no array,
+   "Invalid numeric literal at line 1, column 4", rc 5.
+3. `malformed-v1` (S5a.1): more mutations, 1 800 seeds (300 per form, `seed % 6`) and bound floors
+   written beforehand. The diagnostics (S5a.2) take round 1's list (question 11). T5 carries the
+   NOTICE line for `jq_util_input_read_more` (`src/util.c`); T8 extends it (a ticket matter).
+4. Classes confirmed: S5a.1, S5a.2, S5a.12, S5a.13 and S5a.15 are B. A public name or behaviour
+   outside ADR-0016 raises S5a.12 or S5a.13 to C by a ticket comment.
+5. `--unbuffered` belongs to S5a.7 (the main loop flushes after each result, `main.c` 207).
+   `malformed-v1` has GATE check 2's minimum of 200 per form after drops (F-78, ADR-0023).
+6. Changes before publishing:
+   - a. **Correction to round 1, question 3** (and F-72): the two texts were swapped. `{"a":}`
+     under `--stream` → "Missing value in key:value pair at line 1, column 6"; without it →
+     "Unmatched '}' at line 1, column 6", rc 5 both (`jv_parse.c` 396 and 221).
+   - b. **Correction to round 1, A5**: a missing file does not let every other file run. With
+     `ok1` = `1\n2\n`, `ok2` = `3\n`: `jq -c . nope ok1 ok2` → `1`, rc 2 (the main loop tests the
+     open-failure count before each read, `main.c` 679); `jq -c . ok1 nope ok2` → `1`, `2`, `3`,
+     rc 2; `jq -nc '[inputs]' ok1 nope ok2` → `[1,2,3]`, rc 2. Rc 2 replaces a parse error's 5 and
+     `-e`'s code (`main.c` 704). ADR-0015 is amended.
+   - c. `input_filename` on stdin is `"<stdin>"` (`echo 1 | jq -c '[input_filename,
+     input_line_number]'` → `["<stdin>",1]`); only `-n` gives `[null,0]`. T5 drops "null on stdin".
+   - d. **Correction to round 1, question 9**: `-r -a` on `"é"` prints `"é"` (architect's
+     probe), as ADR-0015 already says. T12's red says so.
+   - e. T6's F-77 cases and `path(input)` hold only under `-n`. Without it,
+     `def f(g): [g, g]; input | f(., input)` on `1 2 3` → "jq: error (at <stdin>:0): break", rc 5,
+     no output; with `-n` → `[1,2,1,3]`, rc 0.
+   - f. 5b's spec issue and tickets are not published before round 2 (WORKFLOW §3 step 1 wants the
+     grilling frontier empty first). Its shape is round 2's input; U2 and U3 gain "Part of".
+
+Missing facts: `jq_set_colors`' validity rule (T13 reads `jv_print.c`); the issue numbers of the
+3a Facts ticket, the 3a `tostream` ticket and S4.3; the fast loop's cost with the boundary compare
+(T2, then T3 and T5); a BOM in a second file (T5 records it).

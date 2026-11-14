@@ -57,3 +57,10 @@ names its record; the reasons are there. A "no" on an item reopens that record, 
 - ADR-0023: the 5a/5b split; jq.test 2315, 2319, 2324, 2498 and 2563 are spec 5's (F-76).
 - ADR-0054: host streaming saves memory only on an array target, and uses one reused element tape
   where founding §6.7 says "each with its own small tape".
+- Ticket approval (2026-11-14), proposed by the grilling-adviser for the owner under the
+  delegation of 2026-11-14:
+  - F-78: `malformed-v1` gets GATE check 2's minimum of 200 cases per form after drops (ADR-0023).
+    This changes the text of GATE check 2; a change to a GATE check is the owner's to confirm.
+  - 5b is held: its spec issue and tickets are not published before its round 2.
+  - A missing input file ends the run with rc 2, replacing a parse error's 5 and `-e`'s code; a
+    missing first file stops the main loop after one value (ADR-0015, correcting round 1's A5).

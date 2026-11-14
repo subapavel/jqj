@@ -20,7 +20,8 @@ nightly PIT dispatched on the gate commit (`nightly.yml` has a manual trigger).
    `ratchet/oracle/differential.txt`.
    - **Generated cases:** at least 1000 cases in `differential.txt`, counted after ADR-0020's drops,
      each for `values-v1`, `core-v1` and `ownership-v1`, and 200 for each builtin family
-     (`builtins-<family>-v1`: collections, strings, regex, dates, math, formats). The host-facing
+     (`builtins-<family>-v1`: collections, strings, regex, dates, math, formats), and 200 for each
+     of `malformed-v1`'s six forms (F-78). The host-facing
      builtins still unbuilt (`input`, `inputs`, `env`, `halt`, `halt_error/0,1`, `input_filename`,
      `input_line_number`, `get_search_list`, `get_prog_origin`, `get_jq_origin`, `modulemeta`,
      `now`) belong to no family and arrive in specs 5 and 7 with hand-written cases; `debug/0,1` and
