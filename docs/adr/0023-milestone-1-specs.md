@@ -1,6 +1,6 @@
 # Milestone 1: the final gate and the specs in build order
 
-Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`); amended by F-19 (spec 1 grilling: the API slice and the last ticket's measurements); amended by F-27 (both fallbacks fired at spec 1); amended by F-33 (G3 in spec 2a); amended by spec 4 grilling round 1 (one spec, builtin coverage at spec 4's gate, GATE's check 2 host-facing list and spec rows 2 and 4)
+Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`); amended by F-19 (spec 1 grilling: the API slice and the last ticket's measurements); amended by F-27 (both fallbacks fired at spec 1); amended by F-33 (G3 in spec 2a); amended by spec 4 grilling round 1 (one spec, builtin coverage at spec 4's gate, GATE's check 2 host-facing list and spec rows 2 and 4); amended by spec 5 round 1 (the 5a/5b split, F-76's census rows, `$__prog_args`, ADR-0054's hand-out)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #17 round 1 and the ADR
 review). Each rule says whether it is the owner's answer or the architect's choice.
@@ -159,3 +159,14 @@ Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026
     This is the owner's text change.
   - The spec table's rows 2 and 4 take F-33's wording: G3 enters `bench.tsv` in spec 2a.
 - The hand-over's `toarray` is dropped: jq 1.8.2 has none (P7: "toarray/0 is not defined").
+
+## Amendment (spec 5 round 1)
+
+- **Spec 5 splits**: 5a "JSON in full" (15 tickets) and 5b "holds, root use, host streaming" (3
+  tickets, all class C). 5b waits for its own round 2, which fixes the hold sites over 2b's frames
+  and closures and the root-use test. That round comes after spec 3's round 2 and 2b's analysis
+  tickets.
+- **The element hand-out** is ADR-0054's: one reused element tape.
+- **Census** (F-76): jq.test 2315, 2319, 2324, 2498 and 2563 are spec 5's.
+- `$__prog_args` is not in jq 1.8.2 ("$__prog_args is not defined", rc 3), so it leaves spec 7's
+  list. A missing input file is spec 5a's (ADR-0017's rc 2).

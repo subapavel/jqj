@@ -1,6 +1,6 @@
 # JSON reader and writer: jq's grammar, jq's messages by replay, a byte[] loop
 
-Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits); amended by F-22 (depth counting); F-24 open (whole-container copy and whitespace); amended by ADR-0030 (run state, #59); amended by spec 4 grilling round 1 (`fromjson` in spec 4, #99)
+Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits); amended by F-22 (depth counting); F-24 open (whole-container copy and whitespace); amended by ADR-0030 (run state, #59); amended by spec 4 grilling round 1 (`fromjson` in spec 4, #99); amended by spec 5 round 1 (F-71 to F-76: `JvParser`'s two modes, the replay start, lenient tokens, virtual read blocks, NUL, `-R` per block, `--seq`, the main loop, writer options) and ADR-0054 (host streaming)
 
 jq-ref 1.8.2 decides what the reader accepts and what it prints. The adviser ran every rule below
 on it (issue #11 round 1, commands K1–K8) and read jq-1.8.2's `jv_parse.c`, `jv_unicode.c`,
@@ -199,3 +199,84 @@ Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026
   shows it.
 - It ticks as ADR-0034's spec-4 table says. A 10 000-deep document passes on a 512 KiB stack, with
   no Java recursion over its depth.
+
+## Amendment (spec 5 round 1; F-71 to F-76)
+
+Proposed 2026-11-14 by the grilling-adviser for the owner under the delegation of 2026-11-14.
+Facts were observed on jq-ref 1.8.2 (P1–P7 and the adviser's probes), with jq 1.8.2's `jv_parse.c`,
+`main.c`, `util.c` and `builtin.jq` read at the tag.
+
+- **One translation, two modes** (F-72). `JvParser` is the one file translated from `jv_parse.c`.
+  It has a replay mode and a stream mode; the stream mode is `stream_token`, a second state machine
+  with its own texts. `--stream` never runs the fast reader and has no depth limit: 20 000 open
+  brackets end in "Unfinished JSON term at EOF". Events before an error are emitted (`[1,[2` →
+  `[[0],1]`).
+- **The replay starts at the first byte after the last emitted value**, in a fresh parser state
+  with jq's line, column, BOM and seq state. This replaces "from the start of that document" above.
+  - A replay that accepts what the fast reader rejected throws `IllegalStateException`: a reader
+    bug must not look like a malformed document.
+  - The fast reader emits a top-level number or literal only if the next byte is not `]`, `}`,
+    `,`, `:` or NUL (`1]` prints nothing, `1 ]` prints `1`).
+  - `fastVerdictEqualsReplay` also compares how many values were emitted before the error.
+- **Lenient tokens are checked at read and decoded at access.** A token ends at jq's class
+  boundary (`1true` → "Invalid numeric literal at EOF at line 1, column 5"). The fast path stays
+  strict, and a lenient token clears CANONICAL and FITS_LONG (`+1` → `1`, `2.e3` → `2E+3`,
+  `nan` → `null`). NONFINITE is never written (F-73).
+- **Read blocks are virtual.** The reader takes what the channel gives, up to 64 KiB a read, and
+  never waits for a full buffer before it parses: jq-ref prints the first of two lines sent a
+  second apart before the second arrives.
+  - It computes block ends only for `(at <file>:N)`, `input_line_number`, `-R` and the drop after
+    a caught `input` error.
+  - Required: `1 x] 2 3\n4\n` under `[limit(5; repeat(try input catch .))]` →
+    `[1,"Invalid numeric literal at line 1, column 4",4,"break","break"]`.
+- **NUL is class INVALID**: this is master's one change to `classify`, and nothing else differs.
+  1.8.2's `scan` already holds `case INVALID: return "Invalid character"`, unreached.
+  - The pending token's value is dropped, as for `1]`: `123\x00` → empty stdout,
+    "jq: parse error: Invalid character at line 1, column 4", rc 5 (jq 1.8.2: `123`, rc 0).
+  - `fromjson`'s text is cut at the NUL, as jq's `%.*s` cuts it (`"1\u0000]"` → "… (while
+    parsing '1')").
+- **`-R` and `-Rs` decode each read block on its own** (F-75). `util.c` calls `jv_string_sized` per
+  block, so a sequence cut by a block's end takes the block's last bytes (F-26). This replaces
+  "invalid UTF-8 replaced" above. `-R` lines join across files (`5]\n6` then `1\n2\n` → `"5]"`,
+  `"61"`, `"2"`).
+- **`--seq`** (F-74). Its texts come from the translation. The RS split stays outside the fast loop,
+  because `scan` handles RS before every state, strings included.
+  - "A cut document followed by RS vanishes without a message" above holds only after whitespace.
+  - `\x1e[1\x1e2` → "jq: ignoring parse error: Truncated value at line 1, column 4".
+  - `\x1e"a\x1eb"` gives "Truncated value at line 1, column 4", then "Invalid numeric literal at
+    line 1, column 6 (need RS to resync)".
+  - Empty input also prints an ignored error, rc 0. A BOM before the first RS is accepted.
+- **The main loop pulls with `Workspace.read(JsonInputs)`** (F-71, ADR-0016).
+  - A parse error prints "jq: parse error: …" and stops, rc 5. Under `--seq` it prints
+    "jq: ignoring parse error: …" and reads on, rc unchanged.
+  - `-n` belongs to the command line: it runs once on null (`-ns .` → `null`, `-ns [inputs]` →
+    `[[1,2]]`; `[input_filename, input_line_number]` → `[null,0]`).
+  - Before any read the position is `(at <unknown>)`.
+  - A missing file prints "jq: error: Could not open file nope: No such file or directory"; the
+    other files still run, rc 2.
+  - `-s` with a parse error prints nothing, rc 5; `-s --stream` with an error prints no events;
+    `-s --seq` skips bad texts and still prints its one array.
+  - `path(input)` → "Invalid path expression with result 1".
+- **`inputs` runs in constant depth**: it is `try repeat(input) catch …` (`builtin.jq` 189) and
+  rests on 2b's tail jump (ADR-0047). Required: more documents than a small `recursionDepth`.
+- **`fromjson`'s lenient and malformed cases** go through the replay in spec 5 (F-76).
+- **Writer options are `OutputOptions` withers** (ADR-0016).
+  - The command line folds `-c`, `--tab` and `--indent n` in argument order, and the last one wins
+    (`--indent 3 -c` is compact, `-c --indent 0` → `[\n1\n]`). It maps `--indent -1` to `tab()`.
+    `-M` beats `-C` in either order.
+  - `-e` and `--unbuffered` stay in jq-cli. `-e` reads the last output (`true false` → rc 1;
+    `select(.)` on `true false` → rc 0).
+  - jq's interactions, each a required case:
+    - under `-a` a string is written as JSON even when raw (`-r -a` on `"é","abc"` → `"é"`,
+      `"abc"`), and `--raw-output0 -a` prints a string holding NUL;
+    - `--seq` writes RS before every result except a raw string (`--seq -r '"a",1'` →
+      `a\n\x1e1\n`);
+    - `--raw-output0` on a string holding NUL ends with rc 5, and no `try` catches it; a non-string
+      result gets its NUL too;
+    - `-S` sorts only what the writer prints (`keys_unsorted` → `["b","a"]`, `tojson` unsorted);
+    - one bad `JQ_COLORS` field resets every colour (`0;31:xyz` prints null in `0;90`), while fewer
+      fields keep the rest and a ninth is accepted;
+    - `-C` beats `NO_COLOR`, and an empty `NO_COLOR` counts as unset;
+    - a raw string is never coloured, and `[]` and `{}` are coloured as one unit.
+- `NOTICE` lists `JvParser` (`jv_parse.c`), the colour layout and `jq_set_colors` (`jv_print.c`),
+  and the shtest translation.

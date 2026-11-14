@@ -1,6 +1,6 @@
 # Analysis contracts
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 (issue #7); amended by ADR-0022 (issue #8); fact keys by ADR-0045 and cardinality's promise by F-56 (spec 2b)
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 (issue #7); amended by ADR-0022 (issue #8); fact keys by ADR-0045 and cardinality's promise by F-56 (spec 2b); holds by F-77 and root use by ADR-0054 (spec 5)
 
 Analyses run once on a frozen program and write an immutable side table of facts, keyed by a dense
 node id: freeze numbers each function's nodes in pre-order into an identity map, and each fact is an
@@ -79,3 +79,18 @@ array by id (ADR-0045). Nothing rewrites a frozen program. An analysis reads onl
 - **WALK key steps:** a dynamic step (ADR-0005) whose key has at most one result and does not read
   `.` is a WALK step; an object key at run time is a slice (ADR-0022).
 - **The in-place licence** is a new fact. Like cardinality, an over-claim gives a wrong value.
+
+## Amendment (spec 5 round 1; F-77, ADR-0054)
+
+- **A hold** is every place a value stays live across a node that may read input, that node's own
+  `.` included; this replaces the list of holds above. So a pipe's right side holds its input.
+  Required cases: `input | [., input]` → `[1,2]`; on stdin `1 2 3`,
+  `def f(g): [g, g]; input | f(., input)` → `[1,2,1,3]`.
+- **May read input** is a per-group fact, computed as may-break-out is (the ADR-0008 amendment
+  above), from the `reads` fact spec 3 puts on Operation. Holds add no IR kind. A kind that proves
+  needed ships its heap form (ADR-0046) and its path variant.
+- **Spec 5a detaches every `input` document at its read**, in both compiles. Spec 5b adds the hold
+  analysis to the optimised compile; the conservative compile keeps detaching at each read
+  (ADR-0018).
+- **Root use** is ADR-0054's syntactic test; a filter the test does not prove eligible has
+  `needsWholeDocument()` true.

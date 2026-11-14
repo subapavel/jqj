@@ -1,6 +1,6 @@
 # Oracles and ratchet: copied jq tests, recorded jq-ref expectations, required cases, per-merge pass lists
 
-Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch); amended by ADR-0023 (issue #17: deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); amended by F-19 (who measures the fallback targets); amended by ADR-0024 (the Stub verdict); amended by ADR-0025 (`values-v1`: forms, seeds, generated files, drops); amended by F-27 (PIT and the compile-mode oracle leave the ticket gate); amended by F-28 (the spec-gate PIT target); amended by F-29 (the compile-mode oracle after every merge); amended by #60 (compile-mode oracle: switch by reflection, compile report, after-merge script); amended by ADR-0033 (`core-v1`: forms, break placement, freeze numbers); amended by F-46 (#89: the ticket gate runs the compile-mode oracle); amended by F-58 (the `trampoline` mode, spec 2b); amended by spec 4 grilling round 1 (question 7: the builtin generators)
+Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch); amended by ADR-0023 (issue #17: deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); amended by F-19 (who measures the fallback targets); amended by ADR-0024 (the Stub verdict); amended by ADR-0025 (`values-v1`: forms, seeds, generated files, drops); amended by F-27 (PIT and the compile-mode oracle leave the ticket gate); amended by F-28 (the spec-gate PIT target); amended by F-29 (the compile-mode oracle after every merge); amended by #60 (compile-mode oracle: switch by reflection, compile report, after-merge script); amended by ADR-0033 (`core-v1`: forms, break placement, freeze numbers); amended by F-46 (#89: the ticket gate runs the compile-mode oracle); amended by F-58 (the `trampoline` mode, spec 2b); amended by spec 4 grilling round 1 (question 7: the builtin generators); amended by spec 5 round 1 (`malformed-v1`)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1). Every runner lives in
 `oracle` on the class path, in `…jqj.oracle.{jqtest,diff,compile,backend,json,gen,record}`.
@@ -282,3 +282,14 @@ Accepted 2026-11-12, architect under `/run-spec` #56, on the designer's draft fo
   `[logb, (significand * 4294967296 | rint)]`, made of exact functions only (ADR-0051). It never
   calls the 12 of the last math ticket.
 - Each generator ticket records enough seeds to keep 200 after drops.
+
+## Amendment (spec 5 round 1)
+
+- **`malformed-v1`** is a frozen generator of malformed input.
+  - It is recorded whole before the replay ticket, and frozen on a dry run whose bounds are
+    written beforehand (as #58).
+  - Its forms cover GATE check 3's routes and modes: `-c .`, `try input catch .`, `-s`, `--seq`,
+    `--stream` and `fromjson`.
+  - It puts NUL only inside strings, because a NUL outside a string is a deviation shape
+    (ADR-0023).
+- JSONTestSuite's `test_transform` files are not added.

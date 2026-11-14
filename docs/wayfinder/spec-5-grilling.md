@@ -162,3 +162,22 @@ another spec.
   `jq_set_colors`' validity rule (`jv_print.c`, ticket 13); other spec-4 census cases needing a
   lenient token or a replay text (census sweep); colour by default on a terminal as `main.c` does
   (the JDK call by `javap`; no differential case reaches it).
+
+## Records round (architect, 2026-11-14)
+
+The records designer drafted ADR-0054 (host streaming), F-71 to F-77 and the amendments of round
+1. The architect settled:
+
+1. **Census.** Spec 4's M3 named jq.test 2315, 2324, 2498 and 2563; this round's A3 named 2315,
+   2319, 2324 and 2498. Spec 5 takes all five (F-76, ADR-0023).
+2. **Shared files.** Specs 4 and 5 amend the same ADRs. Spec 5's status additions sit at the end of
+   each status line, and its amendment sections after spec 4's.
+
+For the owner on 2026-11-16, in addition to round 1's list:
+- founding §6.7 says "each with its own small tape"; ADR-0054 uses one reused element tape;
+- F-77 replaces ADR-0007's owner-accepted hold list, not only ADR-0018's and the glossary's text.
+
+Open for the tickets: what `Workspace.read(JsonInputs)` returns under `-R`, `-Rs` and `--stream`;
+where a read after a `JqSyntaxException` starts outside `--seq`; the names of `JsonInputs`'
+position accessors; bad `indent` and `JQ_COLORS` values; whether today's reader writes NONFINITE;
+whether `malformed-v1` gets a GATE check 2 minimum.

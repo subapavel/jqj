@@ -90,7 +90,7 @@ jq's limits are higher and of another kind: an array index up to 2^29−1 ("Arra
 strings under 2 GiB, tokens up to 1 GiB, literals up to 999 999 999 characters, and no
 per-document limit. Reason: one `long` per value, as recorded in ADR-0002.
 
-## Streaming, when a host enables it (ADR-0007, issue #6)
+## Streaming, when a host enables it (ADR-0007, ADR-0054, issue #6)
 
 Streaming is off by default; in that mode jqj behaves like jq. When a host enables streaming for an
 eligible filter (`<fixed path> | .[] | rest`):
@@ -99,19 +99,29 @@ eligible filter (`<fixed path> | .[] | rest`):
   seen. jq prints none.
 - **Duplicate keys**: a duplicate of a key on the streamed path is not seen. On
   `{"items":[1],"items":[2]}`, jq gives `2`.
+- **Nothing is read after a stop**: when the sink stops, `stream` returns and reads no further, so
+  a syntax error later in the document is not seen. jq reads the whole document first (on
+  `{"items":[1,2,3],"z":tru}`, `.items[]` gives a parse error and no result, F-4). Its `test:`
+  row comes with spec 5b's streaming ticket.
+
+A target that is no array, or a missing path, is read whole and run (ADR-0054), so no row above
+applies to it.
 
 ## A raw NUL byte outside a string is an error (ADR-0015, issue #11)
 
 | case | filter | input | jq 1.8.2 | jqj |
 | --- | --- | --- | --- | --- |
-| none yet | `-c .` | `1\x002` | `1` | "Invalid character" error at the NUL |
+| none yet | `-c .` | `1\x002` | `1` | nothing printed, "Invalid character" at the NUL, rc 5 |
 | none yet | `-c .` | `[1\x00x,2]` | `[1,2]` | error at the NUL |
-| `json/n_multidigit_number_then_00` (`deviation nul`) | `-c .` | JSONTestSuite `n_multidigit_number_then_00.json` (`123\x00`) | accepted: `123` | rejected |
+| `json/n_multidigit_number_then_00` (`deviation nul`) | `-c .` | JSONTestSuite `n_multidigit_number_then_00.json` (`123\x00`) | `123`, rc 0 | empty stdout, `jq: parse error: Invalid character at line 1, column 4`, rc 5 |
+| none yet | `try fromjson catch .` | `"1\u0000]"` | to probe on jq-ref | the text ends `(while parsing '1')`, cut at the NUL as jq's `%.*s` cuts it |
 
-Reason: bytes would hide behind a NUL in a host's message; jq's master branch already rejects a NUL
-there (`classify` returns INVALID) with the text "Invalid character" (master source read, not
-run); jqj uses that text, so the row can go once the reference moves past 1.8.2. The reader
-ticket's oracle cases pin line and column.
+Reason: bytes would hide behind a NUL in a host's message. jq's master makes one change to
+`classify`: NUL is class INVALID, and nothing else differs. jq 1.8.2's `scan` already holds
+`case INVALID: return "Invalid character"`, unreached; master's `classify` reaches it (source
+read, not run). jqj follows master: the pending token's value is dropped as for `1]`, and the text
+is "Invalid character". The row can go once the reference moves past 1.8.2. The replay ticket's
+oracle cases pin line and column.
 
 ## Regex limit by time, not by retries (ADR-0017, issue #13)
 

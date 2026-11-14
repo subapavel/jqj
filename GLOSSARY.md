@@ -227,6 +227,11 @@ close.
 **Slurped document**:
 The one document `-s` makes over the whole input stream, with a synthetic root array.
 
+**Element document**:
+The document one streamed element is read into, on the Workspace's reused element tape, with its
+root at index 0; it goes stale when `rest` returns for that element (ADR-0054).
+_Avoid_: chunk, item
+
 **Literal number**:
 A number read from a document, written in a filter or made by `tonumber`. It keeps its exact
 decimal value until arithmetic touches it, and prints in its canonical form.
@@ -349,9 +354,14 @@ path.
 
 **Hold**:
 A place that keeps a value while later steps run (a variable, an accumulator, an array being
-built, an error payload). A view of an input document is detached when it enters a hold that spans
-a later read.
+built, an error payload). It is every place a value stays live across a node that may read input,
+that node's own `.` included, so a pipe's right side holds its input (F-77). A view of an input
+document is detached when it enters a hold that spans a later read.
 _Avoid_: pin, retain
+
+**May read input**:
+The per-group fact that a node may run an operation whose `reads` fact is set, itself or through a
+call or closure; computed as may-break-out is (F-77).
 
 **Root use**:
 Whether a filter reads its input not at all, as the elements of one array one at a time, or whole.
@@ -489,7 +499,8 @@ _Avoid_: quota, timeout (one budget among several)
 
 **Host streaming**:
 Running a filter of the form `<path>[] | rest` element by element, without holding the whole
-document, when `rest` never looks back at it.
+document, when `rest` never looks back at it. Each element is an element document; a target that is
+no array, or a missing path, is read whole (ADR-0054).
 _Avoid_: automatic streaming (the host switches it on, F-4); `--stream` (that is jq's event mode,
 a different thing)
 
@@ -539,7 +550,9 @@ _Avoid_: program, plan
 **Read block**:
 One read of jq's input loop: the bytes through the next LF, or 4091 bytes plus the rest of a
 UTF-8 character cut there (F-25). `(at <file>:N)` counts the read blocks that end in LF, up to the
-block that holds the completing byte.
+block that holds the completing byte. jqj does not read by blocks: it computes their ends only
+where jq shows them (`(at <file>:N)`, `input_line_number`, `-R`, the drop after a caught `input`
+error), and `-R` decodes each block on its own (F-75).
 _Avoid_: chunk, line
 
 **Completing byte**:
@@ -562,7 +575,8 @@ The `$name` values and `$ARGS` a host gives one run.
 _Avoid_: args, params
 
 **Extra inputs**:
-The documents a run's `input` and `inputs` read, given in its run options.
+The documents a run's `input` and `inputs` read, given in its run options as a `JsonInputs`; the
+command line's main loop reads the same `JsonInputs` through `Workspace.read(JsonInputs)` (F-71).
 
 **Sandbox defaults**:
 What a filter may not do when embedded unless the host allows it: read the environment, name a
@@ -580,12 +594,13 @@ Input bytes that jq's grammar rejects at some byte.
 _Avoid_: invalid document
 
 **Error replay**:
-Re-reading a malformed document with the translated jq parser to produce jq's message, line and
-column.
+Re-reading a malformed document with the translated jq parser (`JvParser`'s replay mode) to
+produce jq's message, line and column. It starts at the first byte after the last emitted value,
+in a fresh parser state with jq's line, column, BOM and seq state.
 
 **Lenient token**:
 A number token jq accepts that is not strict JSON: `+1`, `.5`, `1.`, `007`, NaN and Infinity
-spellings.
+spellings. Checked at read and decoded at access; never CANONICAL or FITS_LONG.
 
 **Whole-container copy**:
 Writing an untouched container by copying its input bytes once one walk has proved it safe.
@@ -632,7 +647,7 @@ Compiling with the facts the analyses prove; the default compile.
 
 **Conservative compile**:
 Compiling with every analysis fact at its safe value: cardinality many, every path TRACKED, a
-detach at every hold, no specialisation, no in-place licence.
+detach of every `input` document at its read (F-77), no specialisation, no in-place licence.
 
 **Recording**:
 The reference jq's exit code, stdout and stderr for one case, committed beside it and written only by the

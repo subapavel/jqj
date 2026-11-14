@@ -1,6 +1,6 @@
 # Public API: engine, filter, Workspace, documents and values
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12), ADR-0020 (issue #15) and ADR-0024 (#24: kinds, exception shapes, F-20); amended by ADR-0026 (accessor edges); amended by ADR-0027 (JsonWriter sinks); amended by ADR-0031 (compile-error blocks, #61); amended by ADR-0053 (the Workspace's regex pattern cache, spec 4)
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12), ADR-0020 (issue #15) and ADR-0024 (#24: kinds, exception shapes, F-20); amended by ADR-0026 (accessor edges); amended by ADR-0027 (JsonWriter sinks); amended by ADR-0031 (compile-error blocks, #61); amended by ADR-0053 (the Workspace's regex pattern cache, spec 4); amended by spec 5 round 1 (F-71: `Workspace.read(JsonInputs)`, `-n` out of `InputOptions`, `JsonInputs`' position; the `OutputOptions` withers) and ADR-0054 (`stream`)
 
 Type and method names are binding from the first publish; until then a rename is one mechanical
 ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1).
@@ -140,3 +140,27 @@ A Workspace keeps a bounded cache of compiled regex patterns (ADR-0053): 16 entr
 patterns up to 4 KiB, keyed by a copy of the pattern's bytes and its compile options. It lives as
 long as the Workspace and serves its later runs and filters. An entry holds no value, no document
 and no filter. So the host rule and unloading are unchanged, and the engine still keeps no cache.
+
+## Amendment (spec 5 round 1; F-71, ADR-0054)
+
+Proposed 2026-11-14 by the grilling-adviser for the owner under the delegation of 2026-11-14.
+
+- **`JsonDoc Workspace.read(JsonInputs)`** pulls the next main document from the input stream and
+  returns null at its end. It is a main read (ADR-0026).
+  - The same `JsonInputs` in `RunOptions` feeds `input`, so the main loop and `input` take turns on
+    one stream (`[., input]` on `[1] [2] [3]` → `[[1],[2]]`, then "jq: error (at <stdin>:0):
+    break", rc 5).
+  - After a `JqSyntaxException` the `JsonInputs` can be read again; the command line decides as
+    `main.c` does (ADR-0015).
+- **`-n` leaves `InputOptions`**, which keeps `-s`, `-R`, `--stream` and `--seq`. The command line
+  runs once on null (`-ns .` → `null`, `-ns [inputs]` → `[[1,2]]`). This replaces the `-n` in
+  "`InputOptions` carries ADR-0015's input modes" above.
+- **`JsonInputs` exports the current file name and line**, which `(at <file>:N)` prints.
+- **`OutputOptions` withers** (ADR-0024): `indent(int)` for 0..7, `tab()`, `sortKeys()`, `ascii()`,
+  `raw(RawMode)` with `RawMode {RAW, JOIN, NUL}`, `seq()`, `color()` and `color(String jqColors)`.
+  There is no `indent(-1)`: the command line maps `--indent -1` to `tab()`. `-e` and
+  `--unbuffered` stay in jq-cli.
+- **`stream`** follows ADR-0054:
+  - element documents on one reused tape;
+  - a whole read and `run` when the target is no array or the path is missing;
+  - nothing read after a stop.
