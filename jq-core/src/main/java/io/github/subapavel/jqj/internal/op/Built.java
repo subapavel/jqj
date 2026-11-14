@@ -79,9 +79,9 @@ final class Built {
       values[length++] = value;
     }
 
-    /** The elements so far, sorted in place by {@code order}. */
+    /** The elements so far, sorted by {@code order} with jqj's merge sort, {@link Sort#mergeSort} (F-48). */
     void sort(Comparator<Object> order) {
-      Arrays.sort(values, 0, length, order);
+      values = Sort.mergeSort(values, length, order);
     }
 
     /** The array of the elements so far; nothing is added after. */

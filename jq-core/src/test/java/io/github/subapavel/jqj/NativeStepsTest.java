@@ -42,7 +42,11 @@ class NativeStepsTest {
     assertThat(ends("[1,[2]] | tostring", 1)).as("results of tostring with 1 step").isEmpty();
   }
 
-  /** keys_unsorted ticks once per key; keys once more per compare of its sort (two keys: one, three: two). */
+  /**
+   * keys_unsorted ticks once per key; keys once more per compare of its sort, the compares of jqj's bottom-up merge sort
+   * (F-48): two keys one, three two, four in order four (TimSort makes three), eight as {@code dhbfaegc} seventeen
+   * (TimSort makes eighteen).
+   */
   @Test
   void keysTickPerKeyAndPerCompare() {
     assertThat(completes("{\"b\":1,\"a\":2} | keys_unsorted", 2)).as("keys_unsorted with 2 steps").containsExactly("[\"b\",\"a\"]");
@@ -51,6 +55,14 @@ class NativeStepsTest {
     assertThat(ends("{\"b\":1,\"a\":2} | keys", 2)).as("keys of two with 2 steps").isEmpty();
     assertThat(completes("{\"c\":1,\"b\":2,\"a\":3} | keys", 5)).as("keys of three with 5 steps").containsExactly("[\"a\",\"b\",\"c\"]");
     assertThat(ends("{\"c\":1,\"b\":2,\"a\":3} | keys", 4)).as("keys of three with 4 steps").isEmpty();
+    String four = "{\"a\":0,\"b\":0,\"c\":0,\"d\":0} | keys";
+    assertThat(completes(four, 8)).as("keys of four in order with 8 steps").containsExactly("[\"a\",\"b\",\"c\",\"d\"]");
+    assertThat(ends(four, 7)).as("keys of four in order with 7 steps").isEmpty();
+    String eight = "{\"d\":0,\"h\":0,\"b\":0,\"f\":0,\"a\":0,\"e\":0,\"g\":0,\"c\":0} | keys";
+    assertThat(completes(eight, 25))
+        .as("keys of eight with 25 steps")
+        .containsExactly("[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\"]");
+    assertThat(ends(eight, 24)).as("keys of eight with 24 steps").isEmpty();
   }
 
   /** An array's keys tick once per index, past the array's 2 steps. */
