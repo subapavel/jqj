@@ -43,7 +43,8 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
   1. `clean verify -Pbench`;
   2. PIT on whole class-C modules (with oracle's crossModule run, #45). **Target (F-28): under 45 min
      alone on `claude-cloud-4vcpu`; above that, ADR-0020's seed fallback by a finding.**
-  3. JMH (`benchmarks.jar -prof gc -rf json`);
+  3. JMH (`benchmarks.jar -prof gc -rf json '\.Gates\.'`): the `Gates` benchmarks only, so a
+     diagnostic class never reaches `bench.tsv` (#102, ADR-0019, ADR-0024);
   4. `ratchet.java regen --all`.
 - **CI** (`ci.yml`) runs on pull requests and on pushes to `main` and `spec/**`. It cancels per
   ref, runs on ubuntu-24.04 with Temurin 25, and times out after 30 minutes. Its jobs:
