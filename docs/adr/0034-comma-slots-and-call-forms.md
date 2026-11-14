@@ -75,5 +75,11 @@ rate is pinned by two adjacent counts.
 
 Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14.
 
-`delpaths` ticks once per element it copies and compacts each container once, however many of its
-paths end there.
+`getpath` and `setpath` tick once per path component; `setpath` also once per element it copies;
+`delpaths` once per path plus the ADR-0037 ticks of each compare of its path sort (as `sort`), once
+per path component it walks and once per element it copies; it compacts each container once. A
+copied level charges CONTAINER plus its slots. PathOf ticks once per component of each path value
+it builds. Update ticks nothing of its own.
+
+Amended at spec 3's ticket approval, grilling-adviser for the owner under the delegation of
+2026-11-14.

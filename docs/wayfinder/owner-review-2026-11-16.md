@@ -30,6 +30,13 @@ names its record; the reasons are there. A "no" on an item reopens that record, 
 - `debug` and `stderr` arrive in spec 3a, not in specs 5 and 7; GATE check 2 says so (F-61).
 - ADR-0023's spec 3 row and GATE row 3: the 3a/3b split, G5 and the own owner in 3a.
 - Spec 4 may start once 3a is on main, beside 3b (ADR-0023's order).
+- Ticket approval (2026-11-14), proposed by the grilling-adviser for the owner under the
+  delegation of 2026-11-14:
+  - A `?//` pattern on the tracked input can give another path than jq, not an error
+    (DEVIATIONS, F-59).
+  - GATE check 2's generator list does not name `paths-v1`; its 1000 rests on ADR-0020's
+    amendment, and adding it to the check is the owner's.
+  - `DebugSink` and `Host.Builder` are public API built at class B.
 
 ## Spec 4 (#120; `docs/wayfinder/spec-4-grilling.md`)
 

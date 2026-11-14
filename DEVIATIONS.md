@@ -27,18 +27,28 @@ item variable. jq also accepts some other forms; jqj raises "Invalid path expres
 | `null \| path(reduce 0 as $i (.; .))` | `[]` | error |
 | `[[1],[2]] \| path(foreach (0,1) as $i (.; .; .[$i]))` | `[0]`, `[1]` | error |
 | `{"a":{"a":1}} \| [path(reduce 0 as $i (.; .a) \| empty)]` | `[]` | error |
+| `[[1],[2]] \| [path(foreach .[] as [$a] (0; 1; $a))]` | `[[0,0],[1,0]]` | error |
+| `[[5],[6]] \| [path(foreach .[] as $x (0; $x; .))]` | `[[0],[1]]` | error |
+| `[1,2] \| path(. as [$a,$b] \| $a)` | error "…element 0 of [1,2]" | error "…element 1 of [1,2]" |
+| `["x","y"] \| (. as [$v] ?// $v \| if ($v\|type)=="string" then $v else .[1] end) \|= "Z"` | `["Z","y"]` | `["x","Z"]` |
 
-The last two keep the `reduce`/`foreach` state untracked (ADR-0010): jq restores its one current
-path at every return to the source, so a state path never survives an iteration, and
+The `foreach (0,1)` and `reduce … .a` rows keep the `reduce`/`foreach` state untracked
+(ADR-0010): jq restores its one current path at every return to the source, so a state path never
+survives an iteration, and
 `[[1,2]] | path(reduce (0,1) as $i (.; .[$i]))` raises in jq as well.
 
 The `tostring` to `not | not` rows are spec 3's share of P6 (`trim`, `ltrim` and `rtrim` come with
-spec 4's natives, F-70). In the `foreach … ?//` row only a `foreach … as $name` item keeps its path
-(Tracking ITEM, ADR-0048, F-59), so a destructured item is untracked where jq's matcher keeps one.
+spec 4's natives, F-70). In the `foreach … ?//` row only a `foreach … as $name` item keeps its
+path (Tracking ITEM, ADR-0048, F-59), so a destructured item is untracked where jq's matcher keeps
+one. The last four rows are F-59's, added at spec 3's ticket approval by the grilling-adviser for
+the owner under the delegation of 2026-11-14. In the last two rows jq's first matcher step succeeds
+on the tracked input and jqj's raises: jq names its second step, and under `?//` jqj runs the next
+alternative, which gives another path. That is the only row where relaxing the rule later would
+change a result.
 
 Reason: jq decides these by value identity, which jqj's views and identity-free numbers do not
 have. jq's own test files contain no such case. Relaxing the rule later only turns errors into
-results.
+results, except in the `?//` row above.
 
 ## A break is not an error (ADR-0008, issue #7)
 

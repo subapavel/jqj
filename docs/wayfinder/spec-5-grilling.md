@@ -224,3 +224,8 @@ architect re-ran the probes on jq-ref 1.8.2; where the two differ, the architect
 Missing facts: `jq_set_colors`' validity rule (T13 reads `jv_print.c`); the issue numbers of the
 3a Facts ticket, the 3a `tostream` ticket and S4.3; the fast loop's cost with the boundary compare
 (T2, then T3 and T5); a BOM in a second file (T5 records it).
+
+Note from spec 3's ticket approval (2026-11-14), proposed by the grilling-adviser for the owner
+under the delegation of 2026-11-14, for 5a's tickets: the output-options ticket records `debug`
+under `-a`, `-S` and `-C` (3a's S3a.3 records one case per flag the command line has); the `input`
+ticket's `licenceFacts` gains `reduce range(n) as $i ([]; . + [input])`.

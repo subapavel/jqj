@@ -22,8 +22,10 @@ observed on 1.8.2 by the architect (probes P1–P6) or the adviser
     differ by one (ADR-0029 as amended, F-60).
   - `paths` is a query-core interface that jq-core implements, as `Collect`'s collector is
     (ADR-0034). jq-core's `Paths` builds the path value, runs getpath, setpath and delpaths, and
-    holds jq's depth limits and messages, so query-core names none of them (founding §14). Its
-    methods are the first ticket's to define.
+    holds jq's depth limits and messages, so query-core names none of them (founding §14). Each
+    method arrives with its first caller in query-core: PathOf's in 3a's PathOf ticket, Update's in
+    its TRACKED Update ticket (ADR-0034; grilling-adviser for the owner under the delegation of
+    2026-11-14, spec 3's ticket approval).
 - **Lowering**: `|=` and `=` go through the names `_modify/2` and `_assign/2`. These are replacing
   natives (ADR-0042 as amended), so a user's definition of either wins (jq-ref, P1), for `op=` and
   `//=` too (`def _modify(p;u): 42; {} | .a += 1` → `42`, architect's probe). A call by name lowers
@@ -79,6 +81,7 @@ observed on 1.8.2 by the architect (probes P1–P6) or the adviser
 - **Deriving the mark**: the shapes above lower alike. Round 1's "the Bind directly under a
   loop's `each`" breaks when the source is a `Binds` value or an `AltBind`'s value.
 - **A tracked destructured item**: jq keeps one only by a quirk of its matcher. jqj raises where
-  jq accepts, never the reverse.
+  jq accepts, never the reverse, except the `?//` row of `DEVIATIONS.md`, which gives another path
+  (grilling-adviser for the owner under the delegation of 2026-11-14, spec 3's ticket approval).
 - **Splitting `TextFormat` by `keepsArgs`**: two operations for one body, and true is the safe
   value (ADR-0007: a missed fact costs speed).

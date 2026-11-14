@@ -107,7 +107,7 @@ run, with G5.
 
 - Round 2 needed: reconcile questions 3, 5, 11 and A2 with 2b's record; the designer confirms the
   pattern mark; may spec 4 start after 3a, beside 3b?
-- Missing facts: whether any of spec 3's 109 census cases has a builtin or pattern in path position
+- Missing facts: whether any of spec 3's 110 census cases has a builtin or pattern in path position
   (the adviser's grep found none; ticket 5's red settles it); the cost of Path records (ADR-0010).
 
 ## Round 2 (grilling-adviser for the owner, 2026-11-14)
@@ -166,3 +166,60 @@ whether PathOf and Update tick on their own, and what getpath and setpath tick.
 For the owner on 2026-11-16: ADR-0010's Bind rule gives way to Tracking (F-59); GATE check 2's
 `debug` and `stderr` in 3a (F-61); ADR-0023's spec 3 row and GATE row 3 (the split, G5 and the own
 owner in 3a); spec 4 beside 3b.
+
+## Ticket approval (grilling-adviser for the owner, 2026-11-14)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14, for the
+owner's review on 2026-11-16. The 15 tickets (12 class C, 3 class B) are approved with changes;
+the blocking graph is unchanged. The architect re-ran every jq value on jq-ref 1.8.2.
+1. **Conflicts.** The 40-line cap binds hand-backs, not the drafts. A2's `[paths]` witness is
+   S3a.7's red and a required case from S3a.8 on. The query-core `paths` interface is neither
+   S3a.1's nor S3a.2's: S3a.2 builds only jq-core `Paths` behind the natives, S3a.5 adds what
+   PathOf calls and S3a.8 what Update calls (ADR-0048, ADR-0034). S3a.3 stays class B (a host SPI
+   method, ADR-0017, F-61). The F-59 cases are S3a.6's red. The four F-59 rows are written into
+   `DEVIATIONS.md` now; S3a.6 adds only their cases. The `. + [input]` licence fact goes to 5a.
+2. **Proposals.** `keepsArgs` and `reads` are true for getpath, setpath, delpaths, `debug` and
+   `stderr`. S3a.9's 64 MiB stands. The census has 110 cases, all 3a's: `debug` moves
+   jq.test:2341 from spec 7, and none of the 110 needs in-place writes or has a pattern in path
+   position. S3a.6's foreach-extract input is `[[5],[6]]`.
+3. **Depth limits** (3a body, S3a.8, ADR-0029): `|=`, `op=` and `//=` raise "Path too deep" at
+   n ≥ 10 001 before the right side runs, and at n = 10 000 after a right-side result; ASSIGN
+   raises at n ≥ 10 001. At 10 001, `|= (debug|error("rhs"))` prints nothing and raises "Path too
+   deep"; `= (debug|1)` prints the debug line, then raises.
+4. **Tick rates** (S3a.2, S3a.5, S3a.8, ADR-0034): getpath and setpath once per path component,
+   setpath also per copied element; delpaths per path, per compare of its path sort, per component
+   walked and per element copied, compacting each container once. PathOf ticks per component of
+   each path value it builds; Update ticks nothing of its own (ADR-0041's rule).
+5. **S3a.2's red** adds the three tick tests and `delpaths`' sorted-order checks: `try
+   delpaths([[range(10001)|0], 0]) catch .` → `"Path must be specified as array, not number"`;
+   with `{}` first → `"Path too deep"`; `{"a":1,"b":[1]} | try delpaths([["b","x"],["a",0]])
+   catch .` → `"Cannot delete fields from number"`. NOTICE names `jv_getpath`, `jv_setpath`,
+   `jv_delpaths`, `delpaths_sorted` and `jv_dels` (`src/jv_aux.c`).
+6. **S3a.3** builds `DebugSink`, `Host.builder()`, `Host.Builder.debug(DebugSink)` and
+   `Host.Builder.build()`, the only new public signatures; any other raises it to class C by a
+   comment. `debug`'s line follows `-a`, `-S` and `-C` and stays compact under `--tab`; `stderr`
+   ignores all four. It also changes the census (`scripts/census.java`, `census write`).
+7. **Generator bounds**: S3a.4 (`paths-v1`) and S3b.1 (`ownership-v1`) get 1 600 seeds, written
+   document and filter bounds and freeze floors of 1000 kept seeds (GATE check 2), per-form and
+   per-hazard floors, rc 5 in at most 40 % and no rc 3, timeout or two-run rejection.
+8. **S3a.5 and S3a.6 reds**: `null | try path(getpath([range(10001)|0])) catch .` → `"Path too
+   deep"`, 10 000 gives a path of length 10000. S3a.6 pins the four new rows and records the
+   `[$a,$b]` and `{a:$x, b:$y}` cases where both raise alike, and `[[5],[6]] |
+   [path(foreach .[] as $x (0;1;$x|.[0]))]` → `[[0,0],[1,0]]`.
+9. **A2 witnesses**: S3a.7's `[paths]` on a 10 000-deep array → `10000` in all three runs with
+   `bytesBuilt` 1 GiB, posting its peak heap; S3a.8's `walk(.)` on 20 000 nested objects →
+   `60025` after `tojson | length`, the `[.]` form → `20021`.
+10. **S3a.9** checks the optimised and the conservative compile under 64 MiB and gains the
+    `copy-only` run (ADR-0020, F-18). **S3a.10** writes `(.[] | select(.a)) |= f`: unparenthesised,
+    jq-ref updates inside each element.
+11. **3b**: S3b.2 keeps only the licence analysis (K1) shown through `explain()`; `InPlace`, the
+    Reduce and Foreach owners and retire move to S3b.3, where a write makes them observable.
+    S3b.3's G4 growth is recorded and fails nothing before spec 6 (ADR-0023). S3b.4: 1000 and
+    2000 rows each under `bytesBuilt` 64 MiB, their bytes built at most 1 MiB apart.
+12. A case marked *guard* passes before its ticket and must stay green: S3a.9's CE3, CE6,
+    `(.[] | (.[], .)) |= f`, error and break cases; S3b.2's three filters; S3b.4's retire case.
+
+Not measured: the floors, the 1 MiB difference and the 1 GiB setting; a red that cannot meet one
+is a finding, not a lowered bound. Records: `DEVIATIONS.md` (four rows), ADR-0048, ADR-0034,
+ADR-0029, F-59, F-61; 5a's tickets (`spec-5-grilling.md`); the owner's list. Open: the cost of
+Path records, the conservative G5 row that S3a.11 records; the heap-form measurement.

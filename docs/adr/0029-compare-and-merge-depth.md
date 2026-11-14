@@ -51,7 +51,9 @@ Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026
 
 On jq-ref, with n the path length, every limit raises "Path too deep" (architect's probes,
 2026-11-14):
-- `|=`, `op=` and `//=` raise at n ≥ 10 000, after the right side ran.
+- `|=`, `op=` and `//=` raise "Path too deep" at n ≥ 10 001 before the right side runs, and at
+  n = 10 000 after a right-side result (spec 3's ticket approval, grilling-adviser for the owner
+  under the delegation of 2026-11-14).
 - `=`, `|= empty`, `del`, `getpath`, `setpath` and `delpaths` raise at n ≥ 10 001.
 - `path()` and `paths` never raise: `last(paths)|length` → `10001` on a 10 001-deep value.
 
