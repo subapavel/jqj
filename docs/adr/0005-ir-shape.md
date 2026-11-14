@@ -2,13 +2,14 @@
 
 Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 and completed by ADR-0009 (issue #7); amended by ADR-0022 (issue #8: `keepsArgs`, in-place operations); clarified by ADR-0032 (the AST is not a second IR); completed by ADR-0034 (Comma, Bind and Var, atomic Intrinsic arguments, #63); amended by ADR-0037 (If, Alt, Truth, #66); AltBind's fields and catch rule completed by ADR-0038 (#67); Try, Label and Break fields by ADR-0039 (#68); Reduce, Foreach, Advance by ADR-0041 (#69); `keepsArgs` declared on the binder's natives until spec 3 by F-47 (#72); node list corrected by F-52 (`Empty` is an Operation; `Advance`, `Binds`); `Call`, `ParamCall` and `Program` by ADR-0045 (spec 2b)
 
-The IR is one `sealed interface Node` in `query-core` with 21 record kinds, each carrying its
-source position. Both backends and every analysis switch over it exhaustively. A format such as jq
-adds nothing to the family: its navigation steps and native builtins reach the IR as `Operation`
-records called through an `Intrinsic` node. The reason is founding §14 (`query-core` never mentions
-JSON or jq) together with exhaustive backends. It is **not** javac: a `non-sealed` arm for
-`jq-core` records compiles on javac 25.0.5 (checked by the grilling adviser on #6). We reject that
-arm because each jq node would then carry its own interpretation and bytecode emission.
+The IR is one `sealed interface Node` in `query-core` with 22 record kinds (21 as first written;
+F-52 corrects the count), each carrying its source position. Both backends and every analysis switch
+over it exhaustively. A format such as jq adds nothing to the family: its navigation steps and
+native builtins reach the IR as `Operation` records called through an `Intrinsic` node. The reason
+is founding §14 (`query-core` never mentions JSON or jq) together with exhaustive backends. It is
+**not** javac: a `non-sealed` arm for `jq-core` records compiles on javac 25.0.5 (checked by the
+grilling adviser on #6). We reject that arm because each jq node would then carry its own
+interpretation and bytecode emission.
 
 - **Nodes**:
   - Flow: `Identity`, `Const` (a built value, never a view), `Pipe`, `Comma`, `If`, `Alt` (`//`).

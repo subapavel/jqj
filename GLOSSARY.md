@@ -601,8 +601,9 @@ gives it.
 _Avoid_: case budget, target count
 
 **Disagreement**:
-A compile-mode case whose optimised and conservative runs both end without a termination but
-differ in exit code, stdout or stderr. It stops the next merge (F-29, ADR-0020 amendment for #60).
+A compile-mode case two of whose runs (optimised, conservative, `trampoline`) both end without a
+termination but differ in exit code, stdout or stderr. It stops the next merge (F-29, ADR-0020
+amendment for #60; the `trampoline` run, F-58).
 _Avoid_: mismatch
 
 **Differential oracle**:
@@ -614,8 +615,9 @@ Running a case in both backends and requiring identical output. It starts with t
 backend (ADR-0018).
 
 **Compile-mode oracle**:
-Running a case under the optimised and the conservative compile of one backend and requiring the
-same output and error.
+Running a case under the optimised and the conservative compile of one backend, and the
+`trampoline` run (the conservative compile with `stackBytes` 0, F-58), and requiring the same
+output and error.
 
 **Optimised compile**:
 Compiling with the facts the analyses prove; the default compile.
