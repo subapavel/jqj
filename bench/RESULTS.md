@@ -4,6 +4,112 @@ Every measured number with machine label, date, configuration and commit. A numb
 in this file does not exist (`AGENTS.md`, Evidence vocabulary). Written by the architect from
 verifier output; newest section first.
 
+## #85: the walk-side key proof against 2fe9654 and jq-ref (ADR-0044, ADR-0019 bar 10 %), 2026-11-13
+
+- Machine: `claude-cloud-4vcpu` (4 × Intel Xeon Processor @ 2.10 GHz, Linux 6.18.44-fc-v445), JDK
+  25.0.5.0.3 (Java HotSpot 64-Bit Server VM), JMH 1.37, jq-ref jq-1.8.2. Load average 2.08 before,
+  2.61 between and 5.39 after the two runs: other worktrees ran, so the errors are wide.
+- #85: `d83af2d`. Baseline: `2fe9654` exported with `git archive`, with the branch's `bench/jmh`
+  sources and pom. Each built with `./mvnw -o -B -Pbench -pl bench/jmh -am package -DskipTests`.
+- Command: `java -jar <jar> KeyProofCost -foe true -prof gc -rf json -rff <json>`, ADR-0019's
+  operation and settings (2 forks, 3 x 1 s warm-up, 5 x 1 s, `-Xms2g -Xmx2g`, compact output); the
+  branch first, then the baseline; then G1.10m twice more on each, alternately. Logs
+  `.logs/85-jmh3-{branch,base}.{log,json}`, `.logs/85-jmh3-g1-{branch,base}-{1,2}.log`,
+  `.logs/85-jmh3-jqref.log`.
+- `KeyProofCost`: G1 `.a.b.c`, G2 and G6's `-c .` on `Inputs.orders` at each size; `recs20` is an
+  array of 20-key records (`KeyProofCost.recs20`, padded to the size); `wide` is ReaderCost's flat
+  78 841-key object (#82) and an LF. jq-ref per document: best of 5 minus the best of 5 on
+  `/dev/null`, one document (K = 1).
+
+| µs/op (± 99.9 %) | #85 | 2fe9654 | change | B/op #85 / 2fe9654 |
+| --- | --- | --- | --- | --- |
+| G1.1k | 2.245 ± 0.161 | 2.264 ± 0.157 | −0.8 % | 368 / 368 |
+| G1.100k | 214.005 ± 13.138 | 210.440 ± 13.590 | +1.7 % | 369 / 369 |
+| G1.10m | 20 268.381 ± 3 023.874 | 19 270.525 ± 1 790.882 | +5.2 % | 621 / 613 |
+| G1.10m, pair 2 | 19 646.403 ± 972.016 | 20 823.424 ± 1 601.337 | −5.7 % | 616 / 624 |
+| G1.10m, pair 3 | 19 881.885 ± 2 294.841 | 20 492.129 ± 2 017.598 | −3.0 % | 618 / 621 |
+| G2.1k | 4.739 ± 0.539 | 4.647 ± 0.487 | +2.0 % | 4 696 / 4 920 |
+| G2.100k | 476.548 ± 71.160 | 436.782 ± 61.144 | +9.1 % | 418 448 / 444 137 |
+| G2.10m | 45 321.492 ± 5 734.008 | 46 271.393 ± 4 383.439 | −2.1 % | 40 311 400 / 42 792 117 |
+| G6 `-c .` 1k | 4.907 ± 0.454 | 5.118 ± 0.419 | −4.1 % | 192 / 212 |
+| G6 `-c .` 100k | 438.063 ± 37.986 | 496.562 ± 55.217 | −11.8 % | 195 / 208 |
+| G6 `-c .` 10m | 41 627.509 ± 2 748.468 | 46 528.887 ± 3 290.923 | −10.5 % | 629 / 702 |
+| recs20 `-c .` 1k | 5.354 ± 0.420 | 19.904 ± 2.143 | −73.1 % | 192 / 192 |
+| recs20 `-c .` 100k | 477.470 ± 48.761 | 1 680.599 ± 90.391 | −71.6 % | 195 / 356 |
+| recs20 `-c .` 10m | 43 346.612 ± 1 930.151 | 144 720.413 ± 11 386.679 | −70.0 % | 639 / 1 279 |
+| recs20 `.[]\|.[]` 1k | 7.579 ± 1.013 | 21.714 ± 2.542 | −65.1 % | 3 088 / 2 792 |
+| recs20 `.[]\|.[]` 100k | 673.387 ± 63.676 | 1 878.497 ± 152.024 | −64.2 % | 240 546 / 216 605 |
+| recs20 `.[]\|.[]` 10m | 59 950.808 ± 4 471.934 | 167 809.499 ± 21 354.755 | −64.3 % | 21 154 249 / 19 039 542 |
+
+| wide (78 841 keys) | #85 µs/op | jq-ref µs per document | #85 / jq-ref |
+| --- | --- | --- | --- |
+| `.[]` | 9 026.280 ± 1 522.706 | 51 065 | 0.18 |
+| `-c .` | 6 835.715 ± 471.581 | 46 876 | 0.15 |
+
+- No cell is over the 10 % bar. G2.100k is the highest at +9.1 %, inside both errors; it was −8.0 %
+  and +6.3 % in this ticket's two earlier rounds (`.logs/85-jmh-*.log` at `fd81c29`,
+  `.logs/85-jmh2-*.log` at `e152ad0`), and G2 walks no read object. G1.10m over its three pairs:
+  −1.3 % (means 19 932 against 20 195).
+- 2fe9654's wide cells are n² and were not run here: `-c .` took 39.9 s on `25ef36c` (ADR-0044).
+- recs20 `.[]|.[]` allocates the walk `.[]` holds for each record (+11 % B/op); the Printer keeps
+  no walk object. Round 1 found the Printer making one per object (G6.10m 9 923 691 B/op against
+  668), removed by `e152ad0`; round 2 a record per proof (recs20 `-c .` 10m 907 225 B/op), removed
+  by `d83af2d`. Their times were within the bar, so only the B/op moved.
+- recs20 jq-ref at 10m, same session: `-c .` 444 269 µs, `.[]|.[]` 414 664 µs per document.
+
+## #82: the distinct-key proof's reader cost (ADR-0002 as amended by F-40), 2026-11-13
+
+Ported unchanged by #85 from `t/82-distinct-keys` at `a01fda2`, which is deleted at #85's merge
+(ADR-0002's withdrawn amendment and ADR-0044 cite this section); `ReaderCost.java` came with it.
+
+- Machine: `claude-cloud-4vcpu` (4 vCPU, Linux 6.18.44-fc-v445), JDK 25.0.5.0.3 (HotSpot 64-Bit
+  Server VM), JMH 1.37. `uptime` before the first run: load average 1.67, 1.40, 0.90; no other
+  build of this agent ran during a measurement, other worktrees' load was not checked further.
+- Baseline: `5ab4aa7` (the tip before #82; the reader is unchanged up to `23c8009`), exported with
+  `git archive`, plus `ReaderCost.java`. #82: `500fcaa` plus the same `ReaderCost.java` (committed
+  with this section). Each built with `./mvnw -o -B -Pbench -pl bench/jmh -am package -DskipTests`.
+- Command: `java -jar <jar> ReaderCost -foe true -prof gc -rf json -rff <json>`, the class's
+  settings (Spike B's: 2 forks, 3 x 1 s warm-up, 5 x 1 s, `-Xms2g -Xmx2g`), run alternately
+  baseline, #82, baseline, #82. Logs `.logs/82-jmh-{base,new}-{1,2}.{log,json}`.
+- `ReaderCost.reader` is one `Workspace.read` of the document, tape and table warmed. The Spike B
+  documents are `Docs.make(size, "middle")` of `spike/field-read`, ported: 969 / 107 765 /
+  11 206 791 bytes, 185 / 19 997 / 2 049 843 entries, root objects of 8 / 770 / 78 841 keys (the
+  same counts as "Spike B" below). `flat-78841` is `{"k000000":0,…}`, 1 250 347 bytes. With #82
+  the roots of 100 KB, 10 MB and flat-78841 are tag 10, the 1 KB root (8 keys) tag 9 (scratch
+  probe over the #82 jar).
+
+| µs/op | baseline 1 | baseline 2 | #82 1 | #82 2 | #82 / baseline (means) |
+| --- | --- | --- | --- | --- | --- |
+| spikeB-1k | 2.128 ± 0.279 | 1.911 ± 0.252 | 1.954 ± 0.195 | 1.897 ± 0.175 | 0.95 |
+| spikeB-100k | 241.563 ± 25.476 | 215.372 ± 32.261 | 265.939 ± 39.481 | 244.061 ± 51.870 | 1.12 |
+| spikeB-10m | 24 198.839 ± 2 102.878 | 22 734.112 ± 2 662.731 | 28 795.355 ± 3 771.406 | 30 138.253 ± 1 515.417 | 1.26 |
+| flat-78841 | 1 593.367 ± 284.133 | 1 536.638 ± 263.769 | 4 083.801 ± 322.124 | 4 011.661 ± 460.328 | 2.59 |
+
+`gc.alloc.rate.norm` per read, baseline / #82: 48 / 48 B at 1 KB, 50 / 50 B at 100 KB, 237–246 /
+279–286 B at 10 MB, 91 / 108 B on flat-78841.
+
+**Over the owner's ~10 % line** at 10 MB (+26 %; +19 % and +33 % per pair) and at 100 KB (+12 %;
++10 % and +13 % per pair, inside each run's error). By the amendment's cost bar #82 stops
+`ready-for-human`. The
+same 78 841 keys cost +2.5 ms dense (flat) and +6.0 ms spread over Spike B's 11 MB and 16 MB of
+tape, so the proof's second walk over memory that is cold by the object's close looks like more
+than half of the 10 MB cost (an inference from these two rows, not a profile).
+
+Table size (scratch simulation, `.logs/82-probe-sim.log`): random 32-bit home slots, linear
+probing, more than 8 probes ends the proof. Distinct key sets that failed, by slots per key:
+
+| keys (trials) | 2 per key | 4 per key | 8 per key |
+| --- | --- | --- | --- |
+| 9 (20 000) | 0 % | 0 % | 0 % |
+| 40 (20 000) | 0.45 % | 0.005 % | 0 % |
+| 770 (20 000) | 43.8 % | 0.48 % | 0 % |
+| 5 000 (20 000) | 65.0 % | 0.91 % | 0.015 % |
+| 78 841 (200) | 100 % | 11.0 % | 0 % |
+| 300 000 (200) | 100 % | 100 % | 100 % |
+
+#82's reader takes 8 slots per key, rounded up to a power of two, at most 2^20: a 4 MiB table for
+78 841 keys, cleared after each proof.
+
 ## Bench recording G2, G3, G4 and the tick-loop diagnostic (ticket #74, ADR-0019, F-33), 2026-11-13
 
 - Machine: `claude-cloud-4vcpu` (4 × Intel Xeon @ 2.10 GHz, Linux 6.18.44-fc-v445), Java 25.0.5.0.3,

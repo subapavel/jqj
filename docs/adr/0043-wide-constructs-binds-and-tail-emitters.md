@@ -25,6 +25,10 @@ result before the rest runs.
   the order the nested form runs. Below `BIND_RUN` nothing changes, so today's pins hold.
 - **`and`/`or` runs** of more than `PIPE_CHAIN` terms of one operator are built balanced from
   ADR-0037's lowering, under which both are associative; depth is about 2·log₂ n. No And/Or node.
+- **`//` runs** (#94) are read by a loop in the parser and the Binder, and past `PIPE_CHAIN` terms
+  built as a balanced Alt: `//` catches nothing, and `a // (b // c)` equals `(a // b) // c` on
+  jq-ref over error, empty, false, null and generator terms. 20 000 terms run where jq-ref's parser
+  stack is exhausted (DEVIATIONS "Long operator runs").
 - **A tail emitter** is decided by node kind alone: Identity, Const, Var, an Intrinsic of a
   one-result call form, or a Pipe, If, Bind or Binds made of tail emitters. It holds no Break and no
   ParamCall, so it never breaks out (ADR-0008). `BindsOp` runs a tail value into a holder, sets its
@@ -34,7 +38,8 @@ result before the rest runs.
 - **The tail emitter is not ADR-0008's value form.** It adds no `eval` form and reads no analysis
   fact (cardinality, may-break-out); it is a local fast path of the push form. The value form and
   its analyses stay in 2b (spec-2 grilling round 1, Q1), which may subsume it.
-- **Still nested**: nested constructs (eight nested 64-pair objects are 512 levels), nested
+- **Still nested**: nested constructs (a construct at or under `BIND_RUN` keeps its nested Binds, so eight nested
+  64-pair objects pass 512 levels; one past it is a Binds of a level or two, #93, #94), nested
   definitions and nested value parameters keep their F-44 Stub; a generator part recurses once.
 - **Repeated object keys** (`Resolver.shaped`) are found through a map by bytes, not a linear scan.
 

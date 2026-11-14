@@ -325,6 +325,37 @@ class RunStateTest {
     assertThat(state.caught(next)).as("the Label of the next token after its break").isTrue();
   }
 
+  /**
+   * ADR-0030 as amended by ADR-0044: one reused scratch of ints, the same array while it is long enough, a longer one
+   * when asked for more, which stays; nothing is charged for it.
+   */
+  @Test
+  void intsIsOneReusedScratchThatGrowsToTheLongestAsked() {
+    RunState state = new RunState();
+    int[] first = state.ints(8);
+    assertThat(first).as("scratch for 8").hasSize(8);
+    assertThat(state.ints(8)).as("scratch for 8 again").isSameAs(first);
+    assertThat(state.ints(3)).as("scratch for 3 after 8").isSameAs(first);
+    int[] longer = state.ints(9);
+    assertThat(longer).as("scratch for 9 after 8").hasSize(9).isNotSameAs(first);
+    assertThat(state.ints(8)).as("scratch for 8 after 9").isSameAs(longer);
+    assertThat(state.steps()).as("ticks of the scratch").isZero();
+    assertThat(state.built()).as("bytes built of the scratch").isZero();
+  }
+
+  @Test
+  void intsKeepsAtMostTwoToTheTwentyAndGivesALongerAskItsOwnArray() {
+    // ADR-0030 as amended by ADR-0044: the scratch kept is capped at 2^20 ints (4 MiB); a longer ask gets an array of
+    // its own, which the run state does not keep, so the kept one stays.
+    RunState state = new RunState();
+    int[] kept = state.ints(1 << 20);
+    assertThat(kept).as("scratch for 2^20").hasSize(1 << 20);
+    int[] over = state.ints((1 << 20) + 1);
+    assertThat(over).as("scratch for 2^20 + 1").hasSize((1 << 20) + 1).isNotSameAs(kept);
+    assertThat(state.ints((1 << 20) + 1)).as("scratch for 2^20 + 1 again").isNotSameAs(over);
+    assertThat(state.ints(1 << 20)).as("scratch for 2^20 after a longer ask").isSameAs(kept);
+  }
+
   /** Asserts that {@code call} ends the run with {@code Termination(BUDGET, budget)} and the budget's message. */
   private static void assertBudget(ThrowingCallable call, Budget budget, String what) {
     Termination t = assertThatExceptionOfType(Termination.class).as("%s", what).isThrownBy(call).actual();

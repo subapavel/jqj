@@ -5,11 +5,11 @@ import io.github.subapavel.jqj.value.JqValue;
 
 /**
  * A container whose members {@code .[]} gives (ADR-0034): an array's elements in order, an object's values with each
- * key at its first position and its last value (ADR-0002). The cursor is an index the container chooses, -1 after the
- * last member. A step after a member checks the document again, since the sink that took the member may have read
- * another one onto the tape (ADR-0026). A switch over the kinds takes every container with one case.
+ * key at its first position and its last value (ADR-0002); a document's object only through its {@link ObjectWalk}
+ * (ADR-0044). The cursor is an index the container chooses, -1 after the last member. A step after a member checks the
+ * document again, since the sink that took the member may have read another one onto the tape (ADR-0026).
  */
-public sealed interface Members permits ArrayView, BuiltArray, ObjectView, BuiltObject {
+public sealed interface Members permits ArrayView, BuiltArray, ObjectWalk, BuiltObject {
   /** The cursor of the first member, or -1 when there is none. */
   int first();
 

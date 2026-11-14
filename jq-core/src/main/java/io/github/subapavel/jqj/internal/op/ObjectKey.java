@@ -25,14 +25,14 @@ public final class ObjectKey implements Fn1 {
     if (key instanceof JqString) {
       return in;
     }
-    throw new FilterException(BuiltString.of(message((JqValue) key)));
+    throw new FilterException(BuiltString.of(message(state, (JqValue) key)));
   }
 
   /**
    * jq's text for {@code key}, which is no string, as an object key: at run time, and at parse time for a constant key
-   * (ADR-0036), with the key shown as {@link ErrorDump} shows it.
+   * (ADR-0036), with the key shown as {@link ErrorDump} shows it, its proofs charged to {@code state}.
    */
-  public static String message(JqValue key) {
-    return "Cannot use " + NavigationErrors.kind(key) + " (" + ErrorDump.of(key) + ") as object key";
+  public static String message(RunState state, JqValue key) {
+    return "Cannot use " + NavigationErrors.kind(key) + " (" + ErrorDump.of(state, key) + ") as object key";
   }
 }
