@@ -592,7 +592,8 @@ A text of directives and definitions that `import` or `include` names, or a JSON
 _Avoid_: library; bare "module" where a Maven or JPMS module could be meant.
 
 **Home module**:
-What a loader's `home()` gives; on the command line `~/.jq` when it is a file.
+What a loader's `home()` gives; on the command line `~/.jq` when it is a file, else
+`~/jq/main.jq`.
 _Avoid_: rc file.
 
 **Program origin**, **jq origin**:
@@ -679,6 +680,11 @@ The assignment of every jq-test case to the spec that makes it pass, from the bu
 constructs its filter reaches in the reference jq. Each spec gate requires the cases the census
 gives it.
 _Avoid_: case budget, target count
+
+**Case directory**:
+The fresh directory a differential case runs in, holding its files. Its real path is written
+`<case>` in recordings and comparisons (F-82).
+_Avoid_: temp dir
 
 **Disagreement**:
 A compile-mode case two of whose runs (optimised, conservative, `trampoline`) both end without a

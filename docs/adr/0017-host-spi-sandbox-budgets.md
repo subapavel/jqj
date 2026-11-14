@@ -151,7 +151,10 @@ rejects what `validate_relpath` rejects, with "Module path contains a NUL byte" 
 must not have equal consecutive components: <path>" added. It reads `optional` and `raw` from the
 metadata; `search` and every other key reach the loader untouched. `home()` is included into the
 main filter below its imports and above the prelude. `modulemeta` asks `module(name, {"search":
-searchList()}, null)` and gives null for a module that does not parse.
+searchList()}, null)` and gives null for a module that does not parse. Imports are resolved last
+to first, and the first unresolved import or cycle ends resolution. `validate_relpath` also rejects
+`\` ("Modules must be named by relative paths using '/', not '\' (<path>)"), and under `optional` a
+rejected path is skipped. Only `true` switches `optional` and `raw` on.
 
 ### The command-line host
 
@@ -159,6 +162,8 @@ searchList()}, null)` and gives null for a module that does not parse.
 then the lib dirs; a given `search` replaces both. `"."` is the working directory, `~/` is
 `HOME`, `$ORIGIN/` is the jq origin, and any other relative entry joins the importer's directory,
 or the program origin for the main filter. Candidates are `d/rel.jq`, `d/rel/jq/main.jq`,
-`d/rel/<last>.jq` (`.json` for data). `home()` is `$HOME/.jq` when it is a file. The program
+`d/rel/<last>.jq` (`.json` for data). `home()` is `$HOME/.jq` when it is a file, or
+`$HOME/jq/main.jq` when `$HOME/.jq` does not exist. Without `HOME` there is no home module and `~/`
+entries are skipped; jq's " (Could not expand …)" suffix is a `DEVIATIONS.md` row. The program
 origin is the real path of the working directory, or of the `-f` file's directory; the jq origin
 is `Invocation.origin`.

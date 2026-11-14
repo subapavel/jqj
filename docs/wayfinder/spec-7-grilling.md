@@ -216,3 +216,30 @@ Not needed before `/to-spec`. The ticket approval carries the surface check and 
 - Owner-only: a NOTICE line if T12 or T13 translates `main.c`'s option loop or usage text.
 - Question 11's surface list against `exported-signatures.txt`, at `/to-tickets` once 5a and 5b
   are merged; #151's "waits for spec 7" list, at the ticket approval.
+
+## Ticket approval (2026-11-14)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14, for the
+owner's review on 2026-11-16. Spec 7's body and S7.1–S7.16 are approved with changes. The architect
+re-ran the HOME-unset text, `-e` with `halt_error(-256)` and `(-257)`, `null|halt_error`,
+`"body"|modulemeta`, last-to-first import resolution and the `\` relpath text on jq-ref 1.8.2 and
+confirmed them.
+- T4 (S7.4) has 9 running cases and jq.test 1981; T5 (S7.5) has jq.test 1969–1977.
+- T15 is also blocked by T5, and T10 by T6.
+- T12 (S7.12) is class B. Totals: 4 C, 10 B, 2 A.
+- Serialising edges: S7.12 → S7.4, S7.10 and S7.13, and S7.6 → S7.7. No chain among S7.4, S7.10
+  and S7.13.
+- R1: ADR-0017's F-81 amendment: imports resolve last to first, the first unresolved import or
+  cycle ends resolution, `validate_relpath` also rejects `\`, a rejected path under `optional` is
+  skipped, only `true` switches `optional` and `raw` on.
+- R2: ADR-0017 "The command-line host": `home()` falls back to `$HOME/jq/main.jq`; without `HOME`
+  there is no home module and `~/` entries are skipped.
+- R3: ADR-0013 and ADR-0020 "Amendment (spec 7 round 1, Invocation)": the launcher passes
+  `$(dirname "$0")` unchanged.
+- R4: ADR-0020's F-82 amendment: a case's `file` name may hold `/`; the `<version>` token in a
+  deviation case's `jqj-stdout` and `jqj-stderr`.
+- R5: DEVIATIONS "`modulemeta` on a module that does not parse": the row is the `lib/body.jq`
+  case.
+- R6: DEVIATIONS "The jq origin": one row, a launcher found on `PATH`.
+- R7: DEVIATIONS "`module not found` with `HOME` unset", pinned by a `test:` method.
+- R8: GLOSSARY "Case directory"; "Home module" gains `~/jq/main.jq`.

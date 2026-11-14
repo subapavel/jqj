@@ -77,4 +77,5 @@ Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026
 
 `record Invocation(List<String> args, Map<String,String> env, Path cwd, InputStream in,
 OutputStream out, OutputStream err, String origin)`; the six-argument constructor stays with
-origin `"."`. `origin` is jq's `dirname(argv[0])`: the launcher passes its own directory.
+origin `"."`. `origin` is jq's `dirname(argv[0])`: the launcher passes `$(dirname "$0")`
+unchanged.

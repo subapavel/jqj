@@ -14,6 +14,10 @@ names its record; the reasons are there. A "no" on an item reopens that record, 
    lands (ADR-0051). Changing a check is the owner's.
 3. **Repository renames** `subapavel/flottila` and `flottila-mapping` on GitHub, and whether history
    that still holds the old name is rewritten. Nothing is rewritten without the owner's word.
+4. **GATE check 6** ("jq's rc-2 usage lines stay byte-identical"): does it cover jq's short usage
+   (`usage(2,1)`)? Spec 7's tickets assume no: only the `Unknown option` and `Use jq --help…`
+   lines stay identical, and the short usage is jqj's own under the `-h` row. A yes takes the
+   `deviation` lines from S7.12's deviation case (`docs/wayfinder/spec-7-grilling.md`).
 
 ## Spec 2b (#106; `docs/wayfinder/spec-2b-grilling.md`)
 
@@ -100,4 +104,18 @@ Round 1 (2026-11-14), proposed by the grilling-adviser for the owner under the d
 - The adviser's 100-line format, where its role and `AGENTS.md` say 40.
 - Owner-only, untouched: if a ticket translates `main.c`'s option loop or usage text, the file takes
   a NOTICE line. Nothing was decided on licences.
+- Ticket approval (2026-11-14), proposed by the grilling-adviser for the owner under the
+  delegation of 2026-11-14:
+  - T4 has 9 running cases and jq.test 1981; T5 has jq.test 1969–1977.
+  - T15 is also blocked by T5, and T10 by T6.
+  - T12 is class B.
+  - The serialising edges S7.12 → S7.4, S7.10 and S7.13, and S7.6 → S7.7.
+  - R1–R8: ADR-0017 (import order, `\` in a path, `optional` and `raw`, `$HOME/jq/main.jq`,
+    no `HOME`), ADR-0013 and ADR-0020 (the launcher passes `$(dirname "$0")` unchanged),
+    ADR-0020 (`/` in a case's `file` name, the `<version>` token), DEVIATIONS (the `lib/body.jq`
+    `modulemeta` row, one jq-origin row, `module not found` with `HOME` unset), GLOSSARY ("Case
+    directory", "Home module").
+  - GATE check 6's reading is owner-only (item 4 above).
+  - Architect's ruling on NOTICE: each ticket that translates `main.c` or `linker.c` code or text
+    adds jq's NOTICE line itself (CLAUDE.md allows it). The owner is told, not asked.
 

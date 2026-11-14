@@ -427,7 +427,10 @@ Proposed by the grilling-adviser for the owner under the delegation of 2026-11-1
 
 | case | filter | input | jq 1.8.2 | jqj |
 | --- | --- | --- | --- | --- |
-| none yet | `-L m modulemeta`, `m/syntaxerror/syntaxerror.jq` holding `wat;` | `"syntaxerror"` | stderr `jq: error: syntax error, unexpected ';', expecting end of file at <case>/m/syntaxerror/syntaxerror.jq, line 1, column 4:` and the source lines; stdout `null`, rc 0 | stdout `null`, stderr empty, rc 0 |
+| none yet | `-L lib -nc modulemeta`, `lib/body.jq` holding `def x: 1; x` | `"body"` | stderr `jq: error: jq: error: library should only have function definitions, not a main expression`; stdout `null`, rc 0 | stdout `null`, stderr empty, rc 0 |
+
+A module with a syntax error behaves alike, but its case would compare rc and stdout only
+(ADR-0020).
 
 jq's block is not catchable: `try` does not see it. Reason: the engine writes to no stream of its
 own (ADR-0017), and a compile-error block in the middle of a run has no channel in the host SPI.
@@ -452,13 +455,25 @@ Proposed by the grilling-adviser for the owner under the delegation of 2026-11-1
 
 | case | how the program is started | jq 1.8.2 `get_jq_origin` | jqj |
 | --- | --- | --- | --- |
-| none yet | by its bare name, found on `PATH` | `"."` | the launcher's own directory |
-| none yet | as `./jq-ref` in its own directory | `"."` | the launcher's own directory |
-| none yet | as `bin/jq-ref` from its parent | `"bin"` | the launcher's own directory |
+| none yet | by its bare name, found on `PATH` | `"."` | the directory `PATH` found the launcher in |
 
-Started by its full path, jq gives that directory (`"/usr/local/bin"`), as jqj does. jq's origin
-is `dirname(argv[0])`; jqj's is `Invocation.origin`, which the launcher sets to its
-own directory. Reason: a name found on `PATH` gives `"."`, the caller's working directory, so
-jq's `$ORIGIN/../lib/jq` would search beside the caller and not beside the program. Differential
-cases print only `type` or a suffix of an origin. Whether the launcher's directory is a full path
-is recorded by spec 7's origins ticket.
+Started by its full path, as `./jqj` or as `bin/jqj`, jqj gives what jq gives: the launcher passes
+`$(dirname "$0")` unchanged. A script found on `PATH` gets its found path as `$0`, where a binary
+gets its bare name. jq's origin is `dirname(argv[0])`; jqj's is `Invocation.origin`, which the
+launcher sets to its own directory. Reason: a name found on `PATH` gives `"."`, the caller's
+working directory, so jq's `$ORIGIN/../lib/jq` would search beside the caller and not beside the
+program. Differential cases print only `type` or a suffix of an origin.
+
+## `module not found` with `HOME` unset (ADR-0017, F-81, spec 7)
+
+Proposed by the grilling-adviser for the owner under the delegation of 2026-11-14
+(`docs/wayfinder/spec-7-grilling.md`, "Ticket approval (2026-11-14)"). jq-ref 1.8.2 observed; jqj
+intended:
+
+| case | filter | environment | jq 1.8.2 | jqj |
+| --- | --- | --- | --- | --- |
+| none yet | `-n 'import "q" as q; .'` | no `HOME` | `jq: error: module not found: q (Could not expand ~/.jq. (Could not find home directory.))`, rc 3 | `jq: error: module not found: q`, rc 3 |
+
+Reason: the loader SPI gives no reason for a miss (F-81), and a reason channel would widen the
+public SPI for one environment. The recorder always sets `HOME`, so the row is pinned by a `test:`
+method.
