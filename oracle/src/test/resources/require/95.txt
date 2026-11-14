@@ -22,6 +22,6 @@ key-index/not-equal
 key-index/not-equal-colliding
 key-index/unique-objects
 key-index/group-by-object
-key-index/index-of-object
-key-index/index-of-object-built
+key-index/array-index-of-object
+key-index/array-index-of-object-built
 key-index/empty-objects

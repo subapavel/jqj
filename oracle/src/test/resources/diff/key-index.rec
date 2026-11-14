@@ -92,14 +92,14 @@ stderr
 end
 
 case key-index/built-left-read-right-colliding
-def 542444ef2f5b
+def 34f4a929378b
 rc 0
 stdout true\nfalse\n
 stderr
 end
 
 case key-index/read-left-built-right
-def 158a47842833
+def 3a572024cd1e
 rc 0
 stdout true\nfalse\n
 stderr
@@ -133,17 +133,17 @@ stdout [2,3,1]\n
 stderr
 end
 
-case key-index/index-of-object
-def 679f13cd7083
+case key-index/array-index-of-object
+def e2e27821d83f
 rc 0
-stdout 2\n3\n[2,3]\n
+stdout [2,3,4]\n[2,3]\n[]\n
 stderr
 end
 
-case key-index/index-of-object-built
-def 7dd217465d9c
+case key-index/array-index-of-object-built
+def 78f579ef8f6d
 rc 0
-stdout 2\n
+stdout [2]\n
 stderr
 end
 
