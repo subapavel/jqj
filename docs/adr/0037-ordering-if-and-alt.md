@@ -1,6 +1,6 @@
 # Ordering is jq's jv_cmp on an explicit stack; If and Alt join the IR
 
-Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #66; designer draft); completes ADR-0029 for ordering; amends ADR-0005 (If, Alt, Truth), ADR-0008 (neither ticks) and ADR-0034 (comparison lowering); Alt and Collect after a break amended by ADR-0039 (#68); sort compare ticks amended by F-48 (#73)
+Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #66; designer draft); completes ADR-0029 for ordering; amends ADR-0005 (If, Alt, Truth), ADR-0008 (neither ticks) and ADR-0034 (comparison lowering); Alt and Collect after a break amended by ADR-0039 (#68); sort compare ticks amended by F-48 (#73); the uncharged key-list sort is open, F-53 (#104)
 
 #66 is the first ticket that orders values or branches on truth. S2a.23's orderers reuse its primitive, and #68 lowers `if` onto its If. Equality (`jv_equal`) is #65's (ADR-0034 amendment for #65); #66 builds `==` and `!=` on it.
 
