@@ -26,8 +26,10 @@ import org.junit.jupiter.api.Timeout.ThreadMode;
  * Wide read objects walk in about linear time and steps (F-40, ADR-0044, #85): a walk first proves its keys, one step
  * per key entry, then {@code .[]} charges one per member and the Printer none, the writer one per started KiB of each
  * drain (F-23); a key set built to collide in one hash falls back to a sort of at most n * ceil(log2 n) compares, never
- * n * n. Each run has a wall-clock bound in a separate thread, so a quadratic walk fails the test instead of stalling the
- * build. On 25ef36c {@code -c .} over 78 841 keys takes 39.9 s (#85).
+ * n * n. Equality takes a read right side through its key index (ADR-0044 as amended by #95): n + m + one step per
+ * member pair, not a field read that scans the right side's m keys per left member. Each run has a wall-clock bound in a
+ * separate thread, so a quadratic walk fails the test instead of stalling the build. On 25ef36c {@code -c .} over
+ * 78 841 keys takes 39.9 s (#85).
  */
 class WideObjectTest {
   /** 10^5 keys. */
@@ -66,6 +68,32 @@ class WideObjectTest {
     for (int i = 0; i < n; i++) object.add("\"" + key.apply(i) + "\":" + i);
     return object.toString().getBytes(US_ASCII);
   }
+
+  /** {@code {"key(n-1)":n-1,…,"key(0)":0}}: the members of {@link #object} in reverse order, compact, in ASCII. */
+  private static byte[] reversed(int n, IntFunction<String> key) {
+    StringJoiner object = new StringJoiner(",", "{", "}");
+    for (int i = n - 1; i >= 0; i--) object.add("\"" + key.apply(i) + "\":" + i);
+    return object.toString().getBytes(US_ASCII);
+  }
+
+  /** {@code [left,right]}, compact. */
+  private static byte[] pair(byte[] left, byte[] right) {
+    byte[] pair = new byte[left.length + right.length + 3];
+    pair[0] = '[';
+    System.arraycopy(left, 0, pair, 1, left.length);
+    pair[left.length + 1] = ',';
+    System.arraycopy(right, 0, pair, left.length + 2, right.length);
+    pair[pair.length - 1] = ']';
+    return pair;
+  }
+
+  /**
+   * {@code [W,Wrev]}: {@link #WIDE_OBJECT}, then its members in reverse order. jq-ref 1.8.2, observed 2026-11-14 (the
+   * test-author's {@code .logs/95-jqref.log}): {@code [range(100000) | {key: "k\(.)", value: .}] | from_entries} and the
+   * same over {@code range(99999; -1; -1)}, slurped by {@code -sc .}, print it in 2 955 566 bytes with the LF, the
+   * second object's first member {@code "k99999":99999}, and {@code .[0] == .[1]} gives true.
+   */
+  private static final byte[] WIDE_PAIR = pair(WIDE_OBJECT, reversed(WIDE, i -> "k" + i));
 
   /** {@code 0} to {@code n - 1}, the texts of the members' values. */
   private static List<String> indexes(int n) {
@@ -125,6 +153,18 @@ class WideObjectTest {
     assertBudget(() -> under.compile(filter).run(root, NONE, sink, cut), Budget.STEPS, filter + " over " + what + " with " + steps + " steps");
   }
 
+  /** {@code filter} over {@code document} completes with {@code steps} steps, giving the one result {@code result}. */
+  private static void assertGives(String filter, byte[] document, long steps, String result, String what) {
+    JqEngine exact = steps(steps);
+    Workspace whole = exact.newWorkspace();
+    JqValue root = read(whole, document).root();
+    Results all = new Results();
+    boolean[] answer = new boolean[1];
+    assertThatCode(() -> answer[0] = exact.compile(filter).run(root, NONE, all, whole)).as("run of %s over %s with %s steps", filter, what, steps).doesNotThrowAnyException();
+    assertThat(answer[0]).as("run's answer for %s over %s with %s steps", filter, what, steps).isTrue();
+    assertThat(all.values.stream().map(JqValue::toJson).toList()).as("result of %s over %s", filter, what).containsExactly(result);
+  }
+
   /** The writer's ticks for one printed line of {@code bytes}: 64 KiB drains and the rest, one per started KiB (F-23). */
   private static long writerTicks(int bytes) {
     return (bytes + 1023) / 1024;
@@ -166,6 +206,19 @@ class WideObjectTest {
     assertThat(answer[0]).as("run's answer for . == . over 10^5 keys").isTrue();
     assertThat(all.values.stream().map(JqValue::toJson).toList()).as("result of . == . over 10^5 keys").containsExactly("true");
     assertEnds(". == .", false, WIDE_OBJECT, 101_443, "10^5 keys");
+  }
+
+  @Test
+  @Timeout(value = 5, unit = SECONDS, threadMode = ThreadMode.SEPARATE_THREAD)
+  void equalsAReorderedCopyTenToTheFiveKeys() {
+    // ADR-0044 as amended by #95: 2 955 565 bytes read, 2 887 ticks; .[1] steps one entry (1). Equality proves its left
+    // side (10^5), finds the right side another entry, and takes it through its key index: the right side's proof
+    // (10^5), then a lookup of each left key in its table, which charges none; then one tick per member pair (10^5).
+    // 2 887 + 1 + 10^5 + 10^5 + 10^5 = 302 888 complete and 302 887 end. Before #95 each pair's field read scanned the
+    // right side's 10^5 keys, n + n * m + n + m: the run ends in the second pair's scan.
+    assertThat(WIDE_PAIR).as("[W,Wrev] of 10^5 keys, jq-ref's -c line without its LF").hasSize(2_955_565);
+    assertGives(".[0] == .[1]", WIDE_PAIR, 302_888, "true", "[W,Wrev] of 10^5 keys");
+    assertEnds(".[0] == .[1]", false, WIDE_PAIR, 302_887, "[W,Wrev] of 10^5 keys");
   }
 
   @Test
