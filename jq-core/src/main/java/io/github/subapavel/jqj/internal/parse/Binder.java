@@ -101,6 +101,7 @@ final class Binder {
     HAS("has", 1, false),
     KEYS("keys", 0, true),
     KEYS_UNSORTED("keys_unsorted", 0, true),
+    TO_ENTRIES("to_entries", 0, true),
     FLATTEN("flatten", 0, true),
     FLATTEN_DEPTH("flatten", 1, true),
     NAN("nan", 0, false),

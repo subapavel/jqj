@@ -32,7 +32,7 @@ import java.util.Set;
 
 /**
  * ADR-0042's native table (GLOSSARY "Native table"): every builtin signature jq 1.8.2 writes in C or bytecode, plus
- * F-31's replacing natives, by {@code name/arity}, the input not counted. The {@link Binder} looks it up after the
+ * F-31's and ADR-0044's replacing natives, by {@code name/arity}, the input not counted. The {@link Binder} looks it up after the
  * user's definitions and before the prelude; an entry the {@link Binder.Native} enum does not build yet binds as an
  * unbuilt native, whose lowering is a Stub (GLOSSARY "Unbuilt native"). Translated from jq 1.8.2's {@code
  * function_list} (src/builtin.c), its BINOPS (src/builtin.h) and the functions of src/libm.h it includes, {@code
@@ -76,11 +76,13 @@ final class NativeTable {
           "y1/0", "yn/2");
 
   /**
-   * bind_bytecoded_builtins, gen_builtin_list's {@code builtins/0}, and F-31's natives that replace builtin.jq's
-   * {@code flatten/0}, {@code flatten/1} and {@code inputs/0}.
+   * bind_bytecoded_builtins, gen_builtin_list's {@code builtins/0}, F-31's natives that replace builtin.jq's {@code
+   * flatten/0}, {@code flatten/1} and {@code inputs/0}, and ADR-0044's that replaces its {@code to_entries/0}.
    */
   private static final List<String> CLOSURE_LIST =
-      List.of("empty/0", "not/0", "path/1", "last/1", "range/2", "builtins/0", "flatten/0", "flatten/1", "inputs/0");
+      List.of(
+          "empty/0", "not/0", "path/1", "last/1", "range/2", "builtins/0", "flatten/0", "flatten/1", "inputs/0",
+          "to_entries/0");
 
   private static final Map<String, Kind> TABLE = table();
 

@@ -3,6 +3,7 @@ package io.github.subapavel.jqj.internal.op;
 import io.github.subapavel.jqj.internal.json.ErrorDump;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.query.run.FilterException;
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
@@ -30,9 +31,9 @@ final class NavigationErrors {
     };
   }
 
-  /** {@code t[k]}'s error, the key shown as {@link ErrorDump} shows it. */
-  static FilterException cannotIndex(JqValue t, JqValue k) {
-    return cannotIndex(t, kind(k), ErrorDump.of(k));
+  /** {@code t[k]}'s error, the key shown as {@link ErrorDump} shows it, its proofs charged to {@code state}. */
+  static FilterException cannotIndex(RunState state, JqValue t, JqValue k) {
+    return cannotIndex(t, kind(k), ErrorDump.of(state, k));
   }
 
   /** {@code t[k]}'s error for a key of the kind {@code keyKind} that an error shows as {@code shown}. */
@@ -40,9 +41,9 @@ final class NavigationErrors {
     return error("Cannot index " + kind(t) + " with " + keyKind + " (" + shown + ")");
   }
 
-  /** {@code t[]}'s error. */
-  static FilterException cannotIterate(JqValue t) {
-    return error("Cannot iterate over " + kind(t) + " (" + ErrorDump.of(t) + ")");
+  /** {@code t[]}'s error, {@code t}'s proofs charged to {@code state}. */
+  static FilterException cannotIterate(RunState state, JqValue t) {
+    return error("Cannot iterate over " + kind(t) + " (" + ErrorDump.of(state, t) + ")");
   }
 
   /** A slice of an array or a string with a bound that is neither null nor a number. */

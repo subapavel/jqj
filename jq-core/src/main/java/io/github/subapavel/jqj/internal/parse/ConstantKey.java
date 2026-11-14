@@ -160,7 +160,7 @@ final class ConstantKey {
    * rc 5 (DEVIATIONS "Huge constant keys").
    */
   String error(Ast query) {
-    return fold(query) instanceof JqValue value && !(value instanceof JqString) ? ObjectKey.message(value) : null;
+    return fold(query) instanceof JqValue value && !(value instanceof JqString) ? ObjectKey.message(state, value) : null;
   }
 
   /**

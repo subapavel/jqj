@@ -26,6 +26,7 @@ package io.github.subapavel.jqj.internal.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
@@ -48,8 +49,8 @@ public final class ErrorDump {
 
   private ErrorDump() {}
 
-  /** What an error text shows of {@code v}. */
-  public static String of(JqValue v) {
+  /** What an error text shows of {@code v}, the key proofs of its read objects charged to {@code state} (ADR-0044). */
+  public static String of(RunState state, JqValue v) {
     int closing =
         switch (v) {
           case JqString _ -> '"';
@@ -60,7 +61,7 @@ public final class ErrorDump {
           case JqNull _ -> 0;
           case JqBool _ -> 0;
         };
-    return of(Printer.head(v, WHOLE + 1), closing);
+    return of(Printer.head(state, v, WHOLE + 1), closing);
   }
 
   /**

@@ -1,6 +1,6 @@
 # The prelude is jq's builtin.jq, parsed once per JVM and looked up after the native table
 
-Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #71; designer draft); amends ADR-0040 (Binder order) and ADR-0031 (Source of inlined prelude nodes)
+Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #71; designer draft); amends ADR-0040 (Binder order) and ADR-0031 (Source of inlined prelude nodes); amended by ADR-0044 (`to_entries` native, #85)
 
 jq 1.8.2's `builtins_bind` binds builtin.jq's definitions, then the bytecoded builtins, then the C functions (`function_list`), and binds each unbound reference to the last binder first. No (name, arity) in builtin.jq is also a C or bytecoded builtin, so looking up natives before the prelude gives jq's result. The only exceptions are F-31's replacing natives (`flatten/0`, `flatten/1`, `inputs/0`), where jqj's native wins by design. Looking natives up first also lets a native-only filter compile without touching the prelude.
 
@@ -22,6 +22,10 @@ jq 1.8.2's `builtins_bind` binds builtin.jq's definitions, then the bytecoded bu
 - **Source**: nodes lowered from a prelude body take the call site's Source; closure arguments keep their own Source. This amends ADR-0031.
 - **Cost**: an inlined prelude call ticks and charges nothing, so `map(f)` costs what `[.[]|f]` costs.
 - **query-core** gains nothing.
+
+## Amendment (ADR-0044, ticket #85)
+
+- **`to_entries/0` is a replacing native**, like F-31's: the native table lists it, so builtin.jq's definition is never bound, and it walks a read object once through its key proof (`Binder.Native.TO_ENTRIES`, keepsArgs true per F-47).
 
 ## Considered options
 

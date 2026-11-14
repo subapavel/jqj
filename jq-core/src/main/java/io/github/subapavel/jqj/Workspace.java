@@ -13,14 +13,14 @@ import java.lang.foreign.MemorySegment;
 public final class Workspace {
   private final JsonReader reader = new JsonReader(TapeLimits.ADR_0002);
 
-  /** The writer's printer and its 64 KiB buffer, shared by every sink over this Workspace. */
-  final Printer printer = new Printer();
-
   /**
    * The run state (ADR-0030): a main read primes it, {@link JqFilter#run} begins and ends it, and the reader and the
    * writer charge it.
    */
   final RunState state = new RunState();
+
+  /** The writer's printer and its 64 KiB buffer, shared by every sink over this Workspace; its proofs charge state. */
+  final Printer printer = new Printer(state);
 
   Workspace() {}
 
