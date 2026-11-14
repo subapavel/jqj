@@ -61,6 +61,28 @@ class LiteralNumberTest {
     assertThat(LiteralNumber.ofLexeme("1e2").fitsLong()).as("fitsLong of 1e2").isFalse();
   }
 
+  @Test
+  void aShortTokenIsCanonicalWithoutExponentAndAtMost15Bytes() {
+    // ADR-0012 "Flags": the short token the reader's CANONICAL flag gives a view (#90).
+    assertThat(LiteralNumber.ofLexeme("1.5").isShort()).as("isShort of 1.5").isTrue();
+    assertThat(LiteralNumber.ofLexeme("12345678901.234").isShort()).as("isShort of 15 bytes").isTrue();
+    assertThat(LiteralNumber.ofLexeme("12345678901.2345").isShort()).as("isShort of 16 bytes").isFalse();
+    assertThat(LiteralNumber.ofLexeme("1e2").isShort()).as("isShort of 1e2, not canonical").isFalse();
+    assertThat(LiteralNumber.ofLexeme("1E+400").isShort()).as("isShort of 1E+400, canonical").isFalse();
+  }
+
+  @Test
+  void canonicalExponentLiteralsCompareByDecimalValue() {
+    // jq-ref 1.8.2, recorded in diff/big-literal.rec: [1E+400 == 1E+401, 1E-400 == 0] -> [false,false],
+    // 1E+400 < 1E+401 and 0 < 1E-400 are true; through double both pairs would be equal (#90).
+    assertThat(Numbers.compare(LiteralNumber.ofLexeme("1E+400"), LiteralNumber.ofLexeme("1E+401")))
+        .as("compare 1E+400 with 1E+401")
+        .isEqualTo(-1);
+    assertThat(Numbers.compare(LiteralNumber.ofLexeme("1E-400"), LiteralNumber.ofLexeme("0")))
+        .as("compare 1E-400 with 0")
+        .isEqualTo(1);
+  }
+
   /**
    * A lexeme of the filter's number grammar: an integer part, a fraction after it (possibly empty, as {@code 1.}) or
    * alone ({@code .5}), and an optional exponent of 1 to 3 digits, so the adjusted exponent stays inside the exponent
