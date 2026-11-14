@@ -34,7 +34,8 @@ result before the rest runs.
 - **The tail emitter is not ADR-0008's value form.** It adds no `eval` form and reads no analysis
   fact (cardinality, may-break-out); it is a local fast path of the push form. The value form and
   its analyses stay in 2b (spec-2 grilling round 1, Q1), which may subsume it.
-- **Still nested**: nested constructs (eight nested 64-pair objects are 512 levels), nested
+- **Still nested**: nested constructs (a construct at or under `BIND_RUN` keeps its nested Binds, so eight nested
+  64-pair objects pass 512 levels; one past it is a Binds of a level or two, #93, #94), nested
   definitions and nested value parameters keep their F-44 Stub; a generator part recurses once.
 - **Repeated object keys** (`Resolver.shaped`) are found through a map by bytes, not a linear scan.
 
