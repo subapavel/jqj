@@ -84,11 +84,12 @@
             <param>io.github.subapavel.jqj.oracle.diff.DifferentialSurveyTest</param>
             <param>io.github.subapavel.jqj.oracle.json.JsonSurveyTest</param>
             <param>io.github.subapavel.jqj.oracle.jqtest.JqTestSurveyTest</param>
+            <!-- 116.4 s in surefire; first killer of 8 of 3 259 mutants (F-84). -->
+            <param>io.github.subapavel.jqj.WideConstructStepsTest</param>
+            <!-- 35.7 s in surefire; first killer of 4 of 3 259 mutants (F-84). -->
+            <param>io.github.subapavel.jqj.OperatorChainTest</param>
           </excludedTestClasses>
-          <additionalClasspathElements>
-            <additionalClasspathElement>${project.basedir}/../query-core/target/test-classes</additionalClasspathElement>
-            <additionalClasspathElement>${project.basedir}/../jq-core/target/test-classes</additionalClasspathElement>
-          </additionalClasspathElements>
+          <!-- Only oracle's own tests run here: ratchet.java unions each module's own kills with these (F-84). -->
         </configuration>
       </plugin>
     </plugins>
