@@ -57,6 +57,8 @@ import io.github.subapavel.jqj.value.JqString;
 import io.github.subapavel.jqj.value.JqValue;
 import java.io.ByteArrayOutputStream;
 import java.io.Serial;
+import java.lang.foreign.ValueLayout;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -98,8 +100,9 @@ import java.util.function.Supplier;
  * in the environment ({@link Env}): a slot, a closure or a definition's body. A call of a definition lowers its body in
  * the environment the definition was written in, plus its parameters, with fresh slots for each copy; a filter
  * parameter is the caller's closure, lowered in the caller's environment on the callee's input at each use, and a value
- * parameter {@code $a} is also a Bind of it around the body, the first parameter outermost (ADR-0040). Lowering a call
- * of a recursive definition is a Stub until spec 2b. One compile spends at most {@link #INLINE_CAP} nodes inside
+ * parameter {@code $a} is also a Bind of it around the body, the first parameter outermost (ADR-0040), and past {@link
+ * #BIND_RUN} of them their one Binds (ADR-0043), as an object's, an interpolation's and a pattern's Binds are.
+ * Lowering a call of a recursive definition is a Stub until spec 2b. One compile spends at most {@link #INLINE_CAP} nodes inside
  * expansions, and nests at most {@link #EXPANSIONS} - 1 of them; past either the filter is a Stub (GLOSSARY "Inline
  * cap"), and so is a filter of more than {@link #MAX_IR_DEPTH} levels of IR (F-44). A Stub is thrown at once.
  *
@@ -159,6 +162,13 @@ public final class Resolver {
    */
   static final int PIPE_CHAIN = MAX_IR_DEPTH / 8;
 
+  /**
+   * ADR-0043: the most nested Binds a construct lowers to; past it the construct is one Binds, a level however wide,
+   * its values in the order the nested form runs them. {@link #PIPE_CHAIN}, so a construct below it keeps the nested
+   * form and its pins.
+   */
+  static final int BIND_RUN = PIPE_CHAIN;
+
   /** A key or bound that is passed as a Const argument, so it takes no slot and no Bind. */
   private static final int NO_SLOT = -1;
 
@@ -185,7 +195,8 @@ public final class Resolver {
 
   /**
    * The levels of IR the lowering is inside ({@link #MAX_IR_DEPTH}): one for each Ast that builds a node of its own and
-   * one for each value parameter Bound around an expansion's body. Every throw ends the compile, so none restores it.
+   * one for each value parameter Bound around an expansion's body, or one for their Binds past {@link #BIND_RUN} of
+   * them. Every throw ends the compile, so none restores it.
    */
   private int levels;
 
@@ -585,17 +596,23 @@ public final class Resolver {
       }
       inner = new Env(p, valueSlots[i], argument, inner);
     }
-    // Each value parameter's Bind is a level around the body, so the body's first node of its own, which every body
-    // builds, stops the lowering past MAX_IR_DEPTH as early as its levels do.
-    levels += binds;
+    // Each value parameter's Bind is a level around the body, or their one Binds is one level past BIND_RUN of them
+    // (ADR-0043), so the body's first node of its own, which every body builds, stops the lowering past MAX_IR_DEPTH
+    // as early as its levels do.
+    int around = binds > BIND_RUN ? 1 : binds;
+    levels += around;
     env = inner;
     site = bodySite;
     Node body = lower(def.body());
     env = caller;
-    levels -= binds;
-    // The value parameters' Binds are the body's, at its site.
-    for (int i = params.size() - 1; i >= 0; i--) {
-      body = bind(values[i], valueSlots[i], body);
+    levels -= around;
+    // The value parameters' Binds are the body's, at its site: one Binds past BIND_RUN of them, the first outermost.
+    if (binds > BIND_RUN) {
+      body = oneBinds(here(body.source()), values, valueSlots, body);
+    } else {
+      for (int i = params.size() - 1; i >= 0; i--) {
+        body = bind(values[i], valueSlots[i], body);
+      }
     }
     site = callerSite;
     depth--;
@@ -1091,6 +1108,22 @@ public final class Resolver {
   }
 
   /**
+   * One Binds at {@code source} around {@code body} (ADR-0043): each of {@code values} whose slot in {@code slots} is no
+   * {@link #NO_SLOT}, bound to it, the first outermost, as {@link #bind} nests them from the last in.
+   */
+  private static Binds oneBinds(Source source, Node[] values, int[] slots, Node body) {
+    List<Node> bound = new ArrayList<>();
+    List<Integer> boundSlots = new ArrayList<>();
+    for (int i = 0; i < values.length; i++) {
+      if (slots[i] != NO_SLOT) {
+        bound.add(values[i]);
+        boundSlots.add(slots[i]);
+      }
+    }
+    return new Binds(source, bound, boundSlots, body);
+  }
+
+  /**
    * The variable {@code reference} at {@code at}, as the Binder bound it: a Var of its declaration's slot, or a Const
    * null for a group name its alternative has not stored yet; a variable jq defines itself is a Stub.
    */
@@ -1133,7 +1166,8 @@ public final class Resolver {
 
   /**
    * One pattern: the value's Bind, then the match's Binds, then the body, which reads each name at the slot of its
-   * first store, as the Binder bound it. {@code E as $x | body} is so one Bind.
+   * first store, as the Binder bound it. {@code E as $x | body} is so one Bind; past {@link #BIND_RUN} Binds the value
+   * and the steps are one Binds ({@link #nest}).
    */
   private Node destructure(Source source, Node value, int slot, Ast.Pattern pattern, Supplier<Node> lowerBody) {
     Env outer = env;
@@ -1141,7 +1175,10 @@ public final class Resolver {
     match(pattern, slot, match);
     Node body = lowerBody.get();
     env = outer;
-    return new Bind(source, value, slot, nest(match.steps, body));
+    List<Step> steps = new ArrayList<>(match.steps.size() + 1);
+    steps.add(new Step(value, slot, source));
+    steps.addAll(match.steps);
+    return nest(source, steps, body);
   }
 
   /**
@@ -1170,7 +1207,8 @@ public final class Resolver {
         }
         from.add(own);
       }
-      alternatives.add(new Alternative(nest(match.steps, new Identity(here(pattern.source()))), from));
+      Source leaf = here(pattern.source());
+      alternatives.add(new Alternative(nest(leaf, match.steps, new Identity(leaf)), from));
     }
     List<Integer> groupSlots = new ArrayList<>();
     for (Object group : groups.values()) {
@@ -1238,8 +1276,20 @@ public final class Resolver {
     return pipe(new Var(source, level), new Intrinsic(source, Index.PLAIN, List.of(key)));
   }
 
-  /** {@code body} inside the Binds of {@code steps}, the first outermost. */
-  private static Node nest(List<Step> steps, Node body) {
+  /**
+   * {@code body} inside the Binds of {@code steps}, the first outermost: a Bind per step, or one Binds at {@code source}
+   * past {@link #BIND_RUN} steps (ADR-0043), its values in the same order.
+   */
+  private static Node nest(Source source, List<Step> steps, Node body) {
+    if (steps.size() > BIND_RUN) {
+      List<Node> values = new ArrayList<>(steps.size());
+      List<Integer> stepSlots = new ArrayList<>(steps.size());
+      for (Step step : steps) {
+        values.add(step.value());
+        stepSlots.add(step.slot());
+      }
+      return new Binds(source, values, stepSlots, body);
+    }
     for (int i = steps.size() - 1; i >= 0; i--) {
       Step step = steps.get(i);
       body = new Bind(step.source(), step.value(), step.slot(), body);
@@ -1251,7 +1301,8 @@ public final class Resolver {
    * A string literal: without interpolation a Const of its text, whatever its format (jq-ref 1.8.2, observed
    * 2026-11-13: {@code @base64 "k"} is {@code "k"}); with one, an Intrinsic of Interpolate on its parts, each text part
    * a Const and each interpolation bound around it unless atomic, the last part outermost, as jq loops (ADR-0038,
-   * jq-ref: {@code "\(1,2)\(3,4)"} gives 13, 23, 14, 24). Only {@code @text} or no format is built with interpolations.
+   * jq-ref: {@code "\(1,2)\(3,4)"} gives 13, 23, 14, 24); past {@link #BIND_RUN} bound parts, one Binds, the last part
+   * first (ADR-0043). Only {@code @text} or no format is built with interpolations.
    */
   private Node string(Ast.Str s) {
     if (plain(s)) {
@@ -1264,6 +1315,7 @@ public final class Resolver {
     Node[] nodes = new Node[parts.size()];
     int[] partSlots = new int[parts.size()];
     List<Node> args = new ArrayList<>(parts.size());
+    int binds = 0;
     for (int i = 0; i < parts.size(); i++) {
       nodes[i] =
           switch (parts.get(i)) {
@@ -1272,8 +1324,21 @@ public final class Resolver {
           };
       partSlots[i] = operandSlot(nodes[i]);
       args.add(argument(nodes[i], partSlots[i]));
+      if (partSlots[i] != NO_SLOT) {
+        binds++;
+      }
     }
     Node body = new Intrinsic(here(s.source()), Interpolate.OP, args);
+    if (binds > BIND_RUN) {
+      // One Binds (ADR-0043), the last part outermost, as the nested Binds below are.
+      Node[] lastFirst = new Node[parts.size()];
+      int[] lastFirstSlots = new int[parts.size()];
+      for (int i = 0; i < parts.size(); i++) {
+        lastFirst[i] = nodes[parts.size() - 1 - i];
+        lastFirstSlots[i] = partSlots[parts.size() - 1 - i];
+      }
+      return oneBinds(here(body.source()), lastFirst, lastFirstSlots, body);
+    }
     for (int i = 0; i < parts.size(); i++) {
       body = bind(nodes[i], partSlots[i], body);
     }
@@ -1296,7 +1361,7 @@ public final class Resolver {
    * keys in their first place, with one argument per key, the value of its last pair; an earlier pair of a repeated key
    * still runs, for its results. Any other site passes a key and a value per pair. The key of {@code {$x: v}} is the
    * variable's value (jq-ref, recorded: bind/object-var-key); a shorthand is {@link #shorthand}. Each pair spends a node
-   * of the inline cap.
+   * of the inline cap. Past {@link #BIND_RUN} Binds the pairs are one Binds in the same order ({@link #pairBinds}).
    */
   private Node object(Ast.ObjectCons o) {
     List<Ast.Pair> pairs = o.pairs();
@@ -1306,6 +1371,7 @@ public final class Resolver {
     Node[] values = new Node[n];
     int[] valueSlots = new int[n];
     boolean shaped = true;
+    int binds = 0;
     for (int i = 0; i < n; i++) {
       spend();
       Ast.Pair pair = pairs.get(i);
@@ -1314,9 +1380,13 @@ public final class Resolver {
       values[i] = pair.value() == null ? shorthand(pair.key(), keys[i], keySlots[i]) : lower(pair.value());
       valueSlots[i] = operandSlot(values[i]);
       shaped &= keySlots[i] == NO_SLOT;
+      binds += (keySlots[i] == NO_SLOT ? 0 : 1) + (valueSlots[i] == NO_SLOT ? 0 : 1);
     }
     Source at = here(o.source());
     Node body = shaped ? shaped(at, keys, values, valueSlots) : new Intrinsic(at, BuildObject.PAIRS, pairArguments(keys, keySlots, values, valueSlots));
+    if (binds > BIND_RUN) {
+      return pairBinds(keys, keySlots, values, valueSlots, body);
+    }
     for (int i = n - 1; i >= 0; i--) {
       if (keySlots[i] != NO_SLOT) {
         Source check = here(keys[i].source());
@@ -1325,6 +1395,33 @@ public final class Resolver {
       body = bind(keys[i], keySlots[i], bind(values[i], valueSlots[i], body));
     }
     return body;
+  }
+
+  /**
+   * The pairs of an object whose nested form has more than {@link #BIND_RUN} Binds, as one Binds around {@code body},
+   * its construction (ADR-0043), in the order the nested form runs them: per pair its computed key, its value unless
+   * passed as an argument, and the check of its computed key, a value of the Binds bound to a new slot no node reads,
+   * since the check gives its input back; then the next pair.
+   */
+  private Binds pairBinds(Node[] keys, int[] keySlots, Node[] values, int[] valueSlots, Node body) {
+    List<Node> bound = new ArrayList<>();
+    List<Integer> boundSlots = new ArrayList<>();
+    for (int i = 0; i < keys.length; i++) {
+      if (keySlots[i] != NO_SLOT) {
+        bound.add(keys[i]);
+        boundSlots.add(keySlots[i]);
+      }
+      if (valueSlots[i] != NO_SLOT) {
+        bound.add(values[i]);
+        boundSlots.add(valueSlots[i]);
+      }
+      if (keySlots[i] != NO_SLOT) {
+        Source check = here(keys[i].source());
+        bound.add(new Intrinsic(check, ObjectKey.CHECK, List.of(new Var(check, keySlots[i]))));
+        boundSlots.add(slots++);
+      }
+    }
+    return new Binds(here(body.source()), bound, boundSlots, body);
   }
 
   /**
@@ -1368,19 +1465,18 @@ public final class Resolver {
 
   /**
    * The construction of a site whose keys are all Consts of strings: its shape, the distinct keys in their first place,
-   * and per key the value of its last pair. Keys compare by their UTF-8 bytes.
+   * and per key the value of its last pair. Keys compare by their UTF-8 bytes, each found among the distinct keys
+   * before it through a map by those bytes (ADR-0043), not a scan of them.
    */
   private Intrinsic shaped(Source source, Node[] keys, Node[] values, int[] valueSlots) {
     List<JqString> shape = new ArrayList<>();
     List<Node> args = new ArrayList<>();
+    Map<ByteBuffer, Integer> places = new HashMap<>();
     for (int i = 0; i < keys.length; i++) {
       JqString key = (JqString) ((Const) keys[i]).value();
       Node value = argument(values[i], valueSlots[i]);
-      int at = 0;
-      while (at < shape.size() && shape.get(at).utf8().mismatch(key.utf8()) != -1) {
-        at++;
-      }
-      if (at == shape.size()) {
+      Integer at = places.putIfAbsent(ByteBuffer.wrap(key.utf8().toArray(ValueLayout.JAVA_BYTE)), shape.size());
+      if (at == null) {
         shape.add(key);
         args.add(value);
       } else {
