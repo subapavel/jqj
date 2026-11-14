@@ -8,7 +8,8 @@
 #                         every merge, and in the ticket gate since #89: F-46, ADR-0020 amendment for #60)
 #          record         scripts/oracle-record.sh --verify on every tracked oracle .rec file
 #        2 pit            PIT on the whole class-C modules of quality/floors.tsv, on oracle and on jq-cli (crossModule)
-#        3 jmh            benchmarks.jar -prof gc -rf json (JMH_JAR overrides bench/jmh/target/benchmarks.jar)
+#        3 jmh            benchmarks.jar -prof gc -rf json, the Gates class only: diagnostics stay out of bench.tsv
+#                         (ADR-0024, ADR-0019; JMH_JAR overrides bench/jmh/target/benchmarks.jar)
 #        4 regen          java scripts/ratchet.java regen --all (RATCHET_MACHINE labels the bench lines)
 #        5 census         java scripts/census.java gate <spec>: every jq-test case the census gives the spec is in
 #                         ratchet/oracle/jqtest.txt (#57)
@@ -69,7 +70,8 @@ step record 0 scripts/oracle-record.sh --verify "${recordings[@]}"
 # ratchet.java combines both reports (ADR-0014, #47). Each module keeps its PIT test exclusions in its own POM: a
 # list passed here as a property would replace every module's list (observed with -X, #45).
 step pit 0 ./mvnw -B -pl "$classc,oracle" -am test org.pitest:pitest-maven:mutationCoverage
-step jmh 0 java -jar "${JMH_JAR:-bench/jmh/target/benchmarks.jar}" -prof gc -rf json -rff ".logs/spec$spec-jmh.json"
+# JMH finds the include regex anywhere in <package>.<class>.<method> (#102).
+step jmh 0 java -jar "${JMH_JAR:-bench/jmh/target/benchmarks.jar}" -prof gc -rf json -rff ".logs/spec$spec-jmh.json" '\.Gates\.'
 export RATCHET_JMH=".logs/spec$spec-jmh.json"
 step regen 1 java scripts/ratchet.java regen --all
 # After regen: the pass list as this gate wrote it holds the spec's census cases (#57).
