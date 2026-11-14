@@ -178,7 +178,7 @@ _Avoid_: static key, literal key (a folded key is not a literal).
 
 **Document**:
 One JSON value held as its UTF-8 bytes plus its tape.
-_Avoid_: message (Flottila's word), payload, tree
+_Avoid_: message (Rail8's word), payload, tree
 
 **Tape**:
 The flat index of a document: one entry per JSON value, object keys included, giving its type and

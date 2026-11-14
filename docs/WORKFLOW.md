@@ -1,7 +1,7 @@
 # Workflow
 
-How work goes from an idea to `main`. Taken from flottila-mapping on 2026-11-10 (ADR-0001), where
-it has carried several specs to `main`. It keeps Flottila's rigour (architect who never codes, red
+How work goes from an idea to `main`. Taken from r8-mapping on 2026-11-10 (ADR-0001), where
+it has carried several specs to `main`. It keeps Rail8's rigour (architect who never codes, red
 first, evidence words, findings, class-based model choice, gate reviewer) on Matt Pocock's skill
 chain (wayfinder, grilling, specs, tracer-bullet tickets, parallel implementers on an integration
 branch, two-axis review). Skills are in `.claude/skills/`; the upstream ones are unchanged
@@ -139,7 +139,7 @@ hand-back.
 GitHub Issues replace the backlog and the progress journal: the spec, its tickets and their
 evidence comments are the record. Nothing that matters lives only in the conversation.
 
-## 10. Turn economy (lessons from Flottila and flottila-mapping)
+## 10. Turn economy (lessons from R8 and r8-mapping)
 
 - The architect is the most expensive context; deep design goes to a fresh designer, not into it.
 - Wait for a single agent in the foreground; background only with two or more in flight.

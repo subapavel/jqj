@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# jqj — Claude Code Cloud environment setup script (v1, 2026-11-10; adapted from flottila-mapping v3).
+# jqj — Claude Code Cloud environment setup script (v1, 2026-11-10; adapted from r8-mapping v3).
 # Runs as root on the Ubuntu 24.04 VM before Claude Code starts. Must finish in ~5 minutes to
 # be snapshotted, so it does six things: install JDK 25 beside the pre-installed JDK 21, point
 # Maven and the Maven Wrapper at the Google mirror of Central (Central answers HTTP 429 to the VM),

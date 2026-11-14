@@ -37,7 +37,7 @@ of tape for 11.2 MB of JSON, 1.46× the input. A reused tape reads a 1 KB messag
 - **Numbers**: one tag. The span holds 4 flags (FITS_LONG, CANONICAL, NONFINITE, one spare) and a
   24-bit length. Their meaning is given by ADR-0012.
 - **Limits**: 2^31−3 bytes per document (F-12), 2^28−1 bytes per string, quotes included (about
-  256 MiB; the owner confirmed this is enough for Flottila), 2^24−1 bytes per number literal,
+  256 MiB; the owner confirmed this is enough for Rail8 (R8)), 2^24−1 bytes per number literal,
   2^28−1 entries per container (F-21). Beyond a limit the reader
   raises a jq error. The wide tag lifts these limits later if ever needed.
 - **Duplicate keys are found on first touch, and the tape is read-only after the read.** `.a`

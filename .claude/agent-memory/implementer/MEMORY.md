@@ -2,7 +2,7 @@
 
 Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 
-## Carried over from flottila-mapping (2026-11-10; observed there, re-verify on first use here)
+## Carried over from r8-mapping (2026-11-10; observed there, re-verify on first use here)
 
 - Context7 tools are not offered in a subagent session: verify APIs with `javap` on the jar in `~/.m2`.
 - `dependency:build-classpath` fails on a module whose sibling SNAPSHOTs are not installed (and

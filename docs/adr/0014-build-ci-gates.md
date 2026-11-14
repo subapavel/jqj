@@ -56,7 +56,7 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
   branch protection when the skeleton ticket adds `ci.yml` (`main` has no required check today). `nightly.yml` runs PIT on
   the class-C modules and uploads the reports, committing nothing. `bench.yml` is manual and
   informative only.
-- **Scripts ported from flottila-mapping:** `gate-ticket.sh`, `gate-spec.sh`, `ratchet.java` and
+- **Scripts ported from r8-mapping:** `gate-ticket.sh`, `gate-spec.sh`, `ratchet.java` and
   `pit-summary.sh`, with their tests. Their contract, UI, stack and moved-coverage parts are
   dropped. The oracle names are jqtest, differential, compile, backend and json
   (ADR-0020). One file lists the class-C
@@ -69,14 +69,14 @@ Status: accepted (2026-11-10, owner, issue #14 "How is the repo laid out and bui
 
 ## Considered options
 
-- **PIT on the whole touched module per ticket** (flottila's step 1b): a guessed 5–15 min per
+- **PIT on the whole touched module per ticket** (R8's step 1b): a guessed 5–15 min per
   gate, three at a time.
 - **No PIT in the ticket gate:** weak tests would show only at the spec gate.
 - **Coverage from each module's own tests:** backend and builtin tickets would hand-write tests up
   to the floor, and a class A/B builtin whose red is oracle cases would score 0 %.
-- **Flottila's separate compile-all step:** it repeats step 1.
+- **Rail8's separate compile-all step:** it repeats step 1.
 - **Maven 4, `-T 4`, JMH on CI, Error Prone/SpotBugs/Checkstyle, a committed mirror:** unmeasured
-  or rejected for flottila ADR-0017's reasons.
+  or rejected for R8 ADR-0017's reasons.
 
 ## Amendment (ADR-0020, issue #15)
 

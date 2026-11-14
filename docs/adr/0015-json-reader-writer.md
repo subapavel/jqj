@@ -127,7 +127,7 @@ non-exported package `.internal.json`.
   the offset on a slice). Any other segment (native, mapped, read-only, or backed by another array
   type) is copied once into a `byte[]`.
   Reading eight bytes at a time comes later, measured.
-- **Why `byte[]` is enough for Flottila** (owner, 2026-11-11): Flottila never hands a whole body as
+- **Why `byte[]` is enough for Rail8 (R8)** (owner, 2026-11-11): R8 never hands a whole body as
   a direct buffer. A step that needs the whole document copies it once into a `byte[]` from the
   body's whole-content call, which is allowed only below the blob store's tree limit, always under
   2 GiB. Larger bodies are only ever streamed in chunks. So no `MemorySegment` loop spike is needed.
@@ -136,7 +136,7 @@ non-exported package `.internal.json`.
 
 ## Later: a chunked reader
 
-A reader fed a stream of chunks (Flottila reads every large body as one) is a separate later
+A reader fed a stream of chunks (R8 reads every large body as one) is a separate later
 item, not part of milestone 1. The input stream reader's rotating buffers are its starting point.
 
 ## Later: skipped subtrees
@@ -165,7 +165,7 @@ tapeReused; skipAll's 58/39/31 % does not validate).
   strings anyway.
 - **jq's check order inside the fast loop; a resumable fast reader.**
 - **A `MemorySegment` loop now:** keeps 4 GiB and zero copy for native input, but unmeasured, and
-  Flottila never passes a whole document as a direct buffer (owner).
+  R8 never passes a whole document as a direct buffer (owner).
 - **Accepting NUL as jq 1.8.2 does:** bytes would hide behind a NUL in a host's message; jq master
   already rejects it.
 - **Slurp as N documents; `-R` lines or `--stream` events on a tape; duplicate detection in the

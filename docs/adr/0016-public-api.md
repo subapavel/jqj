@@ -32,7 +32,7 @@ ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (
     true when the results ran out, false when the sink stopped;
   - `boolean stream(MemorySegment, Bindings, JqSink, Workspace, RunOptions)`: the host's streaming
     switch (ADR-0007), `IllegalStateException` if `needsWholeDocument()`. It takes a whole segment;
-    Flottila's large bodies arrive in chunks and wait for the chunked reader (ADR-0015, later);
+    Rail8's large bodies arrive in chunks and wait for the chunked reader (ADR-0015, later);
   - `boolean needsWholeDocument()`, `Set<String> variables()`;
   - `String explain()`: the IR and its facts, unstable, also `jqj --explain` (a jqj-only flag).
     Bytecode listing (founding §9) is the backend ticket's.

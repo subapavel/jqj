@@ -2,7 +2,7 @@
 
 Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 
-## Carried over from flottila-mapping (2026-11-10; observed there, re-verify on first use here)
+## Carried over from r8-mapping (2026-11-10; observed there, re-verify on first use here)
 
 - `-Xlint:all -Werror` applies to test sources: no unchecked casts, no generic varargs without
   `@SafeVarargs`, no static call through an instance.

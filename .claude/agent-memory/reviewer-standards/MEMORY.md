@@ -2,7 +2,7 @@
 
 Durable facts only (AGENTS.md, Memory). No ticket state. Under 120 lines.
 
-## Carried over from flottila-mapping (2026-11-10; observed there, re-verify on first use here)
+## Carried over from r8-mapping (2026-11-10; observed there, re-verify on first use here)
 
 - Two-sided guards (`a.isEmpty() != b.isEmpty()`): PIT only negates the whole condition, so one
   half can go unwitnessed with a green mutation score. Check each half has a test case.

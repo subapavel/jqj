@@ -7,7 +7,7 @@ modules `query-core/`, `jq-core/`, `jq-cli/`, `oracle/` (tests only) and `bench/
 with `-Pbench`). Each artifactId is its directory name. The groupId and root package are
 `io.github.subapavel.jqj`. This ADR binds module names and exported packages; the types named in
 parentheses belong to ADR-0005, ADR-0008 and ADR-0009. Until the first publish a rename is one mechanical ticket; after it, a
-rename is a breaking release for the Flottila adapter.
+rename is a breaking release for the Rail8 (R8) adapter.
 
 - **`query-core`** is module `io.github.subapavel.jqj.query`. It has no `requires`:
   `java.lang.classfile`, `java.lang.foreign` and `java.lang.invoke` are in `java.base`.
