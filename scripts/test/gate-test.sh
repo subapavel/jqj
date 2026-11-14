@@ -223,11 +223,16 @@ has "spec verifies every recording (ADR-0020)" "oracle-record.sh --verify oracle
 order=$(grep -o 'clean verify\|oracle-record\|mutationCoverage' "$STUB_CALLS" | tr '\n' ' ')
 check "spec record step after clean-verify, before PIT" "$order" "clean verify oracle-record mutationCoverage "
 has "spec step 3 JMH" "java -jar bench/jmh/target/benchmarks.jar -prof gc -rf json" "$STUB_CALLS"
+# JMH matches the include regex anywhere in <class>.<method> (observed with -l, #102): only Gates reaches bench.tsv.
+gates='java -jar bench/jmh/target/benchmarks.jar -prof gc -rf json -rff .logs/spec22-jmh.json \.Gates\.'
+check "spec step 3 JMH runs only the Gates class, no diagnostic (ADR-0024, ADR-0019)" "$(grep '^java -jar' "$STUB_CALLS")" "$gates"
 has "spec step 4 regen --all" "regen: ok" "$tmp/out"
 has "spec step 5 the census gate (#57)" "census gate: spec 1 (#22): 1 cases, 0 missing" "$tmp/out"
 order=$(grep -o '== [a-z-]*' "$tmp/out" | tr '\n' ' ')
 check "spec census step last" "$order" "== clean-verify == record == pit == jmh == regen == census "
 has "spec logs" "regen" "$(ls "$repo/.logs" | tr '\n' ' ' > "$tmp/ls"; echo "$tmp/ls")"
+(export JMH_JAR=other/benchmarks.jar; spec 22 > /dev/null)
+check "spec: JMH_JAR names the jar, the Gates include stays" "$(grep '^java -jar' "$STUB_CALLS")" "${gates/bench\/jmh\/target/other}"
 
 printf 'verify\t50000\t0\n' > "$repo/.logs/31-steps.tsv"; rm "$repo/.logs/32-steps.tsv"
 spec 22 > /dev/null

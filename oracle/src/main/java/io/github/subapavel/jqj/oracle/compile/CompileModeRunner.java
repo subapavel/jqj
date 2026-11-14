@@ -49,7 +49,7 @@ public final class CompileModeRunner {
           switch (runs[i]) {
             case Run.Threw(RuntimeException e) -> e.toString();
             case Run.Ended(Outcome o) when stub(new String(o.stderr(), UTF_8)) -> new String(o.stderr(), UTF_8);
-            default -> null;
+            case Run.Ended _, Run.Terminated _ -> null;
           };
       if (stub != null) return fail(id, "stub: the " + MODES[i] + " run reached a Stub: " + stub);
     }
