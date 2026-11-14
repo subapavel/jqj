@@ -92,11 +92,20 @@ class IrDepthTest {
 
   /** Runs {@link Child} in a fresh JVM with {@code flags} and asserts it prints {@link #EDGES}. */
   private void assertChildPrintsTheEdges(String... flags) throws IOException, InterruptedException {
-    File out = dir.resolve("out").toFile();
+    assertThat(runChild(Child.class, List.of(flags))).as("what the child JVM printed").isEqualTo(EDGES);
+  }
+
+  /**
+   * What {@code main} printed, run in a fresh JVM with {@code flags} and {@code args}, once it ended within 120 s with
+   * exit code 0.
+   */
+  private String runChild(Class<?> main, List<String> flags, String... args) throws IOException, InterruptedException {
+    File out = dir.resolve(main.getSimpleName() + ".out").toFile();
     List<String> command = new ArrayList<>();
     command.add(Path.of(System.getProperty("java.home"), "bin", "java").toString());
-    command.addAll(List.of(flags));
-    command.addAll(List.of("-cp", System.getProperty("java.class.path"), Child.class.getName()));
+    command.addAll(flags);
+    command.addAll(List.of("-cp", System.getProperty("java.class.path"), main.getName()));
+    command.addAll(List.of(args));
     ProcessBuilder launch = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(out);
     // Each would reach the child's command line, and an agent there would make it the instrumented case.
     launch.environment().remove("JAVA_TOOL_OPTIONS");
@@ -105,8 +114,9 @@ class IrDepthTest {
     Process child = launch.start();
     try {
       assertThat(child.waitFor(120, TimeUnit.SECONDS)).as("the child JVM ends within 120 s").isTrue();
-      assertThat(Files.readString(out.toPath(), UTF_8)).as("what the child JVM printed").isEqualTo(EDGES);
-      assertThat(child.exitValue()).as("the child JVM's exit code").isZero();
+      String printed = Files.readString(out.toPath(), UTF_8);
+      assertThat(child.exitValue()).as("the child JVM's exit code; it printed %s", printed).isZero();
+      return printed;
     } finally {
       child.destroyForcibly();
     }
@@ -218,9 +228,12 @@ class IrDepthTest {
 
   /**
    * A construct whose IR is as deep as it is wide, past the bound (F-44, the #70 review at b0b5095), as DEVIATIONS "IR
-   * depth" names it with jq-ref 1.8.2's result: an operator between two filters binds both, two levels a term, and
-   * one between variables; {@code and} and {@code or} are a level a term; an object's computed value is a level and
-   * its computed key two; an interpolation, a pattern's variable and a value parameter are a level each.
+   * depth" names it. Objects, interpolations, patterns and value parameters left this list at #93 (ADR-0043) for
+   * {@link #aWideConstructOf600PartsRunsAsJqRefRunsIt}, and the runs of one operator, {@code and}, {@code or} and
+   * {@code //} at #94 for {@link #aWideOperatorRunRuns}, at the same widths: their Stub ended, no row was dropped. What
+   * stays is a chain that alternates operators, a run of one operator each, nested, two levels an operator (ADR-0043
+   * "one operator"); jq-ref 1.8.2 compiles it and raises
+   * {@code null (null) and null (null) cannot be subtracted}, rc 5 (observed 2026-11-14, -nc -f, .logs/94-jqref-alt.log).
    */
   @ParameterizedTest(name = "{0}")
   @MethodSource("wideConstructs")
@@ -230,14 +243,43 @@ class IrDepthTest {
 
   static Stream<Arguments> wideConstructs() {
     return Stream.of(
-        Arguments.of("600 computed values", "{" + terms(600, ", ", "k%d: .a") + "}"),
-        Arguments.of("600 keys without values", "{" + terms(600, ", ", "k%d") + "}"),
-        Arguments.of("300 computed keys", "{\"a\": \"k\"} | {" + terms(300, ", ", "(.a): 1") + "}"),
-        Arguments.of("600 interpolations", "\"" + "\\(.a)".repeat(600) + "\""),
-        Arguments.of("an array pattern of 600 variables", ". as [" + terms(600, ", ", "$a%d") + "] | 1"),
-        Arguments.of("an object pattern of 600 keys", ". as {" + terms(600, ", ", "k%d: $a%d") + "} | 1"),
-        Arguments.of("an object pattern of 600 variables", ". as {" + terms(600, ", ", "$a%d") + "} | 1"),
-        Arguments.of("600 value parameters", "def f(" + terms(600, "; ", "$a%d") + "): 1; f(" + terms(600, "; ", "1") + ")"));
+        Arguments.of("400 terms alternating .a+ and .a-", alternating(400)));
+  }
+
+  /** {@code .a+.a-.a+…}, {@code n} terms, the operators alternating, so each run of one operator is one operator long. */
+  private static String alternating(int n) {
+    StringBuilder chain = new StringBuilder(".a");
+    for (int i = 1; i < n; i++) {
+      chain.append(i % 2 == 1 ? "+" : "-").append(".a");
+    }
+    return chain.toString();
+  }
+
+  /**
+   * ADR-0043 (#93): past {@code BIND_RUN} nested Binds an object, an interpolation, a pattern and a value parameter's
+   * expansion lower to one Binds, a level whatever its width, so the rows that were {@link
+   * #aWideConstructPastTheBoundIsAStub}'s compile and run, on null, at the same widths. An object's computed value was a
+   * level and its computed key two; an interpolation, a pattern's variable and a value parameter a level each. Each
+   * expected value is jq-ref 1.8.2's (observed 2026-11-13 with -nc -f, .logs/93-jqref-limits.log of the test-author's
+   * run): the 600 keys each with null, the 300 computed keys one key k with 1, 600 times null in one string, and 1.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("wideConstructsThatRun")
+  void aWideConstructOf600PartsRunsAsJqRefRunsIt(String construct, String filter, String expected) throws InterruptedException {
+    assertThat(resultsOnA16MiBThread(filter)).as("results of %s on null", construct).containsExactly(expected);
+  }
+
+  static Stream<Arguments> wideConstructsThatRun() {
+    String nulls = "{" + terms(600, ",", "\"k%d\":null") + "}";
+    return Stream.of(
+        Arguments.of("600 computed values", "{" + terms(600, ", ", "k%d: .a") + "}", nulls),
+        Arguments.of("600 keys without values", "{" + terms(600, ", ", "k%d") + "}", nulls),
+        Arguments.of("300 computed keys", "{\"a\": \"k\"} | {" + terms(300, ", ", "(.a): 1") + "}", "{\"k\":1}"),
+        Arguments.of("600 interpolations", "\"" + "\\(.a)".repeat(600) + "\"", "\"" + "null".repeat(600) + "\""),
+        Arguments.of("an array pattern of 600 variables", ". as [" + terms(600, ", ", "$a%d") + "] | 1", "1"),
+        Arguments.of("an object pattern of 600 keys", ". as {" + terms(600, ", ", "k%d: $a%d") + "} | 1", "1"),
+        Arguments.of("an object pattern of 600 variables", ". as {" + terms(600, ", ", "$a%d") + "} | 1", "1"),
+        Arguments.of("600 value parameters", "def f(" + terms(600, "; ", "$a%d") + "): 1; f(" + terms(600, "; ", "1") + ")", "1"));
   }
 
   /**
@@ -264,98 +306,94 @@ class IrDepthTest {
   }
 
   /**
-   * What {@link WideChild} prints: each wide run at jq-ref 1.8.2's own limit, 20 000 parts being past it, and jq-ref's
-   * result there (observed 2026-11-13, the filter read with -nc -f, .logs/94-jqref-edges.log of the test-author's run).
-   * One term more is jq-ref's bytecode limit, {@code function compiled to … bytes which is too long}, rc 3, for every
-   * row; 20 000 terms of {@code .a //} are its {@code memory exhausted}, rc 3. A comparison does not chain in jq's
-   * grammar ({@code 1 == 1 == true} is jq-ref's syntax error, rc 3), so the comparison row is an {@code and} run of
-   * comparisons.
-   */
-  private static final String WIDE_RUNS =
-      "6553 terms of .a+ on {\"a\":1}: 6553\n"
-          + "6553 terms of .a- on {\"a\":1}: -6551\n"
-          + "6553 terms of .a* on {\"a\":1}: 1\n"
-          + "6554 terms of .a* on null: error \"null (null) and null (null) cannot be multiplied\"\n"
-          + "6553 terms of $x+: 6553\n"
-          + "3277 terms of .a and on {\"a\":true}: true\n"
-          + "3277 terms of .a or on {\"a\":false}: false\n"
-          + "2185 terms of .a == .a and on null: true\n"
-          + "2185 terms of .a // on null: null\n"
-          + "2185 terms of .a // on {\"a\":false}: false\n";
-
-  /**
-   * #94 (ADR-0043, F-45): each wide operator run compiles and runs on a 512 KiB thread in a fresh child JVM with no
-   * agent, under each JIT tier of F-49: the default, C1 alone, and stopped at tier 3. Its result is jq-ref's. Until #94
-   * each was a Stub past the IR bound, the {@code //} rows a compile error of the parse depth.
+   * ADR-0043 (#93, #94, F-45): each wide construct, as wide as jq-ref 1.8.2 compiles it, below 20 000 parts for every
+   * one, compiles and runs on null on a 512 KiB thread in a fresh JVM with no agent, at each of the three tiers of
+   * {@link #assertChildPrintsTheEdges} (F-49), and gives jq-ref's outcome, its results or {@code error <value>}. Until
+   * #93 and #94 each was a Stub past the IR bound, the {@code //} rows a compile error of the parse depth.
+   *
+   * <p>#93's constructs, jq-ref's limits observed 2026-11-13 with -nc -f on {@code /usr/local/bin/jq-ref}
+   * (.logs/93-jqref-limits.log and 93-jqref-alt.log of the test-author's run): one part more is rc 3, "memory exhausted"
+   * for 4998 computed values, 4999 keys without values and 4996 computed keys; "function compiled to 65537 bytes which
+   * is too long" for 4369 interpolations, 65542 bytes for each pattern of 9362, 65554 for two alternatives of 3277
+   * variables each; and "too many function parameters or local function definitions (max 4095)" for 4096 value
+   * parameters. At the limit jq-ref gives the keys each with null, one key k with 1, 4368 times null in one string, and
+   * 1 for every pattern and for the value parameters.
+   *
+   * <p>#94's operator runs, each at jq-ref's own limit, observed 2026-11-13 with -nc -f (.logs/94-jqref-edges.log of the
+   * test-author's run): one term more is jq-ref's bytecode limit, {@code function compiled to … bytes which is too
+   * long}, rc 3, for every row; 20 000 terms of {@code .a //} are its {@code memory exhausted}, rc 3. A comparison does
+   * not chain in jq's grammar ({@code 1 == 1 == true} is jq-ref's syntax error, rc 3), so the comparison row is an
+   * {@code and} run of comparisons.
    */
   @ParameterizedTest(name = "{0}")
   @MethodSource("tiers")
   void aWideConstructOf20000PartsRunsOnA512KiBThreadInAFreshJvm(String tier, List<String> flags) throws IOException, InterruptedException {
-    assertThat(printedByAFreshJvm(WideChild.class, flags)).as("what the child JVM with %s printed", tier).isEqualTo(WIDE_RUNS);
+    Path results = Files.createDirectories(dir.resolve("results"));
+    List<String> printed = new ArrayList<>();
+    List<Arguments> rows = widest().toList();
+    for (Arguments row : rows) {
+      printed.add(row.get()[0] + ": ran");
+    }
+    assertThat(runChild(WideChild.class, flags, results.toString()))
+        .as("what the child JVM (%s) printed, a line per construct", tier)
+        .isEqualTo(String.join("\n", printed) + "\n");
+    for (int i = 0; i < rows.size(); i++) {
+      Object[] row = rows.get(i).get();
+      assertThat(Files.readString(results.resolve(i + ".out"), UTF_8)).as("outcome of %s on null in the child JVM (%s)", row[0], tier).isEqualTo(row[2]);
+    }
   }
 
   static Stream<Arguments> tiers() {
     return Stream.of(
         Arguments.of("the default JIT", List.of()),
         Arguments.of("C1 only", List.of("-Xbatch", "-XX:TieredStopAtLevel=1")),
-        Arguments.of("C1 stopped at tier 3", List.of("-Xbatch", "-XX:TieredStopAtLevel=3")));
+        Arguments.of("stopped at tier 3", List.of("-Xbatch", "-XX:TieredStopAtLevel=3")));
+  }
+
+  /** The rows of {@link #aWideConstructOf20000PartsRunsOnA512KiBThreadInAFreshJvm}: name, filter, jq-ref's outcome. */
+  static Stream<Arguments> widest() {
+    return Stream.of(
+        Arguments.of("4997 computed values", "{" + terms(4997, ", ", "k%d: .a") + "}", "{" + terms(4997, ",", "\"k%d\":null") + "}"),
+        Arguments.of("4998 keys without values", "{" + terms(4998, ", ", "k%d") + "}", "{" + terms(4998, ",", "\"k%d\":null") + "}"),
+        Arguments.of("4995 computed keys", "{\"a\": \"k\"} | {" + terms(4995, ", ", "(.a): 1") + "}", "{\"k\":1}"),
+        Arguments.of("4368 interpolations", "\"" + "\\(.a)".repeat(4368) + "\"", "\"" + "null".repeat(4368) + "\""),
+        Arguments.of("an array pattern of 9361 variables", ". as [" + terms(9361, ", ", "$a%d") + "] | 1", "1"),
+        Arguments.of("an object pattern of 9361 keys", ". as {" + terms(9361, ", ", "k%d: $a%d") + "} | 1", "1"),
+        Arguments.of("an object pattern of 9361 variables", ". as {" + terms(9361, ", ", "$a%d") + "} | 1", "1"),
+        Arguments.of("two alternatives of 3276 variables", ". as [" + terms(3276, ", ", "$a%d") + "] ?// [" + terms(3276, ", ", "$a%d") + "] | 1", "1"),
+        Arguments.of("4095 value parameters", "def f(" + terms(4095, "; ", "$a%d") + "): 1; f(" + terms(4095, "; ", "1") + ")", "1"),
+        Arguments.of("6553 terms of .a+ on {\"a\":1}", "{\"a\":1} | " + terms(6_553, "+", ".a"), "6553"),
+        Arguments.of("6553 terms of .a- on {\"a\":1}", "{\"a\":1} | " + terms(6_553, "-", ".a"), "-6551"),
+        Arguments.of("6553 terms of .a* on {\"a\":1}", "{\"a\":1} | " + terms(6_553, "*", ".a"), "1"),
+        Arguments.of("6554 terms of .a* on null", terms(6_554, "*", ".a"), "error \"null (null) and null (null) cannot be multiplied\""),
+        Arguments.of("6553 terms of $x+", "1 as $x | " + terms(6_553, "+", "$x"), "6553"),
+        Arguments.of("3277 terms of .a and on {\"a\":true}", "{\"a\":true} | " + terms(3_277, " and ", ".a"), "true"),
+        Arguments.of("3277 terms of .a or on {\"a\":false}", "{\"a\":false} | " + terms(3_277, " or ", ".a"), "false"),
+        Arguments.of("2185 terms of .a == .a and on null", terms(2_185, " and ", ".a == .a"), "true"),
+        Arguments.of("2185 terms of .a // on null", terms(2_185, " // ", ".a"), "null"),
+        Arguments.of("2185 terms of .a // on {\"a\":false}", "{\"a\":false} | " + terms(2_185, " // ", ".a"), "false"));
   }
 
   /**
    * The child JVM of {@link #aWideConstructOf20000PartsRunsOnA512KiBThreadInAFreshJvm}: on a 512 KiB thread each, it
-   * compiles and runs each wide run on null and prints its outcome.
+   * compiles and runs each of {@link #widest} on null, prints {@code <name>: ran}, {@code <name>: a Stub} or what was
+   * thrown, and writes its {@link #outcome}, one result per line, to {@code <i>.out} in the directory {@code args[0]},
+   * i the row's number from 0.
    */
   static final class WideChild {
     private WideChild() {}
 
-    public static void main(String[] args) throws InterruptedException {
-      run("6553 terms of .a+ on {\"a\":1}", "{\"a\":1} | " + terms(6_553, "+", ".a"));
-      run("6553 terms of .a- on {\"a\":1}", "{\"a\":1} | " + terms(6_553, "-", ".a"));
-      run("6553 terms of .a* on {\"a\":1}", "{\"a\":1} | " + terms(6_553, "*", ".a"));
-      run("6554 terms of .a* on null", terms(6_554, "*", ".a"));
-      run("6553 terms of $x+", "1 as $x | " + terms(6_553, "+", "$x"));
-      run("3277 terms of .a and on {\"a\":true}", "{\"a\":true} | " + terms(3_277, " and ", ".a"));
-      run("3277 terms of .a or on {\"a\":false}", "{\"a\":false} | " + terms(3_277, " or ", ".a"));
-      run("2185 terms of .a == .a and on null", terms(2_185, " and ", ".a == .a"));
-      run("2185 terms of .a // on null", terms(2_185, " // ", ".a"));
-      run("2185 terms of .a // on {\"a\":false}", "{\"a\":false} | " + terms(2_185, " // ", ".a"));
-    }
-
-    private static void run(String name, String filter) throws InterruptedException {
-      AtomicReference<List<String>> got = new AtomicReference<>();
-      Throwable thrown = on(STACK, () -> got.set(outcome(filter)));
-      String shown;
-      if (thrown == null) {
-        shown = String.join(", ", got.get());
-      } else if (thrown instanceof JqCompileException) {
-        shown = thrown.getMessage().startsWith(MARK) ? "a Stub" : "a compile error";
-      } else {
-        shown = thrown.toString();
+    public static void main(String[] args) throws InterruptedException, IOException {
+      List<Arguments> rows = widest().toList();
+      for (int i = 0; i < rows.size(); i++) {
+        Object[] row = rows.get(i).get();
+        String filter = (String) row[1];
+        AtomicReference<List<String>> got = new AtomicReference<>();
+        Throwable thrown = on(STACK, () -> got.set(outcome(filter)));
+        boolean isStub = thrown instanceof JqCompileException && thrown.getMessage().startsWith(MARK);
+        System.out.println(row[0] + ": " + (thrown == null ? "ran" : isStub ? "a Stub" : thrown));
+        Files.writeString(Path.of(args[0], i + ".out"), thrown == null ? String.join("\n", got.get()) : "", UTF_8);
       }
-      System.out.println(name + ": " + shown);
-    }
-  }
-
-  /** What a fresh JVM running {@code main} with {@code flags}, no agent and no tool or JVM options, printed; it exits 0. */
-  private String printedByAFreshJvm(Class<?> main, List<String> flags) throws IOException, InterruptedException {
-    File out = dir.resolve("out-" + main.getSimpleName()).toFile();
-    List<String> command = new ArrayList<>();
-    command.add(Path.of(System.getProperty("java.home"), "bin", "java").toString());
-    command.addAll(flags);
-    command.addAll(List.of("-cp", System.getProperty("java.class.path"), main.getName()));
-    ProcessBuilder launch = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(out);
-    // Each would reach the child's command line, and an agent there would make it the instrumented case.
-    launch.environment().remove("JAVA_TOOL_OPTIONS");
-    launch.environment().remove("JDK_JAVA_OPTIONS");
-    launch.environment().remove("_JAVA_OPTIONS");
-    Process child = launch.start();
-    try {
-      assertThat(child.waitFor(120, TimeUnit.SECONDS)).as("the child JVM ends within 120 s").isTrue();
-      String printed = Files.readString(out.toPath(), UTF_8);
-      assertThat(child.exitValue()).as("the child JVM's exit code, having printed %s", printed).isZero();
-      return printed;
-    } finally {
-      child.destroyForcibly();
     }
   }
 

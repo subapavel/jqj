@@ -224,17 +224,31 @@ final class IrVerifier {
         throw new IllegalStateException(
             "an alternative of the AltBind at bytes " + a.source() + " has " + alternative.from().size() + " from entries for " + a.slots().size() + " group slots");
       }
-      Node leaf = alternative.match();
-      while (leaf instanceof Bind b) {
-        leaf = b.body();
-      }
-      leaves.put(leaf, alternative.from());
+      leaves.put(leaf(alternative.match()), alternative.from());
       visit(alternative.match());
     }
     scope.addAll(a.slots());
     visit(a.body());
     scope.removeAll(a.slots());
     scope.remove(a.slot());
+  }
+
+  /**
+   * The leaf of the match {@code match}: the innermost body of its chain of Bind and Binds nodes (ADR-0043: a wide
+   * match is {@code Binds(steps, Identity)}), where every slot of that chain is in scope; {@code match} itself when it
+   * is neither.
+   */
+  private static Node leaf(Node match) {
+    Node leaf = match;
+    while (true) {
+      if (leaf instanceof Bind b) {
+        leaf = b.body();
+      } else if (leaf instanceof Binds b) {
+        leaf = b.body();
+      } else {
+        return leaf;
+      }
+    }
   }
 
   /** The slot {@code slot} that {@code node} binds: taken by no parameter and no other node. */
