@@ -64,6 +64,26 @@ final class Inlining {
     return results;
   }
 
+  /** The results of {@code filter} on null as compact JSON, then {@code error <value>} if the run raised. */
+  static List<String> outcome(String filter) {
+    List<String> outcome = new ArrayList<>();
+    try {
+      ENGINE
+          .compile(filter)
+          .run(
+              JqNull.NULL,
+              NONE,
+              v -> {
+                outcome.add(v.toJson());
+                return true;
+              },
+              ENGINE.newWorkspace());
+    } catch (JqFilterException e) {
+      outcome.add("error " + e.value().toJson());
+    }
+    return outcome;
+  }
+
   /** Asserts that compiling {@code filter} ends with a Stub. */
   static void assertStub(String filter) {
     JqCompileException e =

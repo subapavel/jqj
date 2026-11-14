@@ -244,6 +244,27 @@ jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) prints `[0,9991]` 
 rejects one more, rc 3. jqj compiles past that count: `LongDefRunTest` pins 9 993 and 10⁵ definitions compiling
 and running on a 512 KiB stack.
 
+## Long operator runs (ADR-0043, issue #94)
+
+| case | filter | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| jq-core `OperatorChainTest` | `.a // .a // …`, 20 000 terms, on `null` | rc 3, `jq: error: memory exhausted at <top-level>, line 1, column 29989` | `null`, rc 0 |
+| jq-core `OperatorChainTest` | `.a+.a+…`, 20 000 terms, on `null` | rc 3, `jq: error: function compiled to 199995 bytes which is too long` | `null`, rc 0 |
+| jq-core `OperatorChainTest` | `.a and .a and …`, 20 000 terms, on `null` | rc 3, `jq: error: function compiled to 399985 bytes which is too long` | `false`, rc 0 |
+| jq-core `OperatorChainTest` | `.a or .a or …`, 20 000 terms, on `null` | rc 3, the same message | `false`, rc 0 |
+| jq-core `OperatorChainTest` | `.a == .a and .a == .a and …`, 20 000 terms, on `null` | rc 3, `jq: error: function compiled to 599985 bytes which is too long` | `true`, rc 0 |
+
+jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-nc -f`) runs 6 554 terms of `.a+` (6 553 after
+`{"a":1} |`, as `IrDepthTest` writes them), 3 277 of `.a and` or `.a or`, 2 185 of `.a == .a and` and 2 185 of `.a //`, and
+rejects one more with the bytecode limit of "Long comma chains", rc 3; 20 000 terms of `.a //`, which nests to the
+right, fill its Bison stack first ("Parse depth"). jqj compiles to an IR with no such limit, so an operator run past
+jq's limits runs, as a long comma chain does. A run of one arithmetic or comparison operator whose nested form has
+more than `Resolver.BIND_RUN` = 64 Binds is one Binds, and a run of more than 64 terms of `and`, `or` or `//` is joined
+balanced, about 2·log₂ n levels deep (ADR-0043); the parser reads a run of `//` by a loop, so it takes no nesting level
+per term. Each run ticks as its nested form does (jq-core `WideConstructStepsTest`). `IrDepthTest` pins each run at
+jq-ref's limit on a 512 KiB stack in a fresh JVM under three JIT tiers, and `OperatorChainTest` 20 000 terms on a
+512 KiB stack and 200 000 of each operator but `//` on a 16 MiB one.
+
 ## IR depth (F-44, ADR-0040, issue #70)
 
 | case | filter | jq 1.8.2 | jqj |
@@ -253,30 +274,31 @@ and running on a 512 KiB stack.
 | jq-core `IrDepthTest` | `def g1: …; …; def g5: …;` as above, 500 brackets in all, then `def v1($a): g5; def v2($a): v1(.); …; v500(.)`: 500 nested expansions, each binding `$a` | 500 nested arrays around `null`, rc 0 | a Stub |
 | jq-core `IrDepthTest` | `.[.a:][.a:]…`, 2 000 steps, on `null` | `null`, rc 0 | a Stub |
 | jq-core `IrDepthTest` | `.[.a][.a]…`, 10 000 steps, on `null` | rc 5, `jq: error (at <unknown>): Cannot index null with null (null)` | a Stub |
-| jq-core `IrDepthTest` | `.a+.a+…`, 257 terms, on `null` | `null`, rc 0 | a Stub |
-| jq-core `IrDepthTest` | `.a*.a*…`, 257 terms, on `null` | rc 5, `jq: error (at <unknown>): null (null) and null (null) cannot be multiplied` | a Stub |
-| jq-core `IrDepthTest` | `1 as $x \| $x+$x+…`, 600 terms | `600`, rc 0 | a Stub |
-| jq-core `IrDepthTest` | `.a and .a and …`, 600 terms, on `null` | `false`, rc 0 | a Stub |
-| jq-core `IrDepthTest` | `.a or .a or …`, 600 terms, on `null` | `false`, rc 0 | a Stub |
+| jq-core `IrDepthTest` | `.a+.a-.a+…`, 400 terms, the operators alternating, on `null` | rc 5, `jq: error (at <unknown>): null (null) and null (null) cannot be subtracted` | a Stub |
 
 jq-ref 1.8.2 (observed 2026-11-13, the filter read with `-f`) compiles every row and gives its result. jqj stubs a
 filter of more than `Resolver.MAX_IR_DEPTH` = 512 levels of built IR, the leaf counted, as it stubs the 512th nested
 expansion (ADR-0040 "Inline cap"). The depth is the whole IR's, measured once the lowering is done and wherever the
 Resolver built a node (ADR-0040 "What counts"): an Ast's own node, the Bind of each value parameter around an
 expansion's body, the Bind of a computed key or bound around the chain before it, and the Pipe trees of a chain. So
-the bound stubs a construct whose IR is as deep as it is wide: an operator between two filters binds both, two levels
-a term, and one between variables; `and` and `or` are a level a term. An object, an interpolation, a pattern
-(`?//` alternatives among them) and a value parameter's expansion no longer stack: past `Resolver.BIND_RUN` = 64
-nested Binds each lowers to one Binds, a level whatever its width, its values in the nested form's order (ADR-0043,
-#93). `IrDepthTest` runs each at 600 parts on a 16 MiB stack and at jq-ref 1.8.2's widest (4 997 computed values,
-4 998 keys without values, 4 995 computed keys, 4 368 interpolations, 9 361 variables or keys of a pattern, two
-alternatives of 3 276 variables, 4 095 value parameters; one more is rc 3 there) on a 512 KiB stack in a fresh JVM,
-each with jq-ref's result. Nested constructs still stack, a level per Binds (eight nested 64-pair objects are 512
-levels), and so do nested definitions and nested value parameters, whose Stub stays. The Binder and the
-Resolver walk a left-associative operator chain by a loop (#86), so a chain of any length past the bound is this
-Stub, not a StackOverflowError (jq-core `OperatorChainTest`, 20 000 terms on a 512 KiB stack); jq-ref 1.8.2 runs
-6 554 terms of `.a+`, 3 277 of `.a and` or `.a or` and 2 185 of `.a == .a and`, and rejects one more with the
-bytecode limit of "Long comma chains", rc 3. `//` nests to the right, so its chain is bounded by "Parse depth". The parser's 512 nesting levels bound one body ("Parse
+the bound stubs a construct whose IR is as deep as it is wide, up to `Resolver.BIND_RUN` = 64 nested Binds: an
+operator between two filters binds both, two levels a term, and one between variables; `and`, `or` and `//` are a
+level a term up to 64 terms; an object's computed value is a level and its computed key two; an interpolation, a
+pattern's variable and a value parameter are a level each. Past it none stacks (ADR-0043): an object, an
+interpolation, a pattern (`?//` alternatives among them), a value parameter's expansion (#93) and a run of one
+arithmetic or comparison operator (#94) lower to one Binds, a level whatever its width, its values in the nested
+form's order, and a run of `and`, `or` or `//` is joined balanced, about 2·log₂ n levels ("Long operator runs").
+`BIND_RUN` counts Binds, not parts: a part passed as it is, a Const, a Var or an Identity, takes none. `IrDepthTest`
+runs each construct at 600 parts on a 16 MiB stack and at jq-ref 1.8.2's widest (4 997 computed values, 4 998 keys
+without values, 4 995 computed keys, 4 368 interpolations, 9 361 variables or keys of a pattern, two alternatives of
+3 276 variables, 4 095 value parameters, and the operator runs of "Long operator runs"; one more is rc 3 there) on a
+512 KiB stack in a fresh JVM, each with jq-ref's result. Nested constructs still stack: a construct under the bound
+is its nested Binds, and one past it a level or two (its Binds, then the value it sits in), so nested wide objects
+take a few levels each; so do nested definitions and nested value parameters, whose Stub stays, and a chain that
+alternates operators, such as `.a+.a-.a+…`, which is runs of one operator each (ResolverTest, IrDepthTest). The
+Binder and the Resolver walk an operator chain by a loop (#86, #94), so a chain of any length past the bound is this
+Stub, not a StackOverflowError (jq-core `OperatorChainTest`: 20 000 alternating terms on a 512 KiB stack in a fresh
+JVM, 200 000 on a 16 MiB one). The parser's 512 nesting levels bound one body ("Parse
 depth"); definitions nest one body in another, so without the bound the IR, and the Resolver's recursion over it,
 would be as deep as the inline cap lets them. 30 001 levels overflowed a 512 KiB stack (ADR-0017's `stackBytes`).
 `IrDepthTest` pins 512 levels running and 513, 30 001 levels and the 500 nested expansions a Stub on a 512 KiB stack
