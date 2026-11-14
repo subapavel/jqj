@@ -102,8 +102,8 @@ Round 1 (2026-11-14), proposed by the grilling-adviser for the owner under the d
 - Four DEVIATIONS rows: `modulemeta` on a module that does not parse, `$ENV`'s sorted key order,
   the `-V`/`-h`/build-string texts, the jq origin.
 - The adviser's 100-line format, where its role and `AGENTS.md` say 40.
-- Owner-only, untouched: if a ticket translates `main.c`'s option loop or usage text, the file takes
-  a NOTICE line. Nothing was decided on licences.
+- NOTICE (for information): a ticket that translates `main.c`'s option loop or usage text, or
+  `linker.c`'s search code, adds a NOTICE line under CLAUDE.md's existing rule for jq's MIT files.
 - Ticket approval (2026-11-14), proposed by the grilling-adviser for the owner under the
   delegation of 2026-11-14:
   - T4 has 9 running cases and jq.test 1981; T5 has jq.test 1969–1977.

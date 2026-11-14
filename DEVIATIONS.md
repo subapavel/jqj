@@ -460,9 +460,9 @@ Proposed by the grilling-adviser for the owner under the delegation of 2026-11-1
 Started by its full path, as `./jqj` or as `bin/jqj`, jqj gives what jq gives: the launcher passes
 `$(dirname "$0")` unchanged. A script found on `PATH` gets its found path as `$0`, where a binary
 gets its bare name. jq's origin is `dirname(argv[0])`; jqj's is `Invocation.origin`, which the
-launcher sets to its own directory. Reason: a name found on `PATH` gives `"."`, the caller's
-working directory, so jq's `$ORIGIN/../lib/jq` would search beside the caller and not beside the
-program. Differential cases print only `type` or a suffix of an origin.
+launcher sets to `$(dirname "$0")`. Reason: a shell launcher cannot see the bare name it was
+called by, and the found path keeps `$ORIGIN/../lib/jq` beside the program, not the caller.
+Differential cases print only `type` or a suffix of an origin.
 
 ## `module not found` with `HOME` unset (ADR-0017, F-81, spec 7)
 
