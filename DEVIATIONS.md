@@ -295,9 +295,10 @@ without values, 4 995 computed keys, 4 368 interpolations, 9 361 variables or ke
 512 KiB stack in a fresh JVM, each with jq-ref's result. Nested constructs still stack: a construct under the bound
 is its nested Binds, and one past it a level or two (its Binds, then the value it sits in), so nested wide objects
 take a few levels each; so do nested definitions and nested value parameters, whose Stub stays, and a chain that
-alternates operators, such as `.a+.a-.a+…`, which is runs of one operator each (ResolverTest). The Binder and the
-Resolver walk an operator chain by a loop (#86, #94), so a chain of any length past the bound is this Stub, not a
-StackOverflowError. The parser's 512 nesting levels bound one body ("Parse
+alternates operators, such as `.a+.a-.a+…`, which is runs of one operator each (ResolverTest, IrDepthTest). The
+Binder and the Resolver walk an operator chain by a loop (#86, #94), so a chain of any length past the bound is this
+Stub, not a StackOverflowError (jq-core `OperatorChainTest`: 20 000 alternating terms on a 512 KiB stack in a fresh
+JVM, 200 000 on a 16 MiB one). The parser's 512 nesting levels bound one body ("Parse
 depth"); definitions nest one body in another, so without the bound the IR, and the Resolver's recursion over it,
 would be as deep as the inline cap lets them. 30 001 levels overflowed a 512 KiB stack (ADR-0017's `stackBytes`).
 `IrDepthTest` pins 512 levels running and 513, 30 001 levels and the 500 nested expansions a Stub on a 512 KiB stack

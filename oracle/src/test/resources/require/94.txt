@@ -8,3 +8,4 @@ runs/sum-of-70-errors-raises-the-rightmost-first
 runs/and-of-70-truthy-terms-with-generators
 runs/and-of-70-terms-false-between-generators
 runs/or-of-70-falsy-terms-with-generators
+runs/alternative-of-70-mixed-terms-in-jq-order

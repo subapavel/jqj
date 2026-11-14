@@ -947,7 +947,7 @@ public final class Resolver {
   }
 
   /**
-   * The operators {@code run} of one {@link BinOp}, outermost first, on {@code left}, the innermost one's lowered left
+   * The {@code operators} of one {@link BinOp}, outermost first, on {@code left}, the innermost one's lowered left
    * operand: each right operand is lowered from the innermost operator out, then the run is built (ADR-0043). A {@code
    * //} is a run's only operator, the outermost of its chain, and nests to the right ({@link #definedOr}). A run of
    * {@code and} or {@code or} of more than {@link #PIPE_CHAIN} terms is joined balanced ({@link #tree}), both being
@@ -955,26 +955,26 @@ public final class Resolver {
    * {@link #BIND_RUN} Binds is one Binds ({@link #binds}); any other run is its operators lowered one by one, as {@link
    * #operator} lowers each.
    */
-  private Node run(List<Ast.Binary> run, Node left) {
-    BinOp op = run.getFirst().op();
+  private Node run(List<Ast.Binary> operators, Node left) {
+    BinOp op = operators.getFirst().op();
     if (op == BinOp.ALTERNATIVE) {
-      return definedOr(run.getFirst(), left);
+      return definedOr(operators.getFirst(), left);
     }
-    List<Node> terms = new ArrayList<>(run.size() + 1);
+    List<Node> terms = new ArrayList<>(operators.size() + 1);
     terms.add(left);
-    for (int i = run.size() - 1; i >= 0; i--) {
-      terms.add(lower(run.get(i).right()));
+    for (int i = operators.size() - 1; i >= 0; i--) {
+      terms.add(lower(operators.get(i).right()));
     }
     boolean truth = op == BinOp.AND || op == BinOp.OR;
     if (truth && terms.size() > PIPE_CHAIN) {
       return tree(op, terms, 0, terms.size());
     }
     if (!truth && nestedBinds(terms) > BIND_RUN) {
-      return binds(run, terms);
+      return binds(operators, terms);
     }
     Node node = left;
     for (int j = 1; j < terms.size(); j++) {
-      node = operator(run.get(run.size() - j), node, terms.get(j));
+      node = operator(operators.get(operators.size() - j), node, terms.get(j));
     }
     return node;
   }
@@ -1000,8 +1000,8 @@ public final class Resolver {
    * each operator's result from the innermost out; the outermost operator is the body. A term that is passed as it is
    * takes no value, as in the nested form.
    */
-  private Node binds(List<Ast.Binary> run, List<Node> terms) {
-    int n = run.size();
+  private Node binds(List<Ast.Binary> operators, List<Node> terms) {
+    int n = operators.size();
     List<Node> values = new ArrayList<>();
     List<Integer> bound = new ArrayList<>();
     Node[] rights = new Node[n];
@@ -1010,12 +1010,15 @@ public final class Resolver {
     }
     Node result = value(terms.getFirst(), values, bound);
     for (int i = n - 1; i > 0; i--) {
-      result = value(call(run.get(i), result, rights[i]), values, bound);
+      result = value(call(operators.get(i), result, rights[i]), values, bound);
     }
-    return new Binds(here(run.getFirst().source()), values, bound, call(run.getFirst(), result, rights[0]));
+    return new Binds(here(operators.getFirst().source()), values, bound, call(operators.getFirst(), result, rights[0]));
   }
 
-  /** The argument that reads {@code operand}: itself when it is {@link #passed}, else a Var of a new slot it is added to {@code values} with. */
+  /**
+   * The argument that reads {@code operand}: {@code operand} itself when it is {@link #passed}; else a Var of a new
+   * slot, {@code operand} added to {@code values} and the slot to {@code bound}.
+   */
   private Node value(Node operand, List<Node> values, List<Integer> bound) {
     int slot = operandSlot(operand);
     if (slot != NO_SLOT) {

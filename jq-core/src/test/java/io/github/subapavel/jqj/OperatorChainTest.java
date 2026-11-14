@@ -1,6 +1,7 @@
 package io.github.subapavel.jqj;
 
 import static io.github.subapavel.jqj.Inlining.MARK;
+import static io.github.subapavel.jqj.Inlining.outcome;
 import static io.github.subapavel.jqj.Inlining.results;
 import static io.github.subapavel.jqj.Inlining.shown;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -8,12 +9,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
-import io.github.subapavel.jqj.value.JqNull;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
@@ -59,7 +58,8 @@ class OperatorChainTest {
    * parse-depth compile error of {@code .a //}, entries that ended with their Stub: past jq-ref's limits each chain
    * gives what jq-ref 1.8.2 gives at its limit, every term being the same (observed 2026-11-13, -nc -f,
    * .logs/94-jqref-edges.log of the test-author's run): null for 6 554 terms of {@code .a+}, false for 3 277 of {@code
-   * .a and} and of {@code .a or}, true for 2 185 of {@code .a == .a and}, null for 2 185 of {@code .a //}.
+   * .a and} and of {@code .a or}, true for 2 185 of {@code .a == .a and}, null for 2 185 of {@code .a //}. A chain whose
+   * operators alternate stays nested and is the IR bound's Stub ({@link #aLongAlternatingChainIsTheIrDepthStub}).
    */
   private static final String EDGES =
       "20000 terms of .a+: null\n"
@@ -69,6 +69,7 @@ class OperatorChainTest {
           + "20000 terms of 1+: 20000\n"
           + "20000 terms of 1+ and a last +.a: 20000\n"
           + "20000 terms of .a //: null\n"
+          + "20000 terms alternating .a+ and .a-: a Stub\n"
           + "600 chains, then 30001 levels: a Stub\n";
 
   @TempDir Path dir;
@@ -127,24 +128,28 @@ class OperatorChainTest {
     assertThat(got.get()).as("outcome of %s on null", shown(filter)).isEqualTo(List.of(outcome));
   }
 
-  /** The results of {@code filter} on null as compact JSON, then {@code error <value>} if the run raised. */
-  private static List<String> outcome(String filter) {
-    List<String> outcome = new ArrayList<>();
-    try {
-      Inlining.ENGINE
-          .compile(filter)
-          .run(
-              JqNull.NULL,
-              RunBudgets.NONE,
-              v -> {
-                outcome.add(v.toJson());
-                return true;
-              },
-              Inlining.ENGINE.newWorkspace());
-    } catch (JqFilterException e) {
-      outcome.add("error " + e.value().toJson());
+  /**
+   * #94 (ADR-0043 "one operator"): a chain whose operators alternate, {@code .a+.a-.a+…}, is runs of one operator each,
+   * so it stays nested, two levels an operator, and past the IR bound it is the bound's Stub: the Binder and the
+   * Resolver walk it by a loop, so 200 000 terms are that Stub, not a StackOverflowError. jq-ref 1.8.2 compiles 400
+   * such terms and raises {@code null (null) and null (null) cannot be subtracted}, rc 5 (observed 2026-11-14, -nc -f,
+   * .logs/94-jqref-alt.log; DEVIATIONS "IR depth"). Its 512 KiB claim is pinned by the child JVM.
+   */
+  @Test
+  void aLongAlternatingChainIsTheIrDepthStub() throws InterruptedException {
+    String filter = alternating(TERMS);
+    Throwable thrown = on(LARGE, () -> Inlining.ENGINE.compile(filter));
+    assertThat(thrown).as("what compiling %s threw on a 16 MiB thread", shown(filter)).isInstanceOf(JqCompileException.class);
+    assertThat(thrown.getMessage()).as("message of the compile error of %s", shown(filter)).isEqualTo(MARK + "a filter of more than 512 levels of IR is not built yet");
+  }
+
+  /** {@code .a+.a-.a+…}, {@code n} terms, the operators alternating. */
+  private static String alternating(int n) {
+    StringBuilder chain = new StringBuilder(".a");
+    for (int i = 1; i < n; i++) {
+      chain.append(i % 2 == 1 ? "+" : "-").append(".a");
     }
-    return outcome;
+    return chain.toString();
   }
 
   /**
@@ -232,6 +237,7 @@ class OperatorChainTest {
       run(CHILD_TERMS + " terms of 1+", terms(CHILD_TERMS, "+", "1"));
       run(CHILD_TERMS + " terms of 1+ and a last +.a", terms(CHILD_TERMS, "+", "1") + "+.a");
       run(CHILD_TERMS + " terms of .a //", terms(CHILD_TERMS, " // ", ".a"));
+      run(CHILD_TERMS + " terms alternating .a+ and .a-", alternating(CHILD_TERMS));
       run("600 chains, then 30001 levels", chainsThenLevels());
     }
 
