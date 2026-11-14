@@ -314,7 +314,9 @@ public final class Parser {
 
   /**
    * jq's Expr from the operators of level {@code min} up: each operator takes a right operand of the next level up, its
-   * own level when it is right-associative, and a second operator of a non-associative level is a syntax error.
+   * own level when it is right-associative, and a second operator of a non-associative level is a syntax error. A run
+   * of a right-associative operator ({@code //}, the only one) is read by a loop and nested to the right after it
+   * (#94), so the run takes no nesting level per operand.
    */
   private Ast expr(int min) {
     nest();
@@ -325,8 +327,12 @@ public final class Parser {
         if (op == null || op.level < min) {
           return left;
         }
+        if (op.assoc == BinOp.Assoc.RIGHT) {
+          left = rightRun(left, op);
+          continue;
+        }
         advance();
-        Ast right = expr(op.assoc == BinOp.Assoc.RIGHT ? op.level : op.level + 1);
+        Ast right = expr(op.level + 1);
         left = new Ast.Binary(span(left, right), op, left, right);
         if (op.assoc == BinOp.Assoc.NONE) {
           BinOp next = binOp();
@@ -338,6 +344,25 @@ public final class Parser {
     } finally {
       depth--;
     }
+  }
+
+  /**
+   * {@code first op t1 op t2 …} for the right-associative {@code op} at the current token: each operand of the next
+   * level up, read in turn while {@code op} follows, then nested to the right, {@code first op (t1 op (t2 …))}, as
+   * {@code expr(op.level)} for each right operand would build it.
+   */
+  private Ast rightRun(Ast first, BinOp op) {
+    List<Ast> operands = new ArrayList<>();
+    operands.add(first);
+    while (binOp() == op) {
+      advance();
+      operands.add(expr(op.level + 1));
+    }
+    Ast run = operands.getLast();
+    for (int i = operands.size() - 2; i >= 0; i--) {
+      run = new Ast.Binary(span(operands.get(i), run), op, operands.get(i), run);
+    }
+    return run;
   }
 
   /** The operator the current token is, or null. */
