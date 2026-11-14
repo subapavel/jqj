@@ -1,6 +1,6 @@
 # Oracles and ratchet: copied jq tests, recorded jq-ref expectations, required cases, per-merge pass lists
 
-Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch); amended by ADR-0023 (issue #17: deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); amended by F-19 (who measures the fallback targets); amended by ADR-0024 (the Stub verdict); amended by ADR-0025 (`values-v1`: forms, seeds, generated files, drops); amended by F-27 (PIT and the compile-mode oracle leave the ticket gate); amended by F-28 (the spec-gate PIT target); amended by F-29 (the compile-mode oracle after every merge); amended by #60 (compile-mode oracle: switch by reflection, compile report, after-merge script); amended by ADR-0033 (`core-v1`: forms, break placement, freeze numbers); amended by F-46 (#89: the ticket gate runs the compile-mode oracle); amended by F-58 (the `trampoline` mode, spec 2b); amended by spec 4 grilling round 1 (question 7: the builtin generators); amended by spec 5 round 1 (`malformed-v1`)
+Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch); amended by ADR-0023 (issue #17: deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); amended by F-19 (who measures the fallback targets); amended by ADR-0024 (the Stub verdict); amended by ADR-0025 (`values-v1`: forms, seeds, generated files, drops); amended by F-27 (PIT and the compile-mode oracle leave the ticket gate); amended by F-28 (the spec-gate PIT target); amended by F-29 (the compile-mode oracle after every merge); amended by #60 (compile-mode oracle: switch by reflection, compile report, after-merge script); amended by ADR-0033 (`core-v1`: forms, break placement, freeze numbers); amended by F-46 (#89: the ticket gate runs the compile-mode oracle); amended by F-58 (the `trampoline` mode, spec 2b); amended by spec 4 grilling round 1 (question 7: the builtin generators); amended by spec 5 round 1 (`malformed-v1`); amended by spec 3 grilling round 1 (question 9: `paths-v1`)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1). Every runner lives in
 `oracle` on the class path, in `…jqj.oracle.{jqtest,diff,compile,backend,json,gen,record}`.
@@ -293,3 +293,16 @@ Accepted 2026-11-12, architect under `/run-spec` #56, on the designer's draft fo
   - It puts NUL only inside strings, because a NUL outside a string is a deviation shape
     (ADR-0023).
 - JSONTestSuite's `test_transform` files are not added.
+
+## Amendment (spec 3 grilling round 1, question 9)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14.
+
+- `paths-v1` covers path expressions and updates on small inputs, with the own-owner hazards:
+  repeated paths, an ancestor and its descendant in both orders, overlapping slices, right sides
+  that return their input or a part of it, and fractional indexes (P5). It avoids the DEVIATIONS
+  shapes by construction.
+- It is recorded before 3a's TRACKED Update ticket and frozen on a jq-ref dry run, with bounds
+  written in the ticket beforehand, as `core-v1` was (#58, ADR-0033). Its seed minimum is GATE check
+  2's 1000 after drops.
+- `copyOnlyAgrees` and `stackZeroAgrees` run over it.

@@ -17,6 +17,13 @@ item variable. jq also accepts some other forms; jqj raises "Invalid path expres
 | `[1] \| path(. as [$a] \| $a)` | `[0]` | error |
 | `{"a":1} \| path(.a \| . as $v \| $v)` | `["a"]` | error |
 | `{"a":true} \| path(.a \| true)` | `["a"]` | error |
+| `{"k":"x"} \| [path(.k \| tostring)]` | `[["k"]]` | error |
+| `{"k":"x"} \| [path(.k \| @text)]` | `[["k"]]` | error |
+| `{"k":1} \| [path(.k \| tonumber)]` | `[["k"]]` | error |
+| `{"k":[1]} \| [path(.k \| delpaths([]))]` | `[["k"]]` | error |
+| `{"k":[1]} \| [path(.k \| setpath([]; .))]` | `[["k"]]` | error |
+| `{"k":true} \| [path(.k \| not \| not)]` | `[["k"]]` | error |
+| `[[5],[6]] \| [path(foreach .[] as $x ?// [$x] (0;1;$x))]` | `[[0],[1]]` | error |
 | `null \| path(reduce 0 as $i (.; .))` | `[]` | error |
 | `[[1],[2]] \| path(foreach (0,1) as $i (.; .; .[$i]))` | `[0]`, `[1]` | error |
 | `{"a":{"a":1}} \| [path(reduce 0 as $i (.; .a) \| empty)]` | `[]` | error |
@@ -24,6 +31,10 @@ item variable. jq also accepts some other forms; jqj raises "Invalid path expres
 The last two keep the `reduce`/`foreach` state untracked (ADR-0010): jq restores its one current
 path at every return to the source, so a state path never survives an iteration, and
 `[[1,2]] | path(reduce (0,1) as $i (.; .[$i]))` raises in jq as well.
+
+The `tostring` to `not | not` rows are spec 3's share of P6 (`trim`, `ltrim` and `rtrim` come with
+spec 4's natives, F-70). In the `foreach … ?//` row only a `foreach … as $name` item keeps its path
+(Tracking ITEM, ADR-0048, F-59), so a destructured item is untracked where jq's matcher keeps one.
 
 Reason: jq decides these by value identity, which jqj's views and identity-free numbers do not
 have. jq's own test files contain no such case. Relaxing the rule later only turns errors into

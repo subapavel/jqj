@@ -1,6 +1,6 @@
 # Tail calls are a pending jump in the run state; the value form runs only in the optimised compile; the tail emitter stays
 
-Status: proposed (2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14, spec 2b round 1); amends ADR-0011 (tail calls in the push interpreter) and ADR-0043 (closes "may subsume"); its "at most one" is F-56's
+Status: proposed (2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14, spec 2b round 1); amends ADR-0011 (tail calls in the push interpreter) and ADR-0043 (closes "may subsume"); its "at most one" is F-56's; the `Path` on a pending jump by spec 3 grilling round 1 (question 5)
 
 ADR-0011 makes tail calls jumps and gives the bytecode backend's loops. In the push interpreter an op
 runs inside its producer's emit, so a call cannot loop where it stands: the activation must be left
@@ -46,3 +46,11 @@ subsume".
   compile-mode oracle would stop being a second opinion.
 - **The value form subsuming the tail emitter**: CONSERVATIVE has no facts, so its wide objects,
   interpolations and operator runs would nest per part again (ADR-0043).
+
+## Amendment (spec 3 grilling round 1, question 5)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14.
+
+In a path variant the pending jump also holds the input's `Path` (null when untracked), and the
+entry loop re-enters the callee's path variant. `RunState.end` clears it. Path variants never run
+the value form.

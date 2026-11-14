@@ -275,6 +275,10 @@ to hold the in-place licence (a string append and an update's own rebuild need t
 ADR-0022).
 _Avoid_: reference count, transient, lock
 
+**Own owner**:
+The `Owner` an update allocates at its first copy for its own rebuild. It needs no licence, the
+conservative compile keeps it, and it is dropped when the update ends (ADR-0022).
+
 **In-place licence**:
 The analysis fact that a site's target is the only use of an owning activation's state, so it may
 be written in place when its owner matches (ADR-0022).
@@ -308,12 +312,19 @@ _Avoid_: AST (that is the parser's output), bytecode (that is jq's own or the JV
 
 **Operation**:
 What an intrinsic IR node calls: a navigation step or a native builtin of one format, described by
-the facts the analyses need (how many results, how it extends a path, what it keeps).
+the facts the analyses need: its call form says how many results, and its `Facts` its path rule,
+whether it is pure or reads its input, and whether it keeps an argument (ADR-0048).
 _Avoid_: primitive, opcode
 
 **Navigation step**:
 An operation that goes from a value to a part of it (field, index, slice, iterate). Only steps
 extend a path.
+
+**Path rule**:
+What an operation does to the path in path mode, a field of its `Facts`: NONE (untracked), SAME
+(passes it on), KEY, INDEX, ALL, SLICE, DYNAMIC (by the key's kind) or KEY_LIST (`getpath`)
+(ADR-0048).
+_Avoid_: step kind.
 
 **Closure**:
 A filter argument of a jq function, run in the caller's scope each time the callee calls it.
@@ -333,7 +344,8 @@ progress to its left; it runs as a jump.
 **Binds**:
 One IR node for a run of binds: `Binds(source, values, slots, body)`, n ≥ 2, means
 `Bind(v1, s1, … Bind(vn, sn, body))`, the first outermost. Slot k is in scope in the later values
-and in the body. It ticks and charges nothing of its own (ADR-0043).
+and in the body. Each value has its own Tracking (ADR-0048). It ticks and charges nothing of its own
+(ADR-0043).
 _Avoid_: n-ary Bind
 
 **Tail emitter**:
@@ -407,7 +419,8 @@ senses meet.
 
 **Frame**:
 The slot cells one call activation owns while it runs: bind slots, value and closure parameters,
-label tokens and hidden owner slots (ADR-0045). The JVM's is always a **Java frame**.
+label tokens and hidden slots: an owner, item paths, walk state and a suspended call's input path
+(ADR-0045, ADR-0010). The JVM's is always a **Java frame**.
 _Avoid_: stack frame, activation record, environment, locals, heap frame, slot array.
 
 **Heap form**:
@@ -425,7 +438,8 @@ The deepest nesting, in stack units, that a filter's main or any body reaches wi
 `D_f`; it is stored with the compiled filter, per backend (ADR-0046).
 
 **Pending jump**:
-What a tail call leaves in the run state (callee, input, value arguments and closure arguments)
+What a tail call leaves in the run state (callee, input, the input's path in a path variant, value
+arguments and closure arguments)
 for its function's entry loop to take and re-enter with (ADR-0047).
 
 **Value form**:
@@ -446,6 +460,32 @@ untracked, as `path()`, `paths` and updates need.
 
 **Untracked**:
 A path-mode result with no path. Used as a path, it raises "Invalid path expression".
+
+**Path variant**:
+The second instance of a node, which runs it in path mode. Only the nodes a TRACKED `PathOf` or
+`Update` can reach have one, `Call` and `ParamCall` included, and it runs in the push form only
+(ADR-0010).
+_Avoid_: path twin, path-mode node.
+
+**Tracking**:
+The mark on a `Bind`, each value of a `Binds` and an `AltBind`'s value that tells a path variant how
+to run the bound value: VALUE in value mode, PATH in path mode with its paths dropped, ITEM as PATH
+with the path kept as an item path (ADR-0048).
+_Avoid_: pattern mark, path flag.
+
+**Item path**:
+The path of a `foreach … as $name` item, kept in a hidden frame slot so that the item's `Var`
+passes it on in path mode, as `limit`, `skip` and `nth` need (ADR-0010, ADR-0048).
+
+**Walk state**:
+What a FIXED or WALK update keeps while it rebuilds: one cursor per `.[]` level it has entered,
+none for a chain without `.[]`, in the Update's hidden frame slots, set at its entry and cleared at
+its end (F-62).
+_Avoid_: path stack.
+
+**Delete list**:
+The paths of a MODIFY update whose right side gave no result; one `delpaths` removes them after the
+last path (ADR-0010).
 
 **Stop**:
 An emit answered with false: the producer emits nothing more and returns.
@@ -487,7 +527,7 @@ The interpreter's resumable loop that runs recursion beyond the stack-unit limit
 returns each result to the call that started it.
 
 **Workspace**:
-The reusable scratch memory of one evaluation (tape array, output buffer, path stack, regex pattern
+The reusable scratch memory of one evaluation (tape array, output buffer, regex pattern
 cache), passed in by the caller and never shared between two running evaluations.
 _Avoid_: context (that word is taken by jq's `.`), thread-local, arena (that is the JDK's)
 

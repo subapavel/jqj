@@ -144,3 +144,25 @@ run, with G5.
 8. **Records, added:** ADR-0046, 0047 (the Path on a jump), 0005, 0010, 0038, 0020, 0023, glossary.
 9. **Open:** no round 3 unless 2b's Call ticket cannot keep ADR-0045's sentence. Missing facts: path
    heap forms as twins or with one Path register (ticket 5 measures); `gsub`'s cost before 3b.
+
+## Records round (architect, 2026-11-14)
+
+The records designer drafted ADR-0048, F-59 to F-62 and the amendments; ADR-0049, ADR-0050, F-63
+and F-64 stay unused. The architect settled:
+
+1. **Fused chains.** F-44's fused chain fits no `PathRule`. In a path variant it runs its steps one
+   by one, each by its own rule; fusion applies to value mode only (ADR-0048, ADR-0010).
+2. **Probes** (jq-ref 1.8.2): a user's `_modify/2` also catches `op=` and `//=`, and a user's
+   `_assign/2` catches `=` (each gives `42`). At n = 10 001, `=`, `del`, `getpath` and `setpath`
+   raise "Path too deep"; `|=` raises it at n = 10 000.
+3. **`paths-v1`'s minimum** is GATE check 2's 1000 after drops (ADR-0020's spec-3 amendment).
+4. **The Workspace path stack** leaves the glossary: F-62 took its only stated user.
+
+Open for the tickets: P3's filter and input, `[path(foreach .[] as $x (0;$x;.))]`'s input and the
+multi-step-pattern probe, which the DEVIATIONS rows of F-59 need (each pinning case records its
+row);
+whether PathOf and Update tick on their own, and what getpath and setpath tick.
+
+For the owner on 2026-11-16: ADR-0010's Bind rule gives way to Tracking (F-59); GATE check 2's
+`debug` and `stderr` in 3a (F-61); ADR-0023's spec 3 row and GATE row 3 (the split, G5 and the own
+owner in 3a); spec 4 beside 3b.

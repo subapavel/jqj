@@ -1,6 +1,6 @@
 # In-place updates: a sole-use licence and a per-activation owner
 
-Status: accepted (2026-11-11, owner, issue #8 "When may a value be updated in place?"); amends ADR-0003 (owner on built strings), ADR-0005 and ADR-0009 (`keepsArgs`, in-place operations), ADR-0007 (last read, key steps of WALK), ADR-0010 (WALK writes in place), ADR-0018 and ADR-0020 (conservative compile, copy-only switch) and ADR-0019 (the analyses-gain diagnostic); records F-16; supersedes founding §6.3's clear-on-escape (F-16)
+Status: accepted (2026-11-11, owner, issue #8 "When may a value be updated in place?"); amends ADR-0003 (owner on built strings), ADR-0005 and ADR-0009 (`keepsArgs`, in-place operations), ADR-0007 (last read, key steps of WALK), ADR-0010 (WALK writes in place), ADR-0018 and ADR-0020 (conservative compile, copy-only switch) and ADR-0019 (the analyses-gain diagnostic); records F-16; supersedes founding §6.3's clear-on-escape (F-16); amended by spec 3 grilling round 1 (question 6: the own owner and the never-change tests in 3a)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser or the architect (issue #8 round 1).
 Timings are single runs, not `bench/jq-ref.sh` measurements.
@@ -231,3 +231,14 @@ never reachable. Sinks receive only values that left the chain, and so carry a r
 - **Licensing TRACKED:** its path generator reads the value being written.
 - **Rewriting `reduce . + [$x]` into a builder:** covers G4 only.
 - **An identity map of owned values:** a lookup per write.
+
+## Amendment (spec 3 grilling round 1, question 6)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14.
+
+- The Update's own owner is a 3a ticket of its own, right after TRACKED Update. It brings `Owner`,
+  copy-only, `copyOnlyAgrees`, `keptResultsNeverChange` and `sharedInputsNeverChange`, because the
+  own rebuild (K2 only) is the first in-place write. Red: bytes built stay linear on `[range(1e5)] |
+  .[] |= .+1`.
+- 3b keeps `ownership-v1`, the licence (`licenceFacts`), in-place with G4
+  (`inPlaceKeepsBytesBuiltLinear`), and nested reduce.

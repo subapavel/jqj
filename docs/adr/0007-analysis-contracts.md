@@ -1,6 +1,6 @@
 # Analysis contracts
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 (issue #7); amended by ADR-0022 (issue #8); fact keys by ADR-0045 and cardinality's promise by F-56 (spec 2b); holds by F-77 and root use by ADR-0054 (spec 5)
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 (issue #7); amended by ADR-0022 (issue #8); fact keys by ADR-0045 and cardinality's promise by F-56 (spec 2b); holds by F-77 and root use by ADR-0054 (spec 5); path shape's 10 000-step rule, the path-rule and P6 validity rows and bound values by spec 3 grilling (rounds 1–2; ADR-0048, F-59)
 
 Analyses run once on a frozen program and write an immutable side table of facts, keyed by a dense
 node id: freeze numbers each function's nodes in pre-order into an identity map, and each fact is an
@@ -94,3 +94,17 @@ array by id (ADR-0045). Nothing rewrites a frozen program. An analysis reads onl
   (ADR-0018).
 - **Root use** is ADR-0054's syntactic test; a filter the test does not prove eligible has
   `needsWholeDocument()` true.
+
+## Amendment (spec 3 grilling, rounds 1–2)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14.
+
+- **Path shape**: an Update or PathOf whose chain has 10 000 steps or more is TRACKED, a fused chain
+  (F-44) counted by its steps. So jq's path depth limits (ADR-0029 as amended) run in TRACKED only.
+- **Path validity**: an operation passes a path only by its `PathRule` (ADR-0048). `debug` and
+  `stderr` are SAME, and every other native that is not a step is NONE. jq-ref keeps the path
+  through `jv_identical` in `path_intact` for `tostring` and `@text` on a string, `tonumber` on a
+  number, `delpaths([])`, `setpath([];.)`, `last(.)` and `not|not` on true; each is a
+  `DEVIATIONS.md` row. `trim`, `ltrim`, `rtrim` and `tojson|fromjson` get theirs with spec 4's
+  natives, and `ltrimstr`, `rtrimstr` and `trimstr` need none (F-70).
+- **Bound values** run by their `Tracking` (F-59).

@@ -1,6 +1,6 @@
 # Wide constructs bind through one Binds node; and/or runs are balanced; a tail emitter's result is taken first
 
-Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #87; designer draft); records F-45; amends ADR-0005 (22 node kinds), ADR-0034 (slot rule; operator and object lowering), ADR-0037 (and/or runs; If), ADR-0038 (patterns, interpolation) and ADR-0040 (value parameters); "may subsume" closed by ADR-0047 (spec 2b)
+Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #87; designer draft); records F-45; amends ADR-0005 (22 node kinds), ADR-0034 (slot rule; operator and object lowering), ADR-0037 (and/or runs; If), ADR-0038 (patterns, interpolation) and ADR-0040 (value parameters); "may subsume" closed by ADR-0047 (spec 2b); a `Tracking` per `Binds` value by ADR-0048 (spec 3)
 
 A construct with n parts lowers to n nested Binds (objects, interpolation, patterns, value
 parameters) or to Binds nested in value position (left-associative operators), and `and`/`or` nest
