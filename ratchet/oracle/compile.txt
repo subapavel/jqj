@@ -4519,6 +4519,12 @@ reduce/update-empty-then-next	34b1ae44b765	conservative
 reduce/update-error	8efe711aab29	conservative
 reduce/wrap-depth	406008a1eff5	conservative
 reduce/wrap-depth-foreach	c96bc8079ba7	conservative
+runs/alternative-of-70-mixed-terms-in-jq-order	581010554748	conservative
+runs/and-of-70-terms-false-between-generators	9f3df3d955f3	conservative
+runs/and-of-70-truthy-terms-with-generators	39e4d98ac987	conservative
+runs/or-of-70-falsy-terms-with-generators	6bd5715dd890	conservative
+runs/sum-of-70-errors-raises-the-rightmost-first	31ba878d9b19	conservative
+runs/sum-of-70-terms-in-jq-order	dd87d17f0be4	conservative
 slice/array-1.2-1.2	5ee9e8c67609	conservative
 slice/array-1.2-10	93463f1f213d	conservative
 slice/array-1.2-1e300	34b21ea0c9e0	conservative

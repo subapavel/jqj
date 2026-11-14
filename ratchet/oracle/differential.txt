@@ -4037,6 +4037,12 @@ reduce/update-empty-then-next	34b1ae44b765	interpreter
 reduce/update-error	8efe711aab29	interpreter
 reduce/wrap-depth	406008a1eff5	interpreter
 reduce/wrap-depth-foreach	c96bc8079ba7	interpreter
+runs/alternative-of-70-mixed-terms-in-jq-order	581010554748	interpreter
+runs/and-of-70-terms-false-between-generators	9f3df3d955f3	interpreter
+runs/and-of-70-truthy-terms-with-generators	39e4d98ac987	interpreter
+runs/or-of-70-falsy-terms-with-generators	6bd5715dd890	interpreter
+runs/sum-of-70-errors-raises-the-rightmost-first	31ba878d9b19	interpreter
+runs/sum-of-70-terms-in-jq-order	dd87d17f0be4	interpreter
 slice/array-1.2-1.2	5ee9e8c67609	interpreter
 slice/array-1.2-10	93463f1f213d	interpreter
 slice/array-1.2-1e300	34b21ea0c9e0	interpreter
