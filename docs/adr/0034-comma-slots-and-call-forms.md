@@ -59,8 +59,8 @@ Each rate is pinned by two adjacent counts (`ArithmeticStepsTest`, red at 65b717
 One tick table for spec 4's natives (ADR-0008). A ticket corrects a row only by a finding, and each
 rate is pinned by two adjacent counts.
 
-- Byte loops (the trim family, `startswith`, `endswith`, the formats, `fromjson`, `strftime`,
-  `strptime`): one per started KiB of max(input, output).
+- Byte loops (the trim family, `startswith`, `endswith`, `utf8bytelength`, the formats, `fromjson`,
+  `strftime`, `strptime`): one per started KiB of max(input, output).
 - `explode`, `implode` and `builtins`: one per element, as every other array copy, not per KiB.
 - `_strindices` and string `contains`: `split`'s rate plus one per index.
 - Array and object `contains`: one per pair plus Equality's. `bsearch`: one per probe plus the

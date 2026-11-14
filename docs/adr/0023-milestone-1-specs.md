@@ -150,8 +150,8 @@ Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026
   within the 13 host-facing signatures still unbuilt: `input`, `inputs`, `env`, `halt`,
   `halt_error/0,1`, `input_filename`, `input_line_number`, `get_search_list`, `get_prog_origin`,
   `get_jq_origin`, `modulemeta`, `now`. `debug/0,1` and `stderr`, built in spec 3a, must be covered.
-- **What counts**: a builtin is covered when jqj's Binder resolves a reference written in a passing
-  case's own filter text to it at that arity. A shadowing definition, a call from inside the
+- **What counts**: a builtin is covered when jqj's Resolver resolves a reference written in a
+  passing case's own filter text to it at that arity. A shadowing definition, a call from inside the
   prelude, `..` and `@csv` (for `format/1`) do not count. The 226 names are jq-ref's stored
   `builtins` output (P7b: `226`). The tool's first run corrects the draft's per-family lists.
 - **`docs/GATE.md`**:

@@ -1,6 +1,6 @@
 # Host SPI, sandbox and budget defaults
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); amended by ADR-0020 (CLI environment from `Invocation`, locale); rewords the sandbox list of founding §11; amended by spec 2 grilling round 1 (bytes built per slot); amended by ADR-0035 (fixed charges measured with `-prof gc` only, F-39; collectors charge per element); what the recursion-depth budget counts and U per run by ADR-0046 (spec 2b); amended by ADR-0052 (spec 4: fixed English date tables, `strptime` among the zone readers) and ADR-0053 (the regex limit per search call)
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); amended by ADR-0020 (CLI environment from `Invocation`, locale); rewords the sandbox list of founding §11; amended by spec 2 grilling round 1 (bytes built per slot); amended by ADR-0035 (fixed charges measured with `-prof gc` only, F-39; collectors charge per element); what the recursion-depth budget counts and U per run by ADR-0046 (spec 2b); amended by ADR-0052 (spec 4: fixed English date tables, `strptime` and `strftime` among the zone readers for `%s`) and ADR-0053 (the regex limit per search call)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1); joni facts on
 joni 2.2.9.
@@ -28,11 +28,11 @@ joni 2.2.9.
   "module not found".
 - `now` reads the host clock; without one injected it reads the system clock (owner, 2026-11-11), so
   results vary with time as in jq. A host wanting reproducible output injects a fixed clock. The
-  zone readers `localtime`, `strflocaltime` and `strptime` (for `%s`, F-67) use the host zone, UTC
-  by default; jq uses the C library's local zone. `mktime`, `gmtime` and `strftime` are UTC in both.
-  Date names come from fixed English tables and `%Z` from the JDK's English short zone names
-  (ADR-0052, F-66). jq calls `setlocale(LC_ALL, "")`, but jq-ref 1.8.2 showed no locale effect under
-  de_DE.UTF-8 (ADR-0020).
+  zone readers `localtime`, `strflocaltime`, and `strptime` and `strftime` for `%s` (F-67), use the
+  host zone, UTC by default; jq uses the C library's local zone. `mktime`, `gmtime` and `strftime`
+  are UTC in both. Date names come from fixed English tables and `%Z` from the JDK's English short
+  zone names (ADR-0052, F-66). jq calls `setlocale(LC_ALL, "")`, but jq-ref 1.8.2 showed no locale
+  effect under de_DE.UTF-8 (ADR-0020).
 - `debug` and `stderr` values are discarded unless a `DebugSink` is set.
 - `input`/`inputs` read only `RunOptions`' inputs; otherwise `input` raises "break" at once.
 - `halt` and `halt_error` end the run with `JqTermination(HALT)` (ADR-0008; jq-ref: `try halt catch

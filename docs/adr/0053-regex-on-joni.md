@@ -41,7 +41,8 @@ the limit applies, and when a pattern compiles.
     unmatched parenthesis".
   - Spec 4's diagnostics measure the cache's gain (ADR-0019); changing a bound is a finding.
 - **Ticks** (ADR-0034's spec-4 amendment): one per search call, one per started KiB from the search
-  start to the match end, one per started KiB of the pattern at each lookup, compiled or cached (so a run's steps never depend on the cache).
+  start to the match end, one per started KiB of the pattern at each lookup, compiled or cached (so
+  a run's steps never depend on the cache).
 - **Facts**: `_match_impl` declares path NONE and is pure (spec 3's Facts).
 - **Tickets**: the loop, the offsets, the limit, cancellation and the cache are one class-C ticket.
   The regex prelude, the matrix and `builtins-regex-v1` come after it and after spec 3a (`sub` uses

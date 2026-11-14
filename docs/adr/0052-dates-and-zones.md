@@ -1,6 +1,6 @@
 # Dates and zones: jq's wrappers translated, glibc's conversions from probes, jqj's own calendar, zones from the JDK
 
-Status: proposed (2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14, spec 4 round 1); amends ADR-0017 (fixed English tables in place of the root locale; `strptime` joins the zone readers); its ticks are in ADR-0034's spec-4 amendment; findings F-66, F-67 and F-68
+Status: proposed (2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14, spec 4 round 1); amends ADR-0017 (fixed English tables in place of the root locale; `strptime` and `strftime` join the zone readers for `%s`); its ticks are in ADR-0034's spec-4 amendment; findings F-66, F-67 and F-68
 
 jq-ref facts: probes P1–P8 observed by the architect and those marked A by the adviser, on jq 1.8.2
 (spec 4 grilling round 1); Java facts on JDK 25.0.5 with its tzdb 2026e.
@@ -37,8 +37,9 @@ jq-ref's C library is glibc, which is LGPL; musl is not what jq-ref runs. `java.
 - **Gap and overlap** follow jq-ref, not `ZoneRules`' default. A, America/New_York:
   `[2021,2,14,2,30,0,0,0]|strflocaltime(…)` → `2021-03-14T03:30:00 EDT -0400`;
   `[2021,10,7,1,30,0,0,0]` → `2021-11-07T01:30:00 EST -0500`.
-- **The zone readers** are `localtime`, `strflocaltime` and `strptime`; `strptime` reads the host
-  zone for `%s` (A: `"1425599507"|strptime("%s")` → `[2015,2,5,23,51,47,4,63]` under `TZ=UTC`,
+- **The zone readers** are `localtime`, `strflocaltime`, and `strptime` and `strftime` for `%s`
+  (`0|strftime("%s")` → `"-32400"` under Asia/Tokyo, F-67); `strptime` reads the host zone for `%s`
+  (A: `"1425599507"|strptime("%s")` → `[2015,2,5,23,51,47,4,63]` under `TZ=UTC`,
   `[2015,2,6,8,51,47,5,64]` under Asia/Tokyo; F-67). They are not pure (spec 3's Facts). They come
   in one host-zone ticket, whose passing jq.test and man.test cases also pass under Asia/Tokyo and
   America/New_York (GATE check 1).
