@@ -136,8 +136,12 @@ A read object whose key proof found no repeated key, so its walk needs no plan a
 _Avoid_: dedup flag, unique object, tag 10 (it stays reserved).
 
 **Key proof**:
-What every walk of a read object does first: it finds which key entries repeat an earlier key, pairwise up to 8 keys, then in a reused table, and by a sort when the table's probe budget runs out (ADR-0044).
+What every walk of a read object, and Equality's key index, does first: it finds which key entries repeat an earlier key, pairwise up to 8 keys, then in a reused table, and by a sort when the table's probe budget runs out (ADR-0044).
 _Avoid_: dedup, key check.
+
+**Key index**:
+Equality's view of a read right side for one object comparison: its key proof, looked up once per left key within that call, kept as the tape index of each key's last right value; it is no walk (ADR-0044 as amended, #95).
+_Avoid_: key map, lookup table (alone).
 
 **Object walk**:
 A read object's members as its key proof gives them, each key at its first place with its last value, valid for that one walk. Every walker takes a read object's members through the walk, except the Printer: it enters through `KeyProof.plan`, the proof's pairs without the walk, and no other walker may (ADR-0044 as amended).
