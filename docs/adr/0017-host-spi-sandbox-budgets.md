@@ -1,6 +1,6 @@
 # Host SPI, sandbox and budget defaults
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); amended by ADR-0020 (CLI environment from `Invocation`, locale); rewords the sandbox list of founding §11; amended by spec 2 grilling round 1 (bytes built per slot); amended by ADR-0035 (fixed charges measured with `-prof gc` only, F-39; collectors charge per element)
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); amended by ADR-0020 (CLI environment from `Invocation`, locale); rewords the sandbox list of founding §11; amended by spec 2 grilling round 1 (bytes built per slot); amended by ADR-0035 (fixed charges measured with `-prof gc` only, F-39; collectors charge per element); what the recursion-depth budget counts and U per run by ADR-0046 (spec 2b)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1); joni facts on
 joni 2.2.9.
@@ -47,12 +47,14 @@ joni 2.2.9.
   waits for the interpreter's steps per second):
   - 10⁹ steps; a 10 s deadline;
   - parse depth 10 000 (ADR-0015; a jq parse error, not a termination, F-13);
-  - 4 194 304 live activations, which lets 10⁶ levels complete;
+  - 4 194 304 live activations (each live PLAIN or RECURSIVE call and each real-closure call; a tail
+    jump replaces its own, ADR-0046), which lets 10⁶ levels complete; the number is reviewed once
+    the calibration ticket has measured the heap per activation (ADR-0046);
   - 1 GiB bytes built, counted monotonically over string bytes and container slots, not number
     boxes, and restarted at each streamed element (`rest` holds nothing across elements, ADR-0007);
   - 1 GiB bytes written;
   - 1 s per regex match;
-  - 512 KiB of stack, from which U is derived (ADR-0011).
+  - 512 KiB of stack, from which each run derives its filter's `U_f` (ADR-0011, ADR-0046).
 - **`Limits.cli()`** keeps the parse depth, recursion and regex limits and the stack bytes, and drops
   the other budgets. jq-ref
   completes 10⁷ levels of recursion; jqj's limit is a `DEVIATIONS.md` row.

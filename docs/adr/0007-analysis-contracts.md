@@ -1,13 +1,16 @@
 # Analysis contracts
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 (issue #7); amended by ADR-0022 (issue #8)
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 (issue #7); amended by ADR-0022 (issue #8); fact keys by ADR-0045 and cardinality's promise by F-56 (spec 2b)
 
-Analyses run once on a frozen program and write an immutable side table of facts, keyed by a
-dense node id. Nothing rewrites a frozen program. An analysis reads only node kinds and
+Analyses run once on a frozen program and write an immutable side table of facts, keyed by a dense
+node id: freeze numbers each function's nodes in pre-order into an identity map, and each fact is an
+array by id (ADR-0045). Nothing rewrites a frozen program. An analysis reads only node kinds and
 `Operation` fields. **A missed fact costs speed or raises an error, never a wrong value.**
 
 - **Cardinality**: none, exactly one, at most one or many, for every node and function, computed as
-  a least fixpoint per recursive group. An error or a break is not a result.
+  a least fixpoint per recursive group. An error or a break is not a result. "Exactly one" and "at
+  most one" also promise that nothing runs after the result; a node that may run on after it is
+  "many" (F-56).
   - **The guarantee is two-sided.** "Exactly one" promises one result unless an error or break
     ends the node, so a backend reads it without testing. A property test checks both bounds
     against the interpreter.
@@ -45,7 +48,8 @@ dense node id. Nothing rewrites a frozen program. An analysis reads only node ki
 - **Touched fields** is a contract only. Its consumer would be a reader that leaves untouched
   subtrees off the tape, which ADR-0002 does not allow yet. It is built only when "How do the JSON
   reader and writer behave?" adopts that.
-- **Constant folding** never folds an impure operation or one that reads input. An operation that
+- **Constant folding** (the parse-time fold; there is no IR fold, F-57) never folds an impure
+  operation or one that reads input. An operation that
   throws while folding stays in place: `1/0` is a run-time error in jq.
 
 ## Considered options

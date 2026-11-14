@@ -1,6 +1,6 @@
 # IR: one sealed node family in query-core; formats reach it as Operation data
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 and completed by ADR-0009 (issue #7); amended by ADR-0022 (issue #8: `keepsArgs`, in-place operations); clarified by ADR-0032 (the AST is not a second IR); completed by ADR-0034 (Comma, Bind and Var, atomic Intrinsic arguments, #63); amended by ADR-0037 (If, Alt, Truth, #66); AltBind's fields and catch rule completed by ADR-0038 (#67); Try, Label and Break fields by ADR-0039 (#68); Reduce, Foreach, Advance by ADR-0041 (#69); `keepsArgs` declared on the binder's natives until spec 3 by F-47 (#72); node list corrected by F-52 (`Empty` is an Operation; `Advance`, `Binds`)
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 and completed by ADR-0009 (issue #7); amended by ADR-0022 (issue #8: `keepsArgs`, in-place operations); clarified by ADR-0032 (the AST is not a second IR); completed by ADR-0034 (Comma, Bind and Var, atomic Intrinsic arguments, #63); amended by ADR-0037 (If, Alt, Truth, #66); AltBind's fields and catch rule completed by ADR-0038 (#67); Try, Label and Break fields by ADR-0039 (#68); Reduce, Foreach, Advance by ADR-0041 (#69); `keepsArgs` declared on the binder's natives until spec 3 by F-47 (#72); node list corrected by F-52 (`Empty` is an Operation; `Advance`, `Binds`); `Call`, `ParamCall` and `Program` by ADR-0045 (spec 2b)
 
 The IR is one `sealed interface Node` in `query-core` with 21 record kinds, each carrying its
 source position. Both backends and every analysis switch over it exhaustively. A format such as jq
@@ -15,15 +15,16 @@ arm because each jq node would then carry its own interpretation and bytecode em
     `empty` is the Operation `Intrinsic(empty)`, not a node (F-52).
   - Abrupt: `Try`, `Label`, `Break`.
   - State: `Var`, `Bind`, `Binds` (ADR-0043), `Reduce`, `Foreach`, `Advance` (ADR-0041), `Collect`.
-  - Functions: `Call`, `ParamCall`.
+  - Functions: `Call(src, fn, closures, values)`, `ParamCall(src, param)`; the functions they name
+    live in `Program(main, List<Function>)`, which is not a node kind (ADR-0045).
   - Paths: `PathOf`, `Update` (`|=`).
   - Destructuring alternatives: `AltBind` (`?//`). It catches errors (not breaks, ADR-0008) from the
     patterns, the body and everything downstream while a later alternative remains (ADR-0008, ADR-0038). On
     `[[1]]`, `(.[] as [$a] ?// $a | $a) | if . == 1 then error("x") else . end` gives `[1]`
     (observed); a `Try` in that place lets the error through.
   - Format: `Intrinsic(Operation, args)`.
-  - Built at the end of 2a: 18 kinds. `Call`, `ParamCall` arrive in 2b (ADR-0040), `PathOf` and
-    `Update` in spec 3 (F-52).
+  - Built at the end of 2a: 18 kinds; at the end of 2b: 20, with `Call` and `ParamCall` (ADR-0045).
+    `PathOf` and `Update` arrive in spec 3 (F-52).
 - **Atomic arguments**: `Intrinsic` arguments and `Call` value arguments are `Identity`, `Var` or
   `Const`. Operators, object construction, string interpolation, `.[e]`, `$x` parameters and
   destructuring lower to nested `Bind`s, so the cartesian order is explicit in the tree. jq's order

@@ -1,6 +1,6 @@
 # Oracles and ratchet: copied jq tests, recorded jq-ref expectations, required cases, per-merge pass lists
 
-Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch); amended by ADR-0023 (issue #17: deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); amended by F-19 (who measures the fallback targets); amended by ADR-0024 (the Stub verdict); amended by ADR-0025 (`values-v1`: forms, seeds, generated files, drops); amended by F-27 (PIT and the compile-mode oracle leave the ticket gate); amended by F-28 (the spec-gate PIT target); amended by F-29 (the compile-mode oracle after every merge); amended by #60 (compile-mode oracle: switch by reflection, compile report, after-merge script); amended by ADR-0033 (`core-v1`: forms, break placement, freeze numbers); amended by F-46 (#89: the ticket gate runs the compile-mode oracle)
+Status: accepted (2026-11-11, owner, issue #15 "How do the oracles and the ratchet work?"); replaces `docs/WORKFLOW.md` §6's ratchet and floor text together with ADR-0014; amends ADR-0013 (the CLI entry), ADR-0014 (ticket gate and CI), ADR-0016 (compile error text) and ADR-0017 (CLI environment, locale); supersedes founding §1's "not goals: identical error message wording" (F-15); finding F-14; amended by ADR-0022 (issue #8: no in-place licence in the conservative compile, copy-only switch); amended by ADR-0023 (issue #17: deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); amended by F-19 (who measures the fallback targets); amended by ADR-0024 (the Stub verdict); amended by ADR-0025 (`values-v1`: forms, seeds, generated files, drops); amended by F-27 (PIT and the compile-mode oracle leave the ticket gate); amended by F-28 (the spec-gate PIT target); amended by F-29 (the compile-mode oracle after every merge); amended by #60 (compile-mode oracle: switch by reflection, compile report, after-merge script); amended by ADR-0033 (`core-v1`: forms, break placement, freeze numbers); amended by F-46 (#89: the ticket gate runs the compile-mode oracle); amended by F-58 (the `trampoline` mode, spec 2b)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #15 round 1). Every runner lives in
 `oracle` on the class path, in `…jqj.oracle.{jqtest,diff,compile,backend,json,gen,record}`.
@@ -122,7 +122,9 @@ errors`); such text is jqj's own. The jqtest runner reads the last block from a 
   compares output and error. Cases that end in a termination under either compile are left out (a
   tail-recursive case can finish optimised and hit the recursion budget conservative). A third run
   under the copy-only switch (ADR-0022) checks in-place updates the same way; cases that end in a
-  termination under copy-only are left out. The oracle runs in the ticket
+  termination under copy-only are left out. A `trampoline` run, the conservative compile with
+  `stackBytes` 0 so that main and every body run on the driver, checks the heap forms the same way;
+  cases that end in a termination under it are left out (F-58). The oracle runs in the ticket
   gate unless spec 1's last ticket (F-19), or any later spec gate (ADR-0023), measures the oracle above
   ADR-0014's 60 s target, in which case
   it moves to the spec gate. **#40 measured step 1 above 60 s (F-27): the compile-mode oracle,
@@ -162,7 +164,8 @@ errors`); such text is jqj's own. The jqtest runner reads the last block from a 
   | --- | --- |
   | `oracle/jqtest.txt` | `id`, `backend` |
   | `oracle/differential.txt` | `id`, `def`, `backend` |
-  | `oracle/compile.txt` | `id`, `def`, `mode` (`conservative`, `copy-only`; ADR-0023) |
+  | `oracle/compile.txt` | `id`, `def`, `mode` (`conservative`, `copy-only`, ADR-0023; `trampoline`,
+  F-58) |
   | `oracle/backend.txt` | `id`, `def` |
   | `oracle/json.txt` | `id`, `label`, `def` |
   | `coverage.tsv`, `mutation.tsv` | as `ratchet/README.md` |

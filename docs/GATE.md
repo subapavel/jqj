@@ -31,8 +31,9 @@ nightly PIT dispatched on the gate commit (`nightly.yml` has a manual trigger).
      reporting from spec 4; its list of uncovered builtins is empty at the gate).
    - **Deviations:** every `DEVIATIONS.md` row names a passing differential case or `test:` method
      that checks both columns.
-   - **Compile modes:** the optimised, the conservative and the copy-only run agree on the
-     compile-mode cases (`ratchet/oracle/compile.txt`, one line per mode; ADR-0018, ADR-0022).
+   - **Compile modes:** the optimised, the conservative, the copy-only and the trampoline run agree
+     on the compile-mode cases (`ratchet/oracle/compile.txt`, one line per mode; ADR-0018, ADR-0022,
+     F-58).
      `ratchet/oracle/backend.txt` stays empty, reserved for milestone 2.
    - **Ownership:** `keptResultsNeverChange`, `sharedInputsNeverChange`, `keepsArgsIsSound` and
      `licenceFacts` pass (ADR-0022).
