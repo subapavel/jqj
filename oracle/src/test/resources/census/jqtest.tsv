@@ -169,7 +169,7 @@ jq.test#410a7a6e988d	2a	S2a.15	jq.test:25	S2a.11,S2a.15	-
 jq.test#417b92383173	2a	S2a.18	jq.test:2487	S2a.11,S2a.13,S2a.18	catch try
 jq.test#42bb6d48d50f	2a	S2a.22	jq.test:1775	S2a.13,S2a.14,S2a.21,S2a.22	type
 jq.test#455026d40aaf	4	-	jq.test:2165	-	builtins/0
-jq.test#4556621475e5	2a	S2a.18	jq.test:1460	S2a.11,S2a.13,S2a.14,S2a.18	error if
+jq.test#4556621475e5	2a	S2a.18	jq.test:1460	S2a.11,S2a.14,S2a.18	error if term?
 jq.test#469e210bdd60	4	-	jq.test:2071	-	log2 pow
 jq.test#479662df5c5a	4	-	jq.test:855	-	floor sin
 jq.test#4828f53331c1	2a	S2a.22	jq.test:2014	S2a.11,S2a.15,S2a.16,S2a.18,S2a.22	have_decnum
@@ -567,7 +567,7 @@ jq.test#f1232c5aebcd	4	-	jq.test:2403	-	explode implode
 jq.test#f2338643de5b	2a	S2a.22	jq.test:397	S2a.13,S2a.14,S2a.18,S2a.19,S2a.21,S2a.22	last/1
 jq.test#f3285012fefb	2a	S2a.23	jq.test:2633	S2a.11,S2a.13,S2a.14,S2a.17,S2a.18,S2a.19,S2a.21,S2a.23	unique
 jq.test#f4d1e4254696	3	-	jq.test:1258	-	delpaths getpath path/1 setpath
-jq.test#f4d4973fa3cf	2a	S2a.18	jq.test:1481	S2a.13,S2a.15,S2a.18	catch try
+jq.test#f4d4973fa3cf	2a	S2a.18	jq.test:1481	S2a.15,S2a.18	catch term? try
 jq.test#f5d06d36099d	2a	S2a.17	jq.test:559	S2a.13,S2a.14,S2a.17	$var as
 jq.test#f6d3a26efb46	3	-	jq.test:2386	-	delpaths getpath path/1 setpath
 jq.test#f772b22b4565	4	-	jq.test:1609	-	_strindices
@@ -787,7 +787,7 @@ man.test#d1c7d8ed4c64	2a	S2a.22	man.test:405	S2a.22	flatten/0
 man.test#d2be198efaba	4	-	man.test:558	-	_strindices
 man.test#d34a095149cf	4	-	man.test:554	-	_strindices
 man.test#d8b32838d3e9	3	-	man.test:682	-	delpaths getpath path/1 setpath
-man.test#dacfe75eed6e	2a	S2a.22	man.test:835	S2a.13,S2a.14,S2a.22	tonumber
+man.test#dacfe75eed6e	2a	S2a.22	man.test:835	S2a.13,S2a.14,S2a.18,S2a.22	tonumber
 man.test#dad1cb1189a6	3	-	man.test:240	-	delpaths getpath path/1 setpath
 man.test#dafaa56949d8	2a	S2a.19	man.test:911	S2a.11,S2a.13,S2a.15,S2a.17,S2a.19	reduce
 man.test#dd38b6ef328c	3	-	man.test:264	-	path/1
