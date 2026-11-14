@@ -1,6 +1,6 @@
 # In-place updates: a sole-use licence and a per-activation owner
 
-Status: accepted (2026-11-11, owner, issue #8 "When may a value be updated in place?"); amends ADR-0003 (owner on built strings), ADR-0005 and ADR-0009 (`keepsArgs`, in-place operations), ADR-0007 (last read, key steps of WALK), ADR-0010 (WALK writes in place), ADR-0018 and ADR-0020 (conservative compile, copy-only switch) and ADR-0019 (the analyses-gain diagnostic); records F-16; supersedes founding §6.3's clear-on-escape (F-16); amended by spec 3 grilling round 1 (question 6: the own owner and the never-change tests in 3a)
+Status: accepted (2026-11-11, owner, issue #8 "When may a value be updated in place?"); amends ADR-0003 (owner on built strings), ADR-0005 and ADR-0009 (`keepsArgs`, in-place operations), ADR-0007 (last read, key steps of WALK), ADR-0010 (WALK writes in place), ADR-0018 and ADR-0020 (conservative compile, copy-only switch) and ADR-0019 (the analyses-gain diagnostic); records F-16; supersedes founding §6.3's clear-on-escape (F-16); amended by spec 3 grilling round 1 (question 6: the own owner and the never-change tests in 3a); "Detach and budgets" amended by F-80 (spec 5 round 2, grilling-adviser for the owner under the delegation of 2026-11-14: a state hold's detach and main-document views)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser or the architect (issue #8 round 1).
 Timings are single runs, not `bench/jq-ref.sh` measurements.
@@ -130,8 +130,9 @@ never reachable. Sinks receive only values that left the chain, and so carry a r
 
 ## Detach and budgets
 
-- In a state hold that spans a later read, an in-place write detaches only the inserted value; the
-  state's view flag stays clear, so the hold's `detach()` is O(1) and keeps the owner (ADR-0007).
+- In a state hold that spans a later read, an in-place write detaches the inserted value's
+  input-document views, and the state hold does not detach again a state the site wrote. The
+  state's view flag stays clear only when the inserted value holds no main-document view.
 - Growth charges the capacity it adds as bytes built (at most twice the final size), and ticks per
   element. A copy charges its slots.
 - G4 `reduce .[] as $x ([]; . + [$x])` becomes linear (gate check 4). G5 `.items[].price |= . *

@@ -1,6 +1,6 @@
 # IR: one sealed node family in query-core; formats reach it as Operation data
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 and completed by ADR-0009 (issue #7); amended by ADR-0022 (issue #8: `keepsArgs`, in-place operations); clarified by ADR-0032 (the AST is not a second IR); completed by ADR-0034 (Comma, Bind and Var, atomic Intrinsic arguments, #63); amended by ADR-0037 (If, Alt, Truth, #66); AltBind's fields and catch rule completed by ADR-0038 (#67); Try, Label and Break fields by ADR-0039 (#68); Reduce, Foreach, Advance by ADR-0041 (#69); `keepsArgs` declared on the binder's natives until spec 3 by F-47 (#72); node list corrected by F-52 (`Empty` is an Operation; `Advance`, `Binds`); `Call`, `ParamCall` and `Program` by ADR-0045 (spec 2b); `PathOf` and `Update` (kinds 21 and 22), `Update.Kind`, `Facts` and `Tracking` by ADR-0048 and F-60 (spec 3)
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 and completed by ADR-0009 (issue #7); amended by ADR-0022 (issue #8: `keepsArgs`, in-place operations); clarified by ADR-0032 (the AST is not a second IR); completed by ADR-0034 (Comma, Bind and Var, atomic Intrinsic arguments, #63); amended by ADR-0037 (If, Alt, Truth, #66); AltBind's fields and catch rule completed by ADR-0038 (#67); Try, Label and Break fields by ADR-0039 (#68); Reduce, Foreach, Advance by ADR-0041 (#69); `keepsArgs` declared on the binder's natives until spec 3 by F-47 (#72); node list corrected by F-52 (`Empty` is an Operation; `Advance`, `Binds`); `Call`, `ParamCall` and `Program` by ADR-0045 (spec 2b); `PathOf` and `Update` (kinds 21 and 22), `Update.Kind`, `Facts` and `Tracking` by ADR-0048 and F-60 (spec 3); `reads` means the input stream by F-79 (spec 5 round 2, grilling-adviser for the owner under the delegation of 2026-11-14)
 
 The IR is one `sealed interface Node` in `query-core` with 22 record kinds (21 as first written;
 F-52 corrects the count), each carrying its source position. Both backends and every analysis switch
@@ -43,7 +43,7 @@ interpretation and bytecode emission.
   → `[10]`.
 - **`Operation`** fixes only what passes read: name, cardinality, path rule (none / step / same),
   navigation step (key, index, all, dynamic; one `PathRule` in `Facts` since ADR-0048), `pure`,
-  `reads` (input), `keepsArgs`, and whether a
+  `reads` (the input stream), `keepsArgs`, and whether a
   quiet (non-throwing) variant exists. How an operation is called is left to "What is the
   execution protocol?", whose ADR completes this one.
 - **Verifier**: an `IrVerifier` runs after every pass. The IR must be a tree with no node object

@@ -157,6 +157,7 @@ another spec.
 
 - Round 2: not needed for 5a before `/to-spec`. 5b needs one once spec 3's round 2 and 2b's
   analysis tickets are fixed: the hold sites over 2b's frames and closures, and the root-use test.
+  Done 2026-11-14: "Round 2" below.
 - Missing facts: the fast loop's cost with the token-boundary compare and several values per
   stream (tickets 3, 5); the cost per `input` document of detach-at-read (ticket 6's row);
   `jq_set_colors`' validity rule (`jv_print.c`, ticket 13); other spec-4 census cases needing a
@@ -227,5 +228,218 @@ Missing facts: `jq_set_colors`' validity rule (T13 reads `jv_print.c`); the issu
 
 Note from spec 3's ticket approval (2026-11-14), proposed by the grilling-adviser for the owner
 under the delegation of 2026-11-14, for 5a's tickets: the output-options ticket records `debug`
-under `-a`, `-S` and `-C` (3a's S3a.3 records one case per flag the command line has); the `input`
-ticket's `licenceFacts` gains `reduce range(n) as $i ([]; . + [input])`.
+under `-a`, `-S` and `-C` (3a's S3a.3 records one case per flag the command line has); spec 5b's
+hold-run ticket records its licence fact: `licenceFacts` gains
+`reduce range(n) as $i ([]; . + [input])` (round 2, question 10, by the grilling-adviser for the
+owner under the delegation of 2026-11-14; it was the `input` ticket's).
+
+## Round 2 (spec 5b: holds, root use, host streaming)
+
+Answered 2026-11-14 by the grilling-adviser for the owner under the delegation of 2026-11-14, for
+the owner's review on 2026-11-16. Draft: designer. jq behaviour: jq-ref 1.8.2 (`--version` →
+jq-1.8.2), the architect's probes P1–P13 and about 45 of the adviser's. The architect re-ran B, C,
+S5b.2's 15 guard values, the two wrap cases, P13's `repeat` and `.items[] | del(.a)`, and
+confirmed them. Nothing of jqj was built or run, so every jqj statement is design.
+
+### Four gaps in the draft (they change the answers)
+
+- A. **`reads` has two meanings (F-79).** S3a.2 (#154) and S3a.3 (#155) set `reads` true for
+  getpath, setpath, delpaths, `debug` and `stderr` ("shares storage with its input"). F-77,
+  ADR-0007 and S5a.6 (#144) use it for "reads the input stream". Left alone, every `del`, `pick`,
+  `tostream` or `debug` is a reading node and `.items[] | del(.a)` reads whole. Spec 5's meaning
+  stands and the five are false. In #152–#168 only #154 and #155 give the fact a value.
+- B. **A resumed generator is a hold the two site kinds miss.** `(input | .[]) | [., input]` on
+  `[1,2] 10 20` → `[1,10]`, `[2,20]`. `.[]` walks document 1 after its consumer read document 2,
+  and no node whose `.` is document 1 has a reading child.
+- C. **A Path key is a keeper.** `input as $x | {} | .[$x] |= input` on `"a" 7 8` → `{"a":7}`. The
+  left side does not read, so question 4(c) left the key a view across the right side's read.
+- D. **Questions 1 and 4(d) disagree (F-80).** Question 1 copies only input-document views; 4(d)
+  and ADR-0022 need the state's view flag clear. With `. + [[$m.a, input]]` the inserted value
+  keeps a main-document view, so the flag stays set.
+
+### Answers
+
+1. **Hold sites: an entry site and a store site per node, two facts, no IR kind** (accepted, with
+   three changes). Entry: a node detaches its `.` on entry when it may read `.` after a node that
+   may read. Store: a keeper detaches a value as it keeps it when it lives across a node that may
+   read. A hold's detach copies only input-document views.
+   - An emit to a consumer that may read counts as a node that may read (B). The consumer fact is
+     joined over a function's call sites and a closure's `ParamCall` sites; its safe value is true.
+   - Keepers also include pattern and item slots and a DYNAMIC key entering a Path or walk state
+     (C).
+   - A hold's detach copies input-document views and leaves main-document views. A state that an
+     in-place site wrote is not detached again at its state hold (D).
+   - Cost: a second, top-down bit per function and closure parameter. A coarser fact (true inside
+     every function of a program that reads) is legal; it copies each document once in filters
+     like `inputs | [..]`, as 5a does.
+2. **A closure argument that reads makes its call site a hold; inside the callee a `ParamCall` may
+   read only if some call site, tail jumps included, passes a reading closure** (accepted). A
+   Call's value cells are slots bound at the callee's entry. Cost: one bit per (function, closure
+   parameter); one reading call site makes the parameter read at every site.
+3. **Hold sites are IR facts, so a heap form detaches wherever its stack form does; a suspension
+   and a pending jump add no site** (accepted). `holdsAgreeOnTheDriver` runs the hold cases
+   optimised with `stackBytes` 0. Cost: the hold table runs once more with `stackBytes` 0.
+4. **Holds against spec 3's owner, Update, PathOf and 3b's licence** (accepted, with changes to (c)
+   and (d)).
+   - (a) Detaching a built container whose view flag is clear returns it, owner kept. (b) An
+     Update's rebuild is a store site and its own `.` an entry site. Both as drafted.
+   - (c) Add the `key` site. A DYNAMIC key is detached as it enters a Path or walk state when its
+     PathOf body or its Update (either side) may read. This is a static flag, so it costs nothing
+     where nothing reads. #162 is not edited: U1a adds the TRACKED rule. Cost: `.[input] |= f`
+     loses WALK and the licence.
+   - (d) With D's rule. #167's bullet "Inserted values detached in a state hold" moves to U1b,
+     because 3b has no hold fact.
+5. **The root-use test is a spine of constant KEY and INDEX steps ending in an ALL, then a `rest`
+   that does not may-read and uses no outer slot but a parameter slot** (accepted, sharpened). The
+   test runs over main's flattened top-level Pipe chain, and the spine ends at the first ALL. So
+   `.items | .[] | . + 1` (jq-ref: `2`, `3`) streams like `.items[] | …`. Costs are as drafted.
+6. **A top-level PathOf, Update, Bind, Reduce, Foreach, Label or Collect reads whole; PathOf and
+   Update inside `rest` stream** (accepted). `.items[] as $x | f` reads whole because `f`'s `.` is
+   the root: `.items[] as $x | [$x, (.items|length)]` → `[1,2]`, `[2,2]`.
+7. **`explain()` gains `reads=` and `detach=`, and a program line for root use** (accepted).
+   `detach=` gains `key`; `rootUse` has two values.
+8. **What catches a missed hold** (changed). Keep `holdAnalysisNeverMissesAHold`, no recorded
+   generator, ADR-0020 unchanged. A stale view on a required recorded case already fails the
+   differential oracle, so the gap is cases, not the verdict. The table is a hand list again, and
+   B and C show what one misses, so two tests are added:
+   - `holdTableCoversEveryKind`: the table has a row for every permitted `Node` record ×
+     Node-typed component that can read, so a new kind fails until it has a row.
+   - `insertedReadsNeverGoStale`: each jqtest, differential and generated program P runs under
+     `-n` as `input | P'`. P' wraps one seeded sub-expression X as `((input|empty), X)` or
+     `(input as $r | X)`; stdin is the case's document, then filler documents. Optimised never
+     ends in STALE_VIEW and agrees with conservative.
+   - Cost: a splice by source span in the oracle module and one more pass over the cases. It needs
+     no jq-ref recording and no GATE minimum.
+9. **The reds** (changed, see "Ticket shape" below). Most of the draft's "reds" pass before the
+   ticket, because 5a detaches at every read. They are guards.
+10. **5b depends on 3b through U1b only (S3b.3)** (accepted). After the split, root use and
+    `stream` do not wait for 3b. The `. + [input]` licence fact moves from S5a.6 to U1b: #144 has
+    no such line and no edge to S3b.2.
+
+### Conflicts
+
+- 1 (`ParamCall` joins one bit per parameter instead of "any ParamCall may read"), 2 (parameter
+  slots pass "uses no outer slot"), 4 (path shape moves toward TRACKED) and 5 (F-77's cases under
+  `-n`): accepted.
+- 3 (Root use): two values, ELEMENTS and WHOLE. Cost: a filter that ignores its input reads whole;
+  a third value can be added later.
+
+### Probe facts that pin the answers (jq-ref 1.8.2, all under `-n` unless marked)
+
+- Question 1, entry site (P1): `input | (input, .)` on `1 2` → `2`, `1`.
+- Question 1, store sites: `input | [., input]` on `1 2 3` → `[1,2]`, and
+  `def f(g): [g, g]; input | f(., input)` → `[1,2,1,3]` (P2); `try error(input) catch (input, .)`
+  on `1 2` → `2`, `1` (P12).
+- Gap B: `(input | .[]) | [., input]` on `[1,2] 10 20` → `[1,10]`, `[2,20]`. Gap C:
+  `input as $x | {} | .[$x] |= input` on `"a" 7 8` → `{"a":7}`.
+- Question 2: `def r(f): if . >= 2 then [f] else [f, (.+1 | r(f|.))] end; 0 | r(input)` on
+  `1 2 3 4` → `[1,[2,[3]]]` (P3, a real closure); `def f($v): if . == 0 then (input | [$v, .])
+  else (. - 1 | f($v)) end; input as $a | 1 | f($a)` on `10 20` → `[10,20]` (P4, a value
+  parameter); `def r(f): if . > 0 then f else (.+1 | r(f|.)) end; input as $a | 0 |
+  r(input | [$a, .])` on `1 2 3` → `[1,2]` (P5, a captured slot).
+- Question 4: `input | .[] |= input` on `[0,0] 1 2` → `[1,2]` (P6); `{"a":1} | .[input] |= input`
+  on `"a" 7` → `{"a":7}` (P7); `[path(.[input][input])]` on `"a" "b"` → `[["b","a"]]` (P8);
+  `reduce range(n) as $i ([]; . + [input]) | length` over `seq n` takes 0.074 s, 0.144 s and
+  0.287 s for n = 100 000, 200 000 and 400 000, linear (P9).
+- Question 5: `.items | .[] | . + 1` → `2`, `3`.
+- Question 6: `.items[] as $x | [$x, (.items|length)]` → `[1,2]`, `[2,2]`. Without `-n`, on
+  `{"items":[{"a":1},{"a":[2]}]}`: `.items[] | [paths]` → `[["a"]]`, `[["a"],["a",0]]`, and
+  `.items[] | .a |= 1` → `{"a":1}`, `{"a":1}` (P10). On `{"items":[1,2]}`, `.items[] | error` →
+  "jq: error (at <stdin>:0) (not a string): 1", rc 5 (P11).
+- Question 8, both wraps keep jq's result: `input | [path((input|empty), .[0])]` → `[[0]]`;
+  `input | (.[] | ((input|empty), .)) |= . + 1` on `[5,6] 0 0 0 0` → `[6,7]`;
+  `input | .[] |= (input as $r | . + 1)` → `[6,7]`.
+- S5b.3: `.items[] | del(.a)` → `{"b":2}`, so `del` does not read (gap A).
+- P13, settled by behaviour: `[limit(4; 1 | repeat(. * 2))]` → `[2,2,2,2]`, which fits jq 1.8.2's
+  `def _repeat: exp, _repeat;` (`src/builtin.jq`), so `.` in `inputs` is the caller's `.` at every
+  level.
+
+### Ticket shape (approved by the adviser for the owner): 4, all class C
+
+U1 splits into facts and run, as S3a.10/S3a.11 and S3b.2/S3b.3 do.
+
+- **S5b.1 (U1a) "May-read and hold facts, shown through explain()".**
+  - Builds: F-79's meaning; may-read with the parameter bit; the consumer fact; the site facts;
+    the TRACKED rule; `reads=` and `detach=` (`in`, `slot`, `state`, `elem`, `cell`, `payload`,
+    `leaf`, `key`, `read`). Conservative shows `reads=true` and only `detach=read`. 5b enters
+    `SPEC_ISSUES`. The run does not change: `input` still detaches at its read.
+  - Red: `mayReadFacts` (P3–P5: the parameter reads; `def f(g): [g, g]; [f(1), input]`: `g` does
+    not); `holdFacts` (S5b.2's table at the explain seam, with B's and C's filters);
+    `pathShapeFacts` row `.[input] |= 1` → TRACKED; `onlyInputReads`; `explainShowsHolds`.
+  - Blocked by: S3a.1, S3a.10, S5a.6, S2b.9, S2b.10, S2b.12, S2b.14.
+- **S5b.2 (U1b) "Holds at run in the optimised compile".**
+  - Builds: the optimised `input` stops detaching at its read, outside path contexts; the sites
+    detach in the push form, the value form and the heap forms; D's detach; the in-place sites'
+    detach; the `inputs | .a` row.
+  - Red: `inputsDotADetachesNothing` (BYTES_BUILT below one document's charge; `[inputs]` keeps
+    S5a.6's charge) and the bench row.
+  - Properties: `holdTableCoversEveryKind`, `holdAnalysisNeverMissesAHold`,
+    `insertedReadsNeverGoStale`, `holdsAgreeOnTheDriver`, `reduceInputStaysLinear` (10⁵,
+    BYTES_BUILT, also with `[[$m.a, input]]`); `licenceFacts` gains `. + [input]`.
+  - Guards, recorded under `-n` in all four runs (stdin → jq-ref): F-77's two, P1–P12, B's and C's
+    filters, and:
+    - `def f: input | .[]; [f | [., input]]` `[1,2] 10 20` → `[[1,10],[2,20]]`
+    - `reduce (input | .[]) as $x (0; . + $x + input)` (same stdin) → `33`
+    - `[foreach (input | .[]) as $x (0; . + $x + input)]` (same stdin) → `[11,33]`
+    - `input | (.a + input)` `{"a":1,"b":5} 2` → `3`; `input | (input + .b)` → `7`
+    - `input | {x: .a, y: input, z: .b}` `{"a":1,"b":5} 2 3` → `{"x":1,"y":2,"z":5}`
+    - `input | "\(.a)-\(input)-\(.b)"` `{"a":1,"b":5} "k"` → `"1-k-5"`
+    - `input | .[.k] |= input` `{"k":"a","a":0} 7` → `{"k":"a","a":7}`
+    - `input | [paths(input | true)]` `[1,[2]] 5 6 7 8` → `[[0],[1],[1,0]]`
+    - `input | [.a[] as $x | input | [$x, .]]` `{"a":[1,2]} 5 6` → `[[1,5],[2,6]]`
+    - `[input, input] as [$a, $b] | input | [$a, $b, .]` `1 2 3` → `[1,2,3]`
+    - `input | label $out | .[] | (input, .)` `[3,4] 10 20` → `10`, `3`, `20`, `4`
+    - `input | .a += input` `{"a":[1]} [2] [3]` → `{"a":[1,2]}`
+    - `def f(g): [g, input, g]; f(input)` `1 2 3` → `[1,2,3]`
+    - `input | [limit(2; .[]) | . + input]` `[3,4] 10 20` → `[13,24]`
+  - Blocked by: S5b.1, S3b.3, S3a.9, S3a.11, S2b.4, S2b.11.
+- **S5b.3 (U2) "Root use and needsWholeDocument".**
+  - Red `rootUseFacts`: the draft's two lists and the conservative line.
+    - Streams: `.[]`, `.items[]`, `.a.b[0][] | select(.x)`, `.items[] | select(.id == $id)`,
+      `.items[] | .a |= 1`; added `.items | .[] | . + 1`, `.items[]? | .a`, `.items[] | del(.a)`
+      (jq-ref `{"b":2}`), `.items[] | debug`.
+    - Reads whole: `.items[] | input`, `.items[] | r(input)`, `. as $x | .items[] | $x`,
+      `[.items[]]`, `.items[-1][]`, `.[.k][]`, `path(.items[])`; added `.items[] as $x | $x`,
+      `first(.items[])`, `.items[], .more[]`.
+    - The conservative compile reads whole on every filter above.
+  - Also `explainShowsRootUse`. Blocked by: S5b.1.
+- **S5b.4 (U3) "Host stream(): element documents, fallback, DEVIATIONS rows,
+  streamAllocationFlat".**
+  - Red: as the draft's question 9, with `streamErrorPayloadDetached` (P11). `streamedEqualsWhole`
+    runs on roots `{"items":[d1,…,dn]}` built from values-v1 documents, plus a non-array root and a
+    missing-path root, and includes a `rest` that raises on a later element.
+  - Blocked by: S5b.3, S5a.4, S5a.5.
+
+### Publishing
+
+5b may be published after three things; there is no round 3.
+- The records below are written.
+- #154, #155, #167 and #164 are corrected before a writer takes S3a.2 or S3a.3.
+- The designer's redraft of the four tickets passes one ticket approval, as 5a's and spec 3's did.
+
+Every blocker has an issue number (#153–#168 exist), so the tickets carry `ready-for-agent`.
+
+### Records written
+
+- ADR-0007 and ADR-0054: "Amendment (spec 5 round 2)" (may read input with the parameter bit, the
+  emit rule, hold sites, a hold's detach, path shape; the root-use test with two values).
+- GLOSSARY: "Operation", "May read input", "Root use", "Hold".
+- F-79 (major): `reads` means the input stream; ADR-0005, spec 3's ticket approval item 2.
+- F-80 (minor): ADR-0022 "Detach and budgets", first bullet.
+- ADR-0023: 5b has 4 tickets. F-77 points to this round. The note above on 5a's `input` ticket
+  now names spec 5b's hold-run ticket.
+- ADR-0018, 0020, 0045, 0046, 0047 and 0048 are unchanged.
+- On GitHub (not in this commit): #154 and #155 bodies say `reads` false (F-79); #167's bullet
+  moves to S5b.2 by a comment; #164's "whose `input` ticket records its licence fact" becomes
+  "spec 5b's hold-run ticket records its licence fact".
+
+### Open
+
+- The time of `insertedReadsNeverGoStale` over the cases. S5b.2 measures it; above the gate
+  target it samples by seed.
+- Whether a detach walk ticks per element visited. If not, the mixed-view linear red bounds bytes
+  only, not a walk. Also whether a container header has a free bit for "holds an input-document
+  view". S5b.2 reads the value-model code.
+- What the joined consumer fact buys over the coarse one. S5b.2's `inputs | .a` row and one
+  `inputs | [..] | length` row show it.
+- Whether `$ENV` and named arguments are parameter slots. S5b.3 records one case each.

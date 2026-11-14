@@ -1,6 +1,6 @@
 # Host streaming: element documents on one reused tape, a validating skip, a whole-read fallback
 
-Status: proposed (2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14, spec 5 round 1); amends ADR-0004 (element documents), ADR-0007 (root use) and ADR-0016 (`stream`); decides the hand-out ADR-0023 left to spec 5's grilling (map #18); DEVIATIONS "Streaming" gains a line
+Status: proposed (2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14, spec 5 round 1); amends ADR-0004 (element documents), ADR-0007 (root use) and ADR-0016 (`stream`); decides the hand-out ADR-0023 left to spec 5's grilling (map #18); DEVIATIONS "Streaming" gains a line; the root-use test and its two values by spec 5 round 2 (grilling-adviser for the owner under the delegation of 2026-11-14)
 
 ADR-0007 makes root use an eligibility fact and host streaming a switch the host turns on (F-4).
 ADR-0016 gives the switch as `stream(MemorySegment, Bindings, JqSink, Workspace, RunOptions)`,
@@ -44,3 +44,16 @@ building the tape.
   before a late error already differ from jq (DEVIATIONS "Streaming").
 - **A root-use proof beyond the syntactic form**: more filters would stream, but an over-claimed
   eligibility gives a wrong value, while an unproven filter only reads whole.
+
+## Amendment (spec 5 round 2)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14.
+
+Root use is tested on `main` after specialisation, over its flattened top-level Pipe chain. The
+spine is a run of steps, each KEY with a constant string or INDEX with a constant non-negative
+integer, quiet or not, up to and including the first ALL; `rest` is what follows. `rest` must not
+may-read (ADR-0007) and must use no slot bound outside it other than a parameter slot, which is set
+from the Bindings and cannot view the document; this replaces 'uses no outer slot'. Any other
+top-level form reads whole (PathOf, Update, Bind, Reduce, Foreach, Label, Collect, Comma, Try,
+Call); PathOf and Update inside `rest` are allowed. The fact has two values, ELEMENTS and WHOLE;
+the conservative compile gives WHOLE.

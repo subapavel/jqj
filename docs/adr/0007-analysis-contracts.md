@@ -1,6 +1,6 @@
 # Analysis contracts
 
-Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 (issue #7); amended by ADR-0022 (issue #8); fact keys by ADR-0045 and cardinality's promise by F-56 (spec 2b); holds by F-77 and root use by ADR-0054 (spec 5); path shape's 10 000-step rule, the path-rule and P6 validity rows and bound values by spec 3 grilling (rounds 1–2; ADR-0048, F-59)
+Status: accepted (2026-11-10, owner, issue #6 "What shape does the IR have, and which analyses run on it?"); amended by ADR-0008 (issue #7); amended by ADR-0022 (issue #8); fact keys by ADR-0045 and cardinality's promise by F-56 (spec 2b); holds by F-77 and root use by ADR-0054 (spec 5); path shape's 10 000-step rule, the path-rule and P6 validity rows and bound values by spec 3 grilling (rounds 1–2; ADR-0048, F-59); may read input, hold sites, a hold's detach and path shape's read rule by spec 5 round 2 (F-79, F-80)
 
 Analyses run once on a frozen program and write an immutable side table of facts, keyed by a dense
 node id: freeze numbers each function's nodes in pre-order into an identity map, and each fact is an
@@ -108,3 +108,23 @@ Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026
   `DEVIATIONS.md` row. `trim`, `ltrim`, `rtrim` and `tojson|fromjson` get theirs with spec 4's
   natives, and `ltrimstr`, `rtrimstr` and `trimstr` need none (F-70).
 - **Bound values** run by their `Tracking` (F-59).
+
+## Amendment (spec 5 round 2)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14.
+
+- **May read input** uses may-break-out's group fixpoint with one difference: a `ParamCall` may
+  read only if some call site, tail jumps included, passes a closure that may read for its
+  parameter (one bit per function and closure parameter). This replaces 'computed as may-break-out
+  is'. `reads` on an Operation means it reads the input stream; only `input` sets it (F-79).
+- **An emit is a read when its consumer may read.** The consumer fact is joined over a function's
+  call sites and a closure's `ParamCall` sites; its safe value is true.
+- **Hold sites.** Entry: a node detaches its `.` on entry when it may read `.` after a node that
+  may read has run. Store: a keeper detaches a value as it keeps it when the keeper lives across a
+  node that may read. Keepers are bind, pattern, item and state slots, a Collect's elements, a
+  call's value cells, a Try payload, an Update's leaf, and a DYNAMIC key entering a Path or walk
+  state. No IR kind or hidden slot is added.
+- **A hold's detach** copies the input-document views it reaches and leaves main-document views. A
+  state an in-place site wrote is not detached again at its state hold (F-80).
+- **Path shape**: an Update whose left side may read is TRACKED, and a read run from a PathOf body
+  or an Update's left side detaches at its read.

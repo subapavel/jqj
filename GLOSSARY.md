@@ -313,7 +313,8 @@ _Avoid_: AST (that is the parser's output), bytecode (that is jq's own or the JV
 **Operation**:
 What an intrinsic IR node calls: a navigation step or a native builtin of one format, described by
 the facts the analyses need: its call form says how many results, and its `Facts` its path rule,
-whether it is pure or reads its input, and whether it keeps an argument (ADR-0048).
+whether it is pure, whether it reads the input stream (`reads`; only `input`), and whether it keeps
+an argument (ADR-0048, F-79).
 _Avoid_: primitive, opcode
 
 **Navigation step**:
@@ -368,15 +369,18 @@ path.
 A place that keeps a value while later steps run (a variable, an accumulator, an array being
 built, an error payload). It is every place a value stays live across a node that may read input,
 that node's own `.` included, so a pipe's right side holds its input (F-77). A view of an input
-document is detached when it enters a hold that spans a later read.
+document is detached when it enters a hold that spans a later read. A generator resumed after its
+consumer read holds its `.`, and a Path holds its keys.
 _Avoid_: pin, retain
 
 **May read input**:
-The per-group fact that a node may run an operation whose `reads` fact is set, itself or through a
-call or closure; computed as may-break-out is (F-77).
+The fact that a node may run an operation whose `reads` fact is set, itself, through a call or
+through a closure passed to it; a `ParamCall` may read only when a call site passes a reading
+closure for its parameter. An emit to a consumer that may read counts as a read (ADR-0007).
 
 **Root use**:
-Whether a filter reads its input not at all, as the elements of one array one at a time, or whole.
+Whether a filter may read its input as the elements of one array, one at a time (ELEMENTS), or
+needs it whole (WHOLE, the safe value); ADR-0054's syntactic test.
 
 **Analysis**:
 A pass over the IR that proves a property a backend can use: cardinality, path shape, root use,

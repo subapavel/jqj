@@ -178,10 +178,11 @@ the blocking graph is unchanged. The architect re-ran every jq value on jq-ref 1
    PathOf calls and S3a.8 what Update calls (ADR-0048, ADR-0034). S3a.3 stays class B (a host SPI
    method, ADR-0017, F-61). The F-59 cases are S3a.6's red. The four F-59 rows are written into
    `DEVIATIONS.md` now; S3a.6 adds only their cases. The `. + [input]` licence fact goes to 5a.
-2. **Proposals.** `keepsArgs` and `reads` are true for getpath, setpath, delpaths, `debug` and
-   `stderr`. S3a.9's 64 MiB stands. The census has 110 cases, all 3a's: `debug` moves
-   jq.test:2341 from spec 7, and none of the 110 needs in-place writes or has a pattern in path
-   position. S3a.6's foreach-extract input is `[[5],[6]]`.
+2. **Proposals.** `keepsArgs` is true for getpath, setpath, delpaths, `debug` and `stderr`;
+   `reads` is false for all five (F-79; spec 5 round 2, grilling-adviser for the owner under the
+   delegation of 2026-11-14). S3a.9's 64 MiB stands. The census has 110 cases, all 3a's: `debug`
+   moves jq.test:2341 from spec 7, and none of the 110 needs in-place writes or has a pattern in
+   path position. S3a.6's foreach-extract input is `[[5],[6]]`.
 3. **Depth limits** (3a body, S3a.8, ADR-0029): `|=`, `op=` and `//=` raise "Path too deep" at
    n ≥ 10 001 before the right side runs, and at n = 10 000 after a right-side result; ASSIGN
    raises at n ≥ 10 001. At 10 001, `|= (debug|error("rhs"))` prints nothing and raises "Path too

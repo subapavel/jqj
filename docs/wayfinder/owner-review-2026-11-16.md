@@ -71,3 +71,10 @@ names its record; the reasons are there. A "no" on an item reopens that record, 
   - 5b is held: its spec issue and tickets are not published before its round 2.
   - A missing input file ends the run with rc 2, replacing a parse error's 5 and `-e`'s code; a
     missing first file stops the main loop after one value (ADR-0015, correcting round 1's A5).
+- Round 2 (5b, 2026-11-14), proposed by the grilling-adviser for the owner under the delegation of
+  2026-11-14 (`docs/wayfinder/spec-5-grilling.md`, "Round 2"):
+  - F-79 changes two published 3a tickets and spec 3's approval item 2.
+  - ADR-0007's ParamCall sentence, the hold wording and path shape's new TRACKED condition.
+  - GLOSSARY "Root use" loses "not at all".
+  - 5b has four tickets (ADR-0023).
+  - S3b.3 loses a bullet to 5b.
