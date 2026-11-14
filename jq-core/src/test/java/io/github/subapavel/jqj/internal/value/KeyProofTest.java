@@ -283,4 +283,166 @@ class KeyProofTest {
     assertThat(walk.key(walk.first()).value()).as("the walk's first key").isEqualTo("a");
     assertThat(view.key(view.index() + 3).value()).as("the view's key at tape index 3").isEqualTo("b");
   }
+
+  // Key index rows (ADR-0044 as amended by #95): KeyProof.index proves the read right side once, with the proof's own
+  // code and ticks, then looks up each left key in walk order up to the first one missing. The left side's walk proves
+  // on a run state of its own, so the index's state holds the index's ticks alone.
+
+  /** The walk of {@code json}'s read object, proved on a run state of its own. */
+  private static ObjectWalk walkOf(String json) {
+    return KeyProof.walk(new RunState(), object(json), false);
+  }
+
+  /** The built object of {@code keys}, each with the value of its place, its keys built strings. */
+  private static BuiltObject built(String... keys) {
+    Object[] pairs = new Object[2 * keys.length];
+    for (int i = 0; i < keys.length; i++) {
+      pairs[2 * i] = BuiltString.of(keys[i]);
+      pairs[2 * i + 1] = BuiltString.of("v" + i);
+    }
+    return BuiltObject.ofPairs(pairs);
+  }
+
+  /** The right side's value of each left member in order, as its text, up to and with the first missing one, "none". */
+  private static List<String> found(KeyIndex index) {
+    List<String> found = new ArrayList<>();
+    for (int i = 0; ; i++) {
+      JqValue value = index.value(i);
+      if (value == null) {
+        found.add("none");
+        return found;
+      }
+      found.add(value.toJson());
+    }
+  }
+
+  @Test
+  void anIndexOfEightKeysOrFewerLooksUpAmongThePairsForNoTick() {
+    // 3 key entries: the pairwise proof, 3 ticks; three lookups among its pairs, none. The left side reads in its own
+    // order, the right side's in another.
+    ObjectView right = object("{\"a\":1,\"b\":2,\"c\":3}");
+    RunState state = new RunState();
+    KeyIndex index = KeyProof.index(state, right, walkOf("{\"c\":30,\"a\":10,\"b\":20}"));
+    assertThat(index.size()).as("distinct keys of the pairwise right side").isEqualTo(3);
+    assertThat(index.doc()).as("document of the index").isSameAs(right.doc());
+    assertThat(found(index)).as("values of c, a, b among the pairs").containsExactly("3", "1", "2", "none");
+    assertThat(state.steps()).as("ticks of the pairwise index").isEqualTo(3);
+    // A built left side of built-string keys, one of them escaped on the right: its escape of b is b by its decoded bytes.
+    RunState builtState = new RunState();
+    KeyIndex builtLeft = KeyProof.index(builtState, object("{\"a\":1,\"\\u0062\":2}"), built("b", "a"));
+    assertThat(found(builtLeft)).as("values of b and a for a built left side").containsExactly("2", "1", "none");
+    assertThat(builtState.steps()).as("ticks of the index for a built left side").isEqualTo(2);
+  }
+
+  @Test
+  void anIndexOfAnEmptyObjectHasNoKey() {
+    RunState state = new RunState();
+    KeyIndex empty = KeyProof.index(state, object("{}"), walkOf("{}"));
+    assertThat(empty.size()).as("distinct keys of {}").isZero();
+    assertThat(found(empty)).as("values of an empty left side").containsExactly("none");
+    assertThat(state.steps()).as("ticks of the index of {}").isZero();
+    KeyIndex againstOne = KeyProof.index(new RunState(), object("{}"), walkOf("{\"a\":1}"));
+    assertThat(found(againstOne)).as("values of a against {}").containsExactly("none");
+  }
+
+  @Test
+  void anIndexOfNineKeysOrMoreLooksUpInTheTableForNoTick() {
+    // 20 key entries k19 to k0: the table, 20 ticks; 20 lookups of k0 to k19 that retrace their insertion probes, none.
+    List<String> reversed = new ArrayList<>();
+    for (int i = 19; i >= 0; i--) reversed.add("k" + i);
+    List<String> forward = new ArrayList<>(reversed.reversed());
+    RunState state = new RunState();
+    KeyIndex index = KeyProof.index(state, object(json(reversed)), walkOf(json(forward)));
+    assertThat(index.size()).as("distinct keys of the table's right side").isEqualTo(20);
+    List<String> expected = new ArrayList<>();
+    for (int i = 0; i < 20; i++) expected.add(Integer.toString(19 - i));
+    expected.add("none");
+    assertThat(found(index)).as("right values of k0 to k19 in the table").containsExactlyElementsOf(expected);
+    assertThat(state.steps()).as("ticks of the table's index").isEqualTo(20);
+    // A tag-6 left key, decoded for its lookup: k9 with its k escaped.
+    KeyIndex escaped = KeyProof.index(new RunState(), object(json(reversed)), walkOf("{\"\\u006b9\":0,\"k3\":1}"));
+    assertThat(found(escaped)).as("right values of k9 and k3 for an escaped left key").containsExactly("10", "16", "none");
+  }
+
+  /** The 16 keys of four Aa/BB blocks, block b bit b of the key's place: one hash, so a proof of them sorts. */
+  private static List<String> blocks16() {
+    List<String> keys = new ArrayList<>();
+    for (int i = 0; i < 16; i++) {
+      StringBuilder key = new StringBuilder();
+      for (int b = 0; b < 4; b++) key.append((i >> b & 1) == 1 ? "BB" : "Aa");
+      keys.add(key.toString());
+    }
+    return keys;
+  }
+
+  @Test
+  void anIndexPastTheProbeBudgetSearchesTheSortedKeysOneTickPerCompare() {
+    // The 16 colliding keys sort (136 probes past 64). Each left key's lookup is a binary search among the 16 sorted
+    // distinct keys, one tick per compare of two short keys; over all 16 keys a midpoint search compares as often as
+    // the depths of a complete search tree of 16 nodes: 1 + 2 * 2 + 4 * 3 + 8 * 4 + 5 = 54.
+    List<String> keys = blocks16();
+    ObjectView right = object(json(keys));
+    long proof = proofTicks(right);
+    List<String> backwards = new ArrayList<>(keys.reversed());
+    RunState state = new RunState();
+    KeyIndex index = KeyProof.index(state, right, walkOf(json(backwards)));
+    assertThat(index.size()).as("distinct keys of the sorted right side").isEqualTo(16);
+    List<String> expected = new ArrayList<>();
+    for (int i = 15; i >= 0; i--) expected.add(Integer.toString(i));
+    expected.add("none");
+    assertThat(found(index)).as("right values of the 16 keys, last first").containsExactlyElementsOf(expected);
+    assertThat(state.steps()).as("ticks of the sorted index: its proof, then 54 compares").isEqualTo(proof + 54);
+  }
+
+  @Test
+  void anIndexKeepsTheLastValueOfARepeatedRightKey() {
+    // Pairwise, the table and the sort, each with a repeated key on the right: the lookup gives its last value.
+    KeyIndex pairwise = KeyProof.index(new RunState(), object("{\"a\":1,\"b\":2,\"a\":3}"), built("b", "a"));
+    assertThat(pairwise.size()).as("distinct keys of a pairwise right side with a repeat").isEqualTo(2);
+    assertThat(found(pairwise)).as("values of b and a, a repeated").containsExactly("2", "3", "none");
+    List<String> nine = new ArrayList<>();
+    for (int i = 0; i < 9; i++) nine.add("k" + i);
+    nine.add("k3");
+    KeyIndex table = KeyProof.index(new RunState(), object(json(nine)), built("k3", "k8"));
+    assertThat(table.size()).as("distinct keys of a table right side with a repeat").isEqualTo(9);
+    assertThat(found(table)).as("values of k3, repeated, and k8 in the table").containsExactly("9", "8", "none");
+    // 18 entries, an odd number of merge passes, so the sorted keys lie in the scratch's other half than for 16.
+    List<String> keys = blocks16();
+    List<String> entries = new ArrayList<>(keys);
+    entries.add(keys.get(0));
+    entries.add(keys.get(7));
+    ObjectView right = object(json(entries));
+    long proof = proofTicks(right);
+    RunState state = new RunState();
+    KeyIndex sorted = KeyProof.index(state, right, walkOf(json(keys)));
+    assertThat(sorted.size()).as("distinct keys of a sorted right side with repeats").isEqualTo(16);
+    List<String> expected = new ArrayList<>();
+    for (int i = 0; i < 16; i++) expected.add(Integer.toString(i == 0 ? 16 : i == 7 ? 17 : i));
+    expected.add("none");
+    assertThat(found(sorted)).as("values of the 16 keys, two of them repeated").containsExactlyElementsOf(expected);
+    assertThat(state.steps()).as("ticks of the sorted index with repeats: its proof, then 54 compares among 16 distinct keys").isEqualTo(proof + 54);
+  }
+
+  @Test
+  void anIndexStopsAtTheFirstMissingLeftKey() {
+    // Pairwise: x is missing, so b after it is not looked up.
+    assertThat(found(KeyProof.index(new RunState(), object("{\"a\":1,\"b\":2}"), built("a", "x", "b")))).as("values of a, x, b").containsExactly("1", "none");
+    // More left keys than right ones: the second cannot be found among one.
+    assertThat(found(KeyProof.index(new RunState(), object("{\"a\":1}"), built("a", "b")))).as("values of a, b against a").containsExactly("1", "none");
+    // The table: k9 is missing among k0 to k8.
+    List<String> nine = new ArrayList<>();
+    for (int i = 0; i < 9; i++) nine.add("k" + i);
+    assertThat(found(KeyProof.index(new RunState(), object(json(nine)), built("k1", "k9", "k2")))).as("values of k1, k9, k2 in the table").containsExactly("1", "none");
+    // The sort: AaAaAaAB sorts before every key of blocks16, so its search compares with the keys at places 7, 3, 1 and
+    // 0, 4 ticks, and the 16 keys after it are not looked up.
+    ObjectView right = object(json(blocks16()));
+    long proof = proofTicks(right);
+    List<String> left = new ArrayList<>();
+    left.add("AaAaAaAB");
+    left.addAll(blocks16());
+    RunState state = new RunState();
+    KeyIndex sorted = KeyProof.index(state, right, walkOf(json(left)));
+    assertThat(found(sorted)).as("values of a missing first key in the sort").containsExactly("none");
+    assertThat(state.steps()).as("ticks of a sorted index whose first left key is missing").isEqualTo(proof + 4);
+  }
 }
