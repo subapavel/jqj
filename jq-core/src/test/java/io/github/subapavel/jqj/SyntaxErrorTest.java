@@ -151,14 +151,13 @@ class SyntaxErrorTest {
 
   @Test
   void noStubHidesASyntaxError() {
-    // ADR-0032; diff/syntax.rec after-an-index, after-a-comma, after-an-index-a-closer: .[0] and the comma are built by
-    // #63, so each would be a Stub, but the syntax error after them comes first.
+    // ADR-0032: each text holds .., a Stub until spec 2b, before its syntax error, and the syntax error comes first.
+    // jq-ref 1.8.2, observed 2026-11-14: each -> rc 3, this one block, then "jq: 1 compile error".
     onlySyntaxErrors(
-        new SyntaxError(".[0] +", "end of file", 1, 6, "    .[0] +\n         ^"),
-        new SyntaxError(".a, .b |", "end of file", 1, 8, "    .a, .b |\n           ^"),
-        new SyntaxError(".[0] | )", "INVALID_CHARACTER", 1, 8, "    .[0] | )\n           ^"));
-    // Witness: without the error an unbuilt construct is a Stub. #63 built .[0], so the witness moved to .., a Stub until
-    // spec 2b (jq-ref -c '..' on [1] -> [1] 1, CompileTest).
+        new SyntaxError(".. +", "end of file", 1, 4, "    .. +\n       ^"),
+        new SyntaxError(".a, .. |", "end of file", 1, 8, "    .a, .. |\n           ^"),
+        new SyntaxError(".. | )", "INVALID_CHARACTER", 1, 6, "    .. | )\n         ^"));
+    // Witness: without the error .. is a Stub (jq-ref -c '..' on [1] -> [1] 1, CompileTest).
     assertThatExceptionOfType(JqCompileException.class).as("compile of ..").isThrownBy(() -> ENGINE.compile("..")).withMessageStartingWith(MARK);
   }
 
