@@ -38,7 +38,7 @@ over its cost bar). The owner chose to prove them on the walk side instead.
   input and make step counts depend on history).
 - **Ticks** (ADR-0008): one per key entry, max(1, started KiB) for a long key, and one per
   fallback compare, max(1, KiB of the shorter key); the Printer charges through `tickWritten`. Inside a run every caller that prints a read object
-  (`tojson`, `tostring`, `@text`, interpolation) charges the run's state, not a throwaway one (#85).
+  (`tojson`, `tostring`, `@text`, interpolation, and an error's dump of a value) charges the run's state, not a throwaway one (#85).
   Host accessors (`size()`, `forEach`) run outside any run, like Detach (ADR-0016), and charge none.
 - **Hot-path rule** (`docs/CODING_STANDARDS.md`): a native's position scratch within one call, and
   the plan of a repeated-key object held by `.[]` while it emits, are not collections between

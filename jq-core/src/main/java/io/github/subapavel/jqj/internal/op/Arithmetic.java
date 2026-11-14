@@ -28,6 +28,7 @@ import io.github.subapavel.jqj.internal.json.ErrorDump;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.run.FilterException;
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqValue;
 
 /**
@@ -55,15 +56,15 @@ public final class Arithmetic {
 
   private Arithmetic() {}
 
-  /** jq's {@code type_error}: {@code v}'s kind and dump, then {@code what}. */
-  static FilterException cannot(JqValue v, String what) {
-    return error(NavigationErrors.kind(v) + " (" + ErrorDump.of(v) + ") " + what);
+  /** jq's {@code type_error}: {@code v}'s kind and dump, its proofs charged to {@code state}, then {@code what}. */
+  static FilterException cannot(RunState state, JqValue v, String what) {
+    return error(NavigationErrors.kind(v) + " (" + ErrorDump.of(state, v) + ") " + what);
   }
 
-  /** jq's {@code type_error2}: each operand's kind and dump, then {@code what}. */
-  static FilterException cannot(JqValue a, JqValue b, String what) {
+  /** jq's {@code type_error2}: each operand's kind and dump, their proofs charged to {@code state}, then {@code what}. */
+  static FilterException cannot(RunState state, JqValue a, JqValue b, String what) {
     return error(
-        NavigationErrors.kind(a) + " (" + ErrorDump.of(a) + ") and " + NavigationErrors.kind(b) + " (" + ErrorDump.of(b) + ") " + what);
+        NavigationErrors.kind(a) + " (" + ErrorDump.of(state, a) + ") and " + NavigationErrors.kind(b) + " (" + ErrorDump.of(state, b) + ") " + what);
   }
 
   /** jq's error with the text {@code text}. */

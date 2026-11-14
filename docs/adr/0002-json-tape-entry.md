@@ -1,6 +1,6 @@
 # JSON tape entry: one long per value
 
-Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0015 (issue #11); amended by F-21 (exact size limits); F-40 amendment (#82) withdrawn 2026-11-13: over its cost bar, owner to decide
+Status: accepted (2026-11-10, owner, issue #5 "What are the value model and the tape layout?"); amended by ADR-0015 (issue #11); amended by F-21 (exact size limits); F-40 amendment (#82) withdrawn 2026-11-13: over its cost bar, owner to decide; duplicate keys amended by ADR-0044 (#85)
 
 A document's tape is one `long[]` with **one entry per JSON value, object keys included**. Each
 entry is a 4-bit tag, a 28-bit span and a 32-bit offset. We chose it because it is the smallest
@@ -77,3 +77,7 @@ Withdrawn 2026-11-13 under its own cost bar: #82 measured the reader at +12 % on
 - **The proof runs at the object's close**, where the reader already rewrites the entry, so the tape stays read-only once the document exists. It runs only for objects of more than 8 keys whose keys are all tag 5: each key's bytes are hashed into a reused table, a slot match is settled by a byte compare, and a key that needs more than 8 probes ends the proof (tag 9), so the reader stays linear on hostile keys.
 - **On tag 10**, `.[]`, length, the writer and `detach()` take each member once, and a field lookup stops at its match: `.[]` charges one tick per member, `.a` one per key scanned. Tag 9 keeps #63's scans, ticked per key compared; the writer's scan on tag 9 is ticked the same way.
 - **Cost bar**: this narrower detector reverses the rejected option above only while it stays within the owner's ~10 % line on the Spike B documents (1 KB, 100 KB, 10 MB), measured with JMH against the tip before #82 and recorded in `bench/RESULTS.md` "#82", together with the 78 841-key object. Over the line, #82 stops `ready-for-human` and this amendment is withdrawn.
+
+## Amendment (ADR-0044, ticket #85)
+
+- **Duplicate keys are proved on the walk side**: every walk of a read object (`.[]`, `keys`, `length`, `to_entries`, the writer, Detach and the others ADR-0044 lists) begins with its key proof, about linear in the keys and never n², and takes each key once at its first place with its last value; `.a` still scans to the last match and proves nothing, the reader proves nothing, and tag 10 stays reserved (the reader-side proof of #82, +12 % at 100 KB, +26 % at 10 MB and 2.59x flat, is a considered option of ADR-0044).

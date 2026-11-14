@@ -10,11 +10,13 @@ import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.CanonicalForm;
 import io.github.subapavel.jqj.internal.value.Document;
 import io.github.subapavel.jqj.internal.value.DoubleNumber;
+import io.github.subapavel.jqj.internal.value.KeyProof;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
 import io.github.subapavel.jqj.internal.value.NumberView;
 import io.github.subapavel.jqj.internal.value.ObjectView;
 import io.github.subapavel.jqj.internal.value.StringView;
 import io.github.subapavel.jqj.internal.value.Tape;
+import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqBool;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqString;
@@ -32,7 +34,9 @@ import java.util.Arrays;
  * written in its canonical form otherwise (#36); a filter's literal number is its canonical form (#61); a computed
  * number is jq's {@code jvp_dtoa_fmt} layout of its double (#65, ADR-0012); a tag-6 string,
  * a tag-6 key and a built string are re-escaped as jq's {@code jvp_dump_string} (#35). A document's object prints each
- * key at its first position with its last value (ADR-0002); a built object prints its key list (#64). A value inside
+ * key at its first position with its last value (ADR-0002), through the plan its key proof gives, or its key entries
+ * in order when the proof finds no repeat; the proof charges the printer's run state as the writer's ticks (ADR-0044).
+ * A built object prints its key list (#64). A value inside
  * more than {@link #MAX_DEPTH} containers prints as {@code <skipped: too deep>}, as jq's does (jq-ref 1.8.2, observed:
  * DeepBuiltArrayTest), so the stack never holds more than {@code MAX_DEPTH + 1} containers. A target's exception, or a
  * document found stale after a drain, in the middle of a value leaves what was drained before it written.
@@ -79,16 +83,31 @@ public final class Printer implements CanonicalForm.Out {
   private boolean pretty;
 
   /**
-   * The open containers, innermost last: a document's container as its {@link Document}, a built one as itself. A
-   * cleared slot holds null, so a printed value is not kept after its line.
+   * The open containers, innermost last: a document's array, or its object whose key proof found its keys distinct, as
+   * its {@link Document}; a document's object with a repeated key as the plan its proof gave
+   * ({@link io.github.subapavel.jqj.internal.value.ObjectWalk#plan}); a built one as itself. No walk object is made per
+   * printed object (#85). A cleared slot holds null, so a printed value is not kept after its line.
    */
   private Object[] open = new Object[16];
 
   /**
-   * Two slots per open container: a document's tape index and the tape index of its next entry to print; a built
-   * one's unused slot and the index of its next entry.
+   * Two slots per open container: a document's tape index and its next entry to print (an object's next key entry),
+   * or a plan's position of its next pair; a built one's unused slot and the index of its next entry.
    */
   private int[] cursors = new int[32];
+
+  /** What the key proofs of a document's objects charge, through {@link RunState#tickWritten} (ADR-0044). */
+  private final RunState state;
+
+  /** A printer whose key proofs charge a run state of its own, which no run reads: a view's text outside a run. */
+  public Printer() {
+    this(new RunState());
+  }
+
+  /** A printer whose key proofs charge {@code state}, its Workspace's (ADR-0008, ADR-0030, ADR-0044). */
+  public Printer(RunState state) {
+    this.state = state;
+  }
 
   private int pos;
   private Target target;
@@ -138,8 +157,18 @@ public final class Printer implements CanonicalForm.Out {
    * @throws io.github.subapavel.jqj.JqTermination with cause {@code STALE_VIEW} when an entry's document is dropped
    */
   public static String json(JqValue v) {
+    return json(new RunState(), v);
+  }
+
+  /**
+   * The compact text of {@code v}, read or built, whose read objects' key proofs charge {@code state}: a run's print of
+   * a value into a string, {@code tojson}, {@code tostring}, {@code @text} and interpolation (ADR-0044 as amended).
+   *
+   * @throws io.github.subapavel.jqj.JqTermination with cause {@code STALE_VIEW} when an entry's document is dropped
+   */
+  public static String json(RunState state, JqValue v) {
     ByteArrayOutputStream text = new ByteArrayOutputStream();
-    Printer printer = new Printer();
+    Printer printer = new Printer(state);
     printer.target = (buffer, length) -> text.write(buffer, 0, length);
     printer.walk(v, null, 0);
     printer.drain();
@@ -148,12 +177,13 @@ public final class Printer implements CanonicalForm.Out {
 
   /**
    * The first {@code n} bytes of {@code v}'s compact text, or all of it when it is shorter: what an error shows of a
-   * value (ErrorDump). It prints no more than the first drain, a buffer at most, so a long value costs no more.
+   * value (ErrorDump). It prints no more than the first drain, a buffer at most, so a long value costs no more; the
+   * key proofs of its read objects charge {@code state}, the run's (ADR-0044 as amended).
    */
-  public static byte[] head(JqValue v, int n) {
+  public static byte[] head(RunState state, JqValue v, int n) {
     byte[][] first = new byte[1][];
     try {
-      new Printer()
+      new Printer(state)
           .line(
               v,
               false,
@@ -210,33 +240,38 @@ public final class Printer implements CanonicalForm.Out {
           long[] tape = d.live();
           int index = cursors[2 * depth - 2];
           int end = Tape.end(tape, index);
-          boolean array = Tape.tag(tape[index]) == Tape.ARRAY;
-          if (array) {
-            if (next < end) {
-              separate(next > index + 1, depth);
-              cursors[2 * depth - 1] = Tape.next(tape, next);
-              from = d;
-              at = next;
-              break;
-            }
-          } else {
-            byte[] bytes = d.bytes();
-            while (next < end && !ObjectView.isFirst(tape, bytes, index, next)) {
-              next = Tape.next(tape, next + 1);
-            }
-            if (next < end) {
-              // The first key of an object is always printed, so any later printed key follows a comma.
-              separate(next > index + 1, depth);
-              string(bytes, tape[next]);
+          boolean object = Tape.tag(tape[index]) == Tape.OBJECT;
+          if (next < end) {
+            separate(next > index + 1, depth);
+            from = d;
+            if (object) {
+              // A document's object whose key proof found its keys distinct: each key entry and its value, in order.
+              string(d.bytes(), tape[next]);
               colon();
               cursors[2 * depth - 1] = Tape.next(tape, next + 1);
-              from = d;
-              at = ObjectView.lastValueOf(tape, bytes, next, end);
-              break;
+              at = next + 1;
+            } else {
+              cursors[2 * depth - 1] = Tape.next(tape, next);
+              at = next;
             }
+            break;
           }
-          // An object with entries always prints its first key, so `end` tells an empty object for both kinds.
-          close(end > index + 1, depth, array ? ']' : '}');
+          close(end > index + 1, depth, object ? '}' : ']');
+        } else if (container instanceof int[] plan) {
+          // A document's object with a repeated key: its plan's pairs, each key at its first place with its last value.
+          // Only that document's entries print inside it, so the document is the one the last entry set.
+          long[] tape = doc.live();
+          assert planned(tape, cursors[2 * depth - 2], plan) : "a plan prints in its object's document";
+          if (next < plan.length) {
+            separate(next > 0, depth);
+            string(doc.bytes(), tape[plan[next]]);
+            colon();
+            cursors[2 * depth - 1] = next + 2;
+            from = doc;
+            at = plan[next + 1];
+            break;
+          }
+          close(plan.length > 0, depth, '}');
         } else if (container instanceof BuiltArray a) {
           if (next < a.length()) {
             separate(next > 0, depth);
@@ -299,9 +334,14 @@ public final class Printer implements CanonicalForm.Out {
     doc = d;
     long entry = tape[at];
     int tag = Tape.tag(entry);
-    if (tag == Tape.ARRAY || tag == Tape.OBJECT) {
-      put(tag == Tape.ARRAY ? '[' : '{');
+    if (tag == Tape.ARRAY) {
+      put('[');
       return push(d, at, at + 1, depth);
+    }
+    if (tag == Tape.OBJECT) {
+      put('{');
+      int[] plan = KeyProof.plan(state, d, at, true);
+      return plan == null ? push(d, at, at + 1, depth) : push(plan, at, 0, depth);
     }
     scalar(d.bytes(), entry);
     return depth;
@@ -336,6 +376,11 @@ public final class Printer implements CanonicalForm.Out {
     if (pretty) {
       put(' ');
     }
+  }
+
+  /** Whether {@code tape} has an object at {@code object} whose entries hold {@code plan}'s last value. */
+  private static boolean planned(long[] tape, int object, int[] plan) {
+    return Tape.tag(tape[object]) == Tape.OBJECT && plan[plan.length - 1] < Tape.end(tape, object);
   }
 
   /** A built object's key: a built string, or a document's string, its document checked first (ADR-0026). */
