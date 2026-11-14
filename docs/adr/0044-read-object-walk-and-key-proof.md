@@ -1,6 +1,6 @@
 # A read object is walked only through its key proof
 
-Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #85; designer draft; the owner chose option D on #82); amends ADR-0002 (duplicate keys), ADR-0008 (the proof's ticks), ADR-0030 (RunState scratch), ADR-0034 (Many loop slots), ADR-0037 (line 11's walk citation) and ADR-0042 (`to_entries` native); closes F-40
+Status: accepted (2026-11-13, architect under `/run-spec` #56, ticket #85; designer draft; the owner chose option D on #82); amends ADR-0002 (duplicate keys), ADR-0008 (the proof's ticks), ADR-0030 (RunState scratch), ADR-0034 (Many loop slots), ADR-0037 (line 11's walk citation) and ADR-0042 (`to_entries` native); closes F-40; amended by #95 (Equality's key index)
 
 A walk over a read object's members costs n² key comparisons (F-40): 39.9 s for `-c .` on 78 841
 keys, against 0.06 s on jq-ref. Proving the keys distinct in the reader made every read pay (#82,
@@ -43,8 +43,27 @@ over its cost bar). The owner chose to prove them on the walk side instead.
 - **Hot-path rule** (`docs/CODING_STANDARDS.md`): a native's position scratch within one call, and
   the plan of a repeated-key object held by `.[]` while it emits, are not collections between
   pipeline stages: they hold tape positions, never values.
-- **Out of scope**: Equality's `get` per member on the right side (a follow-up `KeyIndex` from the
-  same proof code), and BuiltObject's #83 index on `String.hashCode`.
+- **Out of scope**: BuiltObject's #83 index on `String.hashCode`.
+
+## Amendment (ticket #95)
+
+- When an object pair's right side is read, Equality takes it through
+  `KeyProof.index(RunState, ObjectView, Members)`: the right side's proof, the same code and ticks,
+  then, within that call, a lookup of each left key in walk order among the proof's pairs, table or
+  sorted distinct keys, up to the first one missing. It gives `KeyIndex(doc, size, values)`: the
+  right side's distinct count and, per found left member, the tape index of its last value. The
+  right side is proved once; its `size` comes from the index. The left side may be read or built.
+- Lookups among the pairs or in the table charge nothing: a found key retraces its own insertion
+  probes, so they stay within the proof's budget. A sorted lookup is a binary search, one tick per
+  compare, max(1, KiB of the shorter key), all taken before the first member pair. One tick per
+  member pair, as before. The identity check comes first, so `. == .` keeps its count.
+- `values` is the comparison's own array of tape positions: a nested pair proves again in the same
+  `RunState.ints` scratch, so nothing may stay there across a pair. It is position scratch within
+  one call under the hot-path rule.
+- Rejected: an ObjectWalk mode (every walk would carry a table), a lazy lookup in the scratch
+  (nested pairs overwrite it), an owned copy of the table, a scratch arena (changes ADR-0030's API),
+  sorting both key lists (changes jq's compare order), checking sizes first (jq compares in left
+  key order and raises a depth error before the count).
 
 ## Considered options
 
