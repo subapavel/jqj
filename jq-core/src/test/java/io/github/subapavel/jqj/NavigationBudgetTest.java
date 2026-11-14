@@ -328,12 +328,26 @@ class NavigationBudgetTest {
   }
 
   @Test
-  void anEqualityChargesItsLeftProofTheRightSizeAndAFieldReadPerMember() {
-    // ADR-0044: Equality walks its left side through the proof (20) and takes the right side's size from its proof (20),
-    // then per member pair one tick (20) and a field read on the right, which scans all 20 keys (400, out of scope for
-    // #85). 1 + 1 + 20 + 20 + 20 + 400 = 462 (1 050 on 25ef36c). jq-ref 1.8.2, observed 2026-11-13: [o,o] | .[0] == .[1]
-    // gives true.
-    assertExactSteps(".[0] == .[1]", TWO_OBJECTS, 462, "true");
+  void anEqualityChargesBothProofsAndEachMemberPair() {
+    // ADR-0044 as amended by #95: Equality walks its left side through the proof (20) and takes the read right side
+    // through its key index: the right side's proof (20), then a lookup of each left key in its table (20 keys, past the
+    // pairwise 8), which charges none, and its size from the index; then one tick per member pair (20).
+    // 1 + 1 + 20 + 20 + 20 = 62 (462 before #95, a field read per member scanning all 20 keys; 1 050 on 25ef36c).
+    // jq-ref 1.8.2, observed 2026-11-13: [o,o] | .[0] == .[1] gives true.
+    assertExactSteps(".[0] == .[1]", TWO_OBJECTS, 62, "true");
+  }
+
+  /** {@code {k0:0,…,k19:19}}: {@link #TWENTY_KEYS} as an object construction of constant keys. */
+  private static final String TWENTY_KEYS_BUILT = TWENTY_KEYS.replace("\"", "");
+
+  @Test
+  void aBuiltLeftSideChargesTheReadRightSidesProofAndEachMemberPair() {
+    // ADR-0044 as amended by #95 ("the left side may be read or built"): the built left side has no proof and its
+    // construction charges none; the read right side's key index charges its proof (20) and no lookup in its table;
+    // then one tick per member pair (20): 1 + 20 + 20 = 41. Before #95, measured: 441, a field read per member scanning
+    // all 20 keys (n * m = 400) and the right side's size from a proof at the end (20). jq-ref 1.8.2, observed 2026-11-14
+    // (.logs/95-jqref.log): {k0:0,…,k19:19} == . on {"k0":0,…,"k19":19} gives true.
+    assertExactSteps(TWENTY_KEYS_BUILT + " == .", TWENTY_KEYS, 41, "true");
   }
 
   @Test
