@@ -128,3 +128,8 @@ Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026
   state an in-place site wrote is not detached again at its state hold (F-80).
 - **Path shape**: an Update whose left side may read is TRACKED, and a read run from a PathOf body
   or an Update's left side detaches at its read.
+- **WALK key steps** (the ADR-0022 amendment above): a key that may read input is no WALK step,
+  because its Update is TRACKED.
+- **Root use**: "uses no outer slot" in the bullet above is replaced by ADR-0054's "Amendment
+  (spec 5 round 2)": `rest` may use a parameter slot, and the fact has two values, ELEMENTS and
+  WHOLE.

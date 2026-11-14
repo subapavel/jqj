@@ -78,3 +78,5 @@ names its record; the reasons are there. A "no" on an item reopens that record, 
   - GLOSSARY "Root use" loses "not at all".
   - 5b has four tickets (ADR-0023).
   - S3b.3 loses a bullet to 5b.
+- Ticket approval, spec 5b (2026-11-14, grilling-adviser for the owner under the delegation of
+  2026-11-14): R1, R2, R4 and R6 change owner-accepted ADR-0022 and a published 5a ticket.

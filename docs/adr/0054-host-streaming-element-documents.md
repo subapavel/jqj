@@ -57,3 +57,7 @@ from the Bindings and cannot view the document; this replaces 'uses no outer slo
 top-level form reads whole (PathOf, Update, Bind, Reduce, Foreach, Label, Collect, Comma, Try,
 Call); PathOf and Update inside `rest` are allowed. The fact has two values, ELEMENTS and WHOLE;
 the conservative compile gives WHOLE.
+
+A spine step that meets null or a value of the wrong kind counts as a missing path: `stream` falls
+back to the whole read, which gives jq's result or error (`{"a":[1]} | .a.b[0][]` → "Cannot index
+array with string ("b")").

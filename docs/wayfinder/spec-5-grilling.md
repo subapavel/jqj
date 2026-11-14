@@ -443,3 +443,90 @@ Every blocker has an issue number (#153–#168 exist), so the tickets carry `rea
 - What the joined consumer fact buys over the coarse one. S5b.2's `inputs | .a` row and one
   `inputs | [..] | length` row show it.
 - Whether `$ENV` and named arguments are parameter slots. S5b.3 records one case each.
+
+## Ticket approval, spec 5b
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14, for the
+owner's review on 2026-11-16. Spec 5b's body and S5b.1–S5b.4 are approved with the changes below.
+The architect re-ran every new jq value on jq-ref 1.8.2 and confirmed it.
+
+Changes (exact text):
+- C1, S5b.1 Red, `mayReadFacts`, fourth bullet → "`def f(g): if . > 0 then . - 1 | f(g|.) else
+  [g, g] end; [1 | f(1), input]`: a `ParamCall` `g` remains and shows `reads=false`, although the
+  program reads (jq-ref on stdin `7`: `[[1,1],7]`). The closure is passed on as `g|.`, as P3 and
+  P5 do, because specialisation removes a closure passed on unchanged (GLOSSARY "Specialisation",
+  #117's red). `def f(g): [g, g]; [f(1), input]` stays as a row: no `ParamCall` is left."
+- C2, S5b.1 Red, `holdFacts`, the ParamCall-site proposal → "The consumer bit at a ParamCall site:
+  in `def m(f): if . > 0 then . - 1 | m(f|.) else f | [., input] end; 1 | m(input | .[])`, the
+  closure's `.[]` gets `in` (jq-ref on `[1,2] 10 20`: `[1,10]`, `[2,20]`)."
+- C3, S5b.1 What to build, site facts, last sentence → "`read` marks an `input` that a PathOf body
+  or an Update's left side can reach, through keys, calls and closure arguments too; a marked
+  `input` detaches at every read, the safe value."
+- C4, S5b.1 Red, `onlyInputReads` → "`onlyInputReads` (*guard*): no operation but `input` has
+  `reads` set; `input_filename` and `input_line_number` are not pure, with `reads` false (#144's
+  comment)."
+- C5, S5b.2 Red, third bullet → "The `licenceFacts` row `. + [input]`, licensed, is red if the
+  tip's licence treats `input`'s `.` as an escape; this ticket then builds ADR-0022's `reads`
+  sentence in "Borrows". Otherwise it is a *guard*. Either way `licenceFacts` shows no licence for
+  `(. + [input]), (. + [0])`."
+- C6, S5b.2 Guards: the "recorded" values are `3` and `7`; `"1-k-5"`; `[[1,5],[2,6]]`; `[1,2,3]`.
+  Add: "`reduce (1,2) as $x ([]; (. + [input]), (. + [0]))`, stdin `7 8` → `[0,0]`" and "without
+  `-n`, `. as $m | reduce (1,2) as $i ([]; . + [[$m.a, input]])`, stdin `{"a":5} 7 8` →
+  `[[5,7],[5,8]]`".
+- C7, S5b.2 `insertedReadsNeverGoStale`, add: "A case with no document takes `null`; the filler is
+  the case's document repeated; cases under `-s`, `-R`, `--stream` or `--seq` are skipped. A run
+  that ends in the splice's own "break" is repeated with more filler. The ticket posts the counts
+  of skipped cases and of wraps jqj refuses to compile. jq-ref keeps paths under both wraps:
+  `input | [path((input|empty), .[0])]` and `input | [path(input as $r | .[0])]` on `[5] 0 0` →
+  `[[0]]`; `input | .[] |= (input as $r | . + 1)` on `[5,6] 0 0` → `[6,7]`."
+- C8, S5b.2 Acceptance, fourth box → "The value-model comment is posted. It also says what bounds
+  a hold's detach walk over a built container that holds only main-document views: the walk copies
+  nothing, and ADR-0004 ticks per KiB of detach. If nothing bounds it, that is a finding settled
+  before merge."
+- C9, S5b.3 `rootUseFacts`: ELEMENTS gains "`def r(f): if . > 0 then f else (.+1 | r(f|.)) end;
+  .items[] | r(.a)`, a real closure that does not read (jq-ref on `{"items":[{"a":3}]}`: `3`)".
+  WHOLE gains "`.items[] as $x | [$x, (.items|length)]` (jq-ref on `{"items":[1,2]}`: `[1,2]`,
+  `[2,2]`; the body's `.` is the root)".
+- C10, S5b.4: the fallback bullet gains "; a spine step that meets null or a value of the wrong
+  kind counts as a missing path". `streamedEqualsWhole`'s fixed rows → "Fixed rows with jq-ref's
+  values: `.a[]` on `{"a":{"x":1}}` → `1`; `.items[]` on `{}` → "jq: error (at <stdin>:0): Cannot
+  iterate over null (null)", rc 5; `.a.b[0][]` on `{"a":{"b":{"x":[1]}}}` → "Cannot index object
+  with number (0)", on `{"a":[1]}` → "Cannot index array with string ("b")", on `{"a":{"b":[]}}` →
+  "Cannot iterate over null (null)", rc 5 each; `.items[]? | .a` on `{"items":7}` → nothing, rc 0."
+- C11, spec body, "Required at the spec gate", first bullet → "F-77's two cases, P1–P8, P12 and
+  S5b.2's guard table, under `-n`, passing in ADR-0020's four runs: optimised, conservative,
+  copy-only and trampoline (the conservative compile with `stackBytes` 0). A `left out:` row on one
+  of them fails the gate. The optimised compile's heap forms are covered only by
+  `holdsAgreeOnTheDriver`;". "Under the delegation" gains "ADR-0022 "Borrows" and "WALK key steps",
+  ADR-0054's wrong-kind step, #144's Facts comment (5b ticket approval)".
+
+Record amendments:
+- R1, `docs/adr/0022-in-place-updates.md`, "Borrows", append: "An operation whose `reads` fact is
+  set, with `keepsArgs` false, takes nothing from its `.` (only `input` sets `reads`, F-79;
+  `onlyInputReads` pins it), so the chain arriving as its `.` is no read of the chain. This is the
+  rule behind "`input` is no escape" above; a second operation that sets `reads` needs its own
+  ruling."
+- R2, same file, "WALK key steps", after "is a WALK step.": "A key that may read input is none: its
+  Update is TRACKED and has no licence, as `.[input] |= f` (ADR-0007, "Amendment (spec 5 round
+  2)")." The Status line gains "; "Borrows" and "WALK key steps" amended by spec 5b's ticket
+  approval (grilling-adviser for the owner under the delegation of 2026-11-14)".
+- R3, `docs/adr/0007-analysis-contracts.md`, "Amendment (spec 5 round 2)", two bullets: "**WALK
+  key steps** (the ADR-0022 amendment above): a key that may read input is no WALK step, because
+  its Update is TRACKED." and "**Root use**: "uses no outer slot" in the bullet above is replaced
+  by ADR-0054's "Amendment (spec 5 round 2)": `rest` may use a parameter slot, and the fact has two
+  values, ELEMENTS and WHOLE."
+- R4, `docs/adr/0054-host-streaming-element-documents.md`, "Amendment (spec 5 round 2)", append:
+  "A spine step that meets null or a value of the wrong kind counts as a missing path: `stream`
+  falls back to the whole read, which gives jq's result or error (`{"a":[1]} | .a.b[0][]` →
+  "Cannot index array with string ("b")")."
+- R5, `GLOSSARY.md`: "**Guard**: A required case or test that passes before its ticket and is kept
+  so that the ticket cannot break it; it is not the ticket's red. Not a WALK's guard (ADR-0007).
+  _Avoid_: regression test (alone)."
+- R6, comment on #144: "Spec 5b's ticket approval (grilling-adviser for the owner under the
+  delegation of 2026-11-14): the Facts bullet is `input`'s: path NONE, not pure, `reads` set.
+  `input_filename` and `input_line_number` are path NONE, not pure, `reads` false, because only
+  `input` reads the input stream (F-79)."
+
+Round 2's guards "P1–P12" are P1–P8 and P12; P9 is `reduceInputStaysLinear`, and P10 and P11 are
+S5b.4's. Seven values the probe file lacked at round 2 were observed after it, on 2026-11-14, and
+re-run by the adviser.

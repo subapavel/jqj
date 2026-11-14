@@ -701,6 +701,11 @@ _Avoid_: snapshot, golden file
 **Required case**:
 A case the JUnit run asserts: it is in the ratchet, or the ticket names it at its gate.
 
+**Guard**:
+A required case or test that passes before its ticket and is kept so that the ticket cannot break
+it; it is not the ticket's red. Not a WALK's guard (ADR-0007).
+_Avoid_: regression test (alone)
+
 **Survey**:
 The run of every case that is not required; it writes the oracle report and fails only on a crash.
 
