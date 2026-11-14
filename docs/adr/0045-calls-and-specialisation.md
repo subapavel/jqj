@@ -33,11 +33,18 @@ node keys that value-equal records cannot give, and a recursive body needs slots
 - **Fact keys**: freeze numbers each function's nodes in pre-order into an identity map, so the
   order is deterministic. Each fact is an array by id. This is sound because ADR-0005 forbids using
   a node twice. The map is by identity because records compare by value.
+  `Operation` stays `(name, form)` in 2b; cardinality reads an Intrinsic's call form (`Fn0`–`FnN`:
+  at most one; `Many`: many). (Spec 3 round 2.)
 - **Frames** (M2): each `Call` and each real-closure invocation gets its own slot cells, which ends
   2a's one slot array per run (ADR-0034). A closure's captured slots stay those of the scope it was
   written in (ADR-0006, ADR-0040). Required, recorded with `oracle-record.sh`:
   `def r(f): if .>40 then . else f|r(f|.) end; [0|r(. as $i|(1,2) as $x|(10,20) as $y|$i+$x+$y)]`
   (76 values on jq-ref, starting `[44,54,45,55,43,…`).
+  A frame is sized by one stored count and nothing else: its body's IR slots plus the hidden slots a
+  backend adds (ADR-0022's owner; spec 3's item paths and walk state). Whatever allocates, copies or
+  keeps a frame takes every cell by that count, never a list of slot kinds. A heap form reads and
+  writes its activation's own cells, so a hidden slot written before a suspension is read back after
+  it. (Spec 3 round 2.)
 
 ## Considered options
 

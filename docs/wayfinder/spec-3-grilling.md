@@ -109,3 +109,38 @@ run, with G5.
   pattern mark; may spec 4 start after 3a, beside 3b?
 - Missing facts: whether any of spec 3's 109 census cases has a builtin or pattern in path position
   (the adviser's grep found none; ticket 5's red settles it); the cost of Path records (ADR-0010).
+
+## Round 2 (grilling-adviser for the owner, 2026-11-14)
+
+1. **Question 3: ticket 1 creates `Facts`.** 2b's records add nothing to Operation; its cardinality
+   reads the call form. Ticket 1 declares operations so that 3b's `InPlace` changes no declaration.
+2. **Question 5: confirmed, with one sentence added to ADR-0045 now** (2b carries it). `D_f` and the
+   unit weights also cover the path variants and the FIXED/WALK run; ticket 6's re-run calibrates.
+3. **Question 11, A2: `PathOf` and `Update` are kinds 21 and 22, and a ticket that builds a kind or
+   a path variant builds its heap form** (red: its cases in the `trampoline` run). No Stub can stand
+   in: it is a compile error and `stackBytes` is per run. Paths cannot be collected first: on jq-ref
+   `[1,2]|(.[]|debug("L")) |= (debug("R")|.+1)` prints L, R, L, R. Hidden-slot walk state survives a
+   suspension: a heap form works on its activation's cells and a recursive right side has its own
+   frame; an Update sets its slots at entry and clears them at its end, and an abandoned run
+   restores nothing. FIXED and WALK keep heap forms and the licence on the driver; the `trampoline`
+   run is conservative, so ticket 10 adds `stackZeroAgrees` (paths-v1, optimised, `stackBytes` 0).
+4. **The pattern mark is `Tracking {VALUE, PATH, ITEM}`** on `Bind`, each value of a `Binds` and an
+   `AltBind`'s value, read by path variants only. PATH: the value runs in path mode on the bind's
+   input, its paths dropped. ITEM: also, the Path is kept in a hidden slot for the slot's `Var`. The
+   Resolver sets PATH on a pattern's index steps and a `reduce`/`foreach` source, ITEM on the source
+   of `foreach … as $name`; a step then raises by ADR-0010's untracked-step rule. It replaces
+   question 4's "directly under `each`" (a `Binds` or an AltBind breaks it). Not derivable: on
+   `{"a":[1],"b":0}` jq-ref gives `[["b"]]` for `.a as $v|[path(($v|.[0]) as $x|.b)]` and raises for
+   `[path(.a as [$x]|.b)]`. New row: `[[5],[6]]|[path(foreach .[] as $x ?// [$x] (0;1;$x))]` gives
+   `[[0],[1]]` on jq-ref, an error in jqj. A node kind would cost a heap form and a `Binds` twin.
+5. **Spec 4 may start once 3a is on main, beside 3b** (ADR-0023's order: owner on Monday): its own
+   integration branch, the same three-writer cap, no edit to `Operation`, licence or Owner code. 3b
+   lands first; spec 4 merges main before its diagnostics ticket and gate (`sub` needs 3b's append).
+6. **P6 after spec 4's M7:** `ltrimstr`, `rtrimstr`, `trimstr` leave it. Spec 3 keeps `tostring`,
+   `@text`, `tonumber`, `delpaths([])`, `setpath([];.)`, `not|not`. Spec 4 writes, with the natives:
+   `trim`, `ltrim`, `rtrim`, `tojson|fromjson`, and the `ltrimstr` cases (`startswith` is unbuilt).
+7. **Ticket shape: 15 (12 class C, 3 class B), 3a 11.** Ticket 5 splits by kind: 5 keeps PathOf, the
+   kinds without a loop or pattern and P6; 5b takes loop sources, item paths, `Tracking`, AltBind.
+8. **Records, added:** ADR-0046, 0047 (the Path on a jump), 0005, 0010, 0038, 0020, 0023, glossary.
+9. **Open:** no round 3 unless 2b's Call ticket cannot keep ADR-0045's sentence. Missing facts: path
+   heap forms as twins or with one Path register (ticket 5 measures); `gsub`'s cost before 3b.
