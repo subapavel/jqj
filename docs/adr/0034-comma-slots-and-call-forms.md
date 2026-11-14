@@ -1,6 +1,6 @@
 # Comma, slots and atomic arguments in the IR; call forms as a sealed CallForm
 
-Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; designer draft); completes ADR-0005 and ADR-0009; amends ADR-0008 (`run` takes the slots); amended for #64 (`FnN`, `Collect`), see the end; slot rule amended by ADR-0038 (group and parameter slots, #67); state slots by ADR-0041 (#69); Many loop slots and the `to_entries` rate by ADR-0044 (#85); a frame per call activation by ADR-0045 (spec 2b)
+Status: accepted (2026-11-12, architect under `/run-spec` #56, ticket #63; designer draft); completes ADR-0005 and ADR-0009; amends ADR-0008 (`run` takes the slots); amended for #64 (`FnN`, `Collect`), see the end; slot rule amended by ADR-0038 (group and parameter slots, #67); state slots by ADR-0041 (#69); Many loop slots and the `to_entries` rate by ADR-0044 (#85); a frame per call activation by ADR-0045 (spec 2b); spec 4's tick table (spec 4 grilling round 1, question 12 and M1)
 
 #63 is the first ticket to lower constructs that #62's parser builds: comma, indexing, slicing and iteration. They need a sequencing node, a way to hold a computed key while its target runs, and the call forms ADR-0009 names. This ADR fixes those IR and protocol shapes; later tickets extend them with their first user.
 
@@ -53,3 +53,20 @@ Each rate is pinned by two adjacent counts (`ArithmeticStepsTest`, red at 65b717
 ## Amendment (ADR-0044, ticket #85)
 
 - **`Many.loopSlots()`** (default 0, Iterate 1): the slots after a Many's arguments that `first` sets for the later calls of its loop; `IntrinsicManyOp` allocates `args.length + loopSlots` per loop, so `.[]` holds a read object's walk there.
+
+## Amendment (spec 4 grilling round 1, question 12 and M1)
+
+One tick table for spec 4's natives (ADR-0008). A ticket corrects a row only by a finding, and each
+rate is pinned by two adjacent counts.
+
+- Byte loops (the trim family, `startswith`, `endswith`, the formats, `fromjson`, `strftime`,
+  `strptime`): one per started KiB of max(input, output).
+- `explode`, `implode` and `builtins`: one per element, as every other array copy, not per KiB.
+- `_strindices` and string `contains`: `split`'s rate plus one per index.
+- Array and object `contains`: one per pair plus Equality's. `bsearch`: one per probe plus the
+  compare's.
+- Regex (ADR-0053): one per search call, one per started KiB from the search start to the match
+  end, one per started KiB of the pattern at each lookup, compiled or cached (so a run's steps never
+  depend on the cache).
+- Scalar math: none, except `jn` and `yn`, once per 1 024 steps of any loop that grows with the
+  order (ADR-0051, F-69).

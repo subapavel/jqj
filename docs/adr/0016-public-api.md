@@ -1,6 +1,6 @@
 # Public API: engine, filter, Workspace, documents and values
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12), ADR-0020 (issue #15) and ADR-0024 (#24: kinds, exception shapes, F-20); amended by ADR-0026 (accessor edges); amended by ADR-0027 (JsonWriter sinks); amended by ADR-0031 (compile-error blocks, #61)
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12), ADR-0020 (issue #15) and ADR-0024 (#24: kinds, exception shapes, F-20); amended by ADR-0026 (accessor edges); amended by ADR-0027 (JsonWriter sinks); amended by ADR-0031 (compile-error blocks, #61); amended by ADR-0053 (the Workspace's regex pattern cache, spec 4)
 
 Type and method names are binding from the first publish; until then a rename is one mechanical
 ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1).
@@ -133,3 +133,10 @@ ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (
 - `JqCompileException.getMessage()` is jq's whole command-line text when no syntax error is
   involved: every error block with its source line and carets, then `jq: N compile error(s)`. It
   also gives the blocks as a list. Syntax-error text is jqj's own (ADR-0020).
+
+## Amendment (ADR-0053, spec 4)
+
+A Workspace keeps a bounded cache of compiled regex patterns (ADR-0053): 16 entries at the start,
+patterns up to 4 KiB, keyed by a copy of the pattern's bytes and its compile options. It lives as
+long as the Workspace and serves its later runs and filters. An entry holds no value, no document
+and no filter. So the host rule and unloading are unchanged, and the engine still keeps no cache.

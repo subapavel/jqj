@@ -1,6 +1,6 @@
 # Equality, ordering and object merge stop at jq's depth limits
 
-Status: accepted (2026-11-12, owner, spec 2 grilling round 1, Q8); completed by ADR-0037 for ordering (#66)
+Status: accepted (2026-11-12, owner, spec 2 grilling round 1, Q8); completed by ADR-0037 for ordering (#66); extended to `contains` by spec 4 grilling round 1 (question 11)
 
 jq 1.8.2 limits three recursive operations to a fixed depth: `jv_equal` (`MAX_EQUAL_DEPTH`, 10 000,
 `src/jv.c`), `jv_cmp` (`MAX_CMP_DEPTH`, 10 000, `src/jv_aux.c`) and the deep object merge `*`
@@ -35,3 +35,12 @@ The level counts above were not each recorded. The #65 and #66 reds recorded the
 - On objects, the key list sits one level deeper (`jvp_cmp`), so an empty object at depth 10 000 already raises.
 - `*` merges 10 000 levels around `{}` and raises at 10 001; around a non-object innermost value it merges 10 001 and raises at 10 002.
 jq-ref parses only 5 000 nested objects from a document, so the object boundaries are pinned by JUnit over built values and by #69's `reduce` cases.
+
+## Amendment (spec 4 grilling round 1, question 11)
+
+`contains` follows jq 1.8.2's `jv_contains` (`src/jv.c`), translated under jq's notice. Past
+`MAX_CONTAINS_DEPTH`, 10 000, `f_contains` (`src/builtin.c`) raises the catchable "Containment
+check too deep". Like the three limits above, it is jq's semantics, not configurable, and runs on
+an explicit stack. A: 10 000 arrays around `0` → `true`, 10 001 → "Containment check too deep";
+`{a:…}` 10 000 times around `{}` → `true`, 10 001 → the error. Each side is a witness on a 512 KiB
+stack.

@@ -1,6 +1,6 @@
 # Host SPI, sandbox and budget defaults
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); amended by ADR-0020 (CLI environment from `Invocation`, locale); rewords the sandbox list of founding §11; amended by spec 2 grilling round 1 (bytes built per slot); amended by ADR-0035 (fixed charges measured with `-prof gc` only, F-39; collectors charge per element); what the recursion-depth budget counts and U per run by ADR-0046 (spec 2b)
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); amended by ADR-0020 (CLI environment from `Invocation`, locale); rewords the sandbox list of founding §11; amended by spec 2 grilling round 1 (bytes built per slot); amended by ADR-0035 (fixed charges measured with `-prof gc` only, F-39; collectors charge per element); what the recursion-depth budget counts and U per run by ADR-0046 (spec 2b); amended by ADR-0052 (spec 4: fixed English date tables, `strptime` among the zone readers) and ADR-0053 (the regex limit per search call)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1); joni facts on
 joni 2.2.9.
@@ -26,12 +26,13 @@ joni 2.2.9.
 - `input_filename` is null and `input_line_number` 0 unless `RunOptions` supply named inputs.
 - `import`, `include` and run-time `modulemeta` go only through the loader; with none, every name is
   "module not found".
-- `now` reads the host clock; without one injected it reads the system clock (owner, 2026-11-11),
-  so results vary with time as in jq. A host wanting reproducible output injects a fixed clock.
-  `localtime` and `strflocaltime` use the host zone, UTC by default; jq uses the C library's local
-  zone. `mktime`, `gmtime` and `strftime` are UTC in both. Date formats use the root locale. jq
-  calls `setlocale(LC_ALL, "")`, but jq-ref 1.8.2 showed no locale effect under de_DE.UTF-8
-  (ADR-0020).
+- `now` reads the host clock; without one injected it reads the system clock (owner, 2026-11-11), so
+  results vary with time as in jq. A host wanting reproducible output injects a fixed clock. The
+  zone readers `localtime`, `strflocaltime` and `strptime` (for `%s`, F-67) use the host zone, UTC
+  by default; jq uses the C library's local zone. `mktime`, `gmtime` and `strftime` are UTC in both.
+  Date names come from fixed English tables and `%Z` from the JDK's English short zone names
+  (ADR-0052, F-66). jq calls `setlocale(LC_ALL, "")`, but jq-ref 1.8.2 showed no locale effect under
+  de_DE.UTF-8 (ADR-0020).
 - `debug` and `stderr` values are discarded unless a `DebugSink` is set.
 - `input`/`inputs` read only `RunOptions`' inputs; otherwise `input` raises "break" at once.
 - `halt` and `halt_error` end the run with `JqTermination(HALT)` (ADR-0008; jq-ref: `try halt catch
@@ -53,7 +54,7 @@ joni 2.2.9.
   - 1 GiB bytes built, counted monotonically over string bytes and container slots, not number
     boxes, and restarted at each streamed element (`rest` holds nothing across elements, ADR-0007);
   - 1 GiB bytes written;
-  - 1 s per regex match;
+  - 1 s per regex search call (ADR-0053);
   - 512 KiB of stack, from which each run derives its filter's `U_f` (ADR-0011, ADR-0046).
 - **`Limits.cli()`** keeps the parse depth, recursion and regex limits and the stack bytes, and drops
   the other budgets. jq-ref
@@ -68,11 +69,12 @@ joni has a nanosecond timeout and interrupt checks, but no retry limit and no ca
 stack. jq-ref has a retry limit: `("a"*24+"b") | test("^(a+)+$")` gives the catchable error "Regex
 failure: retry-limit-in-match over" in 0.17 s, while n ≤ 23 returns `false`; joni ran 3.2 s at n = 26.
 
-- Each match runs with `matcher(byte[], int, int, long)` at the smaller of `regexMatchTime` and the
-  remaining deadline. A match that hits `regexMatchTime` raises jq's catchable "Regex failure:
-  retry-limit-in-match over"; one that hits the deadline ends with `JqTermination(BUDGET,
-  DEADLINE)`. The cut-off is not reproducible and a band of patterns succeeds where jq errors: a
-  `DEVIATIONS.md` row.
+- Each joni search call runs with `matcher(byte[], int, int, long)` at the smaller of
+  `regexMatchTime` and the remaining deadline; a global scan makes one call per match, as jq's
+  `f_match` calls `onig_search` (ADR-0053). A search call that hits `regexMatchTime` raises jq's
+  catchable "Regex failure: retry-limit-in-match over"; one that hits the deadline ends with
+  `JqTermination(BUDGET, DEADLINE)`. The cut-off is not reproducible and a band of patterns succeeds
+  where jq errors: a `DEVIATIONS.md` row.
 - **Accepted risk**: joni's uncapped stack. `^(a|b)*$` over 4 MB threw `OutOfMemoryError` at
   `-Xmx256m`, where jq-ref matched 40 MB of `a` in 3.0 s (40 MB of `ab` hits its retry limit).
   Recorded until joni can cap it.

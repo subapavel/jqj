@@ -1,6 +1,6 @@
 # Milestone 1: the final gate and the specs in build order
 
-Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`); amended by F-19 (spec 1 grilling: the API slice and the last ticket's measurements); amended by F-27 (both fallbacks fired at spec 1); amended by F-33 (G3 in spec 2a)
+Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`); amended by F-19 (spec 1 grilling: the API slice and the last ticket's measurements); amended by F-27 (both fallbacks fired at spec 1); amended by F-33 (G3 in spec 2a); amended by spec 4 grilling round 1 (one spec, builtin coverage at spec 4's gate, GATE's check 2 host-facing list and spec rows 2 and 4)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #17 round 1 and the ADR
 review). Each rule says whether it is the owner's answer or the architect's choice.
@@ -138,3 +138,24 @@ splitting in two at its own grilling without reopening `docs/GATE.md`, are the o
 ## Amendment (F-33, spec 2)
 
 G3 enters `bench.tsv` in spec 2a, with `sort` and its kin, not in spec 4.
+
+## Amendment (spec 4 grilling round 1, questions 1 and 6, M8)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14.
+
+- **Spec 4 is one spec.** Its families need nothing from each other, so a split protects no order
+  (unlike 3a and 3b) and adds a spec gate, a review and a PR. Its 15 tickets are the size of 2b and
+  3. It needs spec 3a (Facts, `+=`, `debug`), not 3b.
+- **Builtin coverage is a hard rule at spec 4's gate.** The coverage tool's uncovered list must lie
+  within the 13 host-facing signatures still unbuilt: `input`, `inputs`, `env`, `halt`,
+  `halt_error/0,1`, `input_filename`, `input_line_number`, `get_search_list`, `get_prog_origin`,
+  `get_jq_origin`, `modulemeta`, `now`. `debug/0,1` and `stderr`, built in spec 3a, must be covered.
+- **What counts**: a builtin is covered when jqj's Binder resolves a reference written in a passing
+  case's own filter text to it at that arity. A shadowing definition, a call from inside the
+  prelude, `..` and `@csv` (for `format/1`) do not count. The 226 names are jq-ref's stored
+  `builtins` output (P7b: `226`). The tool's first run corrects the draft's per-family lists.
+- **`docs/GATE.md`**:
+  - Check 2's host-facing list becomes the 13 above, with `debug` and `stderr` covered from spec 4.
+    This is the owner's text change.
+  - The spec table's rows 2 and 4 take F-33's wording: G3 enters `bench.tsv` in spec 2a.
+- The hand-over's `toarray` is dropped: jq 1.8.2 has none (P7: "toarray/0 is not defined").

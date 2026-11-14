@@ -1,6 +1,6 @@
 # JSON reader and writer: jq's grammar, jq's messages by replay, a byte[] loop
 
-Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits); amended by F-22 (depth counting); F-24 open (whole-container copy and whitespace); amended by ADR-0030 (run state, #59)
+Status: accepted (2026-11-11, owner, issue #11 "How do the JSON reader and writer behave?"); amends ADR-0002 (document limit, tag 7), ADR-0004 (built values from `-R` and `--stream`) and ADR-0008 (`tick(int n)`, fuel reset); closes F-3; findings F-12 and F-13; founding §2's licence sentence is read through this ADR; amended by F-21 (exact size limits); amended by F-22 (depth counting); F-24 open (whole-container copy and whitespace); amended by ADR-0030 (run state, #59); amended by spec 4 grilling round 1 (`fromjson` in spec 4, #99)
 
 jq-ref 1.8.2 decides what the reader accepts and what it prints. The adviser ran every rule below
 on it (issue #11 round 1, commands K1–K8) and read jq-1.8.2's `jv_parse.c`, `jv_unicode.c`,
@@ -180,3 +180,22 @@ tapeReused; skipAll's 58/39/31 % does not validate).
   (`length = end - in`): `"\xe0\xff"` gives one U+FFFD (`i_string_truncated-utf-8`). This replaces
   "a missing continuation takes the bytes before it" above.
 - Tag-6 text is decoded at each access and never stored; the tape stays read-only.
+
+## Amendment (spec 4 grilling round 1, question 2 and M3)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14.
+
+- `fromjson` is built in spec 4 on today's reader (#99): valid strict text, literal numbers, the
+  BOM, "Unexpected extra JSON values" and "Expected JSON value". P8:
+  `[1E+1000,"1E+1000",true,false]`,
+  `[100000000000000000001,"100000000000000000001",false,false]`, `"Unexpected extra JSON values
+  (while parsing '[1,2] 3')"`.
+- Malformed text and lenient tokens end the run with the reader's Stub, which `try` does not catch,
+  so no case passes on it. jq.test 2315, 2324, 2498 and 2563 wait for spec 5's replay.
+- A result charges bytes built once, for the document it keeps. The charge is what `detach()` of
+  its root would charge under ADR-0017's schedule: 8 B per array element, 16 B per object entry,
+  each string's UTF-8 length, the fixed charge per container and per string, nothing for numbers.
+  A parsed value so costs what the same value built costs, on both backends. A BYTES_BUILT witness
+  shows it.
+- It ticks as ADR-0034's spec-4 table says. A 10 000-deep document passes on a 512 KiB stack, with
+  no Java recursion over its depth.

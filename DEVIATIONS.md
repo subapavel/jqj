@@ -117,8 +117,23 @@ ticket's oracle cases pin line and column.
 
 jq stops a match after Oniguruma's retry limit with the catchable error "Regex failure:
 retry-limit-in-match over" (`("a"*24+"b") | test("^(a+)+$")`). joni has no retry counter, so jqj
-raises the same error when a match exceeds `regexMatchTime` (1 s). The cut-off depends on the
-machine, so some patterns succeed in jqj where jq errors, and the reverse.
+raises the same error when one joni search call exceeds `regexMatchTime` (1 s; a global scan makes
+one call per match, ADR-0053). The cut-off depends on the machine, so some patterns succeed in jqj
+where jq errors, and the reverse.
+
+## Regex dialect (ADR-0053, spec 4)
+
+jqj runs regexes on joni 2.2.9 with `Syntax.PerlNG` and `CAPTURE_GROUP`; jq-ref runs them on its
+builtin Oniguruma. The regex prelude ticket records one case per construct of Oniguruma's syntax
+list and one per compile-error text. Each construct or text where joni differs, and no text mapping
+closes the gap, is a row here.
+
+| case | filter | input | jq 1.8.2 | jqj |
+| --- | --- | --- | --- | --- |
+| (rows added by the regex prelude ticket) | | | | |
+
+Reason: joni is the JVM's port of Oniguruma (ADR-0017), and a patched joni would be a fork outside
+the mutation floors. `builtins-regex-v1` draws only constructs the matrix shows identical.
 
 ## Recursion depth on the command line (ADR-0017, issue #13)
 
@@ -315,3 +330,44 @@ budget is unlimited, as on the command line. Reason: a JVM array holds no more e
 charges each element to the bytes-built budget before storing it (ADR-0035), so a collection that large exhausts any
 real budget first. A termination of its own would add a public cause for a case no run can reach. query-core's tests
 of `CollectOp.grown` pin jqj's side.
+
+## libm last digits (ADR-0051, spec 4)
+
+The 36 computed math builtins print jqj's own last digits, the same on every platform:
+`StrictMath` for `acos`, `asin`, `atan`, `atan2`, `cbrt`, `cos`, `cosh`, `exp`, `expm1`, `hypot`,
+`log`, `log10`, `log1p`, `pow`, `sin`, `sinh`, `tan` and `tanh`; definitions over `StrictMath` for
+`acosh`, `asinh`, `atanh`, `exp2`, `exp10` and `log2`; Arm's port for `erf`; published formulas, or
+the owner's answer on issue #105, for `erfc`, `gamma`, `lgamma`, `lgamma_r`, `tgamma`, `j0`, `j1`,
+`jn`, `y0`, `y1` and `yn`. jq-ref's digits are glibc's on its CPU and change with the CPU's
+features (F-65). Each function's row gives its measured bound in ulp over its recorded sample; the
+math tickets add the rows.
+
+| case | filter | input | jq 1.8.2 | jqj |
+| --- | --- | --- | --- | --- |
+| none yet | `27\|cbrt` | `null` | `3.0000000000000004` | `StrictMath`'s digits, recorded by the computed-math ticket |
+| `test:` the bound test (named by its ticket) | each of the 36 over its recorded sample | — | glibc's digits | within the function's measured ulp bound |
+
+Reason: only jq-ref's own build on its own CPU gives jq-ref's digits. `Math`'s digits are not fixed
+across platforms, and glibc's code is LGPL. jq.test rounds every transcendental it checks
+(lines 847–857).
+
+## Zone abbreviations (ADR-0052, spec 4)
+
+`%Z` prints the JDK's English short name for the zone at that instant, or `±hh[mm]` where the JDK
+has only `GMT±hh:mm`. Offsets come from the JDK's tzdb (F-66). jq-ref prints tzdata's abbreviation
+from the system's zoneinfo. They differ in three ways:
+- LMT eras: the JDK never names one `LMT`;
+- zones whose tzdata abbreviation is not the JDK's English short name; the host-zone ticket lists
+  them by running jq-ref under each `TZ`;
+- the tzdata version: the JDK's tzdb (2026e on JDK 25.0.5) against jq-ref's zoneinfo, for offsets
+  as well as names.
+
+| case | filter | input | jq 1.8.2 | jqj |
+| --- | --- | --- | --- | --- |
+| none yet | `strflocaltime("%Z %z")` on an instant of an LMT era (P4) | — | `LMT +0918` | the JDK's name for that offset, recorded by the host-zone ticket |
+
+An unknown `TZ` is UTC with an empty name (ADR-0052). If jqj does not mirror jq-ref's "unknown
+system failure" there, the host-zone ticket adds its row here.
+
+Reason: the JDK supplies offsets and English names, not tzdata's abbreviations (F-66). A TZif name
+reader would be a second zone source and can come later without rework (ADR-0052).

@@ -27,6 +27,15 @@ _Avoid_: standard library, builtin.jq (except when naming jq's file)
 A builtin implemented in Java and called from the IR as an intrinsic.
 _Avoid_: C builtin, primitive
 
+**Host-facing builtin**:
+A builtin that reads the host or the run instead of its input alone (the run's inputs, the
+environment, the clock, the module loader, the debug sink) or that ends the run: `input`, `inputs`,
+`env`, `halt`, `halt_error`, `input_filename`, `input_line_number`, `get_search_list`,
+`get_prog_origin`, `get_jq_origin`, `modulemeta`, `now`, `debug`, `stderr`. It is in no builtin
+family and gets hand-written cases (GATE check 2, ADR-0023). The zone readers (`localtime`,
+`strflocaltime`, `strptime`) read the host zone but are in the dates family.
+_Avoid_: system builtin, I/O builtin
+
 **Reference jq**:
 The pinned release of the original jq whose binary decides what a filter does.
 _Avoid_: real jq, upstream jq, jq-ref (that is the binary's path)
@@ -469,8 +478,8 @@ The interpreter's resumable loop that runs recursion beyond the stack-unit limit
 returns each result to the call that started it.
 
 **Workspace**:
-The reusable scratch memory of one evaluation (tape array, output buffer, path stack), passed in
-by the caller and never shared between two running evaluations.
+The reusable scratch memory of one evaluation (tape array, output buffer, path stack, regex pattern
+cache), passed in by the caller and never shared between two running evaluations.
 _Avoid_: context (that word is taken by jq's `.`), thread-local, arena (that is the JDK's)
 
 **Budget**:

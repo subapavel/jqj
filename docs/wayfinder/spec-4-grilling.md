@@ -211,3 +211,33 @@ Each generator ticket records enough seeds to keep 200 after drops. Spec 4 needs
   - the ulp bound for all 36 computed builtins (ticket 9's sample; 17 measured here);
   - the cache's gain (ticket 15);
   - the draft's 76/9/15/110 counts and per-family lists (ticket 1's first run; not checked here).
+
+## Records round (architect, 2026-11-14)
+
+The records designer drafted ADR-0051 (math), ADR-0052 (dates and zones), ADR-0053 (regex on
+joni), F-65 to F-70 and the amendments from round 1. The architect settled the drafting conflicts:
+
+1. **Regex ticks and the cache.** A run's steps must not depend on what the Workspace ran before
+   (ADR-0017: equal step counts; ADR-0020's backend oracle compares `stepsUsed()`). So a pattern
+   charges one tick per started KiB at each lookup, compiled or cached (ADR-0053, ADR-0034's spec-4
+   table).
+2. **ADR-0019** "G3 in spec 4 (ADR-0023)" now reads "G3 in spec 2a (F-33)", as F-33 rules.
+3. **DEVIATIONS "Regex limit by time"** says "one joni search call" (ADR-0053's wording).
+4. **NOTICE** is not edited yet. Each spec-4 ticket that translates jq's code, or ports Arm's
+   `erf`, adds its own line with its file's path. The designer's draft lines sit in the ticket
+   bodies.
+5. **The translation list** follows jq 1.8.2's source as read: `f_contains` holds the depth error
+   and the kinds check, and the trim natives are `f_string_trim`, `f_string_ltrim` and
+   `f_string_rtrim`. Each ticket lists what it actually translates.
+
+Open for the tickets: how a computed result that is not normal prints in `builtins-math-v1`;
+`fromjson`'s charge for tag-6 strings; the regex tick span for a search that finds nothing; offsets
+past the JDK's zone rules; the diagnostics' cache switch.
+
+For the owner on 2026-11-16, in addition to round 1's list:
+- GATE check 2's host-facing list changes as the owner's text change inside ADR-0023's amendment,
+  with no finding of its own;
+- GATE check 8 names only jq's MIT text in the jar; Arm's MIT text must ship too once `erf` lands;
+- the designer's choices: least-recently-used eviction, the run-scoped pattern identity, the
+  `fromjson` charge rule, the 25/18/6/12 lists, the order conversion for `jn` and `yn`, and F-70's
+  row going to spec 4's strings ticket.
