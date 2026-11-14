@@ -444,5 +444,57 @@ class KeyProofTest {
     KeyIndex sorted = KeyProof.index(state, right, walkOf(json(left)));
     assertThat(found(sorted)).as("values of a missing first key in the sort").containsExactly("none");
     assertThat(state.steps()).as("ticks of a sorted index whose first left key is missing").isEqualTo(proof + 4);
+    // The 16 keys, then AaAaAaAB: once 16 keys are found the 17th cannot be among them, so it is not searched for.
+    List<String> past = new ArrayList<>(blocks16());
+    past.add("AaAaAaAB");
+    RunState pastState = new RunState();
+    KeyIndex all = KeyProof.index(pastState, right, walkOf(json(past)));
+    assertThat(found(all)).as("values of the 16 keys and a 17th").hasSize(17).endsWith("none");
+    assertThat(pastState.steps()).as("ticks of a sorted index with a left key past the right side's 16").isEqualTo(proof + 54);
+  }
+
+  @Test
+  void aSortedLookupChargesTheKiBOfTheShorterKey() {
+    // The 16 Aa/BB keys behind 2 045 x: 2 053 bytes each, 3 KiB, and still one hash. Each compare of two of them costs 3:
+    // the 16 lookups 3 * 54. A short missing key, AaAaAaAB, sorts before them all: 4 compares at 1 each, its own length.
+    String prefix = "x".repeat(2045);
+    List<String> keys = new ArrayList<>();
+    for (String key : blocks16()) keys.add(prefix + key);
+    ObjectView right = object(json(keys));
+    long proof = proofTicks(right);
+    RunState state = new RunState();
+    KeyIndex index = KeyProof.index(state, right, walkOf(json(keys)));
+    assertThat(index.size()).as("distinct long keys of the sorted right side").isEqualTo(16);
+    assertThat(state.steps()).as("ticks of 16 lookups of 3 KiB keys").isEqualTo(proof + 3 * 54);
+    RunState shortState = new RunState();
+    KeyProof.index(shortState, right, built("AaAaAaAB"));
+    assertThat(shortState.steps()).as("ticks of a short missing key among 3 KiB keys").isEqualTo(proof + 4);
+  }
+
+  @Test
+  @Timeout(value = 20, unit = SECONDS, threadMode = ThreadMode.SEPARATE_THREAD)
+  void aMissInAFullTableEndsAfterEverySlot() {
+    // 2^20 keys, each the first key k<i> whose home slot in a table of 2^20 slots (the cap) is still free: the table
+    // takes each in one probe, within the budget, and fills every slot, so a missing key's probes meet no free slot.
+    // The lookup probes each slot once and gives none; without that bound it never ends.
+    int n = KeyProof.MAX_SLOTS;
+    assertThat(KeyProof.slots(n)).as("table slots for 2^20 keys").isEqualTo(n);
+    boolean[] taken = new boolean[n];
+    StringBuilder json = new StringBuilder(16 << 20).append('{');
+    int placed = 0;
+    for (int i = 0; placed < n; i++) {
+      byte[] key = ("k" + i).getBytes(US_ASCII);
+      int home = KeyProof.hash(key, 0, key.length) & (n - 1);
+      if (!taken[home]) {
+        taken[home] = true;
+        json.append(placed++ == 0 ? "\"" : ",\"").append("k").append(i).append("\":0");
+      }
+    }
+    ObjectView right = object(json.append('}').toString());
+    RunState state = new RunState();
+    KeyIndex index = KeyProof.index(state, right, built("missing"));
+    assertThat(index.size()).as("distinct keys of the full table").isEqualTo(n);
+    assertThat(found(index)).as("value of a key missing from a full table").containsExactly("none");
+    assertThat(state.steps()).as("ticks of the full table's index: one per key entry").isEqualTo(n);
   }
 }
