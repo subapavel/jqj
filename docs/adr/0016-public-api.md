@@ -1,6 +1,6 @@
 # Public API: engine, filter, Workspace, documents and values
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12), ADR-0020 (issue #15) and ADR-0024 (#24: kinds, exception shapes, F-20); amended by ADR-0026 (accessor edges); amended by ADR-0027 (JsonWriter sinks); amended by ADR-0031 (compile-error blocks, #61); amended by ADR-0053 (the Workspace's regex pattern cache, spec 4); amended by spec 5 round 1 (F-71: `Workspace.read(JsonInputs)`, `-n` out of `InputOptions`, `JsonInputs`' position; the `OutputOptions` withers) and ADR-0054 (`stream`); spec 5a tickets (position, read results, resume, bad arguments)
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0004 (the host rule); supersedes the API sketch of founding §11; amended by ADR-0018 (issue #12), ADR-0020 (issue #15) and ADR-0024 (#24: kinds, exception shapes, F-20); amended by ADR-0026 (accessor edges); amended by ADR-0027 (JsonWriter sinks); amended by ADR-0031 (compile-error blocks, #61); amended by ADR-0053 (the Workspace's regex pattern cache, spec 4); amended by spec 5 round 1 (F-71: `Workspace.read(JsonInputs)`, `-n` out of `InputOptions`, `JsonInputs`' position; the `OutputOptions` withers) and ADR-0054 (`stream`); spec 5a tickets (position, read results, resume, bad arguments); the Bindings sentence by spec 7 round 1 (`$ARGS.named` order, `$ARGS` and `$ENV` never a declared variable; grilling-adviser for the owner under the delegation of 2026-11-14)
 
 Type and method names are binding from the first publish; until then a rename is one mechanical
 ticket (ADR-0013). Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1).
@@ -204,3 +204,21 @@ All probes in this text were observed; the architect re-ran them and corrected t
 (the draft's `[1,3]` was not observed). Reason for the changes: the draft's "null on stdin" and
 unconditional block drop contradict jq-ref, and `int line` can overflow on an unbounded channel.
 Cost: none.
+
+## Amendment (spec 7 round 1, Bindings)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14
+(`docs/wayfinder/spec-7-grilling.md`, question 7). Facts: jq-ref 1.8.2; jq 1.8.2's `main.c`.
+
+In "Engine and filter", the Bindings sentence "`Bindings.builder().put(String, JqValue)
+.positional(List<JqValue>).build()` gives `$ARGS = {"positional":[…],"named":{…}}` as jq's
+`main.c`" is read as:
+
+> `$ARGS.named` holds every put name in first-put order; a later put replaces the value in place.
+> `$ARGS` and `$ENV` never resolve to a declared variable of that name; a declared
+> `JQ_BUILD_CONFIGURATION` replaces the build string.
+
+jq's first `--arg` of a name wins (`--arg b 1 --arg a 2 --arg b 3 '[$ARGS, $b]'` →
+`[{"positional":[],"named":{"b":"1","a":"2"}},"1"]`), so jq-cli puts each name once, its first.
+`--arg ENV x` shows only in `$ARGS.named` and leaves `$ENV` as it is. The sentence on an unbound
+declared variable stands.

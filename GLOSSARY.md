@@ -586,6 +586,19 @@ The program embedding the engine. It supplies the clock, the time zone, the envi
 module loader for `import` and the debug sink; extra inputs come per run.
 _Avoid_: runtime, container, platform
 
+**jq module**:
+A text of directives and definitions that `import` or `include` names, or a JSON text bound by
+`import … as $name` (a data module). The host's module loader finds and names it (ADR-0017, F-81).
+_Avoid_: library; bare "module" where a Maven or JPMS module could be meant.
+
+**Home module**:
+What a loader's `home()` gives; on the command line `~/.jq` when it is a file.
+_Avoid_: rc file.
+
+**Program origin**, **jq origin**:
+The directory a main filter's relative `search` joins, and the directory `$ORIGIN/` stands for;
+null in the sandbox.
+
 **Executable**:
 What a backend makes of one filter's IR, and what a compiled filter runs: in milestone 1, the
 interpreter tree.

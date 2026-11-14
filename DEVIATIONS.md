@@ -220,6 +220,10 @@ no budget applies (ADR-0035). A key below the bound keeps jq's rc 3 (`constant-k
 
 jq prints its configure string; jqj prints its own build string.
 
+Spec 7 round 1 fixes jqj's string, proposed by the grilling-adviser for the owner under the
+delegation of 2026-11-14 (table in "`-h`, `-V` and `--build-configuration` print jqj's own
+text" below).
+
 ## Syntax-error text (ADR-0020, issue #15)
 
 | filter | jq 1.8.2 (stderr) | jqj |
@@ -253,6 +257,19 @@ ParserEdgesTest pins jqj's blocks for each example.
 Reason: these flags describe the program, not a filter's result; jqj is not jq. jq's rc-2 usage
 lines (`jq: Unknown option …`, `Use jq --help for help with command-line options,`) stay
 byte-identical. shtest's cases for these flags become deviation cases.
+
+Spec 7 round 1 fixes the texts, proposed by the grilling-adviser for the owner under the
+delegation of 2026-11-14 (`docs/wayfinder/spec-7-grilling.md`, question 10). jq-ref 1.8.2
+observed; jqj intended:
+
+| case | flag | jq 1.8.2 | jqj |
+| --- | --- | --- | --- |
+| none yet | `-V` / `--version` | `jq-1.8.2` | `jqj-<version>` |
+| none yet | `--build-configuration`, `$JQ_BUILD_CONFIGURATION` | `--host=x86_64-linux-gnu --disable-docs --with-oniguruma=builtin --enable-static --enable-all-static 'CFLAGS=-O2 -pthread -fstack-protector-all' host_alias=x86_64-linux-gnu CC=x86_64-linux-gnu-gcc LDFLAGS=-s CPP=x86_64-linux-gnu-cpp` | `jqj <version> release 25 interpreter` |
+| none yet | `-h` / `--help` | jq's usage text, rc 0 | jqj's own text in `main.c`'s layout with `--explain` added, written fresh, rc 0 |
+
+The build string holds build-time facts only: a runtime Java version would make one filter print
+differently per JVM.
 
 ## Long comma chains (ADR-0034, issue #63)
 
@@ -402,3 +419,46 @@ system failure" there, the host-zone ticket adds its row here.
 
 Reason: the JDK supplies offsets and English names, not tzdata's abbreviations (F-66). A TZif name
 reader would be a second zone source and can come later without rework (ADR-0052).
+
+## `modulemeta` on a module that does not parse (ADR-0017, F-81, spec 7)
+
+Proposed by the grilling-adviser for the owner under the delegation of 2026-11-14
+(`docs/wayfinder/spec-7-grilling.md`, question 4). jq-ref 1.8.2 observed; jqj intended:
+
+| case | filter | input | jq 1.8.2 | jqj |
+| --- | --- | --- | --- | --- |
+| none yet | `-L m modulemeta`, `m/syntaxerror/syntaxerror.jq` holding `wat;` | `"syntaxerror"` | stderr `jq: error: syntax error, unexpected ';', expecting end of file at <case>/m/syntaxerror/syntaxerror.jq, line 1, column 4:` and the source lines; stdout `null`, rc 0 | stdout `null`, stderr empty, rc 0 |
+
+jq's block is not catchable: `try` does not see it. Reason: the engine writes to no stream of its
+own (ADR-0017), and a compile-error block in the middle of a run has no channel in the host SPI.
+
+## `$ENV` key order on the command line (ADR-0017, spec 7)
+
+Proposed by the grilling-adviser for the owner under the delegation of 2026-11-14
+(`docs/wayfinder/spec-7-grilling.md`, question 6). jq-ref 1.8.2 observed; jqj intended:
+
+| case | filter | environment | jq 1.8.2 | jqj |
+| --- | --- | --- | --- | --- |
+| none yet | `-nc '$ENV \| keys_unsorted'` | exactly `B=2 A=1` (`env -i`) | `["B","A"]` (`environ`'s order) | `["A","B"]` |
+
+`env` gives the same object. Reason: the launcher passes `System.getenv()`, whose map has no
+order, so jq-cli sorts the environment by key. Differential cases print `$ENV.X`, `env.X` or
+`keys` only.
+
+## The jq origin on the command line (ADR-0013, ADR-0020, F-81, spec 7)
+
+Proposed by the grilling-adviser for the owner under the delegation of 2026-11-14
+(`docs/wayfinder/spec-7-grilling.md`, question 4). jq-ref 1.8.2 observed; jqj intended:
+
+| case | how the program is started | jq 1.8.2 `get_jq_origin` | jqj |
+| --- | --- | --- | --- |
+| none yet | by its bare name, found on `PATH` | `"."` | the launcher's own directory |
+| none yet | as `./jq-ref` in its own directory | `"."` | the launcher's own directory |
+| none yet | as `bin/jq-ref` from its parent | `"bin"` | the launcher's own directory |
+
+Started by its full path, jq gives that directory (`"/usr/local/bin"`), as jqj does. jq's origin
+is `dirname(argv[0])`; jqj's is `Invocation.origin`, which the launcher sets to its
+own directory. Reason: a name found on `PATH` gives `"."`, the caller's working directory, so
+jq's `$ORIGIN/../lib/jq` would search beside the caller and not beside the program. Differential
+cases print only `type` or a suffix of an origin. Whether the launcher's directory is a full path
+is recorded by spec 7's origins ticket.

@@ -80,3 +80,24 @@ names its record; the reasons are there. A "no" on an item reopens that record, 
   - S3b.3 loses a bullet to 5b.
 - Ticket approval, spec 5b (2026-11-14, grilling-adviser for the owner under the delegation of
   2026-11-14): R1, R2, R4 and R6 change owner-accepted ADR-0022 and a published 5a ticket.
+
+## Spec 7 (not yet published; `docs/wayfinder/spec-7-grilling.md`)
+
+Round 1 (2026-11-14), proposed by the grilling-adviser for the owner under the delegation of
+2026-11-14:
+- ADR-0017's module loader SPI and its command-line host: `module` and `data` take the importer
+  and return `ModuleSource`, `home()`, `programOrigin()` and `jqOrigin()`, jq-cli's
+  `FileModuleLoader` (F-81).
+- `Invocation.origin`, the jq origin, beside the six-argument constructor (ADR-0013, ADR-0020).
+- The `<case>` token in recordings and comparisons, and the jqtest host's loader (ADR-0020, F-82).
+- The Bindings sentence: `$ARGS.named` in first-put order, `$ARGS` and `$ENV` never a declared
+  variable (ADR-0016).
+- Spec 7 is one spec and may start beside spec 6 once 5b is on main (ADR-0023).
+- The `-V`, `-h` and build-string texts: `jqj-<version>`, fresh help text, `jqj <version> release 25
+  interpreter` (DEVIATIONS).
+- Four DEVIATIONS rows: `modulemeta` on a module that does not parse, `$ENV`'s sorted key order,
+  the `-V`/`-h`/build-string texts, the jq origin.
+- The adviser's 100-line format, where its role and `AGENTS.md` say 40.
+- Owner-only, untouched: if a ticket translates `main.c`'s option loop or usage text, the file takes
+  a NOTICE line. Nothing was decided on licences.
+

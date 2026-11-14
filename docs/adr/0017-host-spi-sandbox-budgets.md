@@ -1,6 +1,6 @@
 # Host SPI, sandbox and budget defaults
 
-Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); amended by ADR-0020 (CLI environment from `Invocation`, locale); rewords the sandbox list of founding §11; amended by spec 2 grilling round 1 (bytes built per slot); amended by ADR-0035 (fixed charges measured with `-prof gc` only, F-39; collectors charge per element); what the recursion-depth budget counts and U per run by ADR-0046 (spec 2b); amended by ADR-0052 (spec 4: fixed English date tables, `strptime` and `strftime` among the zone readers for `%s`) and ADR-0053 (the regex limit per search call); `DebugSink` built in spec 3a (F-61)
+Status: accepted (2026-11-11, owner, issue #13 "What are the public API, the host SPI and the sandbox?"); amends ADR-0008 (deadline clock, `CANCELLED`, regex budget) and ADR-0011 (stack bytes, recursion default); amended by ADR-0020 (CLI environment from `Invocation`, locale); rewords the sandbox list of founding §11; amended by spec 2 grilling round 1 (bytes built per slot); amended by ADR-0035 (fixed charges measured with `-prof gc` only, F-39; collectors charge per element); what the recursion-depth budget counts and U per run by ADR-0046 (spec 2b); amended by ADR-0052 (spec 4: fixed English date tables, `strptime` and `strftime` among the zone readers for `%s`) and ADR-0053 (the regex limit per search call); `DebugSink` built in spec 3a (F-61); the module loader SPI and the command-line host's `FileModuleLoader` amended by spec 7 round 1 (F-81; grilling-adviser for the owner under the delegation of 2026-11-14)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #13 round 1); joni facts on
 joni 2.2.9.
@@ -132,3 +132,33 @@ Bytes built are charged, monotonically, as:
 The charge depends on the value built, not on its Java representation, so the two backends stop at
 the same place. G4 at 10⁴ builds about 5.0×10⁷ slots, about 400 MB at 8 B, 2.7× under the 1 GiB
 default.
+
+## Amendment (spec 7 round 1; F-81)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14
+(`docs/wayfinder/spec-7-grilling.md`, questions 2–4). Facts: jq-ref 1.8.2; jq 1.8.2's `linker.c`
+and `main.c`. This replaces the `ModuleLoader` bullet of "Host SPI" and the "File loader" bullet
+of "The command-line host" above; the rest of both sections stands.
+
+`interface ModuleLoader { Optional<ModuleSource> module(String relPath, JqObject meta, String
+importer); Optional<ModuleSource> data(String relPath, JqObject meta, String importer); default
+Optional<ModuleSource> home(); default List<String> searchList(); default String programOrigin();
+default String jqOrigin(); }` and `record ModuleSource(String name, byte[] text)`. `importer` is
+the importing module's `name`, null for the main filter and for `modulemeta`. The engine parses
+each `name` once per compile, reports "circular import of <name>", and prints `name` in the
+module's error blocks and in `$__loc__.file`; data is asked for at every import. The engine
+rejects what `validate_relpath` rejects, with "Module path contains a NUL byte" and "module names
+must not have equal consecutive components: <path>" added. It reads `optional` and `raw` from the
+metadata; `search` and every other key reach the loader untouched. `home()` is included into the
+main filter below its imports and above the prelude. `modulemeta` asks `module(name, {"search":
+searchList()}, null)` and gives null for a module that does not parse.
+
+### The command-line host
+
+`FileModuleLoader` (jq-cli, not exported) follows `linker.c`: without `search` it searches `"."`,
+then the lib dirs; a given `search` replaces both. `"."` is the working directory, `~/` is
+`HOME`, `$ORIGIN/` is the jq origin, and any other relative entry joins the importer's directory,
+or the program origin for the main filter. Candidates are `d/rel.jq`, `d/rel/jq/main.jq`,
+`d/rel/<last>.jq` (`.json` for data). `home()` is `$HOME/.jq` when it is a file. The program
+origin is the real path of the working directory, or of the `-f` file's directory; the jq origin
+is `Invocation.origin`.

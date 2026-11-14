@@ -1,6 +1,6 @@
 # Milestone 1: the final gate and the specs in build order
 
-Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`); amended by F-19 (spec 1 grilling: the API slice and the last ticket's measurements); amended by F-27 (both fallbacks fired at spec 1); amended by F-33 (G3 in spec 2a); amended by spec 4 grilling round 1 (one spec, builtin coverage at spec 4's gate, GATE's check 2 host-facing list and spec rows 2 and 4); amended by spec 5 round 1 (the 5a/5b split, F-76's census rows, `$__prog_args`, ADR-0054's hand-out); amended by spec 3 grilling rounds 1–2 (3a and 3b, G5 in 3a, spec 4 beside 3b) and F-61 (`debug` and `stderr` in 3a); amended by F-78 (`malformed-v1`'s minimum, spec 5a tickets); amended by spec 5 round 2 (5b has 4 tickets)
+Status: accepted (2026-11-11, owner, issue #17 "Final gate and the milestone's specs"); makes `docs/GATE.md` final; amends ADR-0014 (when the fallbacks fire), ADR-0019 (when G4 enters the ratchet, the 1 KB differential cases) and ADR-0020 (deviation seeds, generator minimums, `compile.txt` modes, `values-v1`); records F-17 and F-18; amends `docs/WORKFLOW.md` §2 (Phase 0 ends with the first spec ready for `/grill-with-docs`); amended by F-19 (spec 1 grilling: the API slice and the last ticket's measurements); amended by F-27 (both fallbacks fired at spec 1); amended by F-33 (G3 in spec 2a); amended by spec 4 grilling round 1 (one spec, builtin coverage at spec 4's gate, GATE's check 2 host-facing list and spec rows 2 and 4); amended by spec 5 round 1 (the 5a/5b split, F-76's census rows, `$__prog_args`, ADR-0054's hand-out); amended by spec 3 grilling rounds 1–2 (3a and 3b, G5 in 3a, spec 4 beside 3b) and F-61 (`debug` and `stderr` in 3a); amended by F-78 (`malformed-v1`'s minimum, spec 5a tickets); amended by spec 5 round 2 (5b has 4 tickets); amended by spec 7 round 1 (one spec of 15 tickets and #100, beside spec 6; grilling-adviser for the owner under the delegation of 2026-11-14)
 
 Facts marked "jq-ref" were observed on 1.8.2 by the adviser (issue #17 round 1 and the ADR
 review). Each rule says whether it is the owner's answer or the architect's choice.
@@ -213,3 +213,15 @@ Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026
   use and `needsWholeDocument`; host `stream()` with its fallback, DEVIATIONS' `test:` rows and
   `streamAllocationFlat` (`docs/wayfinder/spec-5-grilling.md`, "Round 2").
 - 5b depends on 3b only through the holds-at-run ticket, which S3b.3 blocks.
+
+## Amendment (spec 7 round 1)
+
+Proposed 2026-11-14, grilling-adviser for the owner under the delegation of 2026-11-14
+(`docs/wayfinder/spec-7-grilling.md`, questions 1 and 12).
+
+Spec 7 is one spec: 15 tickets and #100. It may start once 5b is on main, beside spec 6, on its
+own integration branch under the three-writer cap. It merges main after spec 6 lands, before its
+check-7 ticket closes and before HANDOVER.
+
+Cost: spec 7's builds pause during spec 6's JMH sessions, and a spec 6 fast path in the Resolver
+can conflict with the resolution ticket.
