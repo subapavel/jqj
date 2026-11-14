@@ -174,10 +174,11 @@ owner's review on 2026-11-16. The 15 tickets (12 class C, 3 class B) are approve
 the blocking graph is unchanged. The architect re-ran every jq value on jq-ref 1.8.2.
 1. **Conflicts.** The 40-line cap binds hand-backs, not the drafts. A2's `[paths]` witness is
    S3a.7's red and a required case from S3a.8 on. The query-core `paths` interface is neither
-   S3a.1's nor S3a.2's: S3a.2 builds only jq-core `Paths` behind the natives, S3a.5 adds what
-   PathOf calls and S3a.8 what Update calls (ADR-0048, ADR-0034). S3a.3 stays class B (a host SPI
-   method, ADR-0017, F-61). The F-59 cases are S3a.6's red. The four F-59 rows are written into
-   `DEVIATIONS.md` now; S3a.6 adds only their cases. The `. + [input]` licence fact goes to 5a.
+   S3a.1's nor S3a.2's: S3a.2 builds only jq-core `Paths` behind the natives, S3a.5 adds what PathOf
+   calls and S3a.8 what Update calls (ADR-0048, ADR-0034). S3a.3 stays class B (a host SPI method,
+   ADR-0017, F-61). The F-59 cases are S3a.6's red. The four F-59 rows are written into
+   `DEVIATIONS.md` now; S3a.6 adds only their cases. The `. + [input]` licence fact goes to spec
+   5b's hold-run ticket (spec 5 round 2, question 10).
 2. **Proposals.** `keepsArgs` is true for getpath, setpath, delpaths, `debug` and `stderr`;
    `reads` is false for all five (F-79; spec 5 round 2, grilling-adviser for the owner under the
    delegation of 2026-11-14). S3a.9's 64 MiB stands. The census has 110 cases, all 3a's: `debug`
