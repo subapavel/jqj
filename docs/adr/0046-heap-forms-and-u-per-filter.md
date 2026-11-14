@@ -28,14 +28,23 @@ of the recursion-depth budget?
 - **U per filter** (F-55). The release constants are the bytes per unit `b` and a guard reserve.
   Each is taken at the worst of `-Xint` (the deterministic cold column), C1 only and warm, in fresh
   agent-free JVMs, on 512 KiB, 1 MiB and a virtual thread. A compile stores `D_f`, the filter's
-  deepest call-free nesting. A run derives `U_f = (stackBytes − reserve) / b − D_f` at its start,
-  because `stackBytes` can be set per run (ADR-0017).
+  deepest call-free nesting, per backend. A run derives `U_f = (stackBytes − reserve) / b − D_f` at
+  its start, because `stackBytes` can be set per run (ADR-0017). `b` and the reserve are each the
+  largest over every calibrated cell (shape × tier × stack size × thread kind × backend); a re-run
+  that adds cells can only raise them, so `U_f` only falls. `stackBytes` at or below
+  `reserve + b·D_f`, 0 included, is a public setting under which main and every body run on the
+  driver; the engine still needs the reserve's stack for the driver and natives, so the reserve is
+  published in `bench/RESULTS.md` and the `Limits` javadoc. `stackBytes` is not a budget, so 0
+  means zero bytes, never unlimited.
 - **Where the stack is tested**: in-suite tests run on a thread of at least 4× the declared
   `stackBytes`. The 512 KiB edges run only in fresh child JVMs (F-44, F-49). The calibration's full
   matrix runs at the spec gate and nightly; its `-Xint` 512 KiB column runs in the ticket gate.
 - **The recursion-depth budget counts** one per live PLAIN or RECURSIVE `Call` and one per
-  real-closure `ParamCall`, on the stack and on the driver together. A tail jump replaces its
-  activation (ADR-0047). An inlined or specialised call counts nothing. A mode difference that ends
+  real-closure `ParamCall` (a call activation), on the stack and on the driver together. A tail
+  jump replaces its activation (ADR-0047). A call counts nothing only when no node is left at run
+  time: a call the Resolver inlined, or a `ParamCall` that specialisation replaced by the
+  argument's body; the outside call into a specialised copy and the copy's own non-tail calls
+  count. A mode difference that ends
   in a termination is no disagreement (ADR-0020). Required: `0|until(.>=10000000; .+1)` →
   `10000000` (jq-ref, 3.4 s).
 - **Not decided here**: the embedded default of 4 194 304 (ADR-0017) waits for the calibration

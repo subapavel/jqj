@@ -10,7 +10,8 @@ node keys that value-equal records cannot give, and a recursive body needs slots
 ## Decision
 
 - **The Resolver keeps 2a's inlining.** A call into a recursive group becomes a `Call`, and so does
-  a call over the inline cap or past `MAX_IR_DEPTH` (F-54). Every other call is inlined as ADR-0040
+  a call over the inline cap, past `MAX_IR_DEPTH` or at the 512th nested expansion (F-54). Every
+  other call is inlined as ADR-0040
   says. The callees are lifted into `Program(main, List<Function>)` in query-core. A `Function`'s
   captured variables and enclosing closure parameters come after its own parameters (ADR-0006).
   `Program` and `Function` are not node kinds.

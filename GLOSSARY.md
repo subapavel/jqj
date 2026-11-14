@@ -85,7 +85,9 @@ The main filter, a live definition's body, or a closure argument of a jq-defined
 _Avoid_: scope (that is lexical).
 
 **Inline cap**:
-How many nodes one compile may lower from definition bodies and closures; past it, the filter is a Stub in spec 2a (ADR-0040).
+How many nodes one compile may lower from definition bodies and closures; past it, past the IR depth
+bound or at the 512th nested expansion, a call is a PLAIN call to a function lowered once (ADR-0040,
+F-54).
 
 **Value parameter**:
 A `$name` parameter: it wraps the body in `name as $name | …` and binds per result, and `name` stays a filter parameter (ADR-0040).
@@ -152,7 +154,9 @@ A key equal, by its decoded bytes, to an earlier key of the same object; jq keep
 _Avoid_: duplicate key (in new text).
 
 **Fold**:
-Computing an operator on constant operands while parsing, as jq's `constant_fold` does; one that raises folds to no constant, and its error comes at run time (ADR-0034, #65).
+Computing an operator on constant operands while parsing, as jq's `constant_fold` does; one that
+raises folds to no constant, and its error comes at run time (ADR-0034, #65). There is no IR fold
+(F-57).
 _Avoid_: constant propagation.
 
 **Object merge**:
@@ -252,7 +256,7 @@ A built object whose keys are made at run time, so it keeps its own key list ins
 _Avoid_: dictionary, map object, hash object
 
 **Ownership marker**:
-The `owner` field of a built array, object or string: the running activation (a `reduce` or
+The `owner` field of a built array, object or string: the owning activation (a `reduce` or
 `foreach` run, or an update) that made the value. A write in place needs it to match and the site
 to hold the in-place licence (a string append and an update's own rebuild need the match only;
 ADR-0022).
@@ -323,8 +327,8 @@ _Avoid_: n-ary Bind
 A node that, by its kind alone, gives one result at most and never breaks out: Identity, Const,
 Var, an Intrinsic of a one-result call form, or a Pipe, If, Bind or Binds made of tail emitters. A
 Binds takes a tail value's result, and an If a tail condition's, before the rest runs, so the stack
-does not grow with them. It is a local fast path of the push form, not ADR-0008's value form
-(ADR-0043).
+does not grow with them. It is a local fast path of the push form and the floor beneath ADR-0008's
+value form in both compile modes (ADR-0043, ADR-0047).
 _Avoid_: tail call (a call that runs as a jump), value form
 
 **Last read**:
@@ -350,7 +354,8 @@ touched fields.
 
 **Cardinality**:
 How many results an IR node can produce for one input: none, exactly one, at most one, or many. An
-error or a break is not a result.
+error or a break is not a result. One and at most one also promise that nothing runs after the
+result (F-56).
 
 **Backend**:
 What turns IR into something that runs. There are two.
@@ -367,7 +372,48 @@ _Avoid_: compiler (the whole pipeline is the compiler), JIT (that is HotSpot's)
 The immutable, thread-safe result of compiling a filter, whichever backend made it.
 _Avoid_: program, plan
 
+**Specialisation cap**:
+How many nodes specialisation may copy in one compile, `SPECIALISE_CAP`; a group and its argument
+tuple are copied whole or not at all (ADR-0045).
+_Avoid_: inline cap.
+
 ## Running
+
+**Activation**:
+One run of a construct that holds state for that run. Name the sense where two meet: a **call
+activation** is one live `Call` or real-closure `ParamCall`, which the recursion-depth budget counts
+and a tail jump replaces (ADR-0046); an **owning activation** is a `reduce`, `foreach` or update run
+(ADR-0022); a **label activation** is ADR-0008's.
+_Avoid_: invocation, call instance, "level" for the budget's count, bare "activation" where two
+senses meet.
+
+**Frame**:
+The slot cells one call activation owns while it runs: bind slots, value and closure parameters,
+label tokens and hidden owner slots (ADR-0045). The JVM's is always a **Java frame**.
+_Avoid_: stack frame, activation record, environment, locals, heap frame, slot array.
+
+**Heap form**:
+The resumable state of one node kind on the trampoline, so that any body can run there (ADR-0046).
+_Avoid_: continuation, heap frame.
+
+**Unit limit**:
+The stack units one filter may use in one run, `U_f`: the declared stack bytes less the guard
+reserve, in units, less the filter's call-free depth (ADR-0046). At or below zero, main and every
+body run on the trampoline.
+_Avoid_: K.
+
+**Call-free depth**:
+The deepest nesting, in stack units, that a filter's main or any body reaches without a call,
+`D_f`; it is stored with the compiled filter, per backend (ADR-0046).
+
+**Pending jump**:
+What a tail call leaves in the run state (callee, input, value arguments and closure arguments)
+for its function's entry loop to take and re-enter with (ADR-0047).
+
+**Value form**:
+Running a node as `eval`, which returns its one result or none; only the optimised compile uses it,
+where cardinality is at most one and the node may not break out (ADR-0047).
+_Avoid_: tail emitter.
 
 **Emit**:
 To hand one result to the next stage. The answer says whether to keep going.
@@ -415,7 +461,8 @@ budget, reads the clock against the deadline, checks the thread interrupt and gr
 ticks.
 
 **Stack units**:
-The Java stack a call is charged for. A call over the limit runs on the trampoline.
+The Java stack a call is charged for. A call at the filter's unit limit for the run goes to the
+trampoline (ADR-0046).
 
 **Trampoline**:
 The interpreter's resumable loop that runs recursion beyond the stack-unit limit on the heap. It
