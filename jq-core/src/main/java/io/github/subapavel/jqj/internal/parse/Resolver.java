@@ -163,9 +163,11 @@ public final class Resolver {
   static final int PIPE_CHAIN = MAX_IR_DEPTH / 8;
 
   /**
-   * ADR-0043: the most nested Binds a construct lowers to; past it the construct is one Binds, a level however wide,
-   * its values in the order the nested form runs them. {@link #PIPE_CHAIN}, so a construct below it keeps the nested
-   * form and its pins.
+   * ADR-0043: the most nested Binds a construct lowers to: an object, an interpolation, a pattern, the value parameters
+   * of an expansion, or a run of one arithmetic or comparison operator ({@link #binds}). Past it the construct is one
+   * Binds, a level however wide, its values in the order the nested form runs them. It counts Binds, not parts: a term,
+   * key or value passed as it is takes none. {@link #PIPE_CHAIN}, so a construct below it keeps the nested form and its
+   * pins.
    */
   static final int BIND_RUN = PIPE_CHAIN;
 
@@ -914,12 +916,13 @@ public final class Resolver {
 
   /**
    * {@code top}, a {@link #chained} operator, and the chained operators down its left operands, by a loop (#86): the
-   * parser builds a left-associative chain in a loop, as long as the filter. Each operator lowers as its own {@link
-   * #lower} would, outermost first: it spends a node and a level. An arithmetic one whose operands fold ({@link
-   * ConstantKey#constant}) ends the chain: it is the term the chain starts from, and {@link #lower} makes it that
-   * Const. That term is lowered next, then each operator's right operand from the innermost operator out, each inside the levels of the operators
-   * around it, so the IR, its slots and its ticks are those of the operators lowered one by one. {@link #built} has
-   * spent {@code top}'s node and level.
+   * parser builds a left-associative chain in a loop, as long as the filter. Each operator spends a node, as its own
+   * {@link #lower} would; {@link #built} has spent {@code top}'s and its level. An arithmetic one whose operands fold
+   * ({@link ConstantKey#constant}) ends the chain: it is the term the chain starts from, and {@link #lower} makes it
+   * that Const. That term is lowered first, then the chain is lowered run by run from the innermost operator out, a run
+   * being the operators of one {@link BinOp} next to each other ({@link #run}). No operator but {@code top} adds a level
+   * while its operands are lowered: the chain adds no frame to the lowering's recursion, and the measure of the whole IR
+   * ({@link #within}) stubs a chain whose nested runs are too deep (#94).
    */
   private Node operators(Ast.Binary top) {
     if (folded(top) instanceof Const whole) {
@@ -929,19 +932,150 @@ public final class Resolver {
     chain.add(top);
     while (chain.getLast().left() instanceof Ast.Binary next && chained(next.op()) && folded(next) == null) {
       spend();
-      if (++levels > MAX_IR_DEPTH) {
-        throw TOO_DEEP;
-      }
       chain.add(next);
     }
     Node node = lower(chain.getLast().left());
-    for (int i = chain.size() - 1; i >= 0; i--) {
-      node = operator(chain.get(i), node, lower(chain.get(i).right()));
-      if (i > 0) {
-        levels--;
+    for (int end = chain.size(); end > 0; ) {
+      int start = end - 1;
+      while (start > 0 && chain.get(start - 1).op() == chain.get(end - 1).op()) {
+        start--;
       }
+      node = run(chain.subList(start, end), node);
+      end = start;
     }
     return node;
+  }
+
+  /**
+   * The {@code operators} of one {@link BinOp}, outermost first, on {@code left}, the innermost one's lowered left
+   * operand: each right operand is lowered from the innermost operator out, then the run is built (ADR-0043). A {@code
+   * //} is a run's only operator, the outermost of its chain, and nests to the right ({@link #definedOr}). A run of
+   * {@code and} or {@code or} of more than {@link #PIPE_CHAIN} terms is joined balanced ({@link #tree}), both being
+   * associative under ADR-0037's lowering; one of an arithmetic or comparison operator whose nested form has more than
+   * {@link #BIND_RUN} Binds is one Binds ({@link #binds}); any other run is its operators lowered one by one, as {@link
+   * #operator} lowers each.
+   */
+  private Node run(List<Ast.Binary> operators, Node left) {
+    BinOp op = operators.getFirst().op();
+    if (op == BinOp.ALTERNATIVE) {
+      return definedOr(operators.getFirst(), left);
+    }
+    List<Node> terms = new ArrayList<>(operators.size() + 1);
+    terms.add(left);
+    for (int i = operators.size() - 1; i >= 0; i--) {
+      terms.add(lower(operators.get(i).right()));
+    }
+    boolean truth = op == BinOp.AND || op == BinOp.OR;
+    if (truth && terms.size() > PIPE_CHAIN) {
+      return tree(op, terms, 0, terms.size());
+    }
+    if (!truth && nestedBinds(terms) > BIND_RUN) {
+      return binds(operators, terms);
+    }
+    Node node = left;
+    for (int j = 1; j < terms.size(); j++) {
+      node = operator(operators.get(operators.size() - j), node, terms.get(j));
+    }
+    return node;
+  }
+
+  /**
+   * The Binds a run of an arithmetic or comparison operator on {@code terms}, its leftmost first, has in its nested
+   * form ({@link #applied}): one for each operator's result but the outermost one's, and one for each term that is not
+   * passed as it is ({@link #passed}).
+   */
+  private static int nestedBinds(List<Node> terms) {
+    int binds = terms.size() - 2;
+    for (Node term : terms) {
+      if (!passed(term)) {
+        binds++;
+      }
+    }
+    return binds;
+  }
+
+  /**
+   * The run of an arithmetic or comparison operator on {@code terms}, its leftmost first, as one Binds (ADR-0043), in
+   * the order its nested form runs: the right operands from the outermost operator in, then the leftmost term, then
+   * each operator's result from the innermost out; the outermost operator is the body. A term that is passed as it is
+   * takes no value, as in the nested form.
+   */
+  private Node binds(List<Ast.Binary> operators, List<Node> terms) {
+    int n = operators.size();
+    List<Node> values = new ArrayList<>();
+    List<Integer> bound = new ArrayList<>();
+    Node[] rights = new Node[n];
+    for (int i = 0; i < n; i++) {
+      rights[i] = value(terms.get(n - i), values, bound);
+    }
+    Node result = value(terms.getFirst(), values, bound);
+    for (int i = n - 1; i > 0; i--) {
+      result = value(call(operators.get(i), result, rights[i]), values, bound);
+    }
+    return new Binds(here(operators.getFirst().source()), values, bound, call(operators.getFirst(), result, rights[0]));
+  }
+
+  /**
+   * The argument that reads {@code operand}: {@code operand} itself when it is {@link #passed}; else a Var of a new
+   * slot, {@code operand} added to {@code values} and the slot to {@code bound}.
+   */
+  private Node value(Node operand, List<Node> values, List<Integer> bound) {
+    int slot = operandSlot(operand);
+    if (slot != NO_SLOT) {
+      values.add(operand);
+      bound.add(slot);
+    }
+    return argument(operand, slot);
+  }
+
+  /** The call of {@code b}'s operation on the atomic arguments {@code left} and {@code right}. */
+  private Intrinsic call(Ast.Binary b, Node left, Node right) {
+    return new Intrinsic(here(b.source()), operation(b.op()), List.of(left, right));
+  }
+
+  /**
+   * {@code top}, a {@code //}, on {@code first}, its lowered left operand, and the {@code //} down its right operands,
+   * by a loop: the parser nests a run of them to the right in a loop, as long as the filter. Each operator spends a
+   * node, as its own {@link #lower} would; {@link #built} has spent {@code top}'s. The terms are lowered in their order,
+   * then a run of at most {@link #PIPE_CHAIN} of them nests to the right as the parser built it, and a longer one is
+   * joined balanced ({@link #tree}): Alt is associative, as it emits each truthy left result and runs its right side
+   * only if there was none, catching nothing (ADR-0037).
+   */
+  private Node definedOr(Ast.Binary top, Node first) {
+    List<Ast.Binary> run = new ArrayList<>();
+    run.add(top);
+    List<Node> terms = new ArrayList<>();
+    terms.add(first);
+    Ast right = top.right();
+    while (right instanceof Ast.Binary next && next.op() == BinOp.ALTERNATIVE) {
+      spend();
+      run.add(next);
+      terms.add(lower(next.left()));
+      right = next.right();
+    }
+    terms.add(lower(right));
+    if (terms.size() > PIPE_CHAIN) {
+      return tree(BinOp.ALTERNATIVE, terms, 0, terms.size());
+    }
+    Node node = terms.getLast();
+    for (int i = run.size() - 1; i >= 0; i--) {
+      node = operator(run.get(i), terms.get(i), node);
+    }
+    return node;
+  }
+
+  /**
+   * The terms {@code [from, to)}, at least one, joined by {@code op}, {@code and}, {@code or} or {@code //}, as a
+   * balanced tree, each half one operand (ADR-0043); the left half takes the middle term.
+   */
+  private Node tree(BinOp op, List<Node> terms, int from, int to) {
+    if (to - from == 1) {
+      return terms.get(from);
+    }
+    int mid = from + (to - from + 1) / 2;
+    Node left = tree(op, terms, from, mid);
+    Node right = tree(op, terms, mid, to);
+    return joined(op, here(new Source(left.source().start(), right.source().end())), left, right);
   }
 
   /** The Const of {@code b} when it is an arithmetic operator whose operands fold (#65), or null. */
@@ -951,15 +1085,26 @@ public final class Resolver {
 
   /** {@code b} on its lowered operands, {@code l op r}: the call of its operation, an If or an Alt. */
   private Node operator(Ast.Binary b, Node left, Node right) {
-    Source at = here(b.source());
     return switch (b.op()) {
+      case AND, OR, ALTERNATIVE -> joined(b.op(), here(b.source()), left, right);
+      default -> applied(here(b.source()), operation(b.op()), left, right);
+    };
+  }
+
+  /** {@code l op r} at {@code at} for {@code op} {@code and}, {@code or} or {@code //}: an If or an Alt. */
+  private Node joined(BinOp op, Source at, Node left, Node right) {
+    return switch (op) {
       // {@code l and r} (ADR-0037): {@code if l then (if r then true else false) else false}, the left side outer.
       case AND -> when(at, left, when(here(right.source()), right, bool(at, true), bool(at, false)), bool(at, false));
       // {@code l or r} (ADR-0037): {@code if l then true else (if r then true else false)}, the left side outer.
       case OR -> when(at, left, bool(at, true), when(here(right.source()), right, bool(at, true), bool(at, false)));
-      case ALTERNATIVE -> new Alt(at, left, right, JqTruth.TRUTHY);
-      default -> applied(at, ConstantKey.arithmetic(b.op()) != null ? ConstantKey.arithmetic(b.op()) : ConstantKey.comparison(b.op()), left, right);
+      default -> new Alt(at, left, right, JqTruth.TRUTHY);
     };
+  }
+
+  /** The operation of an arithmetic or comparison operator. */
+  private static Operation operation(BinOp op) {
+    return ConstantKey.arithmetic(op) != null ? ConstantKey.arithmetic(op) : ConstantKey.comparison(op);
   }
 
   /**
@@ -978,7 +1123,12 @@ public final class Resolver {
 
   /** A new slot for an operand, or {@link #NO_SLOT} for an Identity, a Const or a Var, each passed as it is. */
   private int operandSlot(Node operand) {
-    return operand instanceof Identity ? NO_SLOT : slotFor(operand);
+    return passed(operand) ? NO_SLOT : slots++;
+  }
+
+  /** Whether an operand is passed as it is, an Identity, a Const or a Var, taking no slot and no Bind. */
+  private static boolean passed(Node operand) {
+    return operand instanceof Identity || operand instanceof Const || operand instanceof Var;
   }
 
   /** {@code not} (ADR-0037, design approval C2): {@code if . then false else true}. */
