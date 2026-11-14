@@ -248,6 +248,50 @@ null
 empty
 null
 
+.?
+null
+null
+
+tostring?
+1
+"1"
+
+%%FAIL
+..?
+jq: error: any text
+
+. as $x | $x?
+null
+null
+
+.a??
+null
+null
+
+."a"?
+null
+null
+
+"a"?
+null
+"a"
+
+."a\(1)"?
+null
+null
+
+if . then 1 end?
+null
+null
+
+[.[if . then 0 else 1 end:2]]?
+[1,2,3]
+[[1,2]]
+
+%%FAIL
+?
+jq: error: syntax error, unexpected '?', expecting end of file at <top-level>, line 1, column 1:
+
 CASES
 out=$tmp/fixture.tsv
 CENSUS_TESTS=$fx java "$tool" write "$out" > "$tmp/write.log" 2>&1
@@ -313,7 +357,21 @@ check "? after an object construction is a try" "$(at "$out" x.test:212)" "2a S2
 check "? after an index is navigation" "$(at "$out" x.test:216)" "2a S2a.13"
 check "? after a field is navigation" "$(at "$out" x.test:220)" "2a S2a.13"
 check "empty is construction's, built by #64 (#75)" "$(at "$out" x.test:224)" "2a S2a.14"
-check "every fixture case has a line" "$(grep -vc '^#' "$out")" 56
+check "... and select reaches it" "$(tix "$out" x.test:25 | grep -c 'S2a\.14')" 1
+# jq's parser.y: Term '?' is a try on every term; only a field, '.' String and a postfix bracket take an optional '?'.
+check "? after . is a try" "$(at "$out" x.test:227)" "2a S2a.18"
+check "? after a call is a try" "$(tix "$out" x.test:231)" "S2a.18,S2a.22"
+check "? after .. is a try (a %%FAIL case's needs are its tokens)" "$(at "$out" x.test:235)" "2a S2a.18"
+check "? after a variable is a try" "$(tix "$out" x.test:239)" "S2a.17,S2a.18"
+check "a second ? after a field is a try" "$(tix "$out" x.test:243)" "S2a.13,S2a.18"
+check "? after . and a string is navigation" "$(tix "$out" x.test:247)" "S2a.11,S2a.13"
+check "? after a bare string is a try" "$(tix "$out" x.test:251)" "S2a.11,S2a.18"
+check "? after . and an interpolated string is navigation" "$(tix "$out" x.test:255)" "S2a.11,S2a.13,S2a.17"
+check "? after end is a try" "$(awk -F'\t' '$4 == "x.test:259" { print $6 }' "$out")" "if term?"
+check "end before : in a postfix bracket closes its if: the outer ] builds an array" \
+  "$(awk -F'\t' '$4 == "x.test:263" { print $6 }' "$out")" "if term?"
+check "%%FAIL a leading ?: the parser" "$(at "$out" x.test:267)" "2a S2a.12"
+check "every fixture case has a line" "$(grep -vc '^#' "$out")" 67
 has "why names the deciding builtin" "_match_impl" "$out"
 CENSUS_TESTS=$fx java "$tool" verify "$out" > "$tmp/verify.log" 2>&1
 check "fixture: the list is reproduced" "$?" 0
@@ -341,6 +399,7 @@ check "jq.test's bad escape is the lexer's (#61)" "$(at "$list" jq.test:62)" "2a
 check "jq.test's BOM case is spec 1's" "$(awk -F'\t' '$1 == "jq.test#1ce903e38afb" { print $2 }' "$list")" 1
 check "jq.test's (.a, .a)? needs try (#64, #75)" "$(at "$list" jq.test:1452)" "2a S2a.18"
 check "jq.test's [[…]]? needs try (#64, #75)" "$(at "$list" jq.test:1456)" "2a S2a.18"
+check "man.test's tonumber? needs try (#91)" "$(tix "$list" man.test:835)" "S2a.13,S2a.14,S2a.18,S2a.22"
 missing=0
 while IFS=$'\t' read -r id _; do
   case "$id" in '#'*|'') continue ;; esac

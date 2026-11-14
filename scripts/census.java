@@ -25,8 +25,8 @@
 //   lowering too (string interpolation calls _plus, label calls _equal), and the operators come from the tokens.
 // - the tokens of the program (lex): the constructs of spec 2a by ticket, and the module directives (spec 7). jq
 //   folds constants (1 + 2 is LOADK 3), so the constructs cannot come from the disassembly. A comma between an
-//   object's pairs is construction's, any other the comma's; a '?' after a parenthesis or a construction is a try,
-//   any other optional navigation (#64's carries, #75).
+//   object's pairs is construction's, any other the comma's; a '?' after a field, after '.' and a string, or after
+//   the ']' of a postfix bracket is optional navigation, any other a try (jq's Term '?'; #64's carries, #75, #91).
 //
 // A case needing nothing beyond `.`, field access, `|` and parentheses is spec 1's. A spec-2a case's ticket is the
 // earliest S2a ticket (TICKETS order) that is, or transitively follows in BLOCKED_BY, every ticket the case needs;
@@ -626,6 +626,8 @@ public class census {
    */
   static final Set<String> TERM_KINDS = Set.of("dot", "field", "str", "var", "ident");
   static final Set<String> TERM_ENDS = Set.of("]", ")", "?");
+  /** The token of a string right after a '.', jq's '.' String: a field name. Any other string's text is '"'. */
+  static final Tok FIELD_STRING = new Tok("str", ".\"");
 
   static Lexed lex(String program) {
     List<Tok> toks = new ArrayList<>();
@@ -635,11 +637,12 @@ public class census {
     // The open brackets around each token, innermost first: "(", "{", "[" (an array), ".[" (a postfix bracket), "\(" (an
     // interpolation) and "if" (until its end). A comma whose innermost is "{" separates an object's pairs.
     Deque<String> open = new ArrayDeque<>();
-    // What each closing token closed: a '?' after the ']' of an array is a try, after an index navigation.
+    // What each closing token closed: a '?' after the ']' of a postfix bracket is navigation, after any other a try.
     String[] closed = new String[toks.size()];
     for (int k = 0; k < toks.size(); k++) {
       Tok tok = toks.get(k), prev = k > 0 ? toks.get(k - 1) : null, next = k + 1 < toks.size() ? toks.get(k + 1) : null;
-      boolean key = new Tok("op", ":").equals(next);
+      // A keyword before ':' directly in an object is a key ({if: 1}); elsewhere ':' is a slice's (.[0:if . then 1 end]).
+      boolean key = new Tok("op", ":").equals(next) && "{".equals(open.peek());
       switch (tok.kind() + " " + tok.text()) {
         case "op (", "op {" -> open.push(tok.text());
         case "op [" -> open.push(postfix(prev) ? ".[" : "[");
@@ -664,8 +667,7 @@ public class census {
           if (new Tok("kw", "def").equals(prev)) defs.add(tok.text());
         }
         case "kw" -> {
-          // A keyword before ':' is an object key ({if: 1}).
-          if (new Tok("op", ":").equals(next)) break;
+          if (key) break;
           switch (tok.text()) {
             case "as" -> needs.add(t("S2a.17", "as"));
             case "and", "or" -> needs.add(t("S2a.16", tok.text()));
@@ -680,10 +682,10 @@ public class census {
           switch (tok.text()) {
             case "," -> needs.add("{".equals(open.peek()) ? t("S2a.14", "{}") : t("S2a.13", ","));
             case "?" -> {
-              // After a parenthesis or a construction it is a try (jq's Term '?'); after navigation, optional navigation.
-              boolean term = prev != null && prev.kind().equals("op")
-                  && (prev.text().equals(")") || prev.text().equals("}") || "[".equals(closed[k - 1]));
-              needs.add(term ? t("S2a.18", "term?") : t("S2a.13", "?"));
+              // Optional navigation after a field, '.' String or a postfix bracket (parser.y's FIELD '?', '.' String '?',
+              // Term '[' … ']' '?'); after any other term a try (Term '?').
+              boolean nav = k > 0 && (prev.kind().equals("field") || prev.equals(FIELD_STRING) || ".[".equals(closed[k - 1]));
+              needs.add(nav ? t("S2a.13", "?") : t("S2a.18", "term?"));
             }
             case "[" -> needs.add(postfix(prev) ? t("S2a.13", ".[]") : t("S2a.14", "[]"));
             case "{" -> needs.add(t("S2a.14", "{}"));
@@ -742,8 +744,12 @@ public class census {
       }
     }
 
-    /** A string literal; each interpolation's tokens, ended by an interp-end token, come before the string's own token. */
+    /**
+     * A string literal; each interpolation's tokens, ended by an interp-end token, come before the string's own token,
+     * which is FIELD_STRING when the string follows a '.'.
+     */
     void string() {
+      boolean field = !out.isEmpty() && out.getLast().kind().equals("dot");
       Matcher m = STRING_PART.matcher(s);
       i++;
       while (i < s.length() && s.charAt(i) != '"') {
@@ -757,7 +763,7 @@ public class census {
         }
       }
       i++;
-      out.add(new Tok("str", "\""));
+      out.add(field ? FIELD_STRING : new Tok("str", "\""));
     }
   }
 
