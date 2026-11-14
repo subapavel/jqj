@@ -16,6 +16,11 @@
 # - runs/and-of-70-terms-false-between-generators: the false after the first (1,2) ends each of its two results, so
 #   the second (1,2) never runs: two results.
 # - runs/or-of-70-falsy-terms-with-generators: the first (1,2) gives true twice and the second never runs.
+# - runs/alternative-of-70-mixed-terms-in-jq-order: a // run of 70 terms, past PIPE_CHAIN so a balanced Alt (#94),
+#   of false, null, empty, field reads of null and (false, .k) before term 20, (false, 3), the first with a truthy
+#   result; after it error("never"), (1, 2), error("z") and a last "last". Only the terms' order decides the output:
+#   the terms in jq's order give 3; the right half first, the terms reversed, give "last", and an order that reaches
+#   an error or (1, 2) first gives that.
 #
 # Every case is required at #94 (oracle/src/test/resources/require/94.txt). The 20 000-part runs are pinned by jq-core
 # IrDepthTest. jq's -n is not built in jqj's command line yet, so a filter that ignores its input runs on stdin null.
@@ -54,4 +59,12 @@ case runs/or-of-70-falsy-terms-with-generators
 arg -c
 filter .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or (1,2) or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or (1,2) or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n or .f or .n
 stdin {"f":false,"n":null}\n
+end
+
+# alternative runs
+
+case runs/alternative-of-70-mixed-terms-in-jq-order
+arg -c
+filter false // null // empty // .k3 // (false, .k4) // false // null // empty // .k8 // (false, .k9) // false // null // empty // .k13 // (false, .k14) // false // null // empty // .k18 // (false, .k19) // (false, 3) // null // empty // .k23 // (false, .k24) // error("never") // null // empty // .k28 // (false, .k29) // false // null // empty // .k33 // (false, .k34) // false // null // empty // .k38 // (false, .k39) // false // null // empty // .k43 // (false, .k44) // false // null // empty // .k48 // (false, .k49) // (1, 2) // null // empty // .k53 // (false, .k54) // false // null // empty // .k58 // (false, .k59) // error("z") // null // empty // .k63 // (false, .k64) // false // null // empty // .k68 // "last"
+stdin null\n
 end

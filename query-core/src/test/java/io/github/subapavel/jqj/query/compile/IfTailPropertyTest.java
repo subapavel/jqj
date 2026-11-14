@@ -19,6 +19,7 @@ import io.github.subapavel.jqj.query.compile.RandomParts.Over;
 import io.github.subapavel.jqj.query.compile.RandomParts.Part;
 import io.github.subapavel.jqj.query.compile.RandomParts.Raise;
 import io.github.subapavel.jqj.query.compile.RandomParts.Tag;
+import io.github.subapavel.jqj.query.ir.Alt;
 import io.github.subapavel.jqj.query.ir.Bind;
 import io.github.subapavel.jqj.query.ir.Const;
 import io.github.subapavel.jqj.query.ir.If;
@@ -228,6 +229,44 @@ class IfTailPropertyTest {
       assertThat(chain.crashed()).as("seed %d, %s: whether the left-nested chain crashed (%s) on %s", seed, mode, chain, run).isFalse();
       Outcome balanced = outcome(balanced(run, 0, run.terms().size()), mode, run.steps(), run.stopAt());
       assertThat(balanced).as("seed %d, %s: outcome of the balanced tree of %s", seed, mode, run).isEqualTo(chain);
+    }
+  }
+
+  /** The right-nested Alt chain of the parser's right-associative {@code //} run: {@code t0 // (t1 // (t2 // …))}. */
+  static Node alternatives(AndOr run) {
+    Form form = Form.tail(ROOT + 1);
+    Node chain = run.terms().getLast().build(form);
+    for (int i = run.terms().size() - 2; i >= 0; i--) {
+      chain = new Alt(AT, run.terms().get(i).build(form), chain, AND_OR);
+    }
+    return chain;
+  }
+
+  /** The terms {@code [from, to)} of {@code run} joined balanced by Alt, each half one operand (#94). */
+  static Node balancedAlternatives(AndOr run, int from, int to) {
+    if (to - from == 1) {
+      return run.terms().get(from).build(Form.tail(ROOT + 1));
+    }
+    int middle = run.leftTakesTheMiddle() ? from + (to - from + 1) / 2 : (from + to) >>> 1;
+    return new Alt(AT, balancedAlternatives(run, from, middle), balancedAlternatives(run, middle, to), AND_OR);
+  }
+
+  /**
+   * #94 (ADR-0043 "// runs"): a {@code //} run built as a balanced Alt tree runs as the parser's right-nested chain
+   * does, Alt being associative (it emits each truthy left result, runs its right side only if there was none and
+   * catches nothing, ADR-0037): the same results in the same order, the same error or termination, the same answer to
+   * a sink that stops, and the same steps and bytes built, in both compile modes. The seeds' terms are the and/or
+   * property's ({@link #andOr}), which ignores its operator here.
+   */
+  @ParameterizedTest(name = "seed {0}")
+  @MethodSource("seeds")
+  void aBalancedAlternativeTreeRunsAsTheRightNestedChain(long seed) {
+    AndOr run = andOr(seed);
+    for (CompileMode mode : CompileMode.values()) {
+      Outcome chain = outcome(alternatives(run), mode, run.steps(), run.stopAt());
+      assertThat(chain.crashed()).as("seed %d, %s: whether the right-nested chain crashed (%s) on %s", seed, mode, chain, run).isFalse();
+      Outcome balanced = outcome(balancedAlternatives(run, 0, run.terms().size()), mode, run.steps(), run.stopAt());
+      assertThat(balanced).as("seed %d, %s: outcome of the balanced Alt tree of %s", seed, mode, run).isEqualTo(chain);
     }
   }
 

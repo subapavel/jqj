@@ -34,3 +34,10 @@ rc 0
 stdout true\ntrue\n
 stderr
 end
+
+case runs/alternative-of-70-mixed-terms-in-jq-order
+def 581010554748
+rc 0
+stdout 3\n
+stderr
+end

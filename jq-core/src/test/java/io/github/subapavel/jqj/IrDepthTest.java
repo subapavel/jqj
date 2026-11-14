@@ -1,12 +1,12 @@
 package io.github.subapavel.jqj;
 
 import static io.github.subapavel.jqj.Inlining.MARK;
+import static io.github.subapavel.jqj.Inlining.outcome;
 import static io.github.subapavel.jqj.Inlining.results;
 import static io.github.subapavel.jqj.Inlining.shown;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.subapavel.jqj.value.JqNull;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -377,7 +377,7 @@ class IrDepthTest {
   /**
    * The child JVM of {@link #aWideConstructOf20000PartsRunsOnA512KiBThreadInAFreshJvm}: on a 512 KiB thread each, it
    * compiles and runs each of {@link #widest} on null, prints {@code <name>: ran}, {@code <name>: a Stub} or what was
-   * thrown, and writes its {@link #outcome}, one result per line, to {@code <i>.out} in the directory {@code args[0]},
+   * thrown, and writes its {@link Inlining#outcome}, one result per line, to {@code <i>.out} in the directory {@code args[0]},
    * i the row's number from 0.
    */
   static final class WideChild {
@@ -397,27 +397,7 @@ class IrDepthTest {
     }
   }
 
-  /** The results of {@code filter} on null as compact JSON, then {@code error <value>} if the run raised. */
-  private static List<String> outcome(String filter) {
-    List<String> outcome = new ArrayList<>();
-    try {
-      Inlining.ENGINE
-          .compile(filter)
-          .run(
-              JqNull.NULL,
-              RunBudgets.NONE,
-              v -> {
-                outcome.add(v.toJson());
-                return true;
-              },
-              Inlining.ENGINE.newWorkspace());
-    } catch (JqFilterException e) {
-      outcome.add("error " + e.value().toJson());
-    }
-    return outcome;
-  }
-
-  /** {@link #outcome} of {@code filter} on a 16 MiB thread; what else the run threw fails the test with it as the cause. */
+  /** {@link Inlining#outcome} of {@code filter} on a 16 MiB thread; what else the run threw fails the test with it as the cause. */
   private static List<String> outcomeOnA16MiBThread(String filter) throws InterruptedException {
     AtomicReference<List<String>> got = new AtomicReference<>();
     Throwable thrown = on(LARGE, () -> got.set(outcome(filter)));
