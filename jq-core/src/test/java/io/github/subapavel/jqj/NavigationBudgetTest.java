@@ -276,12 +276,12 @@ class NavigationBudgetTest {
 
   @Test
   void keysChargesItsProofEachKeyAndItsSort() {
-    // keys_unsorted's ticks and one per compare of the sort for each started KiB of the shorter key (Keys, #72). The sort
-    // does not change with #85: on 25ef36c keys takes 282 and keys_unsorted 230, so these 20 keys sort in 52 compares.
-    // 41 + 52 = 93, and 42 + 52 = 94 with k0 repeated (the sort sees the same 20 keys). jq-ref 1.8.2, observed
-    // 2026-11-13: keys gives ["k0","k1","k10",…,"k19","k2",…,"k9"] on both.
+    // keys_unsorted's ticks and one per compare of the sort for each started KiB of the shorter key (Keys, #72). jqj's
+    // merge sort (F-48, #103) sorts these 20 keys in 56 compares (TimSort, before #103, in 52): 41 + 56 = 97, and
+    // 42 + 56 = 98 with k0 repeated (the sort sees the same 20 keys). jq-ref 1.8.2, observed 2026-11-13: keys gives
+    // ["k0","k1","k10",…,"k19","k2",…,"k9"] on both.
     String sorted = keyArray(0, 1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 3, 4, 5, 6, 7, 8, 9);
-    assertAll(() -> assertExactSteps("keys", TWENTY_KEYS, 93, sorted), () -> assertExactSteps("keys", REPEATED, 94, sorted));
+    assertAll(() -> assertExactSteps("keys", TWENTY_KEYS, 97, sorted), () -> assertExactSteps("keys", REPEATED, 98, sorted));
   }
 
   /** {@code [{"key":"k0","value":v0},…]} for {@link #memberValues}. */

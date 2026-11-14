@@ -65,38 +65,38 @@ class LexicalErrorTest {
 
   @Test
   void noStubHidesALexicalError() {
-    // ADR-0032: the errors are thrown before resolution, so no Stub hides one; .[0] stays a Stub until #63. jq-ref
-    // 1.8.2, observed 2026-11-12: both texts -> rc 3, this one block, then "jq: 1 compile error".
+    // ADR-0032: the errors are thrown before resolution, so no Stub hides one; .. is a Stub until spec 2b, before the
+    // bad escape and after it. jq-ref 1.8.2, observed 2026-11-14: both texts -> rc 3, this one block, then "jq: 1
+    // compile error".
     JqCompileException before =
         assertThatExceptionOfType(JqCompileException.class)
-            .as("compile of \"\\v\" | .[0]")
-            .isThrownBy(() -> ENGINE.compile("\"\\v\" | .[0]"))
+            .as("compile of \"\\v\" | ..")
+            .isThrownBy(() -> ENGINE.compile("\"\\v\" | .."))
             .actual();
     assertThat(before.blocks())
-        .as("blocks of \"\\v\" | .[0]")
+        .as("blocks of \"\\v\" | ..")
         .containsExactly(
             "jq: error: Invalid escape at line 1, column 4 (while parsing '\"\\v\"') at <top-level>, line 1, column 2:\n"
-                + "    \"\\v\" | .[0]\n"
+                + "    \"\\v\" | ..\n"
                 + "     ^^");
-    assertThat(before.line()).as("line of \"\\v\" | .[0]").isEqualTo(1);
-    assertThat(before.column()).as("column of \"\\v\" | .[0]").isEqualTo(2);
+    assertThat(before.line()).as("line of \"\\v\" | ..").isEqualTo(1);
+    assertThat(before.column()).as("column of \"\\v\" | ..").isEqualTo(2);
 
     JqCompileException after =
         assertThatExceptionOfType(JqCompileException.class)
-            .as("compile of .[0] | \"\\v\"")
-            .isThrownBy(() -> ENGINE.compile(".[0] | \"\\v\""))
+            .as("compile of .. | \"\\v\"")
+            .isThrownBy(() -> ENGINE.compile(".. | \"\\v\""))
             .actual();
     assertThat(after.blocks())
-        .as("blocks of .[0] | \"\\v\"")
+        .as("blocks of .. | \"\\v\"")
         .containsExactly(
-            "jq: error: Invalid escape at line 1, column 4 (while parsing '\"\\v\"') at <top-level>, line 1, column 9:\n"
-                + "    .[0] | \"\\v\"\n"
-                + "            ^^");
-    assertThat(after.line()).as("line of .[0] | \"\\v\"").isEqualTo(1);
-    assertThat(after.column()).as("column of .[0] | \"\\v\"").isEqualTo(9);
+            "jq: error: Invalid escape at line 1, column 4 (while parsing '\"\\v\"') at <top-level>, line 1, column 7:\n"
+                + "    .. | \"\\v\"\n"
+                + "          ^^");
+    assertThat(after.line()).as("line of .. | \"\\v\"").isEqualTo(1);
+    assertThat(after.column()).as("column of .. | \"\\v\"").isEqualTo(7);
 
-    // Contrast: with no lexical error an unbuilt construct still ends in its Stub. #63 built .[0], so the contrast moved
-    // to .., a Stub until spec 2b (jq-ref -c '..' on [1] -> [1] 1, CompileTest).
+    // Witness: with no lexical error .. ends in its Stub (jq-ref -c '..' on [1] -> [1] 1, CompileTest).
     assertThatExceptionOfType(JqCompileException.class)
         .as("compile of ..")
         .isThrownBy(() -> ENGINE.compile(".."))

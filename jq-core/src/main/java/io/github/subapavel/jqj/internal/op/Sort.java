@@ -38,6 +38,8 @@ import io.github.subapavel.jqj.query.run.RunState;
 import io.github.subapavel.jqj.value.JqArray;
 import io.github.subapavel.jqj.value.JqNull;
 import io.github.subapavel.jqj.value.JqValue;
+import java.util.Arrays;
+import java.util.Comparator;
 
 /**
  * jq 1.8.2's natives that order an array (#73; jq-ref, recorded: diff/sort.rec): {@code sort}, {@code unique}, {@code
@@ -182,19 +184,25 @@ public final class Sort {
     return entries;
   }
 
-  /**
-   * {@code entries} in jq's value order of their keys, stable: a bottom-up merge sort, whose every merge takes the left
-   * run's entry unless {@link Order#compare} of the left key and the right one is positive.
-   */
+  /** {@code entries} in jq's value order of their keys, by {@link #mergeSort} with {@link Order#compare}. */
   private static Entry[] mergeSort(RunState state, Entry[] entries) {
-    int n = entries.length;
-    Entry[] from = entries;
-    Entry[] to = new Entry[n];
+    return mergeSort(entries, entries.length, (a, b) -> Order.compare(state, a.key(), b.key()));
+  }
+
+  /**
+   * The first {@code n} of {@code items} in {@code order}, stable: a bottom-up merge sort, whose every merge takes the
+   * left run's item unless {@code order} of the left item and the right one is positive. Its compares are the ones a
+   * sort ticks for (F-48), here and in {@code keys} ({@link Built.Elements#sort}). The result is {@code items} or a
+   * scratch array of {@code n}, neither charged.
+   */
+  static <T> T[] mergeSort(T[] items, int n, Comparator<? super T> order) {
+    T[] from = items;
+    T[] to = Arrays.copyOf(items, n);
     for (long width = 1; width < n; width *= 2) {
       for (long lo = 0; lo < n; lo += 2 * width) {
-        merge(state, from, to, (int) lo, (int) Math.min(lo + width, n), (int) Math.min(lo + 2 * width, n));
+        merge(order, from, to, (int) lo, (int) Math.min(lo + width, n), (int) Math.min(lo + 2 * width, n));
       }
-      Entry[] merged = to;
+      T[] merged = to;
       to = from;
       from = merged;
     }
@@ -202,12 +210,12 @@ public final class Sort {
   }
 
   /** Merges the sorted runs {@code from[lo, mid)} and {@code from[mid, hi)} into {@code to[lo, hi)}. */
-  private static void merge(RunState state, Entry[] from, Entry[] to, int lo, int mid, int hi) {
+  private static <T> void merge(Comparator<? super T> order, T[] from, T[] to, int lo, int mid, int hi) {
     int i = lo;
     int j = mid;
     int k = lo;
     while (i < mid && j < hi) {
-      to[k++] = Order.compare(state, from[i].key(), from[j].key()) > 0 ? from[j++] : from[i++];
+      to[k++] = order.compare(from[i], from[j]) > 0 ? from[j++] : from[i++];
     }
     System.arraycopy(from, i, to, k, mid - i);
     System.arraycopy(from, j, to, k + mid - i, hi - j);
