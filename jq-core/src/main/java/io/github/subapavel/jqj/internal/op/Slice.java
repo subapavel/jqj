@@ -79,18 +79,18 @@ public final class Slice implements Fn2 {
       case JqArray array -> sliced(of(state, array, from, to), quiet);
       case JqString s -> sliced(of(state, s, from, to), quiet);
       // One pattern per case: javac checks a case of several patterns again, a branch that is never taken.
-      case JqBool _ -> cannotSlice(t, from, to);
-      case JqNumber _ -> cannotSlice(t, from, to);
-      case JqObject _ -> cannotSlice(t, from, to);
+      case JqBool _ -> cannotSlice(state, t, from, to);
+      case JqNumber _ -> cannotSlice(state, t, from, to);
+      case JqObject _ -> cannotSlice(state, t, from, to);
     };
   }
 
   /** jq's error for {@code t}, which has no slices, or no result for {@code .[a:b]?}. */
-  private Object cannotSlice(JqValue t, JqValue from, JqValue to) {
+  private Object cannotSlice(RunState state, JqValue t, JqValue from, JqValue to) {
     if (quiet) {
       return CallForm.NONE;
     }
-    throw NavigationErrors.cannotIndex(t, "object", shown(from, to));
+    throw NavigationErrors.cannotIndex(t, "object", shown(state, from, to));
   }
 
   /**
@@ -107,13 +107,13 @@ public final class Slice implements Fn2 {
     throw NavigationErrors.sliceIndices();
   }
 
-  /** What jq's error shows of the key {@code {"start": from, "end": to}}. */
-  private static String shown(JqValue from, JqValue to) {
+  /** What jq's error shows of the key {@code {"start": from, "end": to}}, the bounds' proofs charged to {@code state}. */
+  private static String shown(RunState state, JqValue from, JqValue to) {
     ByteArrayOutputStream key = new ByteArrayOutputStream();
     key.writeBytes(new byte[] {'{', '"', 's', 't', 'a', 'r', 't', '"', ':'});
-    key.writeBytes(Printer.head(from, HEAD));
+    key.writeBytes(Printer.head(state, from, HEAD));
     key.writeBytes(new byte[] {',', '"', 'e', 'n', 'd', '"', ':'});
-    key.writeBytes(Printer.head(to, HEAD));
+    key.writeBytes(Printer.head(state, to, HEAD));
     key.write('}');
     return ErrorDump.of(key.toByteArray(), '}');
   }

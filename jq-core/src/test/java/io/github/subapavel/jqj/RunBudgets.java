@@ -103,6 +103,22 @@ final class RunBudgets {
     return "\"" + "a".repeat(k) + "\"\n";
   }
 
+  /**
+   * {@code {"":0,"AaAaAaAa":1,…,"BBBBBBBB":16}}: the empty key, then the 16 keys of four blocks, {@code BB} where bit b of
+   * i is set and {@code Aa} where it is not, high bit first, so in ascending order. The 16 share one 31-polynomial, so
+   * the key proof's table runs out of probes and sorts the 17 (ADR-0044, KeyProofTest). jq-ref 1.8.2, observed
+   * 2026-11-13: {@code -c .} prints it unchanged and {@code length} gives 17.
+   */
+  static String colliding() {
+    StringBuilder json = new StringBuilder("{\"\":0");
+    for (int i = 0; i < 16; i++) {
+      json.append(",\"");
+      for (int b = 3; b >= 0; b--) json.append((i >> b & 1) == 1 ? "BB" : "Aa");
+      json.append("\":").append(i + 1);
+    }
+    return json.append('}').toString();
+  }
+
   static JsonDoc read(Workspace workspace, byte[] json) {
     return workspace.read(MemorySegment.ofArray(json));
   }

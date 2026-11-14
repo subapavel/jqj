@@ -316,6 +316,52 @@ class CommaBindTest {
     assertThat(emitted).as("results of (a, b) as $0 | $0 before the stop").containsExactly(a);
   }
 
+  @Test
+  void aManyGetsItsLoopSlotsAfterItsArgumentsOncePerLoop() {
+    // ADR-0034 as amended by ADR-0044: a loop's array holds the arguments, then the Many's loop slots; first may set a
+    // slot, the later calls of that loop read it, and the next loop starts from an empty slot.
+    List<List<Object>> seen = new ArrayList<>();
+    Many held =
+        new Many() {
+          @Override
+          public int loopSlots() {
+            return 1;
+          }
+
+          @Override
+          public long first(RunState state, Object in, Object[] args) {
+            seen.add(called("first", args));
+            args[args.length - 1] = in;
+            return 0;
+          }
+
+          @Override
+          public long next(RunState state, Object in, Object[] args, long cursor) {
+            seen.add(called("next", args));
+            return Many.END;
+          }
+
+          @Override
+          public Object value(RunState state, Object in, Object[] args, long cursor) {
+            return args[args.length - 1];
+          }
+        };
+    Object c = new Object();
+    Object x = new Object();
+    Object y = new Object();
+    Pipe loops = new Pipe(AT, new Comma(AT, new Const(AT, x), new Const(AT, y)), call("held", held, new Const(AT, c)));
+    assertThat(results(loops, new RunState(), new Object())).as("results of (x, y) | held(c)").containsExactly(x, y);
+    assertThat(seen)
+        .as("calls of (x, y) | held(c)")
+        .containsExactly(Arrays.asList("first", c, null), List.of("next", c, x), Arrays.asList("first", c, null), List.of("next", c, y));
+    // With no argument the loop slot is the whole array, never one shared by the loops.
+    seen.clear();
+    assertThat(results(new Pipe(AT, new Comma(AT, new Const(AT, x), new Const(AT, y)), call("held", held)), new RunState(), new Object()))
+        .as("results of (x, y) | held")
+        .containsExactly(x, y);
+    assertThat(seen).as("calls of (x, y) | held").containsExactly(Arrays.asList("first", (Object) null), List.of("next", x), Arrays.asList("first", (Object) null), List.of("next", y));
+  }
+
   /** {@code name} followed by the arguments a Many got, as a list. */
   private static List<Object> called(String name, Object[] args) {
     List<Object> call = new ArrayList<>();

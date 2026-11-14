@@ -50,7 +50,8 @@ import java.util.List;
  * that sorted order, one level deeper. There is no identity check. The walk keeps its open containers on a stack of its
  * own, never in Java frames. It charges one tick per member pair it compares, one per key it collects from each
  * object, and one per started KiB of the shorter of two strings it compares, a key pair included, and the number
- * compare's own; the member walks charge theirs; the sort of a key list charges nothing, and nothing is charged to
+ * compare's own; the member walks charge theirs, a view's key proof included (ADR-0044); the sort of a key list
+ * charges nothing, and nothing is charged to
  * bytes built (ADR-0037, design approval O1).
  */
 public final class Order {
@@ -59,7 +60,7 @@ public final class Order {
 
   private static final String TOO_DEEP = "Comparison too deep";
 
-  /** jq's {@code string_cmp}, uncharged: the sort of a key list. Two keys of one object are never equal. */
+  /** jq's {@code string_cmp}, uncharged: the sort of a key list. Two keys of one object's walk are never equal. */
   private static final Comparator<Key> BY_BYTES = (p, q) -> bytes(p.utf8(), q.utf8());
 
   private Order() {}
@@ -91,11 +92,13 @@ public final class Order {
           case JqString s -> r = strings(state, s.utf8(), ((JqString) y).utf8());
           case JqArray p -> open = new Elements((Members) p, (Members) y, depth + 1, open);
           case JqObject p -> {
-            List<Key> left = keys(state, (Members) p);
-            List<Key> right = keys(state, (Members) y);
+            Members pm = KeyProof.members(state, p);
+            List<Key> left = keys(state, pm);
+            Members ym = KeyProof.members(state, (JqObject) y);
+            List<Key> right = keys(state, ym);
             r = keyLists(state, left, right, depth + 1);
             if (r == 0) {
-              open = new Values((Members) p, left, (Members) y, right, depth + 1, open);
+              open = new Values(pm, left, ym, right, depth + 1, open);
             }
           }
         }

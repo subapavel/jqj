@@ -43,7 +43,7 @@ import java.util.Map;
  * jq's catchable "Object merge too deep" (ADR-0029). Each level is a frame of its own stack, never a Java frame. Each
  * level charges a container, then an entry per distinct key as it enters (ADR-0035 amendment), and one tick per entry
  * of its right object and one per left entry it copies, for object {@code +} and merge {@code *} alike (ADR-0034
- * amendment). A view's own walks charge theirs.
+ * amendment). A view's own walks charge theirs, its key proof (ADR-0044).
  */
 public final class ObjectMerge {
   /** jq's {@code MAX_OBJECT_MERGE_DEPTH}. */
@@ -123,8 +123,8 @@ public final class ObjectMerge {
     final Map<String, Integer> index = new HashMap<>();
 
     /**
-     * The level at {@code depth} of {@code left} and {@code right}: the depth checked, then the left entries entered,
-     * one tick each.
+     * The level at {@code depth} of {@code left} and {@code right}: the depth checked, then each side's walk, a view's
+     * after its proof, the right one's first, then the left entries entered, one tick each.
      */
     Level(RunState state, JqObject left, JqObject right, int depth, Level outer) {
       if (depth > MAX_DEPTH) {
@@ -132,12 +132,12 @@ public final class ObjectMerge {
       }
       this.depth = depth;
       this.outer = outer;
-      this.right = (Members) right;
-      this.rightKeys = (Keyed) right;
+      this.right = KeyProof.members(state, right);
+      this.rightKeys = (Keyed) this.right;
       this.cursor = this.right.first();
       state.chargeBuilt(Charges.CONTAINER);
-      Members entries = (Members) left;
-      Keyed names = (Keyed) left;
+      Members entries = KeyProof.members(state, left);
+      Keyed names = (Keyed) entries;
       for (int c = entries.first(); c != -1; c = entries.next(state, c)) {
         state.tick();
         JqString key = names.key(c);

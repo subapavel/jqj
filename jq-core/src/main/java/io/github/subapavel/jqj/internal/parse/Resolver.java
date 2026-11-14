@@ -515,6 +515,7 @@ public final class Resolver {
       case HAS -> withArgument(c, Keys.HAS);
       case KEYS -> new Intrinsic(at, Keys.KEYS, List.of());
       case KEYS_UNSORTED -> new Intrinsic(at, Keys.KEYS_UNSORTED, List.of());
+      case TO_ENTRIES -> new Intrinsic(at, Keys.TO_ENTRIES, List.of());
       case FLATTEN -> new Intrinsic(at, Flatten.ALL, List.of());
       case FLATTEN_DEPTH -> withArgument(c, Flatten.DEPTH);
       case NAN -> new Intrinsic(at, NumberTests.NAN, List.of());

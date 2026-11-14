@@ -27,9 +27,11 @@ package io.github.subapavel.jqj.internal.op;
 import io.github.subapavel.jqj.internal.value.BuiltArray;
 import io.github.subapavel.jqj.internal.value.BuiltString;
 import io.github.subapavel.jqj.internal.value.Equality;
+import io.github.subapavel.jqj.internal.value.KeyProof;
 import io.github.subapavel.jqj.internal.value.LiteralNumber;
 import io.github.subapavel.jqj.internal.value.Members;
 import io.github.subapavel.jqj.internal.value.Numbers;
+import io.github.subapavel.jqj.internal.value.ObjectView;
 import io.github.subapavel.jqj.internal.value.Order;
 import io.github.subapavel.jqj.query.ir.Operation;
 import io.github.subapavel.jqj.query.run.FilterException;
@@ -51,7 +53,8 @@ import java.util.ArrayDeque;
  * def flatten: _flatten(-1);
  * </pre>
  *
- * So the input's {@code .[]}, its error included, gives the members; a member that is an array is spliced, its own
+ * So the input's {@code .[]}, its error included, gives the members, a document's object's through its key proof
+ * (ADR-0044); a member that is an array is spliced, its own
  * members at the depth less one, while the depth is not 0 by jq's {@code !=}; and the depth less one is jq's {@code -},
  * whose error a depth that is no number raises at the first array member. The depth is checked against 0 in jq's value
  * order first. A walk of nested arrays keeps its open arrays on a stack of its own, never in Java frames, so it is as
@@ -88,9 +91,14 @@ public final class Flatten {
 
   /** {@code _flatten(depth)} on {@code in}. */
   private static BuiltArray flatten(RunState state, JqValue in, JqValue depth) {
-    if (!(in instanceof Members top)) {
-      throw NavigationErrors.cannotIterate(in);
-    }
+    Members top =
+        switch (in) {
+          case ObjectView object -> KeyProof.walk(state, object, false);
+          case Members members -> members;
+          // Every other value, a scalar or a string, has nothing to iterate; whatever later joins JqValue cannot be
+          // iterated unless it is Members or a read object, so one arm covers them all and none is forgotten.
+          default -> throw NavigationErrors.cannotIterate(state, in);
+        };
     Built.Elements out = new Built.Elements(state);
     ArrayDeque<Level> open = new ArrayDeque<>();
     open.push(new Level(top, depth));
