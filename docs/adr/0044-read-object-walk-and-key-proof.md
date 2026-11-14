@@ -18,7 +18,8 @@ over its cost bar). The owner chose to prove them on the walk side instead.
   The Printer is the one walker that enters through `KeyProof.plan(RunState, Document, int, boolean)`
   instead (#85): the same proof and ticks, without an `ObjectWalk` per printed object. It walks the
   tape when `plan` is null and the plan's pairs otherwise; no other walker may call `plan`.
-- **Walkers**: `.[]`, Equality's left side (its right side's count becomes `size`), Order's key
+- **Walkers**: `.[]`, Equality's left side (a read right side is no walk: its key index, amendment
+  below), Order's key
   lists, ObjectMerge (both sides), the Printer, Detach (replaces its TreeMap), `keys`,
   `keys_unsorted`, `length`, `flatten`, `to_entries` (now a native, replacing the prelude definition), and the
   host accessors `size()`/`forEach`.
@@ -50,11 +51,15 @@ over its cost bar). The owner chose to prove them on the walk side instead.
 - When an object pair's right side is read, Equality takes it through
   `KeyProof.index(RunState, ObjectView, Members)`: the right side's proof, the same code and ticks,
   then, within that call, a lookup of each left key in walk order among the proof's pairs, table or
-  sorted distinct keys, up to the first one missing. It gives `KeyIndex(doc, size, values)`: the
+  sorted distinct keys, until one is missing or as many are found as the right side has distinct
+  keys (the sizes then decide). It gives `KeyIndex(doc, size, values)`: the
   right side's distinct count and, per found left member, the tape index of its last value. The
   right side is proved once; its `size` comes from the index. The left side may be read or built.
 - Lookups among the pairs or in the table charge nothing: a found key retraces its own insertion
-  probes, so they stay within the proof's budget. A sorted lookup is a binary search, one tick per
+  probes, so they stay within the proof's budget; a missing key's probes end at an empty slot or
+  after every slot once, at most once per comparison, within one cluster of at most `size` slots.
+  The search's shape is the implementation's: KeyProofTest pins the one in use, WideObjectTest
+  accepts either a midpoint or a lower-bound search. A sorted lookup is a binary search, one tick per
   compare, max(1, KiB of the shorter key), all taken before the first member pair. One tick per
   member pair, as before. The identity check comes first, so `. == .` keeps its count.
 - `values` is the comparison's own array of tape positions: a nested pair proves again in the same
