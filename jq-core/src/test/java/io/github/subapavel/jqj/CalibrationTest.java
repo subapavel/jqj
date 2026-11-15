@@ -73,6 +73,9 @@ class CalibrationTest {
   /** The other platform thread of the matrix. */
   private static final long LARGE = 1024 * KIB;
 
+  /** The lowest platform thread of the {@code -Xint} and C1 cells, the lower one of the lowest pair (ADR-0046 #199). */
+  private static final long SMALLEST = 256 * KIB;
+
   /**
    * The shapes whose control, declaring 1 GiB, ends STACK on a thread of at most 1 MiB, so no cell of theirs is flat
    * and c2 cannot pass empty: #111's four (measure-b.sh ended each STACK at {@code U_f} 40 000) and F-95's descent.
@@ -194,7 +197,9 @@ class CalibrationTest {
    * D2 (F-93): a cell proves its thread's size, in each tier. The plain recursion count of a {@code -Xss512k} main
    * thread is 1.5 to 3.5 times smaller than a {@code -Xss1m} one's, and a 1 MiB stack under a 512 KiB cell's label (the
    * cached-stack case, 10 729 frames against 10 730) is INVALID. Two fresh {@code -Xss512k} children of the tier count
-   * the same frames, the probe's recursion never compiled, so the count is the thread's, not the run's.
+   * the same frames, the probe's recursion never compiled, so the count is the thread's, not the run's. A {@code
+   * -Xss256k} main thread's count is 1.5 to 3.5 times smaller than the {@code -Xss512k} one's, so a 256 KiB cell can
+   * prove against the next thread up (ADR-0046 #199 "Proof"; the side probe counted 1641 against 4371 on {@code -Xint}).
    */
   @ParameterizedTest
   @MethodSource("tiers")
@@ -202,9 +207,92 @@ class CalibrationTest {
     long small = proofOf(ChildJvm.run(dir, flags(tier, new CellThread("platform", SMALL)), CalibrationCell.class, "proof", "platform", Long.toString(SMALL), "CONSERVATIVE"));
     long again = proofOf(ChildJvm.run(dir, flags(tier, new CellThread("platform", SMALL)), CalibrationCell.class, "proof", "platform", Long.toString(SMALL), "CONSERVATIVE"));
     long large = proofOf(ChildJvm.run(dir, flags(tier, new CellThread("platform", LARGE)), CalibrationCell.class, "proof", "platform", Long.toString(LARGE), "CONSERVATIVE"));
-    assertThat(List.of(proofVerdict(small, large), proofVerdict(large, large), Long.toString(again)))
-        .as("%s: a 512 KiB main thread's proof (%d frames) against 1 MiB (%d frames); 1 MiB under a 512 KiB label; a second fresh 512 KiB child's count", tier, small, large)
-        .isEqualTo(List.of("proven", "INVALID " + large + " frames against " + large + " on 1 MiB", Long.toString(small)));
+    long smallest = proofOf(ChildJvm.run(dir, flags(tier, new CellThread("platform", SMALLEST)), CalibrationCell.class, "proof", "platform", Long.toString(SMALLEST), "CONSERVATIVE"));
+    assertThat(List.of(proofVerdict(small, large), proofVerdict(large, large), Long.toString(again), proofVerdict(smallest, small)))
+        .as(
+            "%s: a 512 KiB main thread's proof (%d frames) against 1 MiB (%d frames); 1 MiB under a 512 KiB label; a second fresh 512 KiB child's count; a 256 KiB main thread's proof (%d frames) against 512 KiB",
+            tier,
+            small,
+            large,
+            smallest)
+        .isEqualTo(List.of("proven", "INVALID " + large + " frames against " + large + " on 1 MiB", Long.toString(small), "proven"));
+  }
+
+  /**
+   * ADR-0046 #199 "Proof": each platform cell proves against the next thread up, the 1 MiB one, the top, against 512 KiB,
+   * and a virtual cell against 1 MiB; {@link #proven} over each cell's proofs. On {@code -Xint} counts: 1641 frames at
+   * 256 KiB (the side probe, impl/113 078dd0a, {@code .logs/113-side-probe.log}), 4371 at 512 KiB, 9833 at 1 MiB and
+   * 4354 on the virtual thread (the committed record). Each cell is proven; a 512 KiB stack under a 256 KiB label (the
+   * cached-stack case of D2) is INVALID, which the 1 MiB thread cannot see (4371 against 9833 is in the band). A 1 MiB
+   * stack under the 512 KiB label fails that cell and the two that prove against it, 256 KiB and 1 MiB; one under the
+   * virtual label fails the virtual cell.
+   */
+  @Test
+  void aCellProvesAgainstTheNextThreadUp() {
+    assertThat(List.of(ladder(1641, 4371, 9833, 4354), ladder(4371, 4371, 9833, 4354), ladder(1641, 9833, 9833, 4354), ladder(1641, 4371, 9833, 9833)))
+        .as("the proofs of -Xint W CONSERVATIVE cells on 256 KiB, 512 KiB, 1 MiB and virtual, by their frames")
+        .isEqualTo(
+            List.of(
+                "platform 256KiB proven, platform 512KiB proven, platform 1024KiB proven, virtual 512KiB proven",
+                "platform 256KiB INVALID, platform 512KiB proven, platform 1024KiB proven, virtual 512KiB proven",
+                "platform 256KiB INVALID, platform 512KiB INVALID, platform 1024KiB INVALID, virtual 512KiB proven",
+                "platform 256KiB proven, platform 512KiB proven, platform 1024KiB proven, virtual 512KiB INVALID"));
+  }
+
+  /** Each of an {@code -Xint} W CONSERVATIVE cell's four threads, proven or INVALID, given each one's proof. */
+  private static String ladder(long frames256KiB, long frames512KiB, long frames1MiB, long framesVirtual) {
+    List<CellThread> threads = List.of(new CellThread("platform", SMALLEST), new CellThread("platform", SMALL), new CellThread("platform", LARGE), new CellThread("virtual", SMALL));
+    List<Long> frames = List.of(frames256KiB, frames512KiB, frames1MiB, framesVirtual);
+    Shape w = shape("W");
+    Map<String, List<Long>> proofs = new HashMap<>();
+    for (int i = 0; i < threads.size(); i++) proofs.put(key(XINT, threads.get(i), CompileMode.CONSERVATIVE) + " " + w.id(), List.of(frames.get(i)));
+    return String.join(", ", threads.stream().map(t -> t + " " + (proven(proofs, XINT, t, CompileMode.CONSERVATIVE, w) ? "proven" : "INVALID")).toList());
+  }
+
+  /**
+   * ADR-0046 #199 "Shapes: 14": the 14th shape, after F-95's {@code collect-descent}, is #114's PLAIN-call filter
+   * {@code plain-descent}: IrDepthTest's {@code nested(30_001)}, 300 lifted functions over PLAIN calls past the IR
+   * bound, on {@code null}, giving {@link IrDepthTest#NESTED_30001}, reference jq's {@code over-cap/depth-30001}. It is
+   * {@link #NEVER_FLAT}.
+   */
+  @Test
+  void theFourteenthShapeIsIrDepthTestsFilter() {
+    assertThat(SHAPES.stream().map(Shape::id).toList())
+        .as("the ids of CalibrationCell.SHAPES")
+        .isEqualTo(List.of("T", "E", "M", "N", "W", "C", "ND", "recurse", "collect", "reduce", "first-or", "hold", "collect-descent", "plain-descent"));
+    Shape plain = SHAPES.getLast();
+    assertThat(List.of(plain.filter().equals(IrDepthTest.nested(30_001)), plain.json(), plain.result().equals(IrDepthTest.NESTED_30001), NEVER_FLAT.contains(plain.id())))
+        .as("plain-descent: its filter is IrDepthTest's nested(30_001) (%d chars), its input, its result is NESTED_30001 (%d chars), it is NEVER_FLAT", plain.filter().length(), plain.result().length())
+        .isEqualTo(List.of(true, "null", true, true));
+  }
+
+  /**
+   * ADR-0046 #199 "The record": the environment rows of a record are {@code time-ms}, {@code jdk}, {@code cpus}, and
+   * {@code machine}, {@code $RATCHET_MACHINE} or {@code -} when it is unset or empty, {@code cpu}, the text after the
+   * colon of the first {@code model name} line of {@code /proc/cpuinfo}, stripped ({@code -} without one), and {@code
+   * kernel}, {@code os.version}; each row a key and a value, one tab between them.
+   */
+  @Test
+  void environmentNamesTheMachine() throws IOException {
+    Map<String, String> values = new LinkedHashMap<>();
+    List<String> fields = new ArrayList<>();
+    for (String line : environment(System.nanoTime())) {
+      String[] r = line.split("\t", -1);
+      fields.add(r[0] + ": " + r.length + " fields");
+      values.put(r[0], r[r.length - 1]);
+    }
+    assertThat(values.keySet()).as("the keys of the environment rows").containsExactlyInAnyOrder("time-ms", "jdk", "cpus", "machine", "cpu", "kernel");
+    String machine = System.getenv("RATCHET_MACHINE");
+    Path cpuinfo = Path.of("/proc/cpuinfo");
+    String model = Files.isReadable(cpuinfo) ? Files.readAllLines(cpuinfo, UTF_8).stream().filter(l -> l.startsWith("model name")).findFirst().orElse(null) : null;
+    assertThat(List.of(fields, values.get("machine"), values.get("cpu"), values.get("kernel")))
+        .as("each row's fields, and the machine, cpu and kernel values")
+        .isEqualTo(
+            List.of(
+                fields.stream().map(f -> f.substring(0, f.indexOf(':')) + ": 2 fields").toList(),
+                machine == null || machine.isEmpty() ? "-" : machine,
+                model == null ? "-" : model.substring(model.indexOf(':') + 1).strip(),
+                System.getProperty("os.version")));
   }
 
   /**
