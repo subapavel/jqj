@@ -27,7 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -309,6 +311,48 @@ class CalibrationTest {
                 expected("flat")))
         .as("a 256 KiB -Xint probe child of plain-descent and C1 search child of W, and the want of cells with a compile verdict:%n%s%n%s", xint, c1)
         .isEqualTo(List.of("compile rows 0, probe control " + STACK, "compile rows 0, U* numeric, control " + STACK, "switches", "switches", "flat"));
+  }
+
+  /**
+   * ADR-0046 "Owner's rulings on #199's second run A stop": a virtual cell waits for the helper's compile without
+   * parking, spinning on {@code isDone} with {@code Thread.onSpinWait}, so it measures a virtual thread that has never
+   * parked (a remounted one starts with only its top frames on the carrier); a platform cell keeps the parked {@code
+   * join()}. In-process: while the helper holds a compile open, the cell's thread is sampled 200 times; a virtual one
+   * is only ever RUNNABLE, a platform one WAITING.
+   */
+  @Test
+  void aVirtualCellSpinsOnTheHelperAndAPlatformCellParks() throws Exception {
+    List<String> got = new ArrayList<>();
+    for (boolean virtual : new boolean[] {true, false}) {
+      CountDownLatch entered = new CountDownLatch(1);
+      CountDownLatch release = new CountDownLatch(1);
+      Runnable cell =
+          () ->
+              CalibrationCell.onHelper(
+                  () -> {
+                    entered.countDown();
+                    try {
+                      release.await();
+                    } catch (InterruptedException e) {
+                      throw new IllegalStateException(e);
+                    }
+                    return "compiled";
+                  });
+      Thread thread = virtual ? Thread.ofVirtual().unstarted(cell) : Thread.ofPlatform().unstarted(cell);
+      thread.start();
+      entered.await();
+      Set<Thread.State> states = new TreeSet<>();
+      for (int i = 0; i < 200; i++) {
+        states.add(thread.getState());
+        Thread.sleep(1);
+      }
+      release.countDown();
+      thread.join();
+      got.add((virtual ? "virtual" : "platform") + " cell waiting on the helper: " + states);
+    }
+    assertThat(got)
+        .as("the states of a cell's thread while the helper compiles")
+        .isEqualTo(List.of("virtual cell waiting on the helper: [RUNNABLE]", "platform cell waiting on the helper: [WAITING]"));
   }
 
   /** What the matrix wants of a measured cell given its verdict: it switches, or it is flat; never a compile verdict. */
