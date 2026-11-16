@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -57,7 +58,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * </ul>
  *
  * <p>An end is the results' JSON texts, then {@code ran out}, {@code stopped}, {@code error <value>}, {@code
- * termination <cause>} or what the run threw.
+ * termination <cause>} or what the run threw. A {@code probe}, {@code linked} or {@code search} child whose compile
+ * overflows its thread prints {@code compile <mode> <id> STACK} in place of its rows (F-109).
  */
 final class CalibrationCell {
   private CalibrationCell() {}
@@ -290,7 +292,9 @@ final class CalibrationCell {
       case "probe" -> {
         // One run, the first of this child (the cold edge of ADR-0046 #113 "Rulings on the red"); "-" probes U_f(S).
         Shape shape = shapes(SHAPES, ids).getFirst();
-        Units u = units(shape.filter(), mode);
+        Optional<Units> compiled = compiled(shape, mode);
+        if (compiled.isEmpty()) return;
+        Units u = compiled.get();
         long unitLimit = extra.equals("-") ? Math.max(0, u.unitLimitAt(thread)) : Long.parseLong(extra);
         String end = ended(shape, u.stackBytesFor(unitLimit), mode);
         String control = more.equals("control") ? ended(shape, GIB, mode) : "-";
@@ -299,7 +303,9 @@ final class CalibrationCell {
       case "linked" -> {
         // The linked edge: two linking runs that switch after 64 units, then the search in this child.
         for (Shape shape : shapes(SHAPES, ids)) {
-          Units u = units(shape.filter(), mode);
+          Optional<Units> compiled = compiled(shape, mode);
+          if (compiled.isEmpty()) continue;
+          Units u = compiled.get();
           ended(shape, u.stackBytesFor(64), mode);
           ended(shape, u.stackBytesFor(64), mode);
           search(shape, thread, mode, u, extra.isEmpty() ? -1 : Long.parseLong(extra));
@@ -329,7 +335,9 @@ final class CalibrationCell {
       }
       case "search" -> {
         for (Shape shape : shapes(SHAPES, ids)) {
-          Units u = units(shape.filter(), mode);
+          Optional<Units> compiled = compiled(shape, mode);
+          if (compiled.isEmpty()) continue;
+          Units u = compiled.get();
           if (extra.equals("warm")) {
             for (int i = 0; i < WARM_UPS; i++) {
               ended(shape, 0, mode);
@@ -366,6 +374,19 @@ final class CalibrationCell {
         }
       }
       default -> throw new IllegalArgumentException("no action " + action);
+    }
+  }
+
+  /**
+   * The shape's units, compiled on this thread, or empty after printing {@code compile <mode> <id> STACK} when the
+   * compile overflows it (ADR-0046 "Owner's rulings on #199's C3 stops", F-109: plain-descent on 256 KiB).
+   */
+  private static Optional<Units> compiled(Shape shape, CompileMode mode) {
+    try {
+      return Optional.of(units(shape.filter(), mode));
+    } catch (StackOverflowError e) {
+      row("compile", mode, shape.id(), "STACK");
+      return Optional.empty();
     }
   }
 
