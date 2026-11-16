@@ -88,16 +88,6 @@ class CalibrationTest {
    */
   private static final Set<String> NEVER_FLAT = Set.of("collect", "reduce", "first-or", "hold", "collect-descent", "plain-descent");
 
-  /**
-   * The cells whose compile overflows their thread, {@code compile STACK} rows with no edge: plain-descent's four
-   * 256 KiB cells, {@code -Xint} and C1 in both modes (ADR-0046 "Owner's rulings on #199's C3 stops", F-109).
-   */
-  static final Set<String> COMPILE_STACK_CELLS =
-      Set.of("xint platform 256KiB CONSERVATIVE plain-descent", "xint platform 256KiB OPTIMISED plain-descent", "c1 platform 256KiB CONSERVATIVE plain-descent", "c1 platform 256KiB OPTIMISED plain-descent");
-
-  /** The verdict and record end of a cell whose every child's compile overflowed its thread (F-109). */
-  static final String COMPILE_STACK = "compile STACK";
-
   /** A result longer than this prints as its length and sha256 in rows and progress lines (ADR-0046 #199, C4). */
   private static final int SHOWN = 200;
 
@@ -155,13 +145,9 @@ class CalibrationTest {
 
   /**
    * A cold edge: the first probe's row (its constants and control), the edge ({@code -1} flat, {@code -2} fails at
-   * {@code U_f} 0, {@value #COMPILE_STACK_EDGE} the compile overflowed the thread), the end at the edge + 1, and every
-   * probe child's proof.
+   * {@code U_f} 0), the end at the edge + 1, and every probe child's proof.
    */
   record Cold(String[] first, long edge, String next, List<Long> proofs) {}
-
-  /** The edge of a {@link Cold} whose first probe's compile overflowed its thread (F-109). */
-  private static final long COMPILE_STACK_EDGE = -3;
 
   @TempDir Path dir;
 
@@ -318,16 +304,15 @@ class CalibrationTest {
             List.of(
                 "compile rows " + rows(xint, "compile").size() + ", probe control " + (probe == null ? "no probe row" : probe[9]),
                 "compile rows " + rows(c1, "compile").size() + ", U* " + (cell == null ? "no cell row" : cell[7].matches("\\d+") ? "numeric" : cell[7]) + ", control " + (cell == null ? "-" : cell[9]),
-                expected(key(XINT, smallest, CompileMode.OPTIMISED) + " plain-descent", "compile threw java.lang.StackOverflowError"),
-                expected(key(C1, smallest, CompileMode.CONSERVATIVE) + " W", "compile threw java.lang.StackOverflowError"),
-                expected(key(XINT, smallest, CompileMode.OPTIMISED) + " C", "flat")))
+                expected("compile threw java.lang.StackOverflowError"),
+                expected("rows from 0 children, cold no probe row in compile\tOPTIMISED\tplain-descent\tjava.lang.StackOverflowError"),
+                expected("flat")))
         .as("a 256 KiB -Xint probe child of plain-descent and C1 search child of W, and the want of cells with a compile verdict:%n%s%n%s", xint, c1)
         .isEqualTo(List.of("compile rows 0, probe control " + STACK, "compile rows 0, U* numeric, control " + STACK, "switches", "switches", "flat"));
   }
 
-  /** What the matrix wants of a measured cell given its verdict: {@link #COMPILE_STACK} for the pinned set, else it switches or is flat. */
-  static String expected(String cell, String verdict) {
-    if (COMPILE_STACK_CELLS.contains(cell)) return COMPILE_STACK;
+  /** What the matrix wants of a measured cell given its verdict: it switches, or it is flat; never a compile verdict. */
+  static String expected(String verdict) {
     return verdict.equals("flat") ? "flat" : "switches";
   }
 
@@ -741,8 +726,9 @@ class CalibrationTest {
    * c2 over the full matrix (the {@code calibration-matrix} tag), at the committed constants, measured in {@code -Xint}
    * and C1, proven in warm (K1). Every cell is proven. An {@code -Xint} or C1 cell's {@code U_f} at the thread's size is
    * at most its edge, the cold one for {@code -Xint}, where the edge + 1 ends STACK after a prefix of the reference
-   * results ({@link #provenVerdict}, L3); a flat cell, whose control completes, has no edge, nor has a cell of {@link
-   * #COMPILE_STACK_CELLS}, whose every child's compile overflows the thread, and only such a cell (F-109). The cold and linked slopes
+   * results ({@link #provenVerdict}, L3); a flat cell, whose control completes, has no edge. A child compiles on its
+   * helper thread, so a child that prints a {@code compile} row in place of its rows fails its cell (ADR-0046 "Owner's
+   * rulings on #199's run A stop", F-109). The cold and linked slopes
    * of each {@code -Xint} pair agree within {@value #SLOPES_AGREE} B. A C1 cell's {@code U*} is the smallest of 3 fresh
    * warmed children, each child's search at its fixed point (L1), and the spread is recorded (D3). A warm cell
    * holds when each of its {@value #WARM_CHILDREN} children gives reference jq's result in each of its {@value
@@ -801,14 +787,11 @@ class CalibrationTest {
     Units committed = CalibrationCell.units(CallRuns.F, CompileMode.OPTIMISED);
     Map<String, List<String[]>> cells = new LinkedHashMap<>();
     Map<String, List<Long>> proofs = new LinkedHashMap<>();
-    Map<String, Integer> compileStacks = new HashMap<>();
     for (Map.Entry<String, List<String>> p : printed.entrySet()) {
       for (String out : p.getValue()) {
         proofs.computeIfAbsent(p.getKey(), k -> new ArrayList<>()).add(proofOf(out));
-        String id = p.getKey().substring(p.getKey().lastIndexOf(' ') + 1);
-        String[] r = rows(out, "cell").get(id);
+        String[] r = rows(out, "cell").get(p.getKey().substring(p.getKey().lastIndexOf(' ') + 1));
         if (r != null) cells.computeIfAbsent(p.getKey(), k -> new ArrayList<>()).add(r);
-        if (rows(out, "compile").containsKey(id)) compileStacks.merge(p.getKey(), 1, Integer::sum);
       }
     }
     for (Map.Entry<String, Cold> c : colds.entrySet()) proofs.computeIfAbsent(c.getKey(), k -> new ArrayList<>()).addAll(c.getValue().proofs());
@@ -843,14 +826,6 @@ class CalibrationTest {
             long linked = edge(rs);
             long coldEdge = cold == null ? -1 : cold.edge();
             String[] first = rs.isEmpty() ? (cold == null || cold.first() == null ? new String[10] : cold.first()) : rs.getFirst();
-            // F-109: every child's compile overflowed the thread, the -Xint cold probe's too; the row has no edge.
-            if (compileStacks.getOrDefault(cell, 0) == (tier == XINT ? 1 : 3) && (tier != XINT || (cold != null && cold.edge() == COMPILE_STACK_EDGE))) {
-              String verdict = proven(proofs, tier, thread, mode, shape) ? COMPILE_STACK : invalid(proofs, tier, thread, mode, shape);
-              got.add(cell + ": " + verdict);
-              want.add(cell + ": " + expected(cell, verdict));
-              recordRows.add(new String[] {"cell", tier.name(), thread.kind(), Long.toString(thread.bytes()), mode.name(), shape.id(), "-", "-", "-", "-", "-", "-", "-", verdict, "-", String.valueOf(proofs.get(cell)), "-", "-", "-", "-"});
-              continue;
-            }
             String verdict;
             if (rs.size() < (tier == XINT ? 1 : 3) || (tier == XINT && (cold == null || cold.first() == null))) {
               verdict = "rows from " + rs.size() + " children" + (cold == null ? "" : ", cold " + cold.next());
@@ -860,7 +835,7 @@ class CalibrationTest {
               verdict = provenVerdict(tier, thread.bytes(), shape, rs, cold);
             }
             got.add(cell + ": " + verdict);
-            want.add(cell + ": " + expected(cell, verdict));
+            want.add(cell + ": " + expected(verdict));
             recordRows.add(
                 new String[] {
                   "cell", tier.name(), thread.kind(), Long.toString(thread.bytes()), mode.name(), shape.id(), first[3], first[4], first[5], first[6], tier == XINT ? Long.toString(coldEdge) : "-", Long.toString(linked), Long.toString(spread(rs)), tier == XINT && cold != null ? cold.next() : String.valueOf(first[8]), String.valueOf(first[9]), String.valueOf(proofs.get(cell)), "-", "-", "-", "-"
@@ -994,7 +969,6 @@ class CalibrationTest {
     progress(key(tier, thread, mode) + " " + shape.id() + " cold started");
     String out = child(tier.flags(), thread, "probe", mode.name(), shape.id(), seed >= 0 ? Long.toString(seed) : "-", "control").call();
     proofs.add(proofOf(out));
-    if (rows(out, "compile").containsKey(shape.id())) return new Cold(null, COMPILE_STACK_EDGE, COMPILE_STACK, proofs);
     String[] first = rows(out, "probe").get(shape.id());
     if (first == null) return new Cold(null, -2, "no probe row in " + out, proofs);
     if (!first[9].equals(STACK)) return new Cold(first, -1, "flat", proofs);

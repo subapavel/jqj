@@ -14,7 +14,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 /**
  * The calibration's shapes and its child JVM (ADR-0046 and its #111, #113, #116 and #199 amendments, F-55, F-30, F-93,
@@ -58,8 +63,11 @@ import java.util.concurrent.atomic.AtomicReference;
  * </ul>
  *
  * <p>An end is the results' JSON texts, then {@code ran out}, {@code stopped}, {@code error <value>}, {@code
- * termination <cause>} or what the run threw. A {@code probe}, {@code linked} or {@code search} child whose compile
- * overflows its thread prints {@code compile <mode> <id> STACK} in place of its rows (F-109).
+ * termination <cause>} or what the run threw, or {@code compile threw <throwable>} for the compile. Every cell's filter
+ * is compiled on one helper thread of {@value #HELPER_STACK} bytes, started after the cell's thread on first use and
+ * living as long as the child, and run on the cell's thread (ADR-0046 "Owner's rulings on #199's run A stop", F-109). A
+ * {@code probe}, {@code linked} or {@code search} child whose compile fails prints {@code compile <mode> <id>
+ * <throwable>} in place of its rows.
  */
 final class CalibrationCell {
   private CalibrationCell() {}
@@ -168,9 +176,50 @@ final class CalibrationCell {
     }
   }
 
+  /** The stack of the compile helper, far above any shape's compile (F-109: under 512 KiB with a C1-compiled Parser). */
+  private static final long HELPER_STACK = 16L << 20;
+
+  /** The compile helper, started on first use, after the cell's thread; a daemon living as long as the child (D2). */
+  private static ExecutorService helper;
+
+  /** What compiling threw on the helper thread, so it never reads as a run's end on the cell's thread (F-109). */
+  static final class CompileFailed extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
+    CompileFailed(Throwable cause) {
+      super(cause);
+    }
+  }
+
+  private static synchronized ExecutorService helper() {
+    if (helper == null) {
+      helper =
+          Executors.newSingleThreadExecutor(
+              work -> {
+                Thread thread = new Thread(null, work, "calibration-compile", HELPER_STACK);
+                thread.setDaemon(true);
+                return thread;
+              });
+    }
+    return helper;
+  }
+
+  /**
+   * {@code compile} done on the helper thread (ADR-0046 "Owner's rulings on #199's run A stop"): the cell's thread only
+   * runs filters, so {@code b} and the reserve measure the run, not the compile. What it threw is a {@link
+   * CompileFailed}.
+   */
+  static <T> T onHelper(Supplier<T> compile) {
+    try {
+      return CompletableFuture.supplyAsync(compile, helper()).join();
+    } catch (CompletionException e) {
+      throw new CompileFailed(e.getCause());
+    }
+  }
+
   /** The facts of the one line of {@code filter}'s explain text that carries {@code callFreeDepth}. */
   static Units units(String filter, CompileMode mode) {
-    String text = engine(Limits.cli().stackBytes(), mode).compile(filter).explain();
+    String text = onHelper(() -> engine(Limits.cli().stackBytes(), mode).compile(filter).explain());
     List<String> closing = Arrays.stream(text.split("\n")).filter(l -> l.contains("callFreeDepth=")).toList();
     if (closing.size() != 1) {
       throw new IllegalStateException(mode + ": not one closing line with callFreeDepth in:\n" + text);
@@ -213,7 +262,7 @@ final class CalibrationCell {
     if (standIn != null) return standIn.end(stackBytes, StackWalker.getInstance().walk(frames -> frames.map(StackWalker.StackFrame::getMethodName).toList()));
     try {
       JqEngine engine = engine(stackBytes, mode);
-      JqFilter compiled = engine.compile(shape.filter());
+      JqFilter compiled = onHelper(() -> engine.compile(shape.filter()));
       Workspace workspace = engine.newWorkspace();
       JqValue root = read(workspace, shape.json().getBytes(US_ASCII)).root();
       Results results = new Results();
@@ -226,6 +275,9 @@ final class CalibrationCell {
         end = "termination " + t.cause();
       }
       return results.values.stream().map(JqValue::toJson).toList() + ", " + end;
+    } catch (CompileFailed e) {
+      // The helper's compile, not the run on this thread (F-109).
+      return "compile threw " + e.getCause();
     } catch (RuntimeException | StackOverflowError e) {
       // An outcome the parent asserts against, never a pass: it is printed as the cell's end.
       return "threw " + e;
@@ -378,14 +430,14 @@ final class CalibrationCell {
   }
 
   /**
-   * The shape's units, compiled on this thread, or empty after printing {@code compile <mode> <id> STACK} when the
-   * compile overflows it (ADR-0046 "Owner's rulings on #199's C3 stops", F-109: plain-descent on 256 KiB).
+   * The shape's units, compiled on the helper thread, or empty after printing {@code compile <mode> <id> <what it
+   * threw>} when that compile fails; the parent fails such a cell (ADR-0046 "Owner's rulings on #199's run A stop").
    */
   private static Optional<Units> compiled(Shape shape, CompileMode mode) {
     try {
       return Optional.of(units(shape.filter(), mode));
-    } catch (StackOverflowError e) {
-      row("compile", mode, shape.id(), "STACK");
+    } catch (CompileFailed e) {
+      row("compile", mode, shape.id(), e.getCause());
       return Optional.empty();
     }
   }
