@@ -207,11 +207,17 @@ final class CalibrationCell {
   /**
    * {@code compile} done on the helper thread (ADR-0046 "Owner's rulings on #199's run A stop"): the cell's thread only
    * runs filters, so {@code b} and the reserve measure the run, not the compile. What it threw is a {@link
-   * CompileFailed}.
+   * CompileFailed}. A platform cell parks in {@code join()}; a virtual cell spins on {@code isDone} with {@code
+   * Thread.onSpinWait} and never parks, yields or sleeps, since a remounted virtual thread starts with only its top
+   * frames on the carrier ("Owner's rulings on #199's second run A stop").
    */
   static <T> T onHelper(Supplier<T> compile) {
+    CompletableFuture<T> compiled = CompletableFuture.supplyAsync(compile, helper());
+    if (Thread.currentThread().isVirtual()) {
+      while (!compiled.isDone()) Thread.onSpinWait();
+    }
     try {
-      return CompletableFuture.supplyAsync(compile, helper()).join();
+      return compiled.join();
     } catch (CompletionException e) {
       throw new CompileFailed(e.getCause());
     }

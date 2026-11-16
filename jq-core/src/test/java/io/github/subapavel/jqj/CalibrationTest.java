@@ -317,8 +317,8 @@ class CalibrationTest {
    * ADR-0046 "Owner's rulings on #199's second run A stop": a virtual cell waits for the helper's compile without
    * parking, spinning on {@code isDone} with {@code Thread.onSpinWait}, so it measures a virtual thread that has never
    * parked (a remounted one starts with only its top frames on the carrier); a platform cell keeps the parked {@code
-   * join()}. In-process: while the helper holds a compile open, the cell's thread is sampled 200 times; a virtual one
-   * is only ever RUNNABLE, a platform one WAITING.
+   * join()}. In-process: while the helper holds a compile open, the cell's thread, after 50 ms to settle, is sampled
+   * 200 times; a virtual one is only ever RUNNABLE, a platform one WAITING.
    */
   @Test
   void aVirtualCellSpinsOnTheHelperAndAPlatformCellParks() throws Exception {
@@ -341,6 +341,8 @@ class CalibrationTest {
       Thread thread = virtual ? Thread.ofVirtual().unstarted(cell) : Thread.ofPlatform().unstarted(cell);
       thread.start();
       entered.await();
+      // join() may spin a little before it parks: sample once the cell has had 50 ms to settle.
+      Thread.sleep(50);
       Set<Thread.State> states = new TreeSet<>();
       for (int i = 0; i < 200; i++) {
         states.add(thread.getState());
