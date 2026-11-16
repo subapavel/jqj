@@ -16,14 +16,14 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * The calibration's shapes and its child JVM (ADR-0046 and its #111, #113 and #116 amendments, F-55, F-30, F-93,
+ * The calibration's shapes and its child JVM (ADR-0046 and its #111, #113, #116 and #199 amendments, F-55, F-30, F-93,
  * F-95). A calibration cell is one shape × tier × thread × compile mode; this child runs the cells of one tier, one
  * thread and its modes, and prints a tab-separated row per cell.
  *
  * <p>The child runs its work on the launcher's main thread, sized by {@code -Xss} (F-93); a virtual cell runs it on a
  * virtual thread, whose carrier takes {@code -Xss} (K8). Before any other work on that thread it proves the thread's
  * size with a plain recursion to {@link StackOverflowError} and prints the count as {@code proof <kind> <bytes>
- * <frames>}: the parent compares it with the count of a 1 MiB thread of the same tier (D2).
+ * <frames>}: the parent compares it with the count of the next platform thread up of the same tier (D2, ADR-0046 #199).
  *
  * <p>{@code args}: {@code <action> <platform|virtual> <thread bytes, as given to -Xss> <modes, comma-separated>
  * [<ids, comma-separated> [warm | <id>=<U*>,…]]}. The actions:
@@ -90,16 +90,34 @@ final class CalibrationCell {
    * PLAIN calls of IrDepthTest's 30 001-level filter does. That filter is a Stub until #114 lifts it (IrDepthTest
    * {@code aFilterOf30001LevelsIsAStub}); a RECURSIVE call weighs its units as a PLAIN one does (#114), so the
    * recursion is its stand-in here. As in #114's filter nothing rises above the call's result but one step, {@code |
-   * $n}. It is the 13th shape (ADR-0046 #113 "Rulings on the red"); #114 adds its PLAIN-call filter as a 14th after it
-   * merges, and re-runs the matrix.
+   * $n}. It is the 13th shape (ADR-0046 #113 "Rulings on the red"); #114's PLAIN-call filter is the 14th, {@link
+   * #PLAIN_DESCENT} (#199).
    */
   static final String COLLECT_DESCENT = "def c: if . == 0 then 0 else . as $n | " + "[".repeat(100) + "$n - 1 | c" + "]".repeat(100) + " | $n end; 300 | c";
 
   /**
-   * The 13 shapes of ADR-0046 #113 (K4 and "Rulings on the red"), F-95's Collect-heavy descent the 13th; #114 adds a
-   * 14th, its PLAIN-call filter of 300 calls under 100 Collects each. Spike A's T, E, M and N on {@link #ONES}; the
-   * wide body W; the closure chain C; the nested drivers ND; F-30's {@code [..]|length} on DEEP; #111's collect,
-   * reduce, first-or and hold; and {@link #COLLECT_DESCENT}.
+   * #114's PLAIN-call filter, IrDepthTest's {@code nested(30_001)}, built here so a child loads no test class (ADR-0046
+   * #199 "Shapes: 14"): {@code def f1: [[…[.]…]]; def f2: [[…[f1]…]]; … def f300: …; f300}, 100 brackets each, 30 001
+   * levels of PLAIN calls past the IR bound.
+   */
+  static final String PLAIN_DESCENT = plainDescent();
+
+  /**
+   * Reference jq 1.8.2's result for {@link #PLAIN_DESCENT} on null, IrDepthTest's {@code NESTED_30001} (diff/over-cap.rec
+   * {@code over-cap/depth-30001}): 10 001 brackets, {@code <skipped: too deep>}, 10 001 brackets.
+   */
+  static final String NESTED_30001 = "[".repeat(10_001) + "<skipped: too deep>" + "]".repeat(10_001);
+
+  private static String plainDescent() {
+    StringBuilder f = new StringBuilder();
+    for (int i = 1; i <= 300; i++) f.append("def f").append(i).append(": ").append("[".repeat(100)).append(i == 1 ? "." : "f" + (i - 1)).append("]".repeat(100)).append("; ");
+    return f.append("f300").toString();
+  }
+
+  /**
+   * The 14 shapes of ADR-0046 #113 (K4 and "Rulings on the red") and #199: Spike A's T, E, M and N on {@link #ONES};
+   * the wide body W; the closure chain C; the nested drivers ND; F-30's {@code [..]|length} on DEEP; #111's collect,
+   * reduce, first-or and hold; F-95's {@link #COLLECT_DESCENT}; and #114's {@link #PLAIN_DESCENT}.
    */
   static final List<Shape> SHAPES =
       List.of(
@@ -119,7 +137,8 @@ final class CalibrationCell {
           new Shape("reduce", "def r: reduce .[] as $x (0; .+($x|r)+1); r", DeepStackFreshJvmTest.DEEP, "9998"),
           new Shape("first-or", "def l: first(.[]?|l)//7; l", DeepStackFreshJvmTest.DEEP, "7"),
           new Shape("hold", DeepStackFreshJvmTest.HOLD, "null", "0"),
-          new Shape("collect-descent", COLLECT_DESCENT, "null", "300"));
+          new Shape("collect-descent", COLLECT_DESCENT, "null", "300"),
+          new Shape("plain-descent", PLAIN_DESCENT, "null", NESTED_30001));
 
   /** The 10 000-deep native check (D4), each native's first use in its child at the deepest emit. */
   static final List<Shape> NATIVES =

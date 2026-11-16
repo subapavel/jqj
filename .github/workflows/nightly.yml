@@ -49,8 +49,8 @@ jobs:
         # As in scripts/gate-spec.sh: its children are agent-free and have no -Xmx or ulimit (F-91).
         run: ./mvnw -B -pl jq-core -am test -Pcalibration-matrix -Dgroups=calibration-matrix -Djacoco.skip=true
       - name: Cells that ran (F-91)
-        # 3 tiers × 3 threads × 2 modes × the 13 shapes of CalibrationCell.SHAPES, and the run's time.
-        run: scripts/calibration-cells.sh jq-core/target/calibration.tsv cell 234
+        # The matrix's cells, counted by scripts/calibration-cells.sh alone (ADR-0046 #199), and the run's time.
+        run: scripts/calibration-cells.sh jq-core/target/calibration.tsv matrix
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:

@@ -15,13 +15,17 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -44,8 +48,9 @@ import org.junit.jupiter.params.provider.MethodSource;
  *
  * <p>The ticket gate runs the {@code -Xint} 512 KiB column, both modes, each shape once at the committed constants as
  * the first run of its own fresh child ({@link #everyCellSwitchesBeforeTheBackstop}). The {@code calibration-matrix}
- * tag (the spec gate and nightly) runs every cell: 3 tiers × 3 threads × 2 modes × the 13 {@link
- * CalibrationCell#SHAPES}. The constants are measured in {@code -Xint} and C1, proven in warm (the adviser's K1): a
+ * tag (the spec gate and nightly) runs every cell: {@code -Xint} and C1 on platform 256 KiB, 512 KiB and 1 MiB and on
+ * virtual threads, warm on the last three, × 2 modes × the 14 {@link CalibrationCell#SHAPES} (ADR-0046 #199), 308
+ * cells. The constants are measured in {@code -Xint} and C1, proven in warm (the adviser's K1): a
  * warm search runs while the JIT compiles, so its edge is not the thread's. An {@code -Xint} cell's {@code U*} is its
  * cold edge, one bisection over fresh children, each probe the first run of its own, with the linked edge, after two
  * linking runs, beside it; a C1 cell's is the smallest of 3 warmed children. A child's search, C1's and the linked one,
@@ -58,8 +63,9 @@ import org.junit.jupiter.params.provider.MethodSource;
  * {@code target/calibration-progress.log} a line when a child or a cold search starts, and each child's rows as it
  * ends, every line led by its ISO-8601 UTC instant.
  *
- * <p>Each cell proves its thread's size (D2, F-93): the plain recursion count of its thread, against the count of a
- * 1 MiB thread of its tier, must be 1.5 to 3.5 times smaller (#111's measure-b.sh: {@code -Xint} 4 772 frames at
+ * <p>Each cell proves its thread's size (D2, F-93): the plain recursion count of its thread, against the count of the
+ * next platform thread up of its tier (the 1 MiB thread against 512 KiB, a virtual one against 1 MiB; ADR-0046 #199),
+ * must be 1.5 to 3.5 times smaller (#111's measure-b.sh: {@code -Xint} 4 772 frames at
  * 512 KiB and 10 730 at 1 MiB; a 512 KiB thread on a cached larger stack reached 10 729). The probe's recursion is
  * excluded from compilation in every child, so a JIT tier's count is stable. A cell whose size is not proven is
  * INVALID, never a pass.
@@ -80,7 +86,10 @@ class CalibrationTest {
    * The shapes whose control, declaring 1 GiB, ends STACK on a thread of at most 1 MiB, so no cell of theirs is flat
    * and c2 cannot pass empty: #111's four (measure-b.sh ended each STACK at {@code U_f} 40 000) and F-95's descent.
    */
-  private static final Set<String> NEVER_FLAT = Set.of("collect", "reduce", "first-or", "hold", "collect-descent");
+  private static final Set<String> NEVER_FLAT = Set.of("collect", "reduce", "first-or", "hold", "collect-descent", "plain-descent");
+
+  /** A result longer than this prints as its length and sha256 in rows and progress lines (ADR-0046 #199, C4). */
+  private static final int SHOWN = 200;
 
   /** Two slopes of a pair agree within the rounding of {@code b}, 8 B. */
   private static final long SLOPES_AGREE = 8;
@@ -110,7 +119,7 @@ class CalibrationTest {
 
   private static final List<Tier> TIERS = List.of(XINT, C1, WARM);
 
-  /** A thread of the matrix: platform 512 KiB and 1 MiB, and a virtual thread on a child of {@code -Xss512k}. */
+  /** A thread of the matrix: platform 256 KiB, 512 KiB and 1 MiB, and a virtual thread on a child of {@code -Xss512k}. */
   record CellThread(String kind, long bytes) {
     String xss() {
       return "-Xss" + bytes / KIB + "k";
@@ -122,7 +131,17 @@ class CalibrationTest {
     }
   }
 
-  private static final List<CellThread> THREADS = List.of(new CellThread("platform", SMALL), new CellThread("platform", LARGE), new CellThread("virtual", SMALL));
+  /** The platform threads of the matrix, smallest first: each proves against the next one up (ADR-0046 #199). */
+  private static final List<Long> PLATFORM = List.of(SMALLEST, SMALL, LARGE);
+
+  /**
+   * The threads of an {@code -Xint} or C1 cell: platform 256 KiB, 512 KiB and 1 MiB, and virtual (ADR-0046 #199);
+   * {@link CalibrationRecordTest#MEASURED_THREADS} names them as the record does.
+   */
+  private static final List<CellThread> MEASURED_THREADS = List.of(new CellThread("platform", SMALLEST), new CellThread("platform", SMALL), new CellThread("platform", LARGE), new CellThread("virtual", SMALL));
+
+  /** The threads of a warm cell, the last three of {@link #MEASURED_THREADS}: no warm 256 KiB cell (ADR-0046 #199). */
+  private static final List<CellThread> WARM_THREADS = MEASURED_THREADS.subList(1, 4);
 
   /**
    * A cold edge: the first probe's row (its constants and control), the edge ({@code -1} flat, {@code -2} fails at
@@ -183,7 +202,7 @@ class CalibrationTest {
         want.add(cell + ": " + shape.completed());
         got.add(cell + " control: " + controlVerdict(shape, r[9]));
         want.add(cell + " control: " + (NEVER_FLAT.contains(shape.id()) ? STACK : "STACK or flat"));
-        tsv.add(String.join("\t", "check", "xint", "platform", Long.toString(SMALL), mode.name(), shape.id(), r[3], r[4], r[5], r[6], r[7], r[8], r[9], Long.toString(frames), Long.toString(frames1MiB)));
+        tsv.add(String.join("\t", "check", "xint", "platform", Long.toString(SMALL), mode.name(), shape.id(), r[3], r[4], r[5], r[6], r[7], shown(r[8]), shown(r[9]), Long.toString(frames), Long.toString(frames1MiB)));
       }
     }
     tsv.addAll(environment(started));
@@ -682,11 +701,12 @@ class CalibrationTest {
    * holds when each of its {@value #WARM_CHILDREN} children gives reference jq's result in each of its {@value
    * #WARM_RUNS} runs at the thread's size ({@link #warmVerdict}); one STACK fails the test, naming the cell, the child
    * and the run. {@code -Xint} and C1 children run 4 at a time, warm children one at a time after them; each search
-   * starts from the committed record's edge when there is one. The record holds per {@code -Xint} and C1 cell {@code
-   * b_cell} (the linked slope), the linked intercept {@code S - b_cell·(U*linked + D_f)} and the cold term {@code
-   * b_cell·(U*linked - U*cold)}, and per warm cell the check's verdict in the {@code end} column. Its {@code max-b} and
-   * {@code reserve} rows are {@link CalibrationRecordTest#maxima} of the {@code -Xint} and C1 rows. A fresh run asserts
-   * one way (K7): its {@code b} and reserve are at most the constants.
+   * starts from the committed record's edge when there is one, and a cell new to the record searches unseeded. The
+   * record holds per {@code -Xint} and C1 cell {@code b_cell}, {@code b_cold}, the intercept and the cold term, each
+   * from {@link CalibrationRecordTest#derived} (ADR-0046 #199: adjacent-pair slopes, the lowest pair's intercepts), and
+   * per warm cell the check's verdict in the {@code end} column; a result longer than {@value #SHOWN} characters prints
+   * as {@link #shown}. Its {@code max-b} and {@code reserve} rows are {@link CalibrationRecordTest#maxima} of the {@code
+   * -Xint} and C1 rows. A fresh run asserts one way (K7): its {@code b} and reserve are at most the constants.
    */
   @Test
   @Tag("calibration-matrix")
@@ -698,7 +718,7 @@ class CalibrationTest {
     try (ExecutorService pool = Executors.newFixedThreadPool(4)) {
       Map<String, Future<Cold>> coldRuns = new LinkedHashMap<>();
       Map<String, List<Future<String>>> runs = new LinkedHashMap<>();
-      for (CellThread thread : THREADS) {
+      for (CellThread thread : MEASURED_THREADS) {
         for (CompileMode mode : CompileMode.values()) {
           for (Shape shape : SHAPES) {
             String cell = key(XINT, thread, mode) + " " + shape.id();
@@ -720,7 +740,7 @@ class CalibrationTest {
         }
       }
     }
-    for (CellThread thread : THREADS) {
+    for (CellThread thread : WARM_THREADS) {
       for (CompileMode mode : CompileMode.values()) {
         for (Shape shape : SHAPES) {
           String cell = key(WARM, thread, mode) + " " + shape.id();
@@ -748,24 +768,24 @@ class CalibrationTest {
     tsv.add("# The calibration record (ADR-0046 #113), written by CalibrationTest.matrixCellsSwitchBeforeTheBackstop; never edited by hand.");
     tsv.add("# cell\ttier\tkind\tthread\tmode\tshape\tD_f\tT\tb\treserve\tU*cold\tU*linked\tspread\tend(U*+1)\tcontrol\tproof\tb_cell\tb_cold\tintercept\tcold");
     List<String[]> recordRows = new ArrayList<>();
+    List<String> recordCells = new ArrayList<>();
     for (Tier tier : TIERS) {
-      for (CellThread thread : THREADS) {
+      for (CellThread thread : tier == WARM ? WARM_THREADS : MEASURED_THREADS) {
         for (CompileMode mode : CompileMode.values()) {
           for (Shape shape : SHAPES) {
             String cell = key(tier, thread, mode) + " " + shape.id();
+            recordCells.add(cell);
             if (tier == WARM) {
               // K1: a check, never a measure; its row has no edge, slope, intercept or cold term.
               List<String> children = printed.getOrDefault(cell, List.of());
               String verdict = warmVerdict(shape, children);
-              if (children.size() >= WARM_CHILDREN && !proven(proofs, tier, thread, mode, shape)) verdict = invalid(proofs, tier, mode, shape, cell);
+              if (children.size() >= WARM_CHILDREN && !proven(proofs, tier, thread, mode, shape)) verdict = invalid(proofs, tier, thread, mode, shape);
               got.add(cell + ": " + verdict);
               want.add(cell + ": " + warmHolds(shape));
               List<String[]> warm = children.isEmpty() ? List.of() : warmRows(children.getFirst(), shape.id());
               String[] first = warm.isEmpty() ? new String[10] : warm.getFirst();
               String control = warm.stream().filter(r -> r[8].equals("control")).map(r -> r[9]).findFirst().orElse("-");
-              String[] row = {"cell", tier.name(), thread.kind(), Long.toString(thread.bytes()), mode.name(), shape.id(), first[3], first[4], first[5], first[6], "-", "-", "-", verdict, control, String.valueOf(proofs.get(cell)), "-", "-", "-", "-"};
-              recordRows.add(row);
-              tsv.add(String.join("\t", row));
+              recordRows.add(new String[] {"cell", tier.name(), thread.kind(), Long.toString(thread.bytes()), mode.name(), shape.id(), first[3], first[4], first[5], first[6], "-", "-", "-", verdict, control, String.valueOf(proofs.get(cell)), "-", "-", "-", "-"});
               continue;
             }
             List<String[]> rs = cells.getOrDefault(cell, List.of());
@@ -777,39 +797,40 @@ class CalibrationTest {
             if (rs.size() < (tier == XINT ? 1 : 3) || (tier == XINT && (cold == null || cold.first() == null))) {
               verdict = "rows from " + rs.size() + " children" + (cold == null ? "" : ", cold " + cold.next());
             } else if (!proven(proofs, tier, thread, mode, shape)) {
-              verdict = invalid(proofs, tier, mode, shape, cell);
+              verdict = invalid(proofs, tier, thread, mode, shape);
             } else {
               verdict = provenVerdict(tier, thread.bytes(), shape, rs, cold);
             }
             got.add(cell + ": " + verdict);
             want.add(cell + ": " + (verdict.equals("flat") ? "flat" : "switches"));
-            long pair = slope(edges(cells, colds, tier, mode, shape, false));
-            String bCell = "-";
-            String bCold = "-";
-            String intercept = "-";
-            String coldTerm = "-";
-            if (pair > 0 && linked >= 0) {
-              long dF = Long.parseLong(first[3]);
-              bCell = Long.toString(pair);
-              intercept = Long.toString(thread.bytes() - pair * (linked + dF));
-              if (tier == XINT && coldEdge >= 0) {
-                long pairCold = slope(edges(cells, colds, tier, mode, shape, true));
-                bCold = Long.toString(pairCold);
-                coldTerm = Long.toString(pair * (linked - coldEdge));
-                if (thread.bytes() == SMALL && thread.kind().equals("platform")) {
-                  got.add(cell + " slopes: " + (Math.abs(pairCold - pair) <= SLOPES_AGREE ? "agree" : "cold " + pairCold + " against linked " + pair));
-                  want.add(cell + " slopes: agree");
-                }
-              }
-            }
-            String[] row = {
-              "cell", tier.name(), thread.kind(), Long.toString(thread.bytes()), mode.name(), shape.id(), first[3], first[4], first[5], first[6], tier == XINT ? Long.toString(coldEdge) : "-", Long.toString(linked), Long.toString(spread(rs)), tier == XINT && cold != null ? cold.next() : String.valueOf(first[8]), String.valueOf(first[9]), String.valueOf(proofs.get(cell)), bCell, bCold, intercept, coldTerm
-            };
-            recordRows.add(row);
-            tsv.add(String.join("\t", row));
+            recordRows.add(
+                new String[] {
+                  "cell", tier.name(), thread.kind(), Long.toString(thread.bytes()), mode.name(), shape.id(), first[3], first[4], first[5], first[6], tier == XINT ? Long.toString(coldEdge) : "-", Long.toString(linked), Long.toString(spread(rs)), tier == XINT && cold != null ? cold.next() : String.valueOf(first[8]), String.valueOf(first[9]), String.valueOf(proofs.get(cell)), "-", "-", "-", "-"
+                });
           }
         }
       }
+    }
+    // ADR-0046 #199: every number of the derived columns comes from the helper that maxima reads, and the cold and
+    // linked slopes of each -Xint pair agree.
+    List<CalibrationRecordTest.Derived> derived = CalibrationRecordTest.derived(recordRows);
+    for (int i = 0; i < recordRows.size(); i++) {
+      String[] row = recordRows.get(i);
+      CalibrationRecordTest.Derived d = derived.get(i);
+      if (row[1].equals(XINT.name()) && d.pairSlope().isPresent()) {
+        long pair = d.pairSlope().getAsLong();
+        boolean agree = d.pairColdSlope().isPresent() && Math.abs(d.pairColdSlope().getAsLong() - pair) <= SLOPES_AGREE;
+        got.add(recordCells.get(i) + " slopes: " + (agree ? "agree" : "cold " + field(d.pairColdSlope()) + " against linked " + pair));
+        want.add(recordCells.get(i) + " slopes: agree");
+      }
+      row[16] = field(d.bCell());
+      row[17] = field(d.bCold());
+      row[18] = field(d.intercept());
+      row[19] = field(d.cold());
+      String[] shownRow = row.clone();
+      shownRow[13] = shown(row[13]);
+      shownRow[14] = shown(row[14]);
+      tsv.add(String.join("\t", shownRow));
     }
     // K1: the summary rows are the maxima of the -Xint and C1 rows only, as constantsAreTheMatrixMaxima reads them.
     CalibrationRecordTest.Maxima fresh = CalibrationRecordTest.maxima(recordRows, guard);
@@ -829,12 +850,14 @@ class CalibrationTest {
    * The edge is exact (the {@code calibration-matrix} tag): on {@code -Xint}, a 512 KiB main thread, in each mode, the
    * cold edge {@code U*} of a bisection over fresh children gives reference jq's result as the first run of another
    * fresh child, and {@code U* + 1} ends STACK after a prefix of the reference results as the first run of a third
-   * ({@link #exactEdgeWant}, L3).
+   * ({@link #exactEdgeWant}, L3). The bisection starts from the committed record's {@code U*cold} where the record has
+   * the cell (ADR-0046 #199); each line also goes to the progress log.
    */
   @Test
   @Tag("calibration-matrix")
   void edgeIsExact() throws Exception {
     CellThread thread = new CellThread("platform", SMALL);
+    Map<String, String[]> record = committedRecord();
     Map<String, Future<String>> lines = new LinkedHashMap<>();
     List<String> got = new ArrayList<>();
     List<String> want = new ArrayList<>();
@@ -845,9 +868,13 @@ class CalibrationTest {
               mode + " " + shape.id(),
               pool.submit(
                   () -> {
-                    Cold c = cold(XINT, thread, mode, shape, -1);
-                    if (c.edge() < 0) return mode + " " + shape.id() + ": " + (c.edge() == -1 ? "flat" : "fails at U_f 0, " + c.next());
-                    return mode + " " + shape.id() + " at U* " + c.edge() + ": " + probe(XINT, thread, mode, shape, c.edge()) + " | " + probe(XINT, thread, mode, shape, c.edge() + 1);
+                    Cold c = cold(XINT, thread, mode, shape, seed(record, key(XINT, thread, mode) + " " + shape.id(), 10));
+                    String line =
+                        c.edge() < 0
+                            ? mode + " " + shape.id() + ": " + (c.edge() == -1 ? "flat" : "fails at U_f 0, " + c.next())
+                            : mode + " " + shape.id() + " at U* " + c.edge() + ": " + probe(XINT, thread, mode, shape, c.edge()) + " | " + probe(XINT, thread, mode, shape, c.edge() + 1);
+                    progress("edge " + line);
+                    return line;
                   }));
         }
       }
@@ -990,10 +1017,10 @@ class CalibrationTest {
     };
   }
 
-  private static synchronized void progress(String text) throws IOException {
+  private static synchronized void progress(String text) throws IOException, NoSuchAlgorithmException {
     Path target = Path.of(System.getProperty("basedir", "."), "target");
     Files.createDirectories(target);
-    Files.writeString(target.resolve("calibration-progress.log"), stamped(Instant.now(), text), UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    Files.writeString(target.resolve("calibration-progress.log"), stamped(Instant.now(), shown(text)), UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
   }
 
   /**
@@ -1098,9 +1125,10 @@ class CalibrationTest {
     return Arrays.stream(printed.split("\n")).map(l -> l.split("\t")).filter(r -> r.length > 9 && r[0].equals("warm") && r[2].equals(id)).toList();
   }
 
-  /** The verdict of a cell whose thread is not proven (D2): its proofs and those of its tier's platform pair. */
-  private static String invalid(Map<String, List<Long>> proofs, Tier tier, CompileMode mode, Shape shape, String cell) {
-    return "INVALID " + proofs.get(cell) + " frames; 512 KiB " + proofs.get(key(tier, new CellThread("platform", SMALL), mode) + " " + shape.id()) + ", 1 MiB " + proofs.get(key(tier, new CellThread("platform", LARGE), mode) + " " + shape.id());
+  /** The verdict of a cell whose thread is not proven (D2): its proofs and those of the thread it proves against. */
+  private static String invalid(Map<String, List<Long>> proofs, Tier tier, CellThread thread, CompileMode mode, Shape shape) {
+    CellThread against = provesAgainst(thread);
+    return "INVALID " + proofs.get(key(tier, thread, mode) + " " + shape.id()) + " frames; " + against + " " + proofs.get(key(tier, against, mode) + " " + shape.id());
   }
 
   private static String controlVerdict(Shape shape, String control) {
@@ -1182,35 +1210,47 @@ class CalibrationTest {
     return u.isEmpty() ? 0 : u.stream().mapToLong(Long::longValue).max().orElseThrow() - u.stream().mapToLong(Long::longValue).min().orElseThrow();
   }
 
-  /** The 512 KiB and 1 MiB platform edges of a pair, cold or linked; -1 where there is none. */
-  private static long[] edges(Map<String, List<String[]>> cells, Map<String, Cold> colds, Tier tier, CompileMode mode, Shape shape, boolean cold) {
-    String small = key(tier, new CellThread("platform", SMALL), mode) + " " + shape.id();
-    String large = key(tier, new CellThread("platform", LARGE), mode) + " " + shape.id();
-    if (cold) {
-      return new long[] {colds.containsKey(small) ? colds.get(small).edge() : -1, colds.containsKey(large) ? colds.get(large).edge() : -1};
-    }
-    return new long[] {edge(cells.getOrDefault(small, List.of())), edge(cells.getOrDefault(large, List.of()))};
-  }
-
-  /** The slope {@code b_cell} of a platform pair: 512 KiB over the difference of its edges, rounded up; or 0. */
-  private static long slope(long[] pair) {
-    return pair[0] >= 0 && pair[1] > pair[0] ? Math.ceilDiv(LARGE - SMALL, pair[1] - pair[0]) : 0;
+  /**
+   * The thread a cell proves against (ADR-0046 #199 "Proof"): a platform cell the next platform thread up, the 1 MiB
+   * one, the top, 512 KiB, and a virtual cell 1 MiB.
+   */
+  private static CellThread provesAgainst(CellThread thread) {
+    if (thread.kind().equals("virtual")) return new CellThread("platform", LARGE);
+    int at = PLATFORM.indexOf(thread.bytes());
+    return new CellThread("platform", PLATFORM.get(at == PLATFORM.size() - 1 ? at - 1 : at + 1));
   }
 
   /**
-   * D2: every child of the cell proves its thread against its tier's platform pair: a 512 KiB or virtual cell against
-   * the smallest 1 MiB proof, a 1 MiB cell against the largest 512 KiB one.
+   * D2: every child of the cell proves its thread against {@link #provesAgainst}: a cell below that thread against its
+   * smallest proof, the 1 MiB cell, above it, against its largest.
    */
   private static boolean proven(Map<String, List<Long>> proofs, Tier tier, CellThread thread, CompileMode mode, Shape shape) {
-    List<Long> small = proofs.getOrDefault(key(tier, new CellThread("platform", SMALL), mode) + " " + shape.id(), List.of());
-    List<Long> large = proofs.getOrDefault(key(tier, new CellThread("platform", LARGE), mode) + " " + shape.id(), List.of());
+    CellThread against = provesAgainst(thread);
+    List<Long> other = proofs.getOrDefault(key(tier, against, mode) + " " + shape.id(), List.of());
     List<Long> own = proofs.getOrDefault(key(tier, thread, mode) + " " + shape.id(), List.of());
-    if (small.isEmpty() || large.isEmpty() || own.isEmpty()) return false;
-    long smallest1MiB = large.stream().mapToLong(Long::longValue).min().orElseThrow();
-    long largest512KiB = small.stream().mapToLong(Long::longValue).max().orElseThrow();
-    return thread.bytes() == LARGE
-        ? own.stream().allMatch(f -> proofVerdict(largest512KiB, f).equals("proven"))
-        : own.stream().allMatch(f -> proofVerdict(f, smallest1MiB).equals("proven"));
+    if (other.isEmpty() || own.isEmpty()) return false;
+    long smallestAbove = other.stream().mapToLong(Long::longValue).min().orElseThrow();
+    long largestBelow = other.stream().mapToLong(Long::longValue).max().orElseThrow();
+    return against.bytes() < thread.bytes()
+        ? own.stream().allMatch(f -> proofVerdict(largestBelow, f).equals("proven"))
+        : own.stream().allMatch(f -> proofVerdict(f, smallestAbove).equals("proven"));
+  }
+
+  /** An optional number as a record field: the number, or {@code -}. */
+  private static String field(OptionalLong value) {
+    return value.isPresent() ? Long.toString(value.getAsLong()) : "-";
+  }
+
+  /**
+   * C4 (ADR-0046 #199): {@code text} as a row or progress line prints it, each shape's result longer than {@value
+   * #SHOWN} characters in it as {@code <length> chars, sha256 <hex>}. Comparisons stay on the full text.
+   */
+  static String shown(String text) throws NoSuchAlgorithmException {
+    String out = text;
+    for (Shape shape : SHAPES) {
+      if (shape.result().length() > SHOWN) out = out.replace(shape.result(), shape.result().length() + " chars, sha256 " + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(shape.result().getBytes(UTF_8))));
+    }
+    return out;
   }
 
   /** The guard pages of a fresh child (red, yellow, reserved and shadow), in bytes. */
@@ -1224,11 +1264,23 @@ class CalibrationTest {
     return pages * Long.parseLong(ChildJvm.command(dir, List.of("getconf", "PAGESIZE")).trim());
   }
 
-  private static List<String> environment(long started) {
+  /**
+   * The environment rows of a record (ADR-0046 #199 "The record"): {@code time-ms}, {@code jdk}, {@code cpus}, {@code
+   * machine} ({@code $RATCHET_MACHINE}, or {@code -} when it is unset or empty), {@code cpu} (the text after the colon
+   * of the first {@code model name} line of {@code /proc/cpuinfo}, stripped, or {@code -} without one) and {@code
+   * kernel} ({@code os.version}).
+   */
+  private static List<String> environment(long started) throws IOException {
+    String machine = System.getenv("RATCHET_MACHINE");
+    Path cpuinfo = Path.of("/proc/cpuinfo");
+    List<String> cpu = Files.isReadable(cpuinfo) ? Files.readAllLines(cpuinfo, UTF_8) : List.of();
     return List.of(
         "time-ms\t" + (System.nanoTime() - started) / 1_000_000,
         "jdk\t" + System.getProperty("java.vm.vendor") + " " + System.getProperty("java.runtime.version"),
-        "cpus\t" + Runtime.getRuntime().availableProcessors());
+        "cpus\t" + Runtime.getRuntime().availableProcessors(),
+        "machine\t" + (machine == null || machine.isEmpty() ? "-" : machine),
+        "cpu\t" + cpu.stream().filter(l -> l.startsWith("model name")).findFirst().map(l -> l.substring(l.indexOf(':') + 1).strip()).orElse("-"),
+        "kernel\t" + System.getProperty("os.version"));
   }
 
   private static void write(String name, List<String> lines) throws IOException {

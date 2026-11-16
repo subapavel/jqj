@@ -10,10 +10,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Random;
 import java.util.Set;
 import java.util.SplittableRandom;
@@ -70,21 +72,92 @@ class CalibrationRecordTest {
   record Maxima(long largestSlope, long largestIntercept, long largestCold, long bytesPerUnit, long reserve) {}
 
   /**
-   * The maxima over the {@link #MEASURED} cell rows of a record, each row split at its tabs. Columns: cell tier kind
-   * thread mode shape D_f T b reserve U*cold U*linked spread end(U*+1) control proof b_cell b_cold intercept cold. A row
-   * whose {@code b_cell} is {@code -} (flat, or no pair) gives nothing; the cold term is an {@code -Xint} row's, the only
-   * one with a numeric {@code U*cold}.
+   * What the rule of ADR-0046 #199 gives one row, each value empty where it gives none: {@code b_cell}, {@code b_cold}
+   * (the same rule on {@code U*cold}), the intercept, the cold term, and the linked and cold slopes of the pair whose
+   * upper thread is this row's.
+   */
+  record Derived(OptionalLong bCell, OptionalLong bCold, OptionalLong intercept, OptionalLong cold, OptionalLong pairSlope, OptionalLong pairColdSlope) {
+    static final Derived NONE = new Derived(OptionalLong.empty(), OptionalLong.empty(), OptionalLong.empty(), OptionalLong.empty(), OptionalLong.empty(), OptionalLong.empty());
+  }
+
+  /**
+   * Every number the calibration computes from a record's rows, each row split at its tabs, in the rows' order (ADR-0046
+   * #199): {@link #maxima} reads it, and the matrix fills its {@code b_cell}, {@code b_cold}, {@code intercept} and
+   * {@code cold} columns with it. Columns: cell tier kind thread mode shape D_f T b reserve U*cold U*linked spread
+   * end(U*+1) control proof b_cell b_cold intercept cold; the last four are not read.
+   *
+   * <p>Per {@link #MEASURED} tier, mode and shape, the platform rows with a numeric {@code U*linked}, by thread, form
+   * adjacent pairs, each with the slope {@code s = ceilDiv(ΔS, ΔU*linked)}, none where {@code U*linked} does not rise.
+   * The lowest pair is the two lowest of those threads (256 KiB → 512 KiB, or 512 KiB → 1 MiB in a record older than
+   * #199), its slope {@code s_low}. A platform row's {@code b_cell} is the largest {@code s} of its group; a virtual row's
+   * is {@code s_low}. The intercept {@code S - s_low·(U*linked + D_f)} is the lowest pair's rows' and the virtual row's,
+   * no other platform row's. The cold term {@code b_cell·(U*linked - U*cold)} is a row's with a numeric {@code U*cold},
+   * an {@code -Xint} row's. {@code b_cold} is the same rule on the pairs' {@code U*cold}. Warm rows get nothing (K1).
+   */
+  static List<Derived> derived(List<String[]> cells) {
+    Map<String, List<Integer>> groups = new LinkedHashMap<>();
+    for (int i = 0; i < cells.size(); i++) {
+      String[] r = cells.get(i);
+      if (MEASURED.contains(r[1]) && numeric(r[11])) groups.computeIfAbsent(r[1] + " " + r[4] + " " + r[5], k -> new ArrayList<>()).add(i);
+    }
+    List<Derived> derived = new ArrayList<>(Collections.nCopies(cells.size(), Derived.NONE));
+    for (List<Integer> group : groups.values()) {
+      List<Integer> platform = new ArrayList<>(group.stream().filter(i -> cells.get(i)[2].equals("platform")).toList());
+      platform.sort(Comparator.comparingLong(i -> Long.parseLong(cells.get(i)[3])));
+      List<OptionalLong> linked = new ArrayList<>(List.of(OptionalLong.empty()));
+      List<OptionalLong> cold = new ArrayList<>(List.of(OptionalLong.empty()));
+      for (int k = 1; k < platform.size(); k++) {
+        String[] lower = cells.get(platform.get(k - 1));
+        String[] upper = cells.get(platform.get(k));
+        linked.add(slope(lower, upper, 11));
+        cold.add(numeric(lower[10]) && numeric(upper[10]) ? slope(lower, upper, 10) : OptionalLong.empty());
+      }
+      // The lowest pair's slopes; none in a group of one platform row.
+      OptionalLong sLow = linked.stream().skip(1).findFirst().orElse(OptionalLong.empty());
+      OptionalLong coldLow = cold.stream().skip(1).findFirst().orElse(OptionalLong.empty());
+      OptionalLong sMax = largest(linked);
+      OptionalLong coldMax = largest(cold);
+      for (int i : group) {
+        String[] r = cells.get(i);
+        int k = platform.indexOf(i);
+        boolean virtual = r[2].equals("virtual");
+        OptionalLong bCell = virtual ? sLow : sMax;
+        OptionalLong intercept = (virtual || k < 2) && sLow.isPresent() ? OptionalLong.of(Long.parseLong(r[3]) - sLow.getAsLong() * (Long.parseLong(r[11]) + Long.parseLong(r[6]))) : OptionalLong.empty();
+        OptionalLong coldTerm = bCell.isPresent() && numeric(r[10]) ? OptionalLong.of(bCell.getAsLong() * (Long.parseLong(r[11]) - Long.parseLong(r[10]))) : OptionalLong.empty();
+        derived.set(i, new Derived(bCell, virtual ? coldLow : coldMax, intercept, coldTerm, virtual ? OptionalLong.empty() : linked.get(k), virtual ? OptionalLong.empty() : cold.get(k)));
+      }
+    }
+    return derived;
+  }
+
+  /** The slope {@code ceilDiv(ΔS, ΔU*)} of two platform rows on the edges in {@code column}, none where they do not rise. */
+  private static OptionalLong slope(String[] lower, String[] upper, int column) {
+    long units = Long.parseLong(upper[column]) - Long.parseLong(lower[column]);
+    return units > 0 ? OptionalLong.of(Math.ceilDiv(Long.parseLong(upper[3]) - Long.parseLong(lower[3]), units)) : OptionalLong.empty();
+  }
+
+  private static OptionalLong largest(List<OptionalLong> values) {
+    return values.stream().filter(OptionalLong::isPresent).mapToLong(OptionalLong::getAsLong).max();
+  }
+
+  private static boolean numeric(String field) {
+    return field.matches("\\d+");
+  }
+
+  /**
+   * The maxima over the {@link #MEASURED} cell rows of a record, each row split at its tabs, from {@link #derived}: the
+   * largest {@code b_cell}, intercept and cold term, {@code b} the largest {@code b_cell} rounded up to 8 B, the reserve
+   * the largest intercept plus the largest cold term, rounded up to 4 KiB, plus 32 KiB, and never below {@code guard}
+   * plus 32 KiB.
    */
   static Maxima maxima(List<String[]> cells, long guard) {
     long largestSlope = 0;
     long largestIntercept = Long.MIN_VALUE;
     long largestCold = 0;
-    for (String[] r : cells) {
-      if (!MEASURED.contains(r[1]) || r[16].equals("-")) continue;
-      long slope = Long.parseLong(r[16]);
-      largestSlope = Math.max(largestSlope, slope);
-      largestIntercept = Math.max(largestIntercept, Long.parseLong(r[3]) - slope * (Long.parseLong(r[11]) + Long.parseLong(r[6])));
-      if (r[10].matches("\\d+")) largestCold = Math.max(largestCold, slope * (Long.parseLong(r[11]) - Long.parseLong(r[10])));
+    for (Derived d : derived(cells)) {
+      if (d.bCell().isPresent()) largestSlope = Math.max(largestSlope, d.bCell().getAsLong());
+      if (d.intercept().isPresent()) largestIntercept = Math.max(largestIntercept, d.intercept().getAsLong());
+      if (d.cold().isPresent()) largestCold = Math.max(largestCold, d.cold().getAsLong());
     }
     long reserve = Math.max(Math.ceilDiv(largestIntercept + largestCold, 4 * KIB) * 4 * KIB + 32 * KIB, guard + 32 * KIB);
     return new Maxima(largestSlope, largestIntercept, largestCold, Math.ceilDiv(largestSlope, 8) * 8, reserve);
