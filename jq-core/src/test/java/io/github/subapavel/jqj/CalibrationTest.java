@@ -88,6 +88,12 @@ class CalibrationTest {
    */
   private static final Set<String> NEVER_FLAT = Set.of("collect", "reduce", "first-or", "hold", "collect-descent", "plain-descent");
 
+  /** The cells whose compile overflows their thread, {@code compile STACK} rows with no edge (F-109). */
+  static final Set<String> COMPILE_STACK_CELLS = Set.of();
+
+  /** The verdict and record end of a cell whose every child's compile overflowed its thread (F-109). */
+  static final String COMPILE_STACK = "compile STACK";
+
   /** A result longer than this prints as its length and sha256 in rows and progress lines (ADR-0046 #199, C4). */
   private static final int SHOWN = 200;
 
@@ -283,6 +289,48 @@ class CalibrationTest {
     assertThat(List.of(plain.filter().equals(IrDepthTest.nested(30_001)), plain.json(), plain.result().equals(IrDepthTest.NESTED_30001), NEVER_FLAT.contains(plain.id())))
         .as("plain-descent: its filter is IrDepthTest's nested(30_001) (%d chars), its input, its result is NESTED_30001 (%d chars), it is NEVER_FLAT", plain.filter().length(), plain.result().length())
         .isEqualTo(List.of(true, "null", true, true));
+  }
+
+  /**
+   * ADR-0046 "Owner's rulings on #199's C3 stops" (F-109): compiling {@code plain-descent} overflows a 256 KiB thread,
+   * so its four 256 KiB cells, {@code -Xint} and C1 in both modes, are {@code compile STACK} rows with no edge, a pinned
+   * set like {@link #NEVER_FLAT}. A 256 KiB child of each tier, compiling on the cell's thread, prints its proof and a
+   * {@code compile} row in place of the action's row (an {@code -Xint} cold probe, a C1 search). A cell of the set wants
+   * {@code compile STACK}, so one that switches fails; any other cell wants {@code switches} or {@code flat}, so a
+   * {@code compile STACK} there fails.
+   */
+  @Test
+  void onlyPlainDescentsFour256KiBCellsAreCompileStack() throws Exception {
+    CellThread smallest = new CellThread("platform", SMALLEST);
+    String xint = ChildJvm.run(dir, flags(XINT, smallest), CalibrationCell.class, "probe", "platform", Long.toString(SMALLEST), "CONSERVATIVE", "plain-descent", "-", "control");
+    String c1 = ChildJvm.run(dir, flags(C1, smallest), CalibrationCell.class, "search", "platform", Long.toString(SMALLEST), "OPTIMISED", "plain-descent", "warm");
+    String plain = " plain-descent";
+    assertThat(
+            List.of(
+                COMPILE_STACK_CELLS,
+                String.join("\t", rows(xint, "compile").getOrDefault("plain-descent", new String[] {"no compile row"})) + ", probe rows " + rows(xint, "probe").size(),
+                String.join("\t", rows(c1, "compile").getOrDefault("plain-descent", new String[] {"no compile row"})) + ", cell rows " + rows(c1, "cell").size(),
+                expected(key(XINT, smallest, CompileMode.OPTIMISED) + plain, "compile STACK"),
+                expected(key(C1, smallest, CompileMode.CONSERVATIVE) + plain, "switches"),
+                expected(key(XINT, new CellThread("platform", SMALL), CompileMode.OPTIMISED) + plain, "compile STACK"),
+                expected(key(C1, new CellThread("virtual", SMALL), CompileMode.OPTIMISED) + plain, "compile STACK"),
+                expected(key(XINT, smallest, CompileMode.OPTIMISED) + " C", "flat")))
+        .as("the pinned set, the compile rows of a 256 KiB -Xint probe child and C1 search child of plain-descent, and the want of cells with a verdict")
+        .isEqualTo(
+            List.of(
+                Set.of("xint platform 256KiB CONSERVATIVE plain-descent", "xint platform 256KiB OPTIMISED plain-descent", "c1 platform 256KiB CONSERVATIVE plain-descent", "c1 platform 256KiB OPTIMISED plain-descent"),
+                "compile\tCONSERVATIVE\tplain-descent\tSTACK, probe rows 0",
+                "compile\tOPTIMISED\tplain-descent\tSTACK, cell rows 0",
+                COMPILE_STACK,
+                COMPILE_STACK,
+                "switches",
+                "switches",
+                "flat"));
+  }
+
+  /** What the matrix wants of a measured cell given its verdict: {@link #COMPILE_STACK} for the pinned set, else it switches or is flat. */
+  static String expected(String cell, String verdict) {
+    return verdict.equals("flat") ? "flat" : "switches";
   }
 
   /**
@@ -802,7 +850,7 @@ class CalibrationTest {
               verdict = provenVerdict(tier, thread.bytes(), shape, rs, cold);
             }
             got.add(cell + ": " + verdict);
-            want.add(cell + ": " + (verdict.equals("flat") ? "flat" : "switches"));
+            want.add(cell + ": " + expected(cell, verdict));
             recordRows.add(
                 new String[] {
                   "cell", tier.name(), thread.kind(), Long.toString(thread.bytes()), mode.name(), shape.id(), first[3], first[4], first[5], first[6], tier == XINT ? Long.toString(coldEdge) : "-", Long.toString(linked), Long.toString(spread(rs)), tier == XINT && cold != null ? cold.next() : String.valueOf(first[8]), String.valueOf(first[9]), String.valueOf(proofs.get(cell)), "-", "-", "-", "-"
