@@ -300,40 +300,29 @@ class CalibrationTest {
   }
 
   /**
-   * ADR-0046 "Owner's rulings on #199's C3 stops" (F-109): compiling {@code plain-descent} overflows a 256 KiB thread,
-   * so its four 256 KiB cells, {@code -Xint} and C1 in both modes, are {@code compile STACK} rows with no edge, a pinned
-   * set like {@link #NEVER_FLAT}. A 256 KiB child of each tier, compiling on the cell's thread, prints its proof and a
-   * {@code compile} row in place of the action's row (an {@code -Xint} cold probe, a C1 search). A cell of the set wants
-   * {@code compile STACK}, so one that switches fails; any other cell wants {@code switches} or {@code flat}, so a
-   * {@code compile STACK} there fails.
+   * ADR-0046 "Owner's rulings on #199's run A stop" (F-109 widened): a calibration child compiles each cell's filter on
+   * one long-lived helper thread with a large stack and runs it on the cell's thread, so no cell is edgeless for its
+   * compile. On a 256 KiB thread, plain-descent's {@code -Xint} cold probe prints a probe row whose control ends STACK,
+   * and C1's W CONSERVATIVE search, after its warm-up runs (which C1-compile the Parser), finds a numeric {@code U*} with
+   * its control ending STACK; neither child prints a {@code compile} row. A {@code compile} verdict is wanted of no cell,
+   * plain-descent's 256 KiB ones included, so a {@code compile} row anywhere fails the matrix.
    */
   @Test
-  void onlyPlainDescentsFour256KiBCellsAreCompileStack() throws Exception {
+  void everyCellCompilesOnTheHelperThread() throws Exception {
     CellThread smallest = new CellThread("platform", SMALLEST);
     String xint = ChildJvm.run(dir, flags(XINT, smallest), CalibrationCell.class, "probe", "platform", Long.toString(SMALLEST), "CONSERVATIVE", "plain-descent", "-", "control");
-    String c1 = ChildJvm.run(dir, flags(C1, smallest), CalibrationCell.class, "search", "platform", Long.toString(SMALLEST), "OPTIMISED", "plain-descent", "warm");
-    String plain = " plain-descent";
+    String c1 = ChildJvm.run(dir, flags(C1, smallest), CalibrationCell.class, "search", "platform", Long.toString(SMALLEST), "CONSERVATIVE", "W", "warm");
+    String[] probe = rows(xint, "probe").get("plain-descent");
+    String[] cell = rows(c1, "cell").get("W");
     assertThat(
             List.of(
-                COMPILE_STACK_CELLS,
-                String.join("\t", rows(xint, "compile").getOrDefault("plain-descent", new String[] {"no compile row"})) + ", probe rows " + rows(xint, "probe").size(),
-                String.join("\t", rows(c1, "compile").getOrDefault("plain-descent", new String[] {"no compile row"})) + ", cell rows " + rows(c1, "cell").size(),
-                expected(key(XINT, smallest, CompileMode.OPTIMISED) + plain, "compile STACK"),
-                expected(key(C1, smallest, CompileMode.CONSERVATIVE) + plain, "switches"),
-                expected(key(XINT, new CellThread("platform", SMALL), CompileMode.OPTIMISED) + plain, "compile STACK"),
-                expected(key(C1, new CellThread("virtual", SMALL), CompileMode.OPTIMISED) + plain, "compile STACK"),
+                "compile rows " + rows(xint, "compile").size() + ", probe control " + (probe == null ? "no probe row" : probe[9]),
+                "compile rows " + rows(c1, "compile").size() + ", U* " + (cell == null ? "no cell row" : cell[7].matches("\\d+") ? "numeric" : cell[7]) + ", control " + (cell == null ? "-" : cell[9]),
+                expected(key(XINT, smallest, CompileMode.OPTIMISED) + " plain-descent", "compile threw java.lang.StackOverflowError"),
+                expected(key(C1, smallest, CompileMode.CONSERVATIVE) + " W", "compile threw java.lang.StackOverflowError"),
                 expected(key(XINT, smallest, CompileMode.OPTIMISED) + " C", "flat")))
-        .as("the pinned set, the compile rows of a 256 KiB -Xint probe child and C1 search child of plain-descent, and the want of cells with a verdict")
-        .isEqualTo(
-            List.of(
-                Set.of("xint platform 256KiB CONSERVATIVE plain-descent", "xint platform 256KiB OPTIMISED plain-descent", "c1 platform 256KiB CONSERVATIVE plain-descent", "c1 platform 256KiB OPTIMISED plain-descent"),
-                "compile\tCONSERVATIVE\tplain-descent\tSTACK, probe rows 0",
-                "compile\tOPTIMISED\tplain-descent\tSTACK, cell rows 0",
-                COMPILE_STACK,
-                COMPILE_STACK,
-                "switches",
-                "switches",
-                "flat"));
+        .as("a 256 KiB -Xint probe child of plain-descent and C1 search child of W, and the want of cells with a compile verdict:%n%s%n%s", xint, c1)
+        .isEqualTo(List.of("compile rows 0, probe control " + STACK, "compile rows 0, U* numeric, control " + STACK, "switches", "switches", "flat"));
   }
 
   /** What the matrix wants of a measured cell given its verdict: {@link #COMPILE_STACK} for the pinned set, else it switches or is flat. */
