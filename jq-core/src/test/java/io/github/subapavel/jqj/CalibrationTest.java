@@ -317,8 +317,8 @@ class CalibrationTest {
    * ADR-0046 "Owner's rulings on #199's second run A stop": a virtual cell waits for the helper's compile without
    * parking, spinning on {@code isDone} with {@code Thread.onSpinWait}, so it measures a virtual thread that has never
    * parked (a remounted one starts with only its top frames on the carrier); a platform cell keeps the parked {@code
-   * join()}. In-process: while the helper holds a compile open, the cell's thread, after 50 ms to settle, is sampled
-   * 200 times; a virtual one is only ever RUNNABLE, a platform one WAITING.
+   * join()}. In-process: while the helper holds a compile open, the cell's thread is sampled {@value #SAMPLES} times,
+   * a platform one once it has parked; a virtual one is only ever RUNNABLE, a platform one WAITING.
    */
   @Test
   void aVirtualCellSpinsOnTheHelperAndAPlatformCellParks() throws Exception {
@@ -341,12 +341,12 @@ class CalibrationTest {
       Thread thread = virtual ? Thread.ofVirtual().unstarted(cell) : Thread.ofPlatform().unstarted(cell);
       thread.start();
       entered.await();
-      // join() may spin a little before it parks: sample once the cell has had 50 ms to settle.
-      Thread.sleep(50);
+      // join() may spin a little before it parks: a platform cell is sampled once it has parked.
+      if (!virtual) awaitWaiting(thread);
       Set<Thread.State> states = new TreeSet<>();
-      for (int i = 0; i < 200; i++) {
+      for (int i = 0; i < SAMPLES; i++) {
         states.add(thread.getState());
-        Thread.sleep(1);
+        Thread.onSpinWait();
       }
       release.countDown();
       thread.join();
@@ -355,6 +355,21 @@ class CalibrationTest {
     assertThat(got)
         .as("the states of a cell's thread while the helper compiles")
         .isEqualTo(List.of("virtual cell waiting on the helper: [RUNNABLE]", "platform cell waiting on the helper: [WAITING]"));
+  }
+
+  /** The samples of a cell's thread state while the helper holds its compile open. */
+  private static final int SAMPLES = 10_000;
+
+  /** The spins {@link #awaitWaiting} allows a platform cell's {@code join()} before it must have parked. */
+  private static final int PARK_SPINS = 100_000_000;
+
+  /** Spins until {@code thread} is WAITING; an AssertionError if it is not within {@value #PARK_SPINS} spins. */
+  private static void awaitWaiting(Thread thread) {
+    for (int i = 0; i < PARK_SPINS; i++) {
+      if (thread.getState() == Thread.State.WAITING) return;
+      Thread.onSpinWait();
+    }
+    throw new AssertionError("the platform cell's thread did not park within " + PARK_SPINS + " spins: " + thread.getState());
   }
 
   /** What the matrix wants of a measured cell given its verdict: it switches, or it is flat; never a compile verdict. */
@@ -370,25 +385,19 @@ class CalibrationTest {
    */
   @Test
   void environmentNamesTheMachine() throws IOException {
-    Map<String, String> values = new LinkedHashMap<>();
-    List<String> fields = new ArrayList<>();
-    for (String line : environment(System.nanoTime())) {
-      String[] r = line.split("\t", -1);
-      fields.add(r[0] + ": " + r.length + " fields");
-      values.put(r[0], r[r.length - 1]);
-    }
-    assertThat(values.keySet()).as("the keys of the environment rows").containsExactlyInAnyOrder("time-ms", "jdk", "cpus", "machine", "cpu", "kernel");
-    String machine = System.getenv("RATCHET_MACHINE");
-    Path cpuinfo = Path.of("/proc/cpuinfo");
-    String model = Files.isReadable(cpuinfo) ? Files.readAllLines(cpuinfo, UTF_8).stream().filter(l -> l.startsWith("model name")).findFirst().orElse(null) : null;
-    assertThat(List.of(fields, values.get("machine"), values.get("cpu"), values.get("kernel")))
-        .as("each row's fields, and the machine, cpu and kernel values")
+    List<String> model = List.of("processor\t: 0", "model name\t: X ", "model name\t: Y");
+    List<String> noModel = List.of("processor\t: 0", "vendor_id\t: GenuineIntel");
+    assertThat(environment(System.nanoTime()).stream().map(l -> l.split("\t", -1).length + " fields " + l.substring(0, l.indexOf('\t'))).toList())
+        .as("the environment rows of this run, each a key and a value")
+        .isEqualTo(List.of("2 fields time-ms", "2 fields jdk", "2 fields cpus", "2 fields machine", "2 fields cpu", "2 fields kernel"));
+    assertThat(List.of(machineRows(null, model, "6.1.0-a"), machineRows("", noModel, "6.1.0-b"), machineRows("box-1", model, "6.1.0-c"), machineRows("box-2", List.of(), "6.1.0-d")))
+        .as("the machine, cpu and kernel rows: machine unset, empty and set; cpuinfo with a model name line, without one, empty")
         .isEqualTo(
             List.of(
-                fields.stream().map(f -> f.substring(0, f.indexOf(':')) + ": 2 fields").toList(),
-                machine == null || machine.isEmpty() ? "-" : machine,
-                model == null ? "-" : model.substring(model.indexOf(':') + 1).strip(),
-                System.getProperty("os.version")));
+                List.of("machine\t-", "cpu\tX", "kernel\t6.1.0-a"),
+                List.of("machine\t-", "cpu\t-", "kernel\t6.1.0-b"),
+                List.of("machine\tbox-1", "cpu\tX", "kernel\t6.1.0-c"),
+                List.of("machine\tbox-2", "cpu\t-", "kernel\t6.1.0-d")));
   }
 
   /**
@@ -1350,16 +1359,26 @@ class CalibrationTest {
    * kernel} ({@code os.version}).
    */
   private static List<String> environment(long started) throws IOException {
-    String machine = System.getenv("RATCHET_MACHINE");
     Path cpuinfo = Path.of("/proc/cpuinfo");
-    List<String> cpu = Files.isReadable(cpuinfo) ? Files.readAllLines(cpuinfo, UTF_8) : List.of();
+    List<String> rows =
+        new ArrayList<>(
+            List.of(
+                "time-ms\t" + (System.nanoTime() - started) / 1_000_000,
+                "jdk\t" + System.getProperty("java.vm.vendor") + " " + System.getProperty("java.runtime.version"),
+                "cpus\t" + Runtime.getRuntime().availableProcessors()));
+    rows.addAll(machineRows(System.getenv("RATCHET_MACHINE"), Files.isReadable(cpuinfo) ? Files.readAllLines(cpuinfo, UTF_8) : List.of(), System.getProperty("os.version")));
+    return rows;
+  }
+
+  /**
+   * The {@code machine}, {@code cpu} and {@code kernel} rows of {@link #environment} from their inputs: {@code machine}
+   * ({@code $RATCHET_MACHINE}, null when unset), the lines of {@code /proc/cpuinfo} and {@code os.version}.
+   */
+  static List<String> machineRows(String machine, List<String> cpuinfo, String kernel) {
     return List.of(
-        "time-ms\t" + (System.nanoTime() - started) / 1_000_000,
-        "jdk\t" + System.getProperty("java.vm.vendor") + " " + System.getProperty("java.runtime.version"),
-        "cpus\t" + Runtime.getRuntime().availableProcessors(),
         "machine\t" + (machine == null || machine.isEmpty() ? "-" : machine),
-        "cpu\t" + cpu.stream().filter(l -> l.startsWith("model name")).findFirst().map(l -> l.substring(l.indexOf(':') + 1).strip()).orElse("-"),
-        "kernel\t" + System.getProperty("os.version"));
+        "cpu\t" + cpuinfo.stream().filter(l -> l.startsWith("model name")).findFirst().map(l -> l.substring(l.indexOf(':') + 1).strip()).orElse("-"),
+        "kernel\t" + kernel);
   }
 
   private static void write(String name, List<String> lines) throws IOException {
