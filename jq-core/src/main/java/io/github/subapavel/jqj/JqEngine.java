@@ -2,7 +2,6 @@ package io.github.subapavel.jqj;
 
 import io.github.subapavel.jqj.host.Host;
 import io.github.subapavel.jqj.internal.parse.Parser;
-import io.github.subapavel.jqj.internal.parse.Resolver;
 import io.github.subapavel.jqj.query.compile.CompileMode;
 import io.github.subapavel.jqj.query.compile.Compiler;
 import java.util.Objects;
@@ -28,14 +27,13 @@ public final class JqEngine {
   }
 
   /**
-   * Compiles {@code text}: parses jq's whole grammar, then resolves it (ADR-0032). Resolved so far: {@code .}, fields,
-   * {@code |}, parentheses, literals and bare {@code @text}; any other construct is a Stub.
+   * Compiles {@code text}. Built so far: {@code .}, fields, {@code |}, parentheses, literals and bare {@code @text}; any
+   * other construct is a Stub.
    *
-   * @throws JqCompileException with jq's error blocks for a lexical, syntax or recovery error (ADR-0031), jq's
-   *     not-given error for a program without a top-level filter, or a Stub's
+   * @throws JqCompileException with one error block per bad escape run (ADR-0031), or a Stub's
    */
   public JqFilter compile(String text) {
-    return new JqFilter(Compiler.compile(Resolver.resolve(Parser.parse(text)), compileMode), limits);
+    return new JqFilter(Compiler.compile(Parser.parse(text), compileMode), limits);
   }
 
   /** A new Workspace, for one running evaluation at a time. */

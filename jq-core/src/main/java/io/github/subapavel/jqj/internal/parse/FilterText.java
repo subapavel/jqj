@@ -62,8 +62,7 @@ final class FilterText {
   /**
    * jq's error block for {@code message} at the bytes {@code [start, end)} ({@code locfile_locate} under jq's
    * {@code jq: error: %s}): the message, the line and column of {@code start}, then {@code start}'s whole line indented
-   * by four spaces, then carets under the span from {@code start} that stop at that line's end, but take at least the
-   * byte at {@code start}, its LF included (jq-ref 1.8.2, recorded: syntax/eof-after-lf).
+   * by four spaces, then carets under the span from {@code start} that stop at that line's end.
    */
   String block(String message, int start, int end) {
     int from = lineStart(start);
@@ -81,7 +80,7 @@ final class FilterText {
         + new String(bytes, from, to - from, UTF_8)
         + "\n"
         + " ".repeat(4 + start - from)
-        + "^".repeat(Math.min(end, Math.max(to, start + 1)) - start);
+        + "^".repeat(Math.min(end, to) - start);
   }
 
   /** The offset of the first byte of the line that holds the byte at {@code offset}. */
