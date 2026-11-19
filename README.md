@@ -1,5 +1,9 @@
 # jqj
 
+> **This repository is no longer developed.** The jq engine moved into
+> [Rail8](https://github.com/subapavel/rail8), under [`jq/`](https://github.com/subapavel/rail8/tree/main/jq),
+> where all further work happens. The code here is the state of 17 November 2026 and is kept for its history.
+
 An implementation of the [jq](https://jqlang.org/) language on Java 25. A filter is compiled once
 and run directly over JSON bytes, without building an object tree of the input. Built for
 integration runtimes that run the same filter on many messages, where speed and bounded memory
